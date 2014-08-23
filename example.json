@@ -1,0 +1,7 @@
+[
+    {
+        "name": "Echo",
+        "cmd": "(echo \"Hello\" >> result) && echo Hi",
+        "time": {}
+    }
+]
