@@ -86,7 +86,7 @@ func ReadJobFile(r io.Reader) ([]*Job, error) {
 func strToTimePred(s string) (TimePred, error) {
     v, err := strconv.Atoi(s)
     if err != nil {
-        return nil, err
+        return TimePred{nil, ""}, err
     }
-    return func(i int) bool { return i == v }, nil
+    return TimePred{func(i int) bool { return i == v }, s}, nil
 }

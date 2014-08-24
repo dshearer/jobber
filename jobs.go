@@ -6,6 +6,10 @@ import (
     "os/exec"
     "os"
     "io/ioutil"
+    "io"
+    "sync"
+    "fmt"
+    "strings"
 )
 
 type JobberError struct {
@@ -27,7 +31,14 @@ const (
     JobFailed             = 1
 )
 
-type TimePred func(int) bool
+type TimePred struct {
+    apply func(int) bool
+    desc string
+}
+
+func (p TimePred) String() string {
+    return p.desc
+}
 
 type Job struct {
     // params
@@ -48,13 +59,24 @@ type Job struct {
     LastRunTime time.Time
 }
 
+func (j *Job) String() string {
+    return fmt.Sprintf("%v %v %v %v %v %v \"%v\"",
+                       j.Name,
+                       j.Min,
+                       j.Hour,
+                       j.Mday,
+                       j.Mon,
+                       j.Wday,
+                       j.Cmd)
+}
+
 func NewJob(name string, cmd string) *Job {
     job := &Job{Name: name, Cmd: cmd, Status: JobGood}
-    job.Min = func (i int) bool { return true }
-    job.Hour = func (i int) bool { return true }
-    job.Mday = func (i int) bool { return true }
-    job.Mon = func (i int) bool { return true }
-    job.Wday = func (i int) bool { return true }
+    job.Min = TimePred{func (i int) bool { return true }, "*"}
+    job.Hour = TimePred{func (i int) bool { return true }, "*"}
+    job.Mday = TimePred{func (i int) bool { return true }, "*"}
+    job.Mon = TimePred{func (i int) bool { return true }, "*"}
+    job.Wday = TimePred{func (i int) bool { return true }, "*"}
     job.stdoutLogger = log.New(os.Stdout, name + " ", log.LstdFlags)
     job.stderrLogger = log.New(os.Stderr, name + " ", log.LstdFlags)
     return job
@@ -66,9 +88,15 @@ type RunLogEntry struct {
     Result  JobStatus
 }
 
+func (e *RunLogEntry) String() string {
+    return fmt.Sprintf("%v %v %v", e.Job.Name, e.Time, e.Result)
+}
+
 type JobManager struct {
-    Jobs        []*Job
-    RunLog      []RunLogEntry
+    jobs        []*Job
+    runLog      []RunLogEntry
+    waitGroup   sync.WaitGroup
+    doneChan    chan interface{}
     Shell       string
 }
 
@@ -103,25 +131,24 @@ func weekdayToInt(d time.Weekday) int {
 
 func shouldRun(now time.Time, job *Job) bool {
     // match minute
-    if !job.Min(now.Minute()) {
+    if !job.Min.apply(now.Minute()) {
         return false
-    } else if !job.Hour(now.Hour()) {
+    } else if !job.Hour.apply(now.Hour()) {
         return false
-    } else if !job.Mday(now.Day()) {
+    } else if !job.Mday.apply(now.Day()) {
         return false
-    } else if !job.Mon(monthToInt(now.Month())) {
+    } else if !job.Mon.apply(monthToInt(now.Month())) {
         return false
-    } else if !job.Wday(weekdayToInt(now.Weekday())) {
+    } else if !job.Wday.apply(weekdayToInt(now.Weekday())) {
         return false
     } else {
         return true
     }
 }
 
-func (m *JobManager) JobsToRun() []*Job {
+func (m *JobManager) jobsToRun(now time.Time) []*Job {
     jobs := make([]*Job, 0)
-    now := time.Now()
-    for _, job := range m.Jobs {
+    for _, job := range m.jobs {
         if job.Status == JobGood && shouldRun(now, job) {
             jobs = append(jobs, job)
         }
@@ -129,23 +156,76 @@ func (m *JobManager) JobsToRun() []*Job {
     return jobs
 }
 
-func (m *JobManager) Go() {
-    // make updater thread
-    resultChan := make(chan *RunRec)
-    go m.UpdaterThread(resultChan)
+func (m *JobManager) LoadJobs(r io.Reader) error {
+    jobs, err := ReadJobFile(r)
+    m.jobs = jobs
+    return err
+}
+
+func (m *JobManager) Launch(cmdChan chan ICmd) { 
+    go func (cmdChan chan ICmd) {
+        // make updater thread
+        resultChan := make(chan *RunRec)
+        defer close(resultChan)
+        go m.UpdaterThread(resultChan)
     
-    // run jobs
-    period := time.Duration(5 * time.Second)
-    for {
-        jobs := m.JobsToRun()
-        for _, job := range jobs {
-            go m.Run(job, resultChan)
+        // run jobs
+        ticker := time.Tick(time.Duration(5 * time.Second))
+        for {
+            select {
+                case now := <-ticker:
+                    for _, job := range m.jobsToRun(now) {
+                        m.waitGroup.Add(1)
+                        go m.run(job, resultChan)
+                    }
+                
+                case cmd := <-cmdChan:
+                    m.doCmd(cmd, resultChan)
+            }
         }
+    }(cmdChan)
+}
+
+func (m *JobManager) Wait() {
+    <- m.doneChan
+}
+
+func (m *JobManager) doCmd(cmd ICmd, resultChan chan *RunRec) {
+    switch cmd.(type) {
+        case *ReloadCmd:
+            reloadCmd := cmd.(*ReloadCmd)
+            
+            // wait for all outstanding jobs to end
+            m.waitGroup.Wait()
+            
+            // load new job config
+            m.LoadJobs(reloadCmd.JobFile)
+            m.waitGroup = sync.WaitGroup{}
+            
+            // send response
+            reloadCmd.RespChan() <- &SuccessCmdResp{}
         
-        time.Sleep(period)
+        case *ListJobsCmd:
+            strs := make([]string, 0, len(m.jobs))
+            for _, job := range m.jobs {
+                strs = append(strs, job.String())
+            }
+            cmd.RespChan() <- &SuccessCmdResp{strings.Join(strs, "\n")}
+        
+        case *ListHistoryCmd:
+            // wait for all outstanding jobs to end
+            m.waitGroup.Wait()
+            
+            // send response
+            strs := make([]string, 0, len(m.runLog))
+            for _, entry := range m.runLog {
+                strs = append(strs, entry.String())
+            }
+            cmd.RespChan() <- &SuccessCmdResp{strings.Join(strs, "\n")}
+        
+        default:
+            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "Unknown command."}}
     }
-    
-    close(resultChan)
 }
 
 type RunRec struct {
@@ -157,7 +237,7 @@ type RunRec struct {
     Err         *JobberError
 }
 
-func (m *JobManager) Run(job *Job, c chan *RunRec) {
+func (m *JobManager) run(job *Job, c chan *RunRec) {
     log.Println("Running " + job.Name)
     rec := &RunRec{Job: job, RunTime: time.Now(), NewStatus: JobGood}
     
@@ -240,7 +320,8 @@ func (m *JobManager) UpdaterThread(c chan *RunRec) {
             }
             rec.Job.Status = rec.NewStatus
             rec.Job.LastRunTime = rec.RunTime
-            m.RunLog = append(m.RunLog, RunLogEntry{rec.Job, rec.RunTime, rec.Job.Status})
+            m.runLog = append(m.runLog, RunLogEntry{rec.Job, rec.RunTime, rec.Job.Status})
+            m.waitGroup.Done()
         }
     }
 }
