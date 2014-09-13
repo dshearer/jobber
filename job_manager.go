@@ -45,7 +45,6 @@ func (m *JobManager) jobsToRun(now time.Time) []*Job {
     for _, job := range m.jobs {
         if job.ShouldRun(now) {
             jobs = append(jobs, job)
-        } else {
         }
     }
     return jobs
@@ -85,7 +84,6 @@ func (m *JobManager) runMainThread(cmdChan <-chan ICmd) <-chan bool {
                 if !ok {
                     /* Channel is closed. */
                     fmt.Printf("JobManager: Run rec channel closed.\n")
-                    cancel()
                     break Loop
                 } else {
                     fmt.Printf("JobManager: processing run rec.\n")
@@ -105,12 +103,8 @@ func (m *JobManager) runMainThread(cmdChan <-chan ICmd) <-chan bool {
                 }
     
             case cmd, ok := <-cmdChan:
-                fmt.Printf("JobManager: processing cmd.\n")
-                if !ok {
-                    /* Channel is closed. */
-                    log.Panicln("JobManager: Cmd channel closed unexpectedly.")
-                    break Loop
-                } else {
+                if ok {
+                    fmt.Printf("JobManager: processing cmd.\n")
                     m.doCmd(cmd, cancel)
                 }
             }

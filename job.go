@@ -10,11 +10,29 @@ import (
     "code.google.com/p/go.net/context"
 )
 
+const (
+    MaxBackoffWait = 8
+)
+
 type JobStatus uint8
 const (
     JobGood     JobStatus = 0
     JobFailed             = 1
+    JobBackoff            = 2
 )
+
+func (s JobStatus) String() string {
+    switch s {
+        case JobGood:
+            return "Good"
+            
+        case JobBackoff:
+            return "Backoff"
+            
+        default:
+            return "Failed"
+    }
+}
 
 type TimePred struct {
     apply func(int) bool
@@ -42,11 +60,16 @@ type Job struct {
     // dynamic shit
     Status      JobStatus
     LastRunTime time.Time
+    
+    // backoff after errors
+    backoffWait         int
+    backoffTillNextTry   int
 }
 
 func (j *Job) String() string {
-    return fmt.Sprintf("%v %v %v %v %v %v \"%v\"",
+    return fmt.Sprintf("%v\t%v\t\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t",
                        j.Name,
+                       j.Status,
                        j.Min,
                        j.Hour,
                        j.Mday,
@@ -97,9 +120,22 @@ func weekdayToInt(d time.Weekday) int {
 }
 
 func (job *Job) ShouldRun(now time.Time) bool {
-    if job.Status != JobGood {
+    if job.Status == JobFailed {
         return false
-    } else if !job.Min.apply(now.Minute()) {
+    } else if job.Status == JobBackoff {
+        job.backoffTillNextTry--
+        if job.backoffTillNextTry == 0 {
+            return job.shouldRun_time(now)
+        } else {
+            return false
+        }
+    } else {
+        return job.shouldRun_time(now)
+    }
+}
+
+func (job *Job) shouldRun_time(now time.Time) bool {
+    if !job.Min.apply(now.Minute()) {
         return false
     } else if !job.Hour.apply(now.Hour()) {
         return false
@@ -164,18 +200,36 @@ func (job *Job) Run(ctx context.Context, shell string) *RunRec {
     // finish execution
     err = cmd.Wait()
     if err != nil {
+        job.expBackoff()
+        rec.NewStatus = job.Status
+        
         switch err.(type) {
         case *exec.ExitError: 
-            rec.NewStatus = JobFailed
             return rec
         
         default:
             rec.Err = &JobberError{"Error", err}
-            rec.NewStatus = JobFailed
             return rec
         }
     } else {
         return rec
+    }
+}
+
+func (job *Job) expBackoff() {
+    if job.Status == JobGood {
+        job.Status = JobBackoff
+        job.backoffWait = 1
+    } else {
+        job.backoffWait *= 2
+    }
+
+    job.backoffTillNextTry = job.backoffWait
+    if job.backoffWait > MaxBackoffWait {
+        // give up
+        job.Status = JobFailed
+        job.backoffWait = 0
+        job.backoffTillNextTry = 0
     }
 }
 

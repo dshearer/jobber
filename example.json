@@ -1,12 +1,17 @@
 [
     {
         "name": "Echo",
-        "cmd": "(echo \"Hello\" >> result) && echo Hi",
+        "cmd": "(echo \"Hello\" >> result) && echo -n Hi",
         "time": {}
     },
     {
         "name": "Sleep",
         "cmd": "sleep 10",
+        "time": {}
+    },
+    {
+        "name": "Failer",
+        "cmd": ">&2 echo -n \"Shit!\" && exit 1",
         "time": {}
     }
 ]
