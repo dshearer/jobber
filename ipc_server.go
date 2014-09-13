@@ -30,6 +30,27 @@ func (s *RealIpcServer) ListJobs(arg int, result *string) error {
     }
 }
 
+func (s *RealIpcServer) ListHistory(arg int, result *string) error {
+    respChan := make(chan ICmdResp, 1)
+    cmd := &ListHistoryCmd{respChan}
+    
+    // send cmd
+    s.cmdChan <- cmd
+    
+    // get resp
+    var resp ICmdResp
+    resp = <-respChan
+    
+    if resp.IsError() {
+        errResp := resp.(*ErrorCmdResp)
+        return errResp.Error
+    } else {
+        succResp := resp.(*SuccessCmdResp)
+        *result = succResp.Details
+        return nil
+    }
+}
+
 type IpcServer struct {
     realServer RealIpcServer
     listener *net.UnixListener

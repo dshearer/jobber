@@ -3,5 +3,10 @@
         "name": "Echo",
         "cmd": "(echo \"Hello\" >> result) && echo Hi",
         "time": {}
+    },
+    {
+        "name": "Sleep",
+        "cmd": "sleep 10",
+        "time": {}
     }
 ]

@@ -29,7 +29,7 @@ func main() {
     
     // call
     var result string
-    err = rpcClient.Call("RealIpcServer.ListJobs", 1, &result)
+    err = rpcClient.Call("RealIpcServer.ListHistory", 1, &result)
     if err != nil {
         fmt.Fprintf(os.Stderr, "RPC failed: %v", err)
         os.Exit(1)
