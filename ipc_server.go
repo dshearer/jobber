@@ -9,16 +9,13 @@ type RealIpcServer struct {
     cmdChan chan ICmd
 }
 
-func (s *RealIpcServer) ListJobs(arg int, result *string) error {
-    respChan := make(chan ICmdResp, 1)
-    cmd := &ListJobsCmd{respChan}
-    
+func (s *RealIpcServer) doCmd(cmd ICmd, result *string) error {
     // send cmd
     s.cmdChan <- cmd
     
     // get resp
     var resp ICmdResp
-    resp = <-respChan
+    resp = <-cmd.RespChan()
     
     if resp.IsError() {
         errResp := resp.(*ErrorCmdResp)
@@ -30,25 +27,16 @@ func (s *RealIpcServer) ListJobs(arg int, result *string) error {
     }
 }
 
+func (s *RealIpcServer) ListJobs(arg int, result *string) error {
+    return s.doCmd(&ListJobsCmd{make(chan ICmdResp, 1)}, result)
+}
+
 func (s *RealIpcServer) ListHistory(arg int, result *string) error {
-    respChan := make(chan ICmdResp, 1)
-    cmd := &ListHistoryCmd{respChan}
-    
-    // send cmd
-    s.cmdChan <- cmd
-    
-    // get resp
-    var resp ICmdResp
-    resp = <-respChan
-    
-    if resp.IsError() {
-        errResp := resp.(*ErrorCmdResp)
-        return errResp.Error
-    } else {
-        succResp := resp.(*SuccessCmdResp)
-        *result = succResp.Details
-        return nil
-    }
+    return s.doCmd(&ListHistoryCmd{make(chan ICmdResp, 1)}, result)
+}
+
+func (s *RealIpcServer) Stop(arg int, result *string) error {
+    return s.doCmd(&StopCmd{make(chan ICmdResp, 1)}, result)
 }
 
 type IpcServer struct {

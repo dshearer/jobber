@@ -37,6 +37,10 @@ func (c *ReloadCmd) RespChan() chan ICmdResp {
     return c.respChan
 }
 
+func (c ReloadCmd) String() string {
+    return "ReloadCmd"
+}
+
 type ListJobsCmd struct {
     respChan chan ICmdResp
 }
@@ -45,10 +49,30 @@ func (c *ListJobsCmd) RespChan() chan ICmdResp {
     return c.respChan
 }
 
+func (c ListJobsCmd) String() string {
+    return "ListJobsCmd"
+}
+
 type ListHistoryCmd struct {
     respChan chan ICmdResp
 }
 
 func (c *ListHistoryCmd) RespChan() chan ICmdResp {
     return c.respChan
+}
+
+func (c ListHistoryCmd) String() string {
+    return "ListHistoryCmd"
+}
+
+type StopCmd struct {
+    respChan chan ICmdResp
+}
+
+func (c *StopCmd) RespChan() chan ICmdResp {
+    return c.respChan
+}
+
+func (c StopCmd) String() string {
+    return "StopCmd"
 }

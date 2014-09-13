@@ -34,5 +34,11 @@ func main() {
         fmt.Fprintf(os.Stderr, "RPC failed: %v", err)
         os.Exit(1)
     }
-    fmt.Printf("Result: %s", result)
+    fmt.Printf("%s\n", result)
+    
+    err = rpcClient.Call("RealIpcServer.Stop", 1, &result)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "RPC failed: %v", err)
+        os.Exit(1)
+    }
 }
