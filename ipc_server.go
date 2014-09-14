@@ -3,6 +3,7 @@ package jobber
 import (
     "net"
     "net/rpc"
+    "syscall"
 )
 
 type RealIpcServer struct {
@@ -27,16 +28,20 @@ func (s *RealIpcServer) doCmd(cmd ICmd, result *string) error {
     }
 }
 
-func (s *RealIpcServer) ListJobs(arg int, result *string) error {
-    return s.doCmd(&ListJobsCmd{make(chan ICmdResp, 1)}, result)
+func (s *RealIpcServer) Reload(user string, result *string) error {
+    return s.doCmd(&ReloadCmd{user, make(chan ICmdResp, 1)}, result)
 }
 
-func (s *RealIpcServer) ListHistory(arg int, result *string) error {
-    return s.doCmd(&ListHistoryCmd{make(chan ICmdResp, 1)}, result)
+func (s *RealIpcServer) ListJobs(user string, result *string) error {
+    return s.doCmd(&ListJobsCmd{user, make(chan ICmdResp, 1)}, result)
 }
 
-func (s *RealIpcServer) Stop(arg int, result *string) error {
-    return s.doCmd(&StopCmd{make(chan ICmdResp, 1)}, result)
+func (s *RealIpcServer) ListHistory(user string, result *string) error {
+    return s.doCmd(&ListHistoryCmd{user, make(chan ICmdResp, 1)}, result)
+}
+
+func (s *RealIpcServer) Stop(user string, result *string) error {
+    return s.doCmd(&StopCmd{user, make(chan ICmdResp, 1)}, result)
 }
 
 type IpcServer struct {
@@ -53,6 +58,9 @@ func NewIpcServer(cmdChan chan ICmd) *IpcServer {
 func (s *IpcServer) Launch() error {
     var err error
     
+    // set umask
+    oldUmask := syscall.Umask(0111)
+    
     // make socket
     addr, err := net.ResolveUnixAddr("unix", DaemonSocketAddr)
     if err != nil {
@@ -62,6 +70,9 @@ func (s *IpcServer) Launch() error {
     if err != nil {
         return err
     }
+    
+    // restore umask
+    syscall.Umask(oldUmask)
     
     // make RPC server
     rpcServer := rpc.NewServer()

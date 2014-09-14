@@ -21,7 +21,7 @@ type TimeSpec struct {
     Wday string
 }
 
-func ReadJobFile(r io.Reader) ([]*Job, error) {
+func ReadJobFile(r io.Reader, username string) ([]*Job, error) {
     // read config file
     data, err := ioutil.ReadAll(r)
     if err != nil {
@@ -36,7 +36,7 @@ func ReadJobFile(r io.Reader) ([]*Job, error) {
     // make jobs
     jobs := make([]*Job, 0, len(configs))
     for _, config := range configs {
-        job := NewJob(config.Name, config.Cmd)
+        job := NewJob(config.Name, config.Cmd, username)
         
         // min
         if len(config.Time.Min) > 0 && config.Time.Min != "*" {

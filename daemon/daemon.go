@@ -22,25 +22,21 @@ func stopServerOnSigint(server *jobber.IpcServer) {
 func main() {
     var err error
     
-    // read jobs
-    f, err := os.Open("/home/dylan/go_workspace/src/github.com/dshearer/jobber/example.json")
-    if err != nil {
-        fmt.Fprintln(os.Stderr, "Error:", err)
-        os.Exit(1)
-    }
-    
     // run them
 	cmdChan := make(chan jobber.ICmd)
-	manager := jobber.JobManager{Shell: "/bin/sh"}
-	manager.LoadJobs(f)
-	manager.Launch(cmdChan)
+	manager := jobber.NewJobManager()
+	err = manager.Launch(cmdChan)
+	if err != nil {
+        fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+        os.Exit(1)
+    }
     
     // make IPC server
     ipcServer := jobber.NewIpcServer(cmdChan)
     go stopServerOnSigint(ipcServer)
     err = ipcServer.Launch()
     if err != nil {
-        fmt.Fprintln(os.Stderr, "Error:", err)
+        fmt.Fprintf(os.Stderr, "Error: %v\n", err)
         os.Exit(1)
     }
     defer ipcServer.Stop()

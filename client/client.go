@@ -6,17 +6,19 @@ import (
     "net/rpc"
     "fmt"
     "os"
+    "os/user"
     "flag"
 )
 
 const (
-    ListCmdStr = "list"
-    LogCmdStr  = "log"
-    StopCmdStr = "stop"
+    ListCmdStr   = "list"
+    LogCmdStr    = "log"
+    ReloadCmdStr = "reload"
+    StopCmdStr   = "stop"
 )
 
 func usage() {
-    fmt.Printf("\nUsage: %v [flags] (%v|%v|%v)\nFlags:\n", os.Args[0], ListCmdStr, LogCmdStr, StopCmdStr)
+    fmt.Printf("\nUsage: %v [flags] (%v|%v|%v|%v)\nFlags:\n", os.Args[0], ListCmdStr, LogCmdStr, ReloadCmdStr, StopCmdStr)
     flag.PrintDefaults()
 }
 
@@ -54,11 +56,18 @@ func main() {
             os.Exit(1)
         }
         
+        // get current username
+        user, err := user.Current()
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "Couldn't get current user: %v\n", err)
+            os.Exit(1)
+        }
+        
         // do command
         switch flag.Arg(0) {
         case ListCmdStr:
             var result string
-            err = rpcClient.Call("RealIpcServer.ListJobs", 1, &result)
+            err = rpcClient.Call("RealIpcServer.ListJobs", user.Username, &result)
             if err != nil {
                 fmt.Fprintf(os.Stderr, "RPC failed: %v\n", err)
                 os.Exit(1)
@@ -67,7 +76,7 @@ func main() {
         
         case LogCmdStr:
             var result string
-            err = rpcClient.Call("RealIpcServer.ListHistory", 1, &result)
+            err = rpcClient.Call("RealIpcServer.ListHistory", user.Username, &result)
             if err != nil {
                 fmt.Fprintf(os.Stderr, "RPC failed: %v\n", err)
                 os.Exit(1)
@@ -76,7 +85,15 @@ func main() {
         
         case StopCmdStr:
             var result string
-            err = rpcClient.Call("RealIpcServer.Stop", 1, &result)
+            err = rpcClient.Call("RealIpcServer.Stop", user.Username, &result)
+            if err != nil {
+                fmt.Fprintf(os.Stderr, "RPC failed: %v\n", err)
+                os.Exit(1)
+            }
+        
+        case ReloadCmdStr:
+            var result string
+            err = rpcClient.Call("RealIpcServer.Reload", user.Username, &result)
             if err != nil {
                 fmt.Fprintf(os.Stderr, "RPC failed: %v\n", err)
                 os.Exit(1)

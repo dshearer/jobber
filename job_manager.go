@@ -3,11 +3,19 @@ package jobber
 import (
     "time"
     "log"
-    "io"
+    "os"
+    "os/user"
+    "path/filepath"
     "sync"
     "fmt"
     "strings"
+    "sort"
     "code.google.com/p/go.net/context"
+)
+
+const (
+    HomeDirRoot    = "/home"
+    JobberFileName = ".jobber"
 )
 
 type JobberError struct {
@@ -29,15 +37,42 @@ type RunLogEntry struct {
     Result  JobStatus
 }
 
+/* For sorting RunLogEntries: */
+type runLogEntrySorter struct {
+    entries []RunLogEntry
+}
+
+/* For sorting RunLogEntries: */
+func (s *runLogEntrySorter) Len() int {
+    return len(s.entries)
+}
+
+/* For sorting RunLogEntries: */
+func (s *runLogEntrySorter) Swap(i, j int) {
+    s.entries[i], s.entries[j] = s.entries[j], s.entries[i]
+}
+
+/* For sorting RunLogEntries: */
+func (s *runLogEntrySorter) Less(i, j int) bool {
+    return s.entries[i].Time.Before(s.entries[j].Time)
+}
+
 func (e *RunLogEntry) String() string {
-    return fmt.Sprintf("%v %v %v", e.Job.Name, e.Time, e.Result)
+    return fmt.Sprintf("%v\t%v\t%v\t%v", e.Time, e.Job.Name, e.Job.User, e.Result)
 }
 
 type JobManager struct {
     jobs            []*Job
+    loadedJobs      bool
     runLog          []RunLogEntry
     doneChan        <-chan bool
     Shell           string
+}
+
+func NewJobManager() *JobManager {
+    jm := JobManager{Shell: "/bin/sh"}
+    jm.loadedJobs = false
+    return &jm
 }
 
 func (m *JobManager) jobsToRun(now time.Time) []*Job {
@@ -50,15 +85,105 @@ func (m *JobManager) jobsToRun(now time.Time) []*Job {
     return jobs
 }
 
-func (m *JobManager) LoadJobs(r io.Reader) error {
-    jobs, err := ReadJobFile(r)
-    m.jobs = jobs
+func (m *JobManager) jobsForUser(username string) []*Job {
+    jobs := make([]*Job, 0)
+    for _, job := range m.jobs {
+        if username == job.User {
+            jobs = append(jobs, job)
+        }
+    }
+    return jobs
+}
+
+func (m *JobManager) runLogEntriesForUser(username string) []RunLogEntry {
+    entries := make([]RunLogEntry, 0)
+    for _, entry := range m.runLog {
+        if username == entry.Job.User {
+            entries = append(entries, entry)
+        }
+    }
+    return entries
+}
+
+func (m *JobManager) loadJobs() error {
+    err := filepath.Walk(HomeDirRoot, m.procHomeFile)
+    fmt.Printf("Loaded %v jobs.\n", len(m.jobs))
     return err
 }
 
-func (m *JobManager) Launch(cmdChan <-chan ICmd) {
+func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) error {
+    if err != nil {
+        return err
+    } else if path == HomeDirRoot {
+        return nil
+    } else if info.IsDir() {
+        username := filepath.Base(path)
+        
+        // check whether this user exists
+        _, err = user.Lookup(username)
+        if err == nil {
+            /* User exists. */
+            
+            jobberFilePath := filepath.Join(path, JobberFileName)
+            f, err := os.Open(jobberFilePath)
+            if err != nil {
+                if os.IsNotExist(err) {
+                    return filepath.SkipDir
+                } else {
+                    return err
+                }
+            }
+            defer f.Close()
+            newJobs, err := ReadJobFile(f, username)
+            m.jobs = append(m.jobs, newJobs...)
+        }
+        
+        return filepath.SkipDir
+    } else {
+        return nil
+    }
+}
+
+func (m *JobManager) reloadJobs(username string) error {
+    // remove user's jobs
+    newJobList := make([]*Job, 0)
+    for _, job := range m.jobs {
+        if job.User != username {
+            newJobList = append(newJobList, job)
+        }
+    }
+    fmt.Printf("Removed %v jobs.\n", len(m.jobs) - len(newJobList))
+    m.jobs = newJobList
+    
+    // reload user's .jobber file
+    jobberFilePath := filepath.Join(HomeDirRoot, username, JobberFileName)
+    f, err := os.Open(jobberFilePath)
+    if err != nil {
+        if os.IsNotExist(err) {
+            return nil
+        } else {
+            return err
+        }
+    }
+    defer f.Close()
+    newJobs, err := ReadJobFile(f, username)
+    m.jobs = append(m.jobs, newJobs...)
+    fmt.Printf("Loaded %v new jobs.\n", len(newJobs))
+    
+    return nil
+}
+
+func (m *JobManager) Launch(cmdChan <-chan ICmd) error {
+    if !m.loadedJobs {
+        err := m.loadJobs()
+        if err != nil {
+            return err
+        }
+    }
+    
     // make main thread
     m.doneChan = m.runMainThread(cmdChan)
+    return nil
 }
 
 func (m *JobManager) Wait() {
@@ -158,32 +283,40 @@ func (m *JobManager) doCmd(cmd ICmd, cancel context.CancelFunc) {
         reloadCmd := cmd.(*ReloadCmd)
         
         // load new job config
-        m.LoadJobs(reloadCmd.JobFile)
+        m.reloadJobs(cmd.RequestingUser())
         
         // send response
         reloadCmd.RespChan() <- &SuccessCmdResp{}
     
     case *ListJobsCmd:
         strs := make([]string, 0, len(m.jobs))
-        for _, job := range m.jobs {
+        for _, job := range m.jobsForUser(cmd.RequestingUser()) {
             strs = append(strs, job.String())
         }
         cmd.RespChan() <- &SuccessCmdResp{strings.Join(strs, "\n")}
     
     case *ListHistoryCmd:
+        // get run-log entries
+        entries := m.runLogEntriesForUser(cmd.RequestingUser())
+        sort.Sort(&runLogEntrySorter{entries})
+    
         // send response
         strs := make([]string, 0, len(m.runLog))
-        for _, entry := range m.runLog {
+        for _, entry := range entries {
             strs = append(strs, entry.String())
         }
         cmd.RespChan() <- &SuccessCmdResp{strings.Join(strs, "\n")}
     
     case *StopCmd:
-        // stop
-        cancel()
+        if cmd.RequestingUser() != "root" {
+            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+        } else {
+            // stop
+            cancel()
         
-        // send response
-        cmd.RespChan() <- &SuccessCmdResp{}
+            // send response
+            cmd.RespChan() <- &SuccessCmdResp{}
+        }
     
     default:
         cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "Unknown command."}}

@@ -1,7 +1,7 @@
 [
     {
         "name": "Echo",
-        "cmd": "(echo \"Hello\" >> result) && echo -n Hi",
+        "cmd": "(echo \"Hello\" >> result) && whoami",
         "time": {}
     },
     {

@@ -52,6 +52,7 @@ type Job struct {
     Mon         TimePred
     Wday        TimePred
     Cmd         string
+    User        string
     
     // other params
     stdoutLogger *log.Logger
@@ -78,8 +79,8 @@ func (j *Job) String() string {
                        j.Cmd)
 }
 
-func NewJob(name string, cmd string) *Job {
-    job := &Job{Name: name, Cmd: cmd, Status: JobGood}
+func NewJob(name string, cmd string, username string) *Job {
+    job := &Job{Name: name, Cmd: cmd, Status: JobGood, User: username}
     job.Min = TimePred{func (i int) bool { return true }, "*"}
     job.Hour = TimePred{func (i int) bool { return true }, "*"}
     job.Mday = TimePred{func (i int) bool { return true }, "*"}
@@ -163,7 +164,11 @@ func (job *Job) Run(ctx context.Context, shell string) *RunRec {
     log.Println("Running " + job.Name)
     rec := &RunRec{Job: job, RunTime: time.Now(), NewStatus: JobGood}
     
-    var cmd *exec.Cmd = exec.Command(shell, "-c", job.Cmd)
+    var cmd *exec.Cmd = exec.Command("sudo", 
+                                     "-u", job.User,
+                                     "-n", // non-interactive
+                                     "-H", // set "HOME" env var to user's home dir
+                                     shell, "-c", job.Cmd) // run user's shell and pass job.Cmd to it
     stdout, err := cmd.StdoutPipe()
     if err != nil {
         rec.Err = &JobberError{"Failed to get pipe to stdout.", err}
