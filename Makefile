@@ -8,7 +8,7 @@ build :
 
 .PHONY : install
 install : build
-	install -o root -g root -D ${DESTDIR}/bin
+	install -o root -g root -d ${DESTDIR}/bin
 	install -o root -g root ${GOPATH}/bin/client ${DESTDIR}/bin/client ${DESTDIR}/bin
 
 .PHONY : clean
