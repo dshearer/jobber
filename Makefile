@@ -8,8 +8,8 @@ build :
 
 .PHONY : install
 install : build
-	cp ${GOPATH}/bin/client ${DESTDIR}/bin/client
-	cp ${GOPATH}/bin/daemon ${DESTDIR}/bin/daemon
+	install -o root -g root -D ${DESTDIR}/bin
+	install -o root -g root ${GOPATH}/bin/client ${DESTDIR}/bin/client ${DESTDIR}/bin
 
 .PHONY : clean
 clean :
