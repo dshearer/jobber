@@ -1,5 +1,5 @@
 package jobber
 
 const (
-    DaemonSocketAddr string = "/home/dylan/jobber_daemon.sock"
+    DaemonSocketAddr string = "/var/jobber_daemon.sock"
 )

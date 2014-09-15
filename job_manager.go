@@ -208,10 +208,10 @@ func (m *JobManager) runMainThread(cmdChan <-chan ICmd) <-chan bool {
             case rec, ok := <-runRecChan:
                 if !ok {
                     /* Channel is closed. */
-                    fmt.Printf("JobManager: Run rec channel closed.\n")
+                    //fmt.Printf("JobManager: Run rec channel closed.\n")
                     break Loop
                 } else {
-                    fmt.Printf("JobManager: processing run rec.\n")
+                    //fmt.Printf("JobManager: processing run rec.\n")
                 
                     if len(rec.Stdout) > 0 {
                         rec.Job.stdoutLogger.Println(rec.Stdout)
@@ -229,7 +229,7 @@ func (m *JobManager) runMainThread(cmdChan <-chan ICmd) <-chan bool {
     
             case cmd, ok := <-cmdChan:
                 if ok {
-                    fmt.Printf("JobManager: processing cmd.\n")
+                    //fmt.Printf("JobManager: processing cmd.\n")
                     m.doCmd(cmd, cancel)
                 }
             }
@@ -266,10 +266,10 @@ func (m *JobManager) runJobRunnerThread(ctx context.Context) <-chan *RunRec {
         }
     
         // clean up
-        fmt.Printf("JobRunner: cleaning up...\n")
+        //fmt.Printf("JobRunner: cleaning up...\n")
         jobWaitGroup.Wait()
         close(runRecChan)
-        fmt.Printf("JobRunner: done cleaning up.\n")
+        //fmt.Printf("JobRunner: done cleaning up.\n")
     }()
     
     return runRecChan

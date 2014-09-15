@@ -4,6 +4,9 @@ import (
     "net"
     "net/rpc"
     "syscall"
+    "os"
+    "os/user"
+    "strconv"
 )
 
 type RealIpcServer struct {
@@ -59,20 +62,33 @@ func (s *IpcServer) Launch() error {
     var err error
     
     // set umask
-    oldUmask := syscall.Umask(0111)
+    oldUmask := syscall.Umask(0177)
     
     // make socket
     addr, err := net.ResolveUnixAddr("unix", DaemonSocketAddr)
     if err != nil {
+        syscall.Umask(oldUmask)
         return err
     }
     s.listener, err = net.ListenUnix("unix", addr)
     if err != nil {
+        syscall.Umask(oldUmask)
         return err
     }
     
     // restore umask
     syscall.Umask(oldUmask)
+    
+    // change socket's owner
+    jobberUser, err := user.Lookup("jobber_client")
+    if err != nil {
+        return err
+    }
+    uid, err := strconv.Atoi(jobberUser.Uid)
+    if err != nil {
+        return err
+    }
+    os.Chown(DaemonSocketAddr, uid, 0)
     
     // make RPC server
     rpcServer := rpc.NewServer()

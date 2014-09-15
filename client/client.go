@@ -7,6 +7,7 @@ import (
     "fmt"
     "os"
     "os/user"
+    "syscall"
     "flag"
 )
 
@@ -53,6 +54,13 @@ func main() {
         rpcClient := rpc.NewClient(conn)
         if err != nil {
             fmt.Fprintf(os.Stderr, "Couldn't make RPC client: %v\n", err)
+            os.Exit(1)
+        }
+        
+        // drop privileges
+        err = syscall.Setreuid(syscall.Getuid(), syscall.Getuid())
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "Couldn't drop privileges: %v\n", err)
             os.Exit(1)
         }
         
