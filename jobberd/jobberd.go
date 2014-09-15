@@ -1,13 +1,12 @@
 package main
 
 import (
-    "github.com/dshearer/jobber"
     "os"
     "os/signal"
     "fmt"
 )
 
-func stopServerOnSigint(server *jobber.IpcServer) {
+func stopServerOnSigint(server *IpcServer) {
     // Set up channel on which to send signal notifications.
 	// We must use a buffered channel or risk missing the signal
 	// if we're not ready to receive when the signal is sent.
@@ -23,8 +22,8 @@ func main() {
     var err error
     
     // run them
-	cmdChan := make(chan jobber.ICmd)
-	manager := jobber.NewJobManager()
+	cmdChan := make(chan ICmd)
+	manager := NewJobManager()
 	err = manager.Launch(cmdChan)
 	if err != nil {
         fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -32,7 +31,7 @@ func main() {
     }
     
     // make IPC server
-    ipcServer := jobber.NewIpcServer(cmdChan)
+    ipcServer := NewIpcServer(cmdChan)
     go stopServerOnSigint(ipcServer)
     err = ipcServer.Launch()
     if err != nil {

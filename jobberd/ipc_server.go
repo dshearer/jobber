@@ -1,6 +1,7 @@
-package jobber
+package main
 
 import (
+    "github.com/dshearer/jobber"
     "net"
     "net/rpc"
     "syscall"
@@ -65,7 +66,7 @@ func (s *IpcServer) Launch() error {
     oldUmask := syscall.Umask(0177)
     
     // make socket
-    addr, err := net.ResolveUnixAddr("unix", DaemonSocketAddr)
+    addr, err := net.ResolveUnixAddr("unix", jobber.DaemonSocketAddr)
     if err != nil {
         syscall.Umask(oldUmask)
         return err
@@ -88,7 +89,7 @@ func (s *IpcServer) Launch() error {
     if err != nil {
         return err
     }
-    os.Chown(DaemonSocketAddr, uid, 0)
+    os.Chown(jobber.DaemonSocketAddr, uid, 0)
     
     // make RPC server
     rpcServer := rpc.NewServer()

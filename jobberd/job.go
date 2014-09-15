@@ -1,4 +1,4 @@
-package jobber
+package main
 
 import (
     "log"

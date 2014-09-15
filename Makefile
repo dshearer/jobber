@@ -1,6 +1,6 @@
 DESTDIR = /usr/local
-CLIENT = client
-DAEMON = daemon
+CLIENT = jobber
+DAEMON = jobberd
 CLIENT_USER = jobber_client
 
 CLIENT_PERMS = 4755
