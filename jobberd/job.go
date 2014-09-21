@@ -4,7 +4,6 @@ import (
     "log"
     "time"
     "fmt"
-    "os"
     "os/exec"
     "io/ioutil"
     "code.google.com/p/go.net/context"
@@ -46,6 +45,7 @@ func (p TimePred) String() string {
 type Job struct {
     // params
     Name        string
+    Sec         TimePred
     Min         TimePred
     Hour        TimePred
     Mday        TimePred
@@ -68,9 +68,10 @@ type Job struct {
 }
 
 func (j *Job) String() string {
-    return fmt.Sprintf("%v\t%v\t\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t",
+    return fmt.Sprintf("%v\t%v\t\t%v\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t",
                        j.Name,
                        j.Status,
+                       j.Sec,
                        j.Min,
                        j.Hour,
                        j.Mday,
@@ -81,13 +82,12 @@ func (j *Job) String() string {
 
 func NewJob(name string, cmd string, username string) *Job {
     job := &Job{Name: name, Cmd: cmd, Status: JobGood, User: username}
+    job.Sec = TimePred{func (i int) bool { return true }, "*"}
     job.Min = TimePred{func (i int) bool { return true }, "*"}
     job.Hour = TimePred{func (i int) bool { return true }, "*"}
     job.Mday = TimePred{func (i int) bool { return true }, "*"}
     job.Mon = TimePred{func (i int) bool { return true }, "*"}
     job.Wday = TimePred{func (i int) bool { return true }, "*"}
-    job.stdoutLogger = log.New(os.Stdout, name + " ", log.LstdFlags)
-    job.stderrLogger = log.New(os.Stderr, name + " ", log.LstdFlags)
     return job
 }
 
@@ -136,7 +136,9 @@ func (job *Job) ShouldRun(now time.Time) bool {
 }
 
 func (job *Job) shouldRun_time(now time.Time) bool {
-    if !job.Min.apply(now.Minute()) {
+    if !job.Sec.apply(now.Second()) {
+        return false
+    } else if !job.Min.apply(now.Minute()) {
         return false
     } else if !job.Hour.apply(now.Hour()) {
         return false
@@ -161,14 +163,21 @@ type RunRec struct {
 }
 
 func (job *Job) Run(ctx context.Context, shell string) *RunRec {
-    log.Println("Running " + job.Name)
+    //log.Println("Running " + job.Name)
     rec := &RunRec{Job: job, RunTime: time.Now(), NewStatus: JobGood}
     
+    /*
     var cmd *exec.Cmd = exec.Command("sudo", 
                                      "-u", job.User,
                                      "-n", // non-interactive
                                      "-H", // set "HOME" env var to user's home dir
                                      shell, "-c", job.Cmd) // run user's shell and pass job.Cmd to it
+    */
+    var cmd *exec.Cmd = exec.Command("su",
+                                     "--login", // login shell
+                                     "--shell", shell,
+                                     "--command", job.Cmd,
+                                     job.User)
     stdout, err := cmd.StdoutPipe()
     if err != nil {
         rec.Err = &JobberError{"Failed to get pipe to stdout.", err}

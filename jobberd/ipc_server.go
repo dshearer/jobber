@@ -11,7 +11,7 @@ import (
 )
 
 type RealIpcServer struct {
-    cmdChan chan ICmd
+    cmdChan chan<- ICmd
 }
 
 func (s *RealIpcServer) doCmd(cmd ICmd, result *string) error {
@@ -32,20 +32,20 @@ func (s *RealIpcServer) doCmd(cmd ICmd, result *string) error {
     }
 }
 
-func (s *RealIpcServer) Reload(user string, result *string) error {
-    return s.doCmd(&ReloadCmd{user, make(chan ICmdResp, 1)}, result)
+func (s *RealIpcServer) Reload(arg jobber.IpcArg, result *string) error {
+    return s.doCmd(&ReloadCmd{arg.User, make(chan ICmdResp, 1), arg.ForAllUsers}, result)
 }
 
-func (s *RealIpcServer) ListJobs(user string, result *string) error {
-    return s.doCmd(&ListJobsCmd{user, make(chan ICmdResp, 1)}, result)
+func (s *RealIpcServer) ListJobs(arg jobber.IpcArg, result *string) error {
+    return s.doCmd(&ListJobsCmd{arg.User, make(chan ICmdResp, 1), arg.ForAllUsers}, result)
 }
 
-func (s *RealIpcServer) ListHistory(user string, result *string) error {
-    return s.doCmd(&ListHistoryCmd{user, make(chan ICmdResp, 1)}, result)
+func (s *RealIpcServer) ListHistory(arg jobber.IpcArg, result *string) error {
+    return s.doCmd(&ListHistoryCmd{arg.User, make(chan ICmdResp, 1), arg.ForAllUsers}, result)
 }
 
-func (s *RealIpcServer) Stop(user string, result *string) error {
-    return s.doCmd(&StopCmd{user, make(chan ICmdResp, 1)}, result)
+func (s *RealIpcServer) Stop(arg jobber.IpcArg, result *string) error {
+    return s.doCmd(&StopCmd{arg.User, make(chan ICmdResp, 1)}, result)
 }
 
 type IpcServer struct {
@@ -53,7 +53,7 @@ type IpcServer struct {
     listener *net.UnixListener
 }
 
-func NewIpcServer(cmdChan chan ICmd) *IpcServer {
+func NewIpcServer(cmdChan chan<- ICmd) *IpcServer {
     server := &IpcServer{}
     server.realServer.cmdChan = cmdChan
     return server
@@ -66,6 +66,7 @@ func (s *IpcServer) Launch() error {
     oldUmask := syscall.Umask(0177)
     
     // make socket
+    os.Remove(jobber.DaemonSocketAddr)
     addr, err := net.ResolveUnixAddr("unix", jobber.DaemonSocketAddr)
     if err != nil {
         syscall.Umask(oldUmask)

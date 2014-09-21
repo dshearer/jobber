@@ -1,0 +1,79 @@
+### BEGIN INIT INFO
+# Provides: jobber jobberd
+# Required-Start: $local_fs $syslog
+# Required-Stop: $local_fs $syslog
+# Default-Start:  2345
+# Default-Stop: 90
+# Short-Description: jobber
+# Description: An alternative to cron.
+### END INIT INFO
+
+prog=jobberd
+exec=/usr/local/sbin/jobberd
+lockfile=/var/lock/subsys/jobber
+pidfile=/var/run/jobber.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+start() {
+    if [ $UID -ne 0 ] ; then
+        echo "User has insufficient privilege."
+        exit 4
+    fi
+    [ -x $exec ] || exit 5
+    echo -n $"Starting $prog: "
+    daemon daemonize -p $pidfile -l $lockfile $exec
+    retval=$?
+    echo
+    [ $retval -eq 0 ] && touch $lockfile
+}
+
+stop() {
+    if [ $UID -ne 0 ] ; then
+        echo "User has insufficient privilege."
+        exit 4
+    fi
+    echo -n $"Stopping $prog: "
+    /usr/local/bin/jobber stop && success
+    retval=$?
+    echo
+    [ $retval -eq 0 ] && rm -f $lockfile $pidfile
+}
+
+restart() {
+    rh_status_q && stop
+    start
+}
+
+rh_status() {
+    # run checks to determine if the service is running or use generic status
+    status -p $pidfile $prog
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    status)
+        rh_status
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart}"
+        exit 2
+esac
+exit $?
+

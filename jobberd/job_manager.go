@@ -3,19 +3,12 @@ package main
 import (
     "time"
     "log"
-    "os"
-    "os/user"
-    "path/filepath"
+    "log/syslog"
     "sync"
     "fmt"
     "strings"
     "sort"
     "code.google.com/p/go.net/context"
-)
-
-const (
-    HomeDirRoot    = "/home"
-    JobberFileName = ".jobber"
 )
 
 type JobberError struct {
@@ -65,14 +58,27 @@ type JobManager struct {
     jobs            []*Job
     loadedJobs      bool
     runLog          []RunLogEntry
+    cmdChan         chan ICmd
     doneChan        <-chan bool
+    jobWaitGroup    sync.WaitGroup
+    logger          *log.Logger
+    errorLogger     *log.Logger
     Shell           string
 }
 
-func NewJobManager() *JobManager {
+func NewJobManager() (*JobManager, error) {
+    var err error
     jm := JobManager{Shell: "/bin/sh"}
+    jm.logger, err = syslog.NewLogger(syslog.LOG_NOTICE | syslog.LOG_CRON, 0)
+    if err != nil {
+        return nil, &JobberError{What: "Couldn't make Syslog logger.", Cause: err}
+    }
+    jm.errorLogger, err = syslog.NewLogger(syslog.LOG_ERR | syslog.LOG_CRON, 0)
+    if err != nil {
+        return nil, &JobberError{What: "Couldn't make Syslog logger.", Cause: err}
+    }
     jm.loadedJobs = false
-    return &jm
+    return &jm, nil
 }
 
 func (m *JobManager) jobsToRun(now time.Time) []*Job {
@@ -105,92 +111,33 @@ func (m *JobManager) runLogEntriesForUser(username string) []RunLogEntry {
     return entries
 }
 
-func (m *JobManager) loadJobs() error {
-    err := filepath.Walk(HomeDirRoot, m.procHomeFile)
-    fmt.Printf("Loaded %v jobs.\n", len(m.jobs))
-    return err
-}
-
-func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) error {
-    if err != nil {
-        return err
-    } else if path == HomeDirRoot {
-        return nil
-    } else if info.IsDir() {
-        username := filepath.Base(path)
-        
-        // check whether this user exists
-        _, err = user.Lookup(username)
-        if err == nil {
-            /* User exists. */
-            
-            jobberFilePath := filepath.Join(path, JobberFileName)
-            f, err := os.Open(jobberFilePath)
-            if err != nil {
-                if os.IsNotExist(err) {
-                    return filepath.SkipDir
-                } else {
-                    return err
-                }
-            }
-            defer f.Close()
-            newJobs, err := ReadJobFile(f, username)
-            m.jobs = append(m.jobs, newJobs...)
-        }
-        
-        return filepath.SkipDir
-    } else {
-        return nil
-    }
-}
-
-func (m *JobManager) reloadJobs(username string) error {
-    // remove user's jobs
-    newJobList := make([]*Job, 0)
-    for _, job := range m.jobs {
-        if job.User != username {
-            newJobList = append(newJobList, job)
-        }
-    }
-    fmt.Printf("Removed %v jobs.\n", len(m.jobs) - len(newJobList))
-    m.jobs = newJobList
-    
-    // reload user's .jobber file
-    jobberFilePath := filepath.Join(HomeDirRoot, username, JobberFileName)
-    f, err := os.Open(jobberFilePath)
-    if err != nil {
-        if os.IsNotExist(err) {
-            return nil
-        } else {
-            return err
-        }
-    }
-    defer f.Close()
-    newJobs, err := ReadJobFile(f, username)
-    m.jobs = append(m.jobs, newJobs...)
-    fmt.Printf("Loaded %v new jobs.\n", len(newJobs))
-    
-    return nil
-}
-
-func (m *JobManager) Launch(cmdChan <-chan ICmd) error {
+func (m *JobManager) Launch() (chan<- ICmd, error) {
+    m.logger.Println("Launching.")
     if !m.loadedJobs {
-        err := m.loadJobs()
+        err := m.LoadAllJobs()
         if err != nil {
-            return err
+            m.errorLogger.Printf("Failed to load jobs: %v.\n", err)
+            return nil, err
         }
     }
     
     // make main thread
-    m.doneChan = m.runMainThread(cmdChan)
-    return nil
+    m.cmdChan = make(chan ICmd)
+    m.doneChan = m.runMainThread()
+    return m.cmdChan, nil
 }
 
 func (m *JobManager) Wait() {
     <-m.doneChan
 }
 
-func (m *JobManager) runMainThread(cmdChan <-chan ICmd) <-chan bool {
+func (m *JobManager) Stop() {
+    m.cmdChan <- &StopCmd{"root", make(chan ICmdResp, 1)}
+    close(m.cmdChan)
+    m.Wait()
+}
+
+func (m *JobManager) runMainThread() <-chan bool {
     doneChan := make(chan bool, 1)
     go func() {
         /*
@@ -214,20 +161,20 @@ func (m *JobManager) runMainThread(cmdChan <-chan ICmd) <-chan bool {
                     //fmt.Printf("JobManager: processing run rec.\n")
                 
                     if len(rec.Stdout) > 0 {
-                        rec.Job.stdoutLogger.Println(rec.Stdout)
+                        m.logger.Println(rec.Stdout)
                     }
                     if len(rec.Stderr) > 0 {
-                        rec.Job.stderrLogger.Println(rec.Stderr)
+                        m.errorLogger.Println(rec.Stderr)
                     }
                     if rec.Err != nil {
-                        log.Panicln(rec.Err)
+                        m.errorLogger.Panicln(rec.Err)
                     }
                     rec.Job.Status = rec.NewStatus
                     rec.Job.LastRunTime = rec.RunTime
                     m.runLog = append(m.runLog, RunLogEntry{rec.Job, rec.RunTime, rec.Job.Status})
                 }
     
-            case cmd, ok := <-cmdChan:
+            case cmd, ok := <-m.cmdChan:
                 if ok {
                     //fmt.Printf("JobManager: processing cmd.\n")
                     m.doCmd(cmd, cancel)
@@ -247,16 +194,17 @@ func (m *JobManager) runJobRunnerThread(ctx context.Context) <-chan *RunRec {
     runRecChan := make(chan *RunRec)
     
     go func() {
-        var jobWaitGroup sync.WaitGroup
-        ticker := time.Tick(time.Duration(5 * time.Second))
+        ticker := time.Tick(time.Duration(1 * time.Second))
         Loop: for {
             select {
             case now := <-ticker:
-                for _, j := range m.jobsToRun(now) {
-                    jobWaitGroup.Add(1)
+                jobsToRun := m.jobsToRun(now)
+                for _, j := range jobsToRun {
+                    m.logger.Printf("%v: %v\n", j.User, j.Cmd)
+                    m.jobWaitGroup.Add(1)
                     go func(job *Job) {
                         runRecChan <- job.Run(ctx, m.Shell)
-                        jobWaitGroup.Done()
+                        m.jobWaitGroup.Done()
                     }(j)
                 }
         
@@ -267,7 +215,7 @@ func (m *JobManager) runJobRunnerThread(ctx context.Context) <-chan *RunRec {
     
         // clean up
         //fmt.Printf("JobRunner: cleaning up...\n")
-        jobWaitGroup.Wait()
+        m.jobWaitGroup.Wait()
         close(runRecChan)
         //fmt.Printf("JobRunner: done cleaning up.\n")
     }()
@@ -276,28 +224,53 @@ func (m *JobManager) runJobRunnerThread(ctx context.Context) <-chan *RunRec {
 }
 
 func (m *JobManager) doCmd(cmd ICmd, cancel context.CancelFunc) {
-    fmt.Printf("Got command: %v.\n", cmd);
+    //fmt.Printf("Got command: %v.\n", cmd);
     
     switch cmd.(type) {
     case *ReloadCmd:
-        reloadCmd := cmd.(*ReloadCmd)
-        
-        // load new job config
-        m.reloadJobs(cmd.RequestingUser())
+        // load jobs
+        var err error
+        if cmd.(*ReloadCmd).ForAllUsers {
+            m.logger.Printf("Reloading jobs for all users.\n")
+            m.jobs = make([]*Job, 0)
+            err = m.ReloadAllJobs()
+        } else {
+            m.logger.Printf("Reloading jobs for %v.\n", cmd.RequestingUser())
+            err = m.ReloadJobsForUser(cmd.RequestingUser())
+        }
         
         // send response
-        reloadCmd.RespChan() <- &SuccessCmdResp{}
+        if err != nil {
+            m.errorLogger.Printf("Failed to load jobs: %v.\n", err)
+            cmd.RespChan() <- &ErrorCmdResp{err}
+        } else {
+            cmd.RespChan() <- &SuccessCmdResp{}
+        }
     
     case *ListJobsCmd:
+        // get jobs
+        var jobs []*Job
+        if cmd.(*ListJobsCmd).ForAllUsers {
+            jobs = m.jobs
+        } else {
+            jobs = m.jobsForUser(cmd.RequestingUser()) 
+        }
+        
+        // send response
         strs := make([]string, 0, len(m.jobs))
-        for _, job := range m.jobsForUser(cmd.RequestingUser()) {
+        for _, job := range jobs {
             strs = append(strs, job.String())
         }
         cmd.RespChan() <- &SuccessCmdResp{strings.Join(strs, "\n")}
     
     case *ListHistoryCmd:
-        // get run-log entries
-        entries := m.runLogEntriesForUser(cmd.RequestingUser())
+        // get log entries
+        var entries []RunLogEntry
+        if cmd.(*ListHistoryCmd).ForAllUsers {
+            entries = m.runLog
+        } else {
+            entries = m.runLogEntriesForUser(cmd.RequestingUser()) 
+        }
         sort.Sort(&runLogEntrySorter{entries})
     
         // send response
@@ -312,7 +285,10 @@ func (m *JobManager) doCmd(cmd ICmd, cancel context.CancelFunc) {
             cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
         } else {
             // stop
+            m.logger.Println("Stopping.")
+            
             cancel()
+            m.jobWaitGroup.Wait()
         
             // send response
             cmd.RespChan() <- &SuccessCmdResp{}

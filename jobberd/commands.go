@@ -31,6 +31,7 @@ func (r ErrorCmdResp) IsError() bool {
 type ReloadCmd struct {
     user string
     respChan chan ICmdResp
+    ForAllUsers bool
 }
 
 func (c *ReloadCmd) RespChan() chan ICmdResp {
@@ -48,6 +49,7 @@ func (c ReloadCmd) String() string {
 type ListJobsCmd struct {
     user string
     respChan chan ICmdResp
+    ForAllUsers bool
 }
 
 func (c *ListJobsCmd) RespChan() chan ICmdResp {
@@ -65,6 +67,7 @@ func (c ListJobsCmd) String() string {
 type ListHistoryCmd struct {
     user string
     respChan chan ICmdResp
+    ForAllUsers bool
 }
 
 func (c *ListHistoryCmd) RespChan() chan ICmdResp {

@@ -3,8 +3,17 @@ package main
 import (
     "io"
     "io/ioutil"
-    "strconv"
     "encoding/json"
+    "fmt"
+    "path/filepath"
+    "os"
+    "os/user"
+)
+
+const (
+    HomeDirRoot    = "/home"
+    RootHomeDir = "/root"
+    JobberFileName = ".jobber"
 )
 
 type JobConfigEntry struct {
@@ -14,14 +23,109 @@ type JobConfigEntry struct {
 }
 
 type TimeSpec struct {
-    Min string
-    Hour string
-    Mday string
-    Mon string
-    Wday string
+    Sec *int
+    Min *int
+    Hour *int
+    Mday *int
+    Mon *int
+    Wday *int
 }
 
-func ReadJobFile(r io.Reader, username string) ([]*Job, error) {
+func (m *JobManager) LoadAllJobs() error {
+    // load jobs for normal users
+    err := filepath.Walk(HomeDirRoot, m.procHomeFile)
+    if err != nil {
+        return err
+    }
+    
+    // load jobs for root
+    err = m.LoadJobsForUser("root")
+    return err
+}
+
+func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) error {
+    if err != nil {
+        return err
+    } else if path == HomeDirRoot {
+        return nil
+    } else if info.IsDir() {
+        username := filepath.Base(path)
+        
+        // check whether this user exists
+        _, err = user.Lookup(username)
+        if err == nil {
+            /* User exists. */
+            err = m.LoadJobsForUser(username)
+            if err != nil {
+                m.errorLogger.Printf("Failed to load jobs for %v: %v.\n", username, err)
+            }
+        }
+        
+        return filepath.SkipDir
+    } else {
+        return nil
+    }
+}
+
+func (m *JobManager) ReloadAllJobs() error {
+    // remove jobs
+    amt := len(m.jobs)
+    m.jobs = make([]*Job, 0)
+    m.logger.Printf("Removed %v jobs.\n", amt)
+    
+    // reload jobs
+    err := filepath.Walk(HomeDirRoot, m.procHomeFile)
+    return err
+}
+
+func (m *JobManager) ReloadJobsForUser(username string) error {
+    // remove user's jobs
+    newJobList := make([]*Job, 0)
+    for _, job := range m.jobs {
+        if job.User != username {
+            newJobList = append(newJobList, job)
+        }
+    }
+    m.logger.Printf("Removed %v jobs.\n", len(m.jobs) - len(newJobList))
+    m.jobs = newJobList
+    
+    // reload user's jobs
+    err := m.LoadJobsForUser(username)
+    return err
+}
+
+func (m *JobManager) LoadJobsForUser(username string) error {
+    // compute .jobber file path
+    var jobberFilePath string
+    if username == "root" {
+        jobberFilePath = filepath.Join(RootHomeDir, JobberFileName)
+    } else {
+        jobberFilePath = filepath.Join(HomeDirRoot, username, JobberFileName)
+    }
+    
+    // read .jobber file
+    var newJobs []*Job
+    f, err := os.Open(jobberFilePath)
+    if err != nil {
+        if os.IsNotExist(err) {
+            newJobs = make([]*Job, 0)
+        } else {
+            return err
+        }
+    } else {
+        defer f.Close()
+        newJobs, err = readJobFile(f, username)
+        if err != nil {
+            return err
+        }
+    }
+    m.jobs = append(m.jobs, newJobs...)
+    m.logger.Printf("Loaded %v new jobs.\n", len(newJobs))
+    
+    return nil
+}
+
+func readJobFile(r io.Reader, username string) ([]*Job, error) {
     // read config file
     data, err := ioutil.ReadAll(r)
     if err != nil {
@@ -38,41 +142,49 @@ func ReadJobFile(r io.Reader, username string) ([]*Job, error) {
     for _, config := range configs {
         job := NewJob(config.Name, config.Cmd, username)
         
+        // sec
+        if config.Time.Sec != nil {
+            job.Sec, err = makeTimePred(*config.Time.Sec)
+            if err != nil {
+                return nil, err
+            }
+        }
+        
         // min
-        if len(config.Time.Min) > 0 && config.Time.Min != "*" {
-            job.Min, err = strToTimePred(config.Time.Min)
+        if config.Time.Min != nil {
+            job.Min, err = makeTimePred(*config.Time.Min)
             if err != nil {
                 return nil, err
             }
         }
         
         // hour
-        if len(config.Time.Hour) > 0 && config.Time.Hour != "*" {
-            job.Hour, err = strToTimePred(config.Time.Hour)
+        if config.Time.Hour != nil {
+            job.Hour, err = makeTimePred(*config.Time.Hour)
             if err != nil {
                 return nil, err
             }
         }
         
         // mday
-        if len(config.Time.Mday) > 0 && config.Time.Mday != "*" {
-            job.Mday, err = strToTimePred(config.Time.Mday)
+        if config.Time.Mday != nil {
+            job.Mday, err = makeTimePred(*config.Time.Mday)
             if err != nil {
                 return nil, err
             }
         }
         
         // month
-        if len(config.Time.Mon) > 0 && config.Time.Mon != "*" {
-            job.Mon, err = strToTimePred(config.Time.Mon)
+        if config.Time.Mon != nil {
+            job.Mon, err = makeTimePred(*config.Time.Mon)
             if err != nil {
                 return nil, err
             }
         }
         
         // wday
-        if len(config.Time.Wday) > 0 && config.Time.Wday != "*" {
-            job.Wday, err = strToTimePred(config.Time.Wday)
+        if config.Time.Wday != nil {
+            job.Wday, err = makeTimePred(*config.Time.Wday)
             if err != nil {
                 return nil, err
             }
@@ -83,10 +195,6 @@ func ReadJobFile(r io.Reader, username string) ([]*Job, error) {
     return jobs, nil
 }
 
-func strToTimePred(s string) (TimePred, error) {
-    v, err := strconv.Atoi(s)
-    if err != nil {
-        return TimePred{nil, ""}, err
-    }
-    return TimePred{func(i int) bool { return i == v }, s}, nil
+func makeTimePred(v int) (TimePred, error) {
+    return TimePred{func(i int) bool { return i == v }, fmt.Sprintf("%v", v)}, nil
 }
