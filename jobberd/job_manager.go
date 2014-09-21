@@ -232,7 +232,6 @@ func (m *JobManager) doCmd(cmd ICmd, cancel context.CancelFunc) {
         var err error
         if cmd.(*ReloadCmd).ForAllUsers {
             m.logger.Printf("Reloading jobs for all users.\n")
-            m.jobs = make([]*Job, 0)
             err = m.ReloadAllJobs()
         } else {
             m.logger.Printf("Reloading jobs for %v.\n", cmd.RequestingUser())
