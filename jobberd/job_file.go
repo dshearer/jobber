@@ -224,7 +224,7 @@ func getErrorHandler(name string) (*ErrorHandler, error) {
         case ErrorHandlerStopName: return &ErrorHandlerStop, nil
         case ErrorHandlerBackoffName: return &ErrorHandlerBackoff, nil
         case ErrorHandlerContinueName: return &ErrorHandlerContinue, nil
-        default: return nil, &JobberError{"Invalid failure handler: " + name, nil}
+        default: return nil, &JobberError{"Invalid error handler: " + name, nil}
     }
 }
 
