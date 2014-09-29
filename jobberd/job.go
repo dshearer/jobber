@@ -40,17 +40,65 @@ func (p TimePred) String() string {
     return p.desc
 }
 
+const (
+    ErrorHandlerStopName       = "Stop"
+    ErrorHandlerBackoffName    = "Backoff"
+    ErrorHandlerContinueName   = "Continue"
+)
+
+type ErrorHandler struct {
+    apply func(*Job)
+    desc string
+}
+
+func (h ErrorHandler) String() string {
+    return h.desc
+}
+
+var ErrorHandlerStop = ErrorHandler{
+    apply : func(job *Job) { job.Status = JobFailed },
+    desc : ErrorHandlerStopName,
+}
+
+var ErrorHandlerBackoff = ErrorHandler{
+    apply : func(job *Job) { 
+        if job.Status == JobGood {
+            job.Status = JobBackoff
+            job.backoffWait = 1
+        } else {
+            job.backoffWait *= 2
+        }
+
+        job.backoffTillNextTry = job.backoffWait
+        if job.backoffWait > MaxBackoffWait {
+            // give up
+            job.Status = JobFailed
+            job.backoffWait = 0
+            job.backoffTillNextTry = 0
+        }
+    },
+    desc : ErrorHandlerBackoffName,
+}
+
+var ErrorHandlerContinue = ErrorHandler{
+    apply : func(job *Job) { job.Status = JobGood },
+    desc : ErrorHandlerContinueName,
+}
+
 type Job struct {
     // params
-    Name        string
-    Sec         TimePred
-    Min         TimePred
-    Hour        TimePred
-    Mday        TimePred
-    Mon         TimePred
-    Wday        TimePred
-    Cmd         string
-    User        string
+    Name            string
+    Sec             TimePred
+    Min             TimePred
+    Hour            TimePred
+    Mday            TimePred
+    Mon             TimePred
+    Wday            TimePred
+    Cmd             string
+    User            string
+    ErrorHandler   *ErrorHandler
+    NotifyOnError   bool
+    NotifyOnFailure bool
     
     // other params
     stdoutLogger *log.Logger
@@ -66,7 +114,8 @@ type Job struct {
 }
 
 func (j *Job) String() string {
-    return fmt.Sprintf("%v\t%v\t\t%v\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t",
+    notifyPrefs := fmt.Sprintf("(%v,%v)", j.NotifyOnError, j.NotifyOnFailure)
+    return fmt.Sprintf("%v\t%v\t\t%v\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t%v\t%v",
                        j.Name,
                        j.Status,
                        j.Sec,
@@ -75,7 +124,9 @@ func (j *Job) String() string {
                        j.Mday,
                        j.Mon,
                        j.Wday,
-                       j.Cmd)
+                       j.Cmd,
+                       notifyPrefs,
+                       j.ErrorHandler)
 }
 
 func NewJob(name string, cmd string, username string) *Job {
@@ -86,6 +137,9 @@ func NewJob(name string, cmd string, username string) *Job {
     job.Mday = TimePred{func (i int) bool { return true }, "*"}
     job.Mon = TimePred{func (i int) bool { return true }, "*"}
     job.Wday = TimePred{func (i int) bool { return true }, "*"}
+    job.ErrorHandler = &ErrorHandlerContinue
+    job.NotifyOnError = false
+    job.NotifyOnFailure = true
     return job
 }
 
@@ -157,6 +211,7 @@ type RunRec struct {
     NewStatus   JobStatus
     Stdout      string
     Stderr      string
+    Succeeded   bool
     Err         *JobberError
 }
 
@@ -168,36 +223,24 @@ func (job *Job) Run(ctx context.Context, shell string) *RunRec {
     sudoResult, err := sudo(job.User, job.Cmd, shell, nil)
     
     if err != nil {
+        /* unexpected error while trying to run job */
         rec.Err = err
         return rec
     }
     
-    if sudoResult.Err == nil {
+    if sudoResult.Succeeded {
+        /* job succeeded */
         rec.NewStatus = JobGood
+        job.Status = rec.NewStatus
     } else {
-        job.expBackoff()
+        /* job failed: apply error-handler */
+        job.ErrorHandler.apply(job)
         rec.NewStatus = job.Status
     }
+    job.LastRunTime = rec.RunTime
     rec.Stdout = sudoResult.Stdout
     rec.Stderr = sudoResult.Stderr
     
     return rec
-}
-
-func (job *Job) expBackoff() {
-    if job.Status == JobGood {
-        job.Status = JobBackoff
-        job.backoffWait = 1
-    } else {
-        job.backoffWait *= 2
-    }
-
-    job.backoffTillNextTry = job.backoffWait
-    if job.backoffWait > MaxBackoffWait {
-        // give up
-        job.Status = JobFailed
-        job.backoffWait = 0
-        job.backoffTillNextTry = 0
-    }
 }
 

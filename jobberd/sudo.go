@@ -6,9 +6,9 @@ import (
 )
 
 type SudoResult struct {
-    Stdout string
-    Stderr string
-    Err    *exec.ExitError
+    Stdout     string
+    Stderr     string
+    Succeeded  bool
 }
 
 func sudo(user string, cmdStr string, shell string, input *string) (*SudoResult, *JobberError) {
@@ -66,8 +66,6 @@ func sudo(user string, cmdStr string, shell string, input *string) (*SudoResult,
     res := &SudoResult{}
     res.Stdout = stdoutStr
     res.Stderr = stderrStr
-    if err != nil {
-        res.Err = err.(*exec.ExitError)
-    }
+    res.Succeeded = (err == nil)
     return res, nil
 }

@@ -17,17 +17,20 @@ const (
 )
 
 type JobConfigEntry struct {
-    Name string
-    Cmd string
-    Time TimeSpec
+    Name             string
+    Cmd              string
+    Time             TimeSpec
+    OnError          string
+    NotifyOnError    *bool
+    NotifyOnFailure  *bool
 }
 
 type TimeSpec struct {
-    Sec *int
-    Min *int
+    Sec  *int
+    Min  *int
     Hour *int
     Mday *int
-    Mon *int
+    Mon  *int
     Wday *int
 }
 
@@ -142,6 +145,27 @@ func readJobFile(r io.Reader, username string) ([]*Job, error) {
     for _, config := range configs {
         job := NewJob(config.Name, config.Cmd, username)
         
+        // check name
+        if len(config.Name) == 0 {
+            return nil, &JobberError{"Job name cannot be empty.", nil}
+        }
+        
+        // set failure-handler
+        if len(config.OnError) > 0 {
+            job.ErrorHandler, err = getErrorHandler(config.OnError)
+            if err != nil {
+                return nil, err
+            }
+        }
+        
+        // set notify prefs
+        if config.NotifyOnError != nil {
+            job.NotifyOnError = *config.NotifyOnError
+        }
+        if config.NotifyOnFailure != nil {
+            job.NotifyOnFailure = *config.NotifyOnFailure
+        }
+        
         // sec
         if config.Time.Sec != nil {
             job.Sec, err = makeTimePred(*config.Time.Sec)
@@ -193,6 +217,15 @@ func readJobFile(r io.Reader, username string) ([]*Job, error) {
         jobs = append(jobs, job)
     }
     return jobs, nil
+}
+
+func getErrorHandler(name string) (*ErrorHandler, error) {
+    switch name {
+        case ErrorHandlerStopName: return &ErrorHandlerStop, nil
+        case ErrorHandlerBackoffName: return &ErrorHandlerBackoff, nil
+        case ErrorHandlerContinueName: return &ErrorHandlerContinue, nil
+        default: return nil, &JobberError{"Invalid failure handler: " + name, nil}
+    }
 }
 
 func makeTimePred(v int) (TimePred, error) {

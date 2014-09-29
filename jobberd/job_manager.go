@@ -25,9 +25,10 @@ func (e *JobberError) Error() string {
 }
 
 type RunLogEntry struct {
-    Job     *Job
-    Time    time.Time
-    Result  JobStatus
+    Job        *Job
+    Time       time.Time
+    Succeeded  bool
+    Result     JobStatus
 }
 
 /* For sorting RunLogEntries: */
@@ -51,7 +52,7 @@ func (s *runLogEntrySorter) Less(i, j int) bool {
 }
 
 func (e *RunLogEntry) String() string {
-    return fmt.Sprintf("%v\t%v\t%v\t%v", e.Time, e.Job.Name, e.Job.User, e.Result)
+    return fmt.Sprintf("%v\t%v\t%v\t%v\t%v", e.Time, e.Job.Name, e.Job.User, e.Succeeded, e.Result)
 }
 
 type JobManager struct {
@@ -169,13 +170,14 @@ func (m *JobManager) runMainThread() <-chan bool {
                     if rec.Err != nil {
                         m.errorLogger.Panicln(rec.Err)
                     }
-                    rec.Job.Status = rec.NewStatus
-                    rec.Job.LastRunTime = rec.RunTime
-                    m.runLog = append(m.runLog, RunLogEntry{rec.Job, rec.RunTime, rec.Job.Status})
                     
-                    if rec.NewStatus != JobGood {
+                    m.runLog = append(m.runLog, RunLogEntry{rec.Job, rec.RunTime, rec.Succeeded, rec.NewStatus})
+                    
+                    /* NOTE: error-handler was already applied by the job, if necessary. */
+                    
+                    if (!rec.Succeeded && rec.Job.NotifyOnError) ||
+                        (rec.Job.NotifyOnFailure && rec.NewStatus == JobFailed) {
                         // notify user
-                        m.logger.Println("Notifying user.")
                         headers := fmt.Sprintf("To: %v\r\nFrom: %v\r\nSubject: \"%v\" failed.", rec.Job.User, rec.Job.User, rec.Job.Name)
                         bod := fmt.Sprintf("Job \"%v\" failed.  New status: %v.\r\n\r\nStdout:\r\n%v\r\n\r\nStderr:\r\n%v", rec.Job.Name, rec.Job.Status, rec.Stdout, rec.Stderr)
                         msg := fmt.Sprintf("%s\r\n\r\n%s.\r\n", headers, bod)
@@ -183,7 +185,7 @@ func (m *JobManager) runMainThread() <-chan bool {
                         sudoResult, err := sudo(rec.Job.User, sendmailCmd, "/bin/sh", &msg)
                         if err != nil {
                             m.errorLogger.Println("Failed to send mail: %v", err)
-                        } else if sudoResult.Err != nil {
+                        } else if !sudoResult.Succeeded {
                             m.errorLogger.Println("Failed to send mail: %v", sudoResult.Stderr)
                         }
                     }
