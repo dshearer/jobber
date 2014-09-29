@@ -172,6 +172,21 @@ func (m *JobManager) runMainThread() <-chan bool {
                     rec.Job.Status = rec.NewStatus
                     rec.Job.LastRunTime = rec.RunTime
                     m.runLog = append(m.runLog, RunLogEntry{rec.Job, rec.RunTime, rec.Job.Status})
+                    
+                    if rec.NewStatus != JobGood {
+                        // notify user
+                        m.logger.Println("Notifying user.")
+                        headers := fmt.Sprintf("To: %v\r\nFrom: %v\r\nSubject: \"%v\" failed.", rec.Job.User, rec.Job.User, rec.Job.Name)
+                        bod := fmt.Sprintf("Job \"%v\" failed.  New status: %v.\r\n\r\nStdout:\r\n%v\r\n\r\nStderr:\r\n%v", rec.Job.Name, rec.Job.Status, rec.Stdout, rec.Stderr)
+                        msg := fmt.Sprintf("%s\r\n\r\n%s.\r\n", headers, bod)
+                        sendmailCmd := fmt.Sprintf("sendmail %v", rec.Job.User)
+                        sudoResult, err := sudo(rec.Job.User, sendmailCmd, "/bin/sh", &msg)
+                        if err != nil {
+                            m.errorLogger.Println("Failed to send mail: %v", err)
+                        } else if sudoResult.Err != nil {
+                            m.errorLogger.Println("Failed to send mail: %v", sudoResult.Stderr)
+                        }
+                    }
                 }
     
             case cmd, ok := <-m.cmdChan:

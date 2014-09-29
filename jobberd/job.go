@@ -4,8 +4,6 @@ import (
     "log"
     "time"
     "fmt"
-    "os/exec"
-    "io/ioutil"
     "code.google.com/p/go.net/context"
 )
 
@@ -123,15 +121,15 @@ func weekdayToInt(d time.Weekday) int {
 func (job *Job) ShouldRun(now time.Time) bool {
     if job.Status == JobFailed {
         return false
-    } else if job.Status == JobBackoff {
-        job.backoffTillNextTry--
-        if job.backoffTillNextTry == 0 {
-            return job.shouldRun_time(now)
+    } else if job.shouldRun_time(now) {
+        if job.Status == JobBackoff {
+            job.backoffTillNextTry--
+            return job.backoffTillNextTry <= 0
         } else {
-            return false
+            return true
         }
     } else {
-        return job.shouldRun_time(now)
+        return false
     }
 }
 
@@ -164,70 +162,26 @@ type RunRec struct {
 
 func (job *Job) Run(ctx context.Context, shell string) *RunRec {
     //log.Println("Running " + job.Name)
-    rec := &RunRec{Job: job, RunTime: time.Now(), NewStatus: JobGood}
+    rec := &RunRec{Job: job, RunTime: time.Now()}
     
-    /*
-    var cmd *exec.Cmd = exec.Command("sudo", 
-                                     "-u", job.User,
-                                     "-n", // non-interactive
-                                     "-H", // set "HOME" env var to user's home dir
-                                     shell, "-c", job.Cmd) // run user's shell and pass job.Cmd to it
-    */
-    var cmd *exec.Cmd = exec.Command("su",
-                                     "--login", // login shell
-                                     "--shell", shell,
-                                     "--command", job.Cmd,
-                                     job.User)
-    stdout, err := cmd.StdoutPipe()
+    var sudoResult *SudoResult
+    sudoResult, err := sudo(job.User, job.Cmd, shell, nil)
+    
     if err != nil {
-        rec.Err = &JobberError{"Failed to get pipe to stdout.", err}
-        return rec
-    }
-    stderr, err := cmd.StderrPipe()
-    if err != nil {
-        rec.Err = &JobberError{"Failed to get pipe to stderr.", err}
+        rec.Err = err
         return rec
     }
     
-    // start cmd
-    if err := cmd.Start(); err != nil {
-        /* Failed to start command. */
-        rec.Stderr = "Failed to run: " + err.Error()
-        rec.NewStatus = JobFailed
-        return rec
-    }
-    
-    // read output
-    stdoutBytes, err := ioutil.ReadAll(stdout)
-    if err != nil {
-        rec.Err = &JobberError{"Failed to read stdout.", err}
-        return rec
-    }
-    rec.Stdout = string(stdoutBytes)
-    stderrBytes, err := ioutil.ReadAll(stderr)
-    if err != nil {
-        rec.Err = &JobberError{"Failed to read stderr.", err}
-        return rec
-    }
-    rec.Stderr = string(stderrBytes)
-    
-    // finish execution
-    err = cmd.Wait()
-    if err != nil {
+    if sudoResult.Err == nil {
+        rec.NewStatus = JobGood
+    } else {
         job.expBackoff()
         rec.NewStatus = job.Status
-        
-        switch err.(type) {
-        case *exec.ExitError: 
-            return rec
-        
-        default:
-            rec.Err = &JobberError{"Error", err}
-            return rec
-        }
-    } else {
-        return rec
     }
+    rec.Stdout = sudoResult.Stdout
+    rec.Stderr = sudoResult.Stderr
+    
+    return rec
 }
 
 func (job *Job) expBackoff() {
