@@ -9,6 +9,8 @@ import (
     "strings"
     "sort"
     "code.google.com/p/go.net/context"
+    "text/tabwriter"
+    "bytes"
 )
 
 type JobberError struct {
@@ -49,10 +51,6 @@ func (s *runLogEntrySorter) Swap(i, j int) {
 /* For sorting RunLogEntries: */
 func (s *runLogEntrySorter) Less(i, j int) bool {
     return s.entries[i].Time.Before(s.entries[j].Time)
-}
-
-func (e *RunLogEntry) String() string {
-    return fmt.Sprintf("%v\t%v\t%v\t%v\t%v", e.Time, e.Job.Name, e.Job.User, e.Succeeded, e.Result)
 }
 
 type JobManager struct {
@@ -295,12 +293,32 @@ func (m *JobManager) doCmd(cmd ICmd, stopJobRunThreadFunc func()) {
             jobs = m.jobsForUser(cmd.RequestingUser()) 
         }
         
-        // send response
+        // make response
+        var buffer bytes.Buffer
+        var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5, 0, 2, ' ', 0)
+        fmt.Fprintf(writer, "NAME\tSTATUS\tSEC\tMIN\tHOUR\tMDAY\tMONTH\tWDAY\tCOMMAND\tNOTIFY ON ERROR\tNOTIFY ON FAILURE\tERROR HANDLER\t\n")
         strs := make([]string, 0, len(m.jobs))
-        for _, job := range jobs {
-            strs = append(strs, job.String())
+        for _, j := range jobs {
+            s := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t%v\t%v\t%v\t",
+                               j.Name,
+                               j.Status,
+                               j.Sec,
+                               j.Min,
+                               j.Hour,
+                               j.Mday,
+                               j.Mon,
+                               j.Wday,
+                               j.Cmd,
+                               j.NotifyOnError,
+                               j.NotifyOnFailure,
+                               j.ErrorHandler)
+            strs = append(strs, s)
         }
-        cmd.RespChan() <- &SuccessCmdResp{strings.Join(strs, "\n")}
+        fmt.Fprintf(writer, "%v", strings.Join(strs, "\n"))
+        writer.Flush()
+        
+        // send response
+        cmd.RespChan() <- &SuccessCmdResp{buffer.String()}
     
     case *ListHistoryCmd:
         /* Policy: Only root can see the histories of other users' jobs. */
@@ -318,13 +336,21 @@ func (m *JobManager) doCmd(cmd ICmd, stopJobRunThreadFunc func()) {
             entries = m.runLogEntriesForUser(cmd.RequestingUser()) 
         }
         sort.Sort(&runLogEntrySorter{entries})
+        
+        // make response
+        var buffer bytes.Buffer
+        var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5, 0, 2, ' ', 0)
+        fmt.Fprintf(writer, "TIME\tJOB\tUSER\tSUCCEEDED\tRESULT\t\n")
+        strs := make([]string, 0, len(m.jobs))
+        for _, e := range entries {
+            s := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t", e.Time, e.Job.Name, e.Job.User, e.Succeeded, e.Result)
+            strs = append(strs, s)
+        }
+        fmt.Fprintf(writer, "%v", strings.Join(strs, "\n"))
+        writer.Flush()
     
         // send response
-        strs := make([]string, 0, len(m.runLog))
-        for _, entry := range entries {
-            strs = append(strs, entry.String())
-        }
-        cmd.RespChan() <- &SuccessCmdResp{strings.Join(strs, "\n")}
+        cmd.RespChan() <- &SuccessCmdResp{buffer.String()}
     
     case *StopCmd:
         /* Policy: Only root can stop jobberd. */

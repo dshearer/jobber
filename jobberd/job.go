@@ -114,19 +114,7 @@ type Job struct {
 }
 
 func (j *Job) String() string {
-    notifyPrefs := fmt.Sprintf("(%v,%v)", j.NotifyOnError, j.NotifyOnFailure)
-    return fmt.Sprintf("%v\t%v\t\t%v\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t%v\t%v",
-                       j.Name,
-                       j.Status,
-                       j.Sec,
-                       j.Min,
-                       j.Hour,
-                       j.Mday,
-                       j.Mon,
-                       j.Wday,
-                       j.Cmd,
-                       notifyPrefs,
-                       j.ErrorHandler)
+    return j.Name
 }
 
 func NewJob(name string, cmd string, username string) *Job {
