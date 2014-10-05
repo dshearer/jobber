@@ -113,7 +113,7 @@ func (m *JobManager) runLogEntriesForUser(username string) []RunLogEntry {
 func (m *JobManager) Launch() (chan<- ICmd, error) {
     m.logger.Println("Launching.")
     if !m.loadedJobs {
-        err := m.LoadAllJobs()
+        _, err := m.LoadAllJobs()
         if err != nil {
             m.errorLogger.Printf("Failed to load jobs: %v.\n", err)
             return nil, err
@@ -256,6 +256,7 @@ func (m *JobManager) doCmd(cmd ICmd, stopJobRunThreadFunc func()) {
         
         // load jobs
         var err error
+        var amt int
         if cmd.(*ReloadCmd).ForAllUsers {
             if cmd.RequestingUser() != "root" {
                 cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
@@ -263,10 +264,10 @@ func (m *JobManager) doCmd(cmd ICmd, stopJobRunThreadFunc func()) {
             }
             
             m.logger.Printf("Reloading jobs for all users.\n")
-            err = m.ReloadAllJobs()
+            amt, err = m.ReloadAllJobs()
         } else {
             m.logger.Printf("Reloading jobs for %v.\n", cmd.RequestingUser())
-            err = m.ReloadJobsForUser(cmd.RequestingUser())
+            amt, err = m.ReloadJobsForUser(cmd.RequestingUser())
         }
         
         // send response
@@ -274,7 +275,7 @@ func (m *JobManager) doCmd(cmd ICmd, stopJobRunThreadFunc func()) {
             m.errorLogger.Printf("Failed to load jobs: %v.\n", err)
             cmd.RespChan() <- &ErrorCmdResp{err}
         } else {
-            cmd.RespChan() <- &SuccessCmdResp{}
+            cmd.RespChan() <- &SuccessCmdResp{fmt.Sprintf("Loaded %v jobs.", amt)}
         }
     
     case *ListJobsCmd:

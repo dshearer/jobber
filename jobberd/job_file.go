@@ -34,18 +34,6 @@ type TimeSpec struct {
     Wday *int
 }
 
-func (m *JobManager) LoadAllJobs() error {
-    // load jobs for normal users
-    err := filepath.Walk(HomeDirRoot, m.procHomeFile)
-    if err != nil {
-        return err
-    }
-    
-    // load jobs for root
-    err = m.LoadJobsForUser("root")
-    return err
-}
-
 func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) error {
     if err != nil {
         return err
@@ -58,7 +46,7 @@ func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) erro
         _, err = user.Lookup(username)
         if err == nil {
             /* User exists. */
-            err = m.LoadJobsForUser(username)
+            _, err = m.LoadJobsForUser(username)
             if err != nil {
                 m.errorLogger.Printf("Failed to load jobs for %v: %v.\n", username, err)
             }
@@ -70,7 +58,23 @@ func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) erro
     }
 }
 
-func (m *JobManager) ReloadAllJobs() error {
+func (m *JobManager) LoadAllJobs() (int, error) {
+    // load jobs for normal users
+    err := filepath.Walk(HomeDirRoot, m.procHomeFile)
+    if err != nil {
+        return -1, err
+    }
+    
+    // load jobs for root
+    _, err = m.LoadJobsForUser("root")
+    if err != nil {
+        return -1, err
+    } else {
+        return len(m.jobs), nil
+    }
+}
+
+func (m *JobManager) ReloadAllJobs() (int, error) {
     // remove jobs
     amt := len(m.jobs)
     m.jobs = make([]*Job, 0)
@@ -78,10 +82,14 @@ func (m *JobManager) ReloadAllJobs() error {
     
     // reload jobs
     err := filepath.Walk(HomeDirRoot, m.procHomeFile)
-    return err
+    if err != nil {
+        return -1, err
+    } else {
+        return len(m.jobs), nil
+    }
 }
 
-func (m *JobManager) ReloadJobsForUser(username string) error {
+func (m *JobManager) ReloadJobsForUser(username string) (int, error) {
     // remove user's jobs
     newJobList := make([]*Job, 0)
     for _, job := range m.jobs {
@@ -93,11 +101,10 @@ func (m *JobManager) ReloadJobsForUser(username string) error {
     m.jobs = newJobList
     
     // reload user's jobs
-    err := m.LoadJobsForUser(username)
-    return err
+    return m.LoadJobsForUser(username)
 }
 
-func (m *JobManager) LoadJobsForUser(username string) error {
+func (m *JobManager) LoadJobsForUser(username string) (int, error) {
     // compute .jobber file path
     var jobberFilePath string
     if username == "root" {
@@ -113,19 +120,19 @@ func (m *JobManager) LoadJobsForUser(username string) error {
         if os.IsNotExist(err) {
             newJobs = make([]*Job, 0)
         } else {
-            return err
+            return -1, err
         }
     } else {
         defer f.Close()
         newJobs, err = readJobFile(f, username)
         if err != nil {
-            return err
+            return -1, err
         }
     }
     m.jobs = append(m.jobs, newJobs...)
     m.logger.Printf("Loaded %v new jobs.\n", len(newJobs))
     
-    return nil
+    return len(newJobs), nil
 }
 
 func readJobFile(r io.Reader, username string) ([]*Job, error) {
