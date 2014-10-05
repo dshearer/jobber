@@ -50,7 +50,7 @@ func (s *runLogEntrySorter) Swap(i, j int) {
 
 /* For sorting RunLogEntries: */
 func (s *runLogEntrySorter) Less(i, j int) bool {
-    return s.entries[i].Time.Before(s.entries[j].Time)
+    return s.entries[i].Time.After(s.entries[j].Time)
 }
 
 type JobManager struct {
