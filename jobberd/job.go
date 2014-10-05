@@ -215,10 +215,20 @@ type RunRec struct {
     Err         *JobberError
 }
 
-func (job *Job) Run(ctx context.Context, shell string) *RunRec {
-    //log.Println("Running " + job.Name)
+func (rec *RunRec) Describe() string {
+    var summary string
+    if rec.Succeeded {
+        summary = fmt.Sprintf("Job \"%v\" succeeded.", rec.Job.Name)
+    } else {
+        summary = fmt.Sprintf("Job \"%v\" failed.", rec.Job.Name)
+    }
+    return fmt.Sprintf("%v\r\nNew status: %v.\r\n\r\nStdout:\r\n%v\r\n\r\nStderr:\r\n%v", summary, rec.Job.Status, rec.Stdout, rec.Stderr)
+}
+
+func (job *Job) Run(ctx context.Context, shell string, testing bool) *RunRec {
     rec := &RunRec{Job: job, RunTime: time.Now()}
     
+    // run
     var sudoResult *SudoResult
     sudoResult, err := sudo(job.User, job.Cmd, shell, nil)
     
@@ -228,18 +238,26 @@ func (job *Job) Run(ctx context.Context, shell string) *RunRec {
         return rec
     }
     
-    if sudoResult.Succeeded {
-        /* job succeeded */
-        rec.NewStatus = JobGood
-        job.Status = rec.NewStatus
-    } else {
-        /* job failed: apply error-handler */
-        job.ErrorHandler.apply(job)
-        rec.NewStatus = job.Status
-    }
-    job.LastRunTime = rec.RunTime
+    // update run rec
+    rec.Succeeded = sudoResult.Succeeded
+    rec.NewStatus = JobGood
     rec.Stdout = sudoResult.Stdout
     rec.Stderr = sudoResult.Stderr
+    
+    if !testing {
+        // update job
+        if sudoResult.Succeeded {
+            /* job succeeded */
+            job.Status = JobGood
+        } else {
+            /* job failed: apply error-handler (which sets job.Status) */
+            job.ErrorHandler.apply(job)
+        }
+        job.LastRunTime = rec.RunTime
+        
+        // update rec.NewStatus
+        rec.NewStatus = job.Status
+    }
     
     return rec
 }

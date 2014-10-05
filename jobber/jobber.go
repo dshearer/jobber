@@ -16,10 +16,11 @@ const (
     LogCmdStr    = "log"
     ReloadCmdStr = "reload"
     StopCmdStr   = "stop"
+    TestCmdStr   = "test"
 )
 
 func usage() {
-    fmt.Printf("Usage: %v [flags] (%v|%v|%v|%v)\nFlags:\n", os.Args[0], ListCmdStr, LogCmdStr, ReloadCmdStr, StopCmdStr)
+    fmt.Printf("Usage: %v [flags] (%v|%v|%v|%v|%v)\nFlags:\n", os.Args[0], ListCmdStr, LogCmdStr, ReloadCmdStr, StopCmdStr, TestCmdStr)
     flag.PrintDefaults()
 }
 
@@ -104,12 +105,15 @@ func main() {
         
         case StopCmdStr:
             var result string
-            arg := jobber.IpcArg{user.Username, false}
+            arg := jobber.IpcArg{User: user.Username, ForAllUsers: false}
             err = rpcClient.Call("RealIpcServer.Stop", arg, &result)
             if err != nil {
-                fmt.Fprintf(os.Stderr, "RPC failed: %v\n", err)
+                fmt.Fprintf(os.Stderr, "%v\n", err)
                 os.Exit(1)
             }
+        
+        case TestCmdStr:
+            doTestCmd(flag.Args()[1:], rpcClient, user)
         
         default:
             fmt.Fprintf(os.Stderr, "Invalid command: \"%v\".\n", flag.Arg(0))
@@ -131,15 +135,11 @@ func doListCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         flagSet.Usage()
         os.Exit(0)
     } else {
-        if *allUsers_p {
-            failIfNotRoot(user)
-        }
-        
         var result string
-        arg := jobber.IpcArg{user.Username, *allUsers_p}
+        arg := jobber.IpcArg{User: user.Username, ForAllUsers: *allUsers_p}
         err := rpcClient.Call("RealIpcServer.ListJobs", arg, &result)
         if err != nil {
-            fmt.Fprintf(os.Stderr, "RPC failed: %v\n", err)
+            fmt.Fprintf(os.Stderr, "%v\n", err)
             os.Exit(1)
         }
         
@@ -160,15 +160,11 @@ func doLogCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         flagSet.Usage()
         os.Exit(0)
     } else {
-        if *allUsers_p {
-            failIfNotRoot(user)
-        }
-        
         var result string
-        arg := jobber.IpcArg{user.Username, *allUsers_p}
+        arg := jobber.IpcArg{User: user.Username, ForAllUsers: *allUsers_p}
         err := rpcClient.Call("RealIpcServer.ListHistory", arg, &result)
         if err != nil {
-            fmt.Fprintf(os.Stderr, "RPC failed: %v\n", err)
+            fmt.Fprintf(os.Stderr, "%v\n", err)
             os.Exit(1)
         }
         
@@ -189,16 +185,49 @@ func doReloadCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         flagSet.Usage()
         os.Exit(0)
     } else {
-        if *allUsers_p {
-            failIfNotRoot(user)
+        var result string
+        arg := jobber.IpcArg{User: user.Username, ForAllUsers: *allUsers_p}
+        err := rpcClient.Call("RealIpcServer.Reload", arg, &result)
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "%v\n", err)
+            os.Exit(1)
+        }
+    }
+}
+
+func doTestCmd(args []string, rpcClient *rpc.Client, user *user.User) {
+    // parse flags
+    flagSet := flag.NewFlagSet("test", flag.ExitOnError)
+    flagSet.Usage = subcmdUsage("test", flagSet)
+    var help_p *bool = flagSet.Bool("h", false, "help")
+    var jobUser_p *string = flagSet.String("u", user.Username, "user")
+    flagSet.Parse(args)
+    
+    if *help_p {
+        flagSet.Usage()
+        os.Exit(0)
+    } else {
+        // get job to test
+        if len(flagSet.Args()) == 0 {
+            fmt.Fprintf(os.Stderr, "You must specify a job to test.\n")
+            os.Exit(1)
+        }
+        var job string = flagSet.Args()[0]
+    
+        // check "-u" opt
+        if *jobUser_p == "" {
+            fmt.Fprintf(os.Stderr, "Option requires an argument: \"-u\"\n")
+            os.Exit(1)
         }
         
         var result string
-        arg := jobber.IpcArg{user.Username, *allUsers_p}
-        err := rpcClient.Call("RealIpcServer.Reload", arg, &result)
+        fmt.Printf("Running job \"%v\" for user \"%v\"...\n", job, *jobUser_p)
+        arg := jobber.IpcArg{User: user.Username, Job: job, JobUser: *jobUser_p}
+        err := rpcClient.Call("RealIpcServer.Test", arg, &result)
         if err != nil {
-            fmt.Fprintf(os.Stderr, "RPC failed: %v\n", err)
+            fmt.Fprintf(os.Stderr, "%v\n", err)
             os.Exit(1)
         }
+        fmt.Printf("%v\n", result)
     }
 }

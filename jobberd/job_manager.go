@@ -145,22 +145,16 @@ func (m *JobManager) runMainThread() <-chan bool {
          All modifications to the job manager's state occur here.
         */
     
-        // make main context
-        ctx, cancel := context.WithCancel(context.Background())
-    
         // make job-runner thread
-        runRecChan := m.runJobRunnerThread(ctx)
+        runRecChan, stopJobRunThreadFunc := m.runJobRunnerThread()
     
         Loop: for {
             select {
             case rec, ok := <-runRecChan:
                 if !ok {
-                    /* Channel is closed. */
-                    //fmt.Printf("JobManager: Run rec channel closed.\n")
+                    /* Job-runner thread is done. */
                     break Loop
                 } else {
-                    //fmt.Printf("JobManager: processing run rec.\n")
-                
                     if len(rec.Stdout) > 0 {
                         m.logger.Println(rec.Stdout)
                     }
@@ -179,7 +173,7 @@ func (m *JobManager) runMainThread() <-chan bool {
                         (rec.Job.NotifyOnFailure && rec.NewStatus == JobFailed) {
                         // notify user
                         headers := fmt.Sprintf("To: %v\r\nFrom: %v\r\nSubject: \"%v\" failed.", rec.Job.User, rec.Job.User, rec.Job.Name)
-                        bod := fmt.Sprintf("Job \"%v\" failed.  New status: %v.\r\n\r\nStdout:\r\n%v\r\n\r\nStderr:\r\n%v", rec.Job.Name, rec.Job.Status, rec.Stdout, rec.Stderr)
+                        bod := rec.Describe()
                         msg := fmt.Sprintf("%s\r\n\r\n%s.\r\n", headers, bod)
                         sendmailCmd := fmt.Sprintf("sendmail %v", rec.Job.User)
                         sudoResult, err := sudo(rec.Job.User, sendmailCmd, "/bin/sh", &msg)
@@ -194,10 +188,12 @@ func (m *JobManager) runMainThread() <-chan bool {
             case cmd, ok := <-m.cmdChan:
                 if ok {
                     //fmt.Printf("JobManager: processing cmd.\n")
-                    m.doCmd(cmd, cancel)
+                    m.doCmd(cmd, stopJobRunThreadFunc)
                 }
             }
         }
+        
+        /* At this point, the job-runner thread is done. */
         
         // clean up
         doneChan <- true
@@ -207,8 +203,13 @@ func (m *JobManager) runMainThread() <-chan bool {
     return doneChan
 }
 
-func (m *JobManager) runJobRunnerThread(ctx context.Context) <-chan *RunRec {
+func (m *JobManager) runJobRunnerThread() (<-chan *RunRec, func()) {
     runRecChan := make(chan *RunRec)
+    ctx, cancel := context.WithCancel(context.Background())
+    stopJobRunThreadFunc := func() {
+        cancel()
+        m.jobWaitGroup.Wait()
+    }
     
     go func() {
         ticker := time.Tick(time.Duration(1 * time.Second))
@@ -220,7 +221,7 @@ func (m *JobManager) runJobRunnerThread(ctx context.Context) <-chan *RunRec {
                     m.logger.Printf("%v: %v\n", j.User, j.Cmd)
                     m.jobWaitGroup.Add(1)
                     go func(job *Job) {
-                        runRecChan <- job.Run(ctx, m.Shell)
+                        runRecChan <- job.Run(ctx, m.Shell, false)
                         m.jobWaitGroup.Done()
                     }(j)
                 }
@@ -237,17 +238,32 @@ func (m *JobManager) runJobRunnerThread(ctx context.Context) <-chan *RunRec {
         //fmt.Printf("JobRunner: done cleaning up.\n")
     }()
     
-    return runRecChan
+    return runRecChan, stopJobRunThreadFunc
 }
 
-func (m *JobManager) doCmd(cmd ICmd, cancel context.CancelFunc) {
-    //fmt.Printf("Got command: %v.\n", cmd);
+func (m *JobManager) doCmd(cmd ICmd, stopJobRunThreadFunc func()) {
+    
+    /*
+    Security:
+    
+    It is jobberd's responsibility to enforce the security policy.
+    
+    It does so by assuming that cmd.RequestingUser() is truly the name
+    of the requesting user.
+    */
     
     switch cmd.(type) {
     case *ReloadCmd:
+        /* Policy: Only root can reload other users' jobfiles. */
+        
         // load jobs
         var err error
         if cmd.(*ReloadCmd).ForAllUsers {
+            if cmd.RequestingUser() != "root" {
+                cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+                break
+            }
+            
             m.logger.Printf("Reloading jobs for all users.\n")
             err = m.ReloadAllJobs()
         } else {
@@ -264,9 +280,16 @@ func (m *JobManager) doCmd(cmd ICmd, cancel context.CancelFunc) {
         }
     
     case *ListJobsCmd:
+        /* Policy: Only root can list other users' jobs. */
+        
         // get jobs
         var jobs []*Job
         if cmd.(*ListJobsCmd).ForAllUsers {
+            if cmd.RequestingUser() != "root" {
+                cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+                break
+            }
+            
             jobs = m.jobs
         } else {
             jobs = m.jobsForUser(cmd.RequestingUser()) 
@@ -280,9 +303,16 @@ func (m *JobManager) doCmd(cmd ICmd, cancel context.CancelFunc) {
         cmd.RespChan() <- &SuccessCmdResp{strings.Join(strs, "\n")}
     
     case *ListHistoryCmd:
+        /* Policy: Only root can see the histories of other users' jobs. */
+        
         // get log entries
         var entries []RunLogEntry
         if cmd.(*ListHistoryCmd).ForAllUsers {
+            if cmd.RequestingUser() != "root" {
+                cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+                break
+            }
+            
             entries = m.runLog
         } else {
             entries = m.runLogEntriesForUser(cmd.RequestingUser()) 
@@ -297,18 +327,55 @@ func (m *JobManager) doCmd(cmd ICmd, cancel context.CancelFunc) {
         cmd.RespChan() <- &SuccessCmdResp{strings.Join(strs, "\n")}
     
     case *StopCmd:
+        /* Policy: Only root can stop jobberd. */
+        
         if cmd.RequestingUser() != "root" {
             cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
-        } else {
-            // stop
-            m.logger.Println("Stopping.")
-            
-            cancel()
-            m.jobWaitGroup.Wait()
-        
-            // send response
-            cmd.RespChan() <- &SuccessCmdResp{}
+            break
         }
+        
+        m.logger.Println("Stopping.")
+        
+        // stop job-runner thread
+        stopJobRunThreadFunc()
+    
+        // send response
+        cmd.RespChan() <- &SuccessCmdResp{}
+    
+    case *TestCmd:
+        /* Policy: Only root can test other users' jobs. */
+        
+        var testCmd *TestCmd = cmd.(*TestCmd)
+        
+        // enfore policy
+        if testCmd.jobUser != testCmd.RequestingUser() && testCmd.RequestingUser() != "root" {
+            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+            break
+        }
+    
+        // find job to test
+        var job_p *Job
+        for _, job := range m.jobsForUser(testCmd.jobUser) {
+            if job.Name == testCmd.job {
+                job_p = job
+                break
+            }
+        }
+        if job_p == nil {
+            msg := fmt.Sprintf("No job named \"%v\".", testCmd.job)
+            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: msg}}
+            break
+        }
+        
+        // run the job in this thread
+        runRec := job_p.Run(nil, m.Shell, true)
+        
+        // send response
+        if runRec.Err != nil {
+            cmd.RespChan() <- &ErrorCmdResp{runRec.Err}
+            break
+        }
+        cmd.RespChan() <- &SuccessCmdResp{Details: runRec.Describe()}
     
     default:
         cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "Unknown command."}}

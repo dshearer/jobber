@@ -1,3 +1,5 @@
+GOPATH ?= ${HOME}/go_workspace
+
 DESTDIR = /usr/local
 CLIENT = jobber
 DAEMON = jobberd
@@ -13,7 +15,7 @@ build :
 	go install github.com/dshearer/jobber/${DAEMON}
 
 .PHONY : install
-install : build ${DESTDIR}/bin/${CLIENT} ${DESTDIR}/sbin/${DAEMON} /etc/init.d/jobber
+install : build ${DESTDIR}/bin/${CLIENT} ${DESTDIR}/sbin/${DAEMON} /etc/init.d/jobber /var/lock/subsys/jobber
 
 ${DESTDIR}/bin/${CLIENT} : ${GOPATH}/bin/${CLIENT}
 	-userdel ${CLIENT_USER}
@@ -30,6 +32,9 @@ ${DESTDIR}/sbin/${DAEMON} : ${GOPATH}/bin/${DAEMON}
 	chkconfig --add jobber
 	chkconfig jobber on
 
+/var/lock/subsys/jobber : ${DESTDIR}/sbin/${DAEMON} /etc/init.d/jobber
+	service jobber restart
+
 .PHONY : uninstall
 uninstall :
 	service jobber stop
@@ -40,4 +45,6 @@ uninstall :
 
 .PHONY : clean
 clean :
-	rm -rf ${GOPATH}/bin/* ${GOPATH}/pkg/*
+	go clean -i github.com/dshearer/jobber
+	go clean -i github.com/dshearer/jobber/${CLIENT}
+	go clean -i github.com/dshearer/jobber/${DAEMON}
