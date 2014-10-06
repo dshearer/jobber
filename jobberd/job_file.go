@@ -81,12 +81,7 @@ func (m *JobManager) ReloadAllJobs() (int, error) {
     m.logger.Printf("Removed %v jobs.\n", amt)
     
     // reload jobs
-    err := filepath.Walk(HomeDirRoot, m.procHomeFile)
-    if err != nil {
-        return -1, err
-    } else {
-        return len(m.jobs), nil
-    }
+    return m.LoadAllJobs()
 }
 
 func (m *JobManager) ReloadJobsForUser(username string) (int, error) {
