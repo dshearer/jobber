@@ -1,0 +1,99 @@
+## <summary>Dynamic host configuration protocol (DHCP) server</summary>
+
+########################################
+## <summary>
+##	Transition to dhcpd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dhcpd_domtrans',`
+	gen_require(`
+		type dhcpd_t, dhcpd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, dhcpd_exec_t, dhcpd_t)
+')
+
+########################################
+## <summary>
+##	Set the attributes of the DCHP
+##	server state files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dhcpd_setattr_state_files',`
+	gen_require(`
+		type dhcpd_state_t;
+	')
+
+	sysnet_search_dhcp_state($1)
+	allow $1 dhcpd_state_t:file setattr;
+')
+
+########################################
+## <summary>
+##	Execute dhcp server in the dhcp domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+#
+interface(`dhcpd_initrc_domtrans',`
+	gen_require(`
+		type dhcpd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, dhcpd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an dhcp environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the dhcp domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`dhcpd_admin',`
+	gen_require(`
+		type dhcpd_t, dhcpd_tmp_t, dhcpd_state_t;
+		type dhcpd_var_run_t, dhcpd_initrc_exec_t;
+	')
+
+	allow $1 dhcpd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, dhcpd_t)
+
+	init_labeled_script_domtrans($1, dhcpd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 dhcpd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_tmp($1)
+	admin_pattern($1, dhcpd_tmp_t)
+
+	admin_pattern($1, dhcpd_state_t)
+
+	files_list_pids($1)
+	admin_pattern($1, dhcpd_var_run_t)
+')

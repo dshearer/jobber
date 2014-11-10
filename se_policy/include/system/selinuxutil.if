@@ -1,0 +1,1645 @@
+## <summary>Policy for SELinux policy and userland applications.</summary>
+
+#######################################
+## <summary>
+##	Execute checkpolicy in the checkpolicy domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_domtrans_checkpolicy',`
+	gen_require(`
+		type checkpolicy_t, checkpolicy_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, checkpolicy_exec_t, checkpolicy_t)
+')
+
+########################################
+## <summary>
+##	Execute checkpolicy in the checkpolicy domain, and
+##	allow the specified role the checkpolicy domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the checkpolicy domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_run_checkpolicy',`
+	gen_require(`
+		type checkpolicy_t;
+	')
+
+	seutil_domtrans_checkpolicy($1)
+	role $2 types checkpolicy_t;
+')
+
+########################################
+## <summary>
+##	Execute checkpolicy in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_exec_checkpolicy',`
+	gen_require(`
+		type checkpolicy_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	can_exec($1, checkpolicy_exec_t)
+')
+
+#######################################
+## <summary>
+##	Execute load_policy in the load_policy domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_domtrans_loadpolicy',`
+	gen_require(`
+		type load_policy_t, load_policy_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, load_policy_exec_t, load_policy_t)
+')
+
+########################################
+## <summary>
+##	Execute load_policy in the load_policy domain, and
+##	allow the specified role the load_policy domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the load_policy domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_run_loadpolicy',`
+	gen_require(`
+		type load_policy_t;
+	')
+
+	seutil_domtrans_loadpolicy($1)
+	role $2 types load_policy_t;
+')
+
+########################################
+## <summary>
+##	Execute load_policy in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_exec_loadpolicy',`
+	gen_require(`
+		type load_policy_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, load_policy_exec_t)
+')
+
+########################################
+## <summary>
+##	Read the load_policy program file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_read_loadpolicy',`
+	gen_require(`
+		type load_policy_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	allow $1 load_policy_exec_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##	Execute newrole in the newole domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_domtrans_newrole',`
+	gen_require(`
+		type newrole_t, newrole_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, newrole_exec_t, newrole_t)
+')
+
+########################################
+## <summary>
+##	Execute newrole in the newrole domain, and
+##	allow the specified role the newrole domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the newrole domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_run_newrole',`
+	gen_require(`
+		type newrole_t;
+	')
+
+	seutil_domtrans_newrole($1)
+	role $2 types newrole_t;
+
+	auth_run_upd_passwd(newrole_t, $2)
+
+	optional_policy(`
+		namespace_init_run(newrole_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Execute newrole in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_exec_newrole',`
+	gen_require(`
+		type newrole_t, newrole_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	can_exec($1, newrole_exec_t)
+')
+
+########################################
+## <summary>
+##	Do not audit the caller attempts to send
+##	a signal to newrole.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_dontaudit_signal_newrole',`
+	gen_require(`
+		type newrole_t;
+	')
+
+	dontaudit $1 newrole_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to newrole.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to send a SIGCHLD
+##	signal to newrole.  This signal is automatically
+##	sent from a process that is terminating to
+##	its parent.  This may be needed by domains
+##	that are executed from newrole.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="write" weight="1"/>
+#
+interface(`seutil_sigchld_newrole',`
+	gen_require(`
+		type newrole_t;
+	')
+
+	allow $1 newrole_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Inherit and use newrole file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_use_newrole_fds',`
+	gen_require(`
+		type newrole_t;
+	')
+
+	allow $1 newrole_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to inherit and use
+##	newrole file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`seutil_dontaudit_use_newrole_fds',`
+	gen_require(`
+		type newrole_t;
+	')
+
+	dontaudit $1 newrole_t:fd use;
+')
+
+#######################################
+## <summary>
+##	Execute restorecon in the restorecon domain.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_domtrans_restorecon',`
+	refpolicywarn(`$0($*) has been deprecated, please use seutil_domtrans_setfiles() instead.')
+	seutil_domtrans_setfiles($1)
+')
+
+########################################
+## <summary>
+##	Execute restorecon in the restorecon domain, and
+##	allow the specified role the restorecon domain,
+##	and use the caller's terminal.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the restorecon domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_run_restorecon',`
+	refpolicywarn(`$0($*) has been deprecated, please use seutil_run_setfiles() instead.')
+	seutil_run_setfiles($1,$2)
+')
+
+########################################
+## <summary>
+##	Execute restorecon in the caller domain.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_exec_restorecon',`
+	refpolicywarn(`$0($*) has been deprecated, please use seutil_exec_setfiles() instead.')
+	seutil_exec_setfiles($1)
+')
+
+########################################
+## <summary>
+##	Execute restorecond in the caller domain. 
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_exec_restorecond',`
+	gen_require(`
+		type restorecond_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	can_exec($1, restorecond_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute run_init in the run_init domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_domtrans_runinit',`
+	gen_require(`
+		type run_init_t, run_init_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, run_init_exec_t, run_init_t)
+')
+
+########################################
+## <summary>
+##	Execute init scripts in the run_init domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute init scripts in the run_init domain.
+##	This is used for the Gentoo integrated run_init.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_init_script_domtrans_runinit',`
+	gen_require(`
+		type run_init_t;
+	')
+
+	init_script_file_domtrans($1, run_init_t)
+
+	allow run_init_t $1:fd use;
+	allow run_init_t $1:fifo_file rw_file_perms;
+	allow run_init_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute run_init in the run_init domain, and
+##	allow the specified role the run_init domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the run_init domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_run_runinit',`
+	gen_require(`
+		type run_init_t;
+		role system_r;
+	')
+
+	auth_run_chk_passwd(run_init_t, $2)
+	seutil_domtrans_runinit($1)
+	role $2 types run_init_t;
+
+	allow $2 system_r;
+')
+
+########################################
+## <summary>
+##	Execute init scripts in the run_init domain, and
+##	allow the specified role the run_init domain,
+##	and use the caller's terminal.
+## </summary>
+## <desc>
+##	<p>
+##	Execute init scripts in the run_init domain, and
+##	allow the specified role the run_init domain,
+##	and use the caller's terminal.
+##	</p>
+##	<p>
+##	This is used for the Gentoo integrated run_init.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the run_init domain.
+##	</summary>
+## </param>
+#
+interface(`seutil_init_script_run_runinit',`
+	gen_require(`
+		type run_init_t;
+		role system_r;
+	')
+
+	auth_run_chk_passwd(run_init_t, $2)
+	seutil_init_script_domtrans_runinit($1)
+	role $2 types run_init_t;
+
+	allow $2 system_r;
+')
+
+########################################
+## <summary>
+##	Inherit and use run_init file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_use_runinit_fds',`
+	gen_require(`
+		type run_init_t;
+	')
+
+	allow $1 run_init_t:fd use;
+')
+
+########################################
+## <summary>
+##	Execute setfiles in the setfiles domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_domtrans_setfiles',`
+	gen_require(`
+		type setfiles_t, setfiles_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, setfiles_exec_t, setfiles_t)
+
+	ifdef(`hide_broken_symptoms', `
+		dontaudit setfiles_t $1:socket_class_set { read write };
+	')
+')
+
+########################################
+## <summary>
+##	Execute setfiles in the setfiles domain, and
+##	allow the specified role the setfiles domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the setfiles domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_run_setfiles',`
+	gen_require(`
+		type setfiles_t;
+	')
+
+	seutil_domtrans_setfiles($1)
+	role $2 types setfiles_t;
+')
+
+########################################
+## <summary>
+##	Execute setfiles in the setfiles domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_domtrans_setfiles_mac',`
+	gen_require(`
+		type setfiles_mac_t, setfiles_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, setfiles_exec_t, setfiles_mac_t)
+')
+
+########################################
+## <summary>
+##	Execute setfiles in the setfiles_mac domain, and
+##	allow the specified role the setfiles_mac domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the setfiles_mac domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_run_setfiles_mac',`
+	gen_require(`
+		type setfiles_mac_t;
+	')
+
+	seutil_domtrans_setfiles_mac($1)
+	role $2 types setfiles_mac_t;
+')
+
+########################################
+## <summary>
+##	Execute setfiles in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_exec_setfiles',`
+	gen_require(`
+		type setfiles_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	can_exec($1, setfiles_exec_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search the SELinux
+##	configuration directory (/etc/selinux).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`seutil_dontaudit_search_config',`
+	gen_require(`
+		type selinux_config_t;
+	')
+
+	dontaudit $1 selinux_config_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read the SELinux
+##	userland configuration (/etc/selinux).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`seutil_dontaudit_read_config',`
+	gen_require(`
+		type selinux_config_t;
+	')
+
+	dontaudit $1 selinux_config_t:dir search_dir_perms;
+	dontaudit $1 selinux_config_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read the general SELinux configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_read_config',`
+	gen_require(`
+		type selinux_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir list_dir_perms;
+	read_files_pattern($1, selinux_config_t, selinux_config_t)
+	read_lnk_files_pattern($1, selinux_config_t, selinux_config_t)
+')
+
+########################################
+## <summary>
+##	Read and write the general SELinux configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_rw_config',`
+	gen_require(`
+		type selinux_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir list_dir_perms;
+	rw_files_pattern($1, selinux_config_t, selinux_config_t)
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete
+##	the general selinux configuration files.  (Deprecated)
+## </summary>
+## <desc>
+##	<p>
+##	Create, read, write, and delete
+##	the general selinux configuration files.
+##	</p>
+##	<p>
+##	This interface has been deprecated, please
+##	use the seutil_manage_config() interface instead.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_manage_selinux_config',`
+	refpolicywarn(`$0($*) has been deprecated. Please use seutil_manage_config() instead.')
+	seutil_manage_config($1)
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete
+##	the general selinux configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_manage_config',`
+	gen_require(`
+		type selinux_config_t;
+	')
+
+	files_search_etc($1)
+	manage_dirs_pattern($1, selinux_config_t, selinux_config_t)
+	manage_files_pattern($1, selinux_config_t, selinux_config_t)
+	read_lnk_files_pattern($1, selinux_config_t, selinux_config_t)
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete
+##	the general selinux configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_manage_config_dirs',`
+	gen_require(`
+		type selinux_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir manage_dir_perms;
+')
+
+#######################################
+## <summary>
+##  Do not audit attempts to search the SELinux
+##  login configuration directory.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain to not audit.
+##  </summary>
+## </param>
+#
+interface(`seutil_dontaudit_search_login_config',`
+    gen_require(`
+        type selinux_login_config_t;
+    ')
+
+    dontaudit $1 selinux_login_config_t:dir search_dir_perms;
+')
+
+#######################################
+## <summary>
+##  Do not audit attempts to read the SELinux
+##  login configuration.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain to not audit.
+##  </summary>
+## </param>
+#
+interface(`seutil_dontaudit_read_login_config',`
+    gen_require(`
+        type selinux_login_config_t;
+    ')
+    dontaudit $1 selinux_login_config_t:dir search_dir_perms;
+    dontaudit $1 selinux_login_config_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##  Read the  SELinux login configuration files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`seutil_read_login_config',`
+    gen_require(`
+        type selinux_config_t;
+        type selinux_login_config_t;
+    ')
+
+    files_search_etc($1)
+    allow $1 selinux_config_t:dir search_dir_perms;
+    allow $1 selinux_login_config_t:dir list_dir_perms;
+    read_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+    read_lnk_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+')
+
+#######################################
+## <summary>
+##  Read and write the SELinux login configuration files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`seutil_rw_login_config',`
+    gen_require(`
+        type selinux_config_t;
+        type selinux_login_config_t;
+    ')
+
+    files_search_etc($1)
+    allow $1 selinux_config_t:dir search_dir_perms;
+    allow $1 selinux_login_config_t:dir list_dir_perms;
+    rw_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+')
+
+######################################
+## <summary>
+##  Create, read, write, and delete
+##  the general selinux configuration files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`seutil_rw_login_config_dirs',`
+    gen_require(`
+        type selinux_config_t;
+        type selinux_login_config_t;
+    ')
+
+    files_search_etc($1)
+    allow $1 selinux_config_t:dir search_dir_perms;
+    allow $1 selinux_login_config_t:dir rw_dir_perms;
+')
+
+#####################################
+## <summary>
+##  Create, read, write, and delete
+##  the general selinux configuration files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`seutil_manage_login_config',`
+    gen_require(`
+        type selinux_config_t;
+        type selinux_login_config_t;
+    ')
+
+    files_search_etc($1)
+    allow $1 selinux_config_t:dir search_dir_perms;
+    manage_dirs_pattern($1, selinux_login_config_t, selinux_login_config_t)
+    manage_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+    read_lnk_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+')
+
+#####################################
+## <summary>
+##  manage the login selinux configuration files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`seutil_manage_login_config_files',`
+    gen_require(`
+        type selinux_config_t;
+        type selinux_login_config_t;
+    ')
+
+    files_search_etc($1)
+    allow $1 selinux_config_t:dir search_dir_perms;
+    manage_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+    read_lnk_files_pattern($1, selinux_login_config_t, selinux_login_config_t)
+')
+
+########################################
+## <summary>
+##	Search the policy directory with default_context files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_search_default_contexts',`
+	gen_require(`
+		type selinux_config_t, default_context_t;
+	')
+
+	files_search_etc($1)
+	search_dirs_pattern($1, selinux_config_t, default_context_t)
+')
+
+########################################
+## <summary>
+##	Read the default_contexts files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_read_default_contexts',`
+	gen_require(`
+		type selinux_config_t, default_context_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+	allow $1 default_context_t:dir list_dir_perms;
+	read_files_pattern($1, default_context_t, default_context_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the default_contexts files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_manage_default_contexts',`
+	gen_require(`
+		type selinux_config_t, default_context_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+	manage_files_pattern($1, default_context_t, default_context_t)
+')
+
+########################################
+## <summary>
+##	Read the file_contexts files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_read_file_contexts',`
+	gen_require(`
+		type selinux_config_t, default_context_t, file_context_t;
+	')
+
+	files_search_etc($1)
+	allow $1 { selinux_config_t default_context_t }:dir search_dir_perms;
+	read_files_pattern($1, file_context_t, file_context_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read the file_contexts files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_dontaudit_read_file_contexts',`
+	gen_require(`
+		type selinux_config_t, default_context_t, file_context_t;
+	')
+
+	dontaudit $1 { selinux_config_t default_context_t file_context_t }:dir search_dir_perms;
+	dontaudit $1 file_context_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write the file_contexts files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_rw_file_contexts',`
+	gen_require(`
+		type selinux_config_t, file_context_t, default_context_t;
+	')
+
+	files_search_etc($1)
+	allow $1 { selinux_config_t default_context_t }:dir search_dir_perms;
+	rw_files_pattern($1, file_context_t, file_context_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the file_contexts files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_manage_file_contexts',`
+	gen_require(`
+		type selinux_config_t, file_context_t, default_context_t;
+	')
+
+	files_search_etc($1)
+	allow $1 { selinux_config_t default_context_t }:dir search_dir_perms;
+	manage_files_pattern($1, file_context_t, file_context_t)
+')
+
+########################################
+## <summary>
+##	Read the SELinux binary policy.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_read_bin_policy',`
+	gen_require(`
+		type selinux_config_t, policy_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+	read_files_pattern($1, policy_config_t, policy_config_t)
+')
+
+########################################
+## <summary>
+##	Create the SELinux binary policy.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_create_bin_policy',`
+	gen_require(`
+#		attribute can_write_binary_policy;
+		type selinux_config_t, policy_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+	create_files_pattern($1, policy_config_t, policy_config_t)
+	write_files_pattern($1, policy_config_t, policy_config_t)
+#	typeattribute $1 can_write_binary_policy;
+')
+
+########################################
+## <summary>
+##	Allow the caller to relabel a file to the binary policy type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_relabelto_bin_policy',`
+	gen_require(`
+		attribute can_relabelto_binary_policy;
+		type policy_config_t;
+	')
+
+	allow $1 policy_config_t:file relabelto;
+	typeattribute $1 can_relabelto_binary_policy;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the SELinux
+##	binary policy.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_manage_bin_policy',`
+	gen_require(`
+		attribute can_write_binary_policy;
+		type selinux_config_t, policy_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+	manage_files_pattern($1, policy_config_t, policy_config_t)
+	typeattribute $1 can_write_binary_policy;
+')
+
+########################################
+## <summary>
+##	Read SELinux policy source files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_read_src_policy',`
+	gen_require(`
+		type selinux_config_t, policy_src_t;
+	')
+
+	files_search_etc($1)
+	list_dirs_pattern($1, selinux_config_t, policy_src_t)
+	read_files_pattern($1, policy_src_t, policy_src_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete SELinux
+##	policy source files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_manage_src_policy',`
+	gen_require(`
+		type selinux_config_t, policy_src_t;
+	')
+
+	files_search_etc($1)
+	allow $1 selinux_config_t:dir search_dir_perms;
+	manage_dirs_pattern($1, policy_src_t, policy_src_t)
+	manage_files_pattern($1, policy_src_t, policy_src_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run semanage.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`seutil_domtrans_semanage',`
+	gen_require(`
+		type semanage_t, semanage_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, semanage_exec_t, semanage_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run setsebool.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`seutil_domtrans_setsebool',`
+	gen_require(`
+		type setsebool_t, setsebool_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, setsebool_exec_t, setsebool_t)
+')
+
+########################################
+## <summary>
+##	Execute semanage in the semanage domain, and
+##	allow the specified role the semanage domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the semanage domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_run_semanage',`
+	gen_require(`
+		type semanage_t;
+	')
+
+	seutil_domtrans_semanage($1)
+	seutil_run_setfiles(semanage_t, $2)
+	seutil_run_loadpolicy(semanage_t, $2)
+	role $2 types semanage_t;
+')
+
+########################################
+## <summary>
+##	Execute setsebool in the semanage domain, and
+##	allow the specified role the semanage domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the setsebool domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`seutil_run_setsebool',`
+	gen_require(`
+		type semanage_t;
+	')
+
+	seutil_domtrans_setsebool($1)
+	role $2 types setsebool_t;
+')
+
+########################################
+## <summary>
+##	Full management of the semanage
+##	module store.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_read_module_store',`
+	gen_require(`
+		type selinux_config_t, semanage_store_t;
+	')
+
+	files_search_etc($1)
+	list_dirs_pattern($1, selinux_config_t, semanage_store_t)
+	read_files_pattern($1, semanage_store_t, semanage_store_t)
+')
+
+########################################
+## <summary>
+##	Full management of the semanage
+##	module store.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_manage_module_store',`
+	gen_require(`
+		type selinux_config_t, semanage_store_t;
+	')
+
+	files_search_etc($1)
+	manage_dirs_pattern($1, selinux_config_t, semanage_store_t)
+	manage_files_pattern($1, semanage_store_t, semanage_store_t)
+	filetrans_pattern($1, selinux_config_t, semanage_store_t, dir)
+')
+
+#######################################
+## <summary>
+##	Get read lock on module store
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_get_semanage_read_lock',`
+	gen_require(`
+		type selinux_config_t, semanage_read_lock_t;
+	')
+
+	files_search_etc($1)
+	rw_files_pattern($1, selinux_config_t, semanage_read_lock_t)
+')
+
+#######################################
+## <summary>
+##	Get trans lock on module store
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_get_semanage_trans_lock',`
+	gen_require(`
+		type selinux_config_t, semanage_trans_lock_t;
+	')
+
+	files_search_etc($1)
+	rw_files_pattern($1, selinux_config_t, semanage_trans_lock_t)
+')
+
+########################################
+## <summary>
+##	SELinux-enabled program access for
+##	libselinux-linked programs.
+## </summary>
+## <desc>
+##	<p>
+##	SELinux-enabled programs are typically
+##	linked to the libselinux library.  This
+##	interface will allow access required for
+##	the libselinux constructor to function.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_libselinux_linked',`
+	selinux_get_fs_mount($1)
+	seutil_read_config($1)
+')
+
+########################################
+## <summary>
+##	Do not audit SELinux-enabled program access for
+##	libselinux-linked programs.
+## </summary>
+## <desc>
+##	<p>
+##	SELinux-enabled programs are typically
+##	linked to the libselinux library.  This
+##	interface will dontaudit access required for
+##	the libselinux constructor to function.
+##	</p>
+##	<p>
+##	Generally this should not be used on anything
+##	but simple SELinux-enabled programs that do not
+##	rely on data initialized by the libselinux
+##	constructor.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_dontaudit_libselinux_linked',`
+	selinux_dontaudit_get_fs_mount($1)
+	seutil_dontaudit_read_config($1)
+')
+
+#######################################
+## <summary>
+##	All rules necessary to run semanage command
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_semanage_policy',`
+	gen_require(`
+		type semanage_tmp_t;
+		type policy_config_t;
+	')
+	allow $1 self:capability { dac_override sys_resource sys_nice };
+	dontaudit $1 self:capability sys_tty_config;
+	allow $1 self:process { signal setsched };
+	allow $1 self:unix_stream_socket create_stream_socket_perms;
+	allow $1 self:unix_dgram_socket create_socket_perms;
+	logging_send_audit_msgs($1)
+
+	# Running genhomedircon requires this for finding all users
+	auth_use_nsswitch($1)
+
+	allow $1 policy_config_t:file { read write };
+
+	allow $1 semanage_tmp_t:dir manage_dir_perms;
+	allow $1 semanage_tmp_t:file manage_file_perms;
+	files_tmp_filetrans($1, semanage_tmp_t, { file dir })
+
+	kernel_read_system_state($1)
+	kernel_read_kernel_sysctls($1)
+
+	corecmd_exec_bin($1)
+	corecmd_exec_shell($1)
+
+	dev_read_urand($1)
+
+	domain_use_interactive_fds($1)
+
+	files_read_etc_files($1)
+	files_read_etc_runtime_files($1)
+	files_read_usr_files($1)
+	files_list_pids($1)
+	fs_list_inotifyfs($1)
+	fs_getattr_all_fs($1)
+
+	mls_file_write_all_levels($1)
+	mls_file_read_all_levels($1)
+
+	selinux_getattr_fs($1)
+	selinux_validate_context($1)
+	selinux_get_enforce_mode($1)
+	selinux_read_policy($1)
+
+	term_use_all_terms($1)
+
+	locallogin_use_fds($1)
+
+	logging_send_syslog_msg($1)
+
+	miscfiles_read_localization($1)
+
+	seutil_search_default_contexts($1)
+	seutil_domtrans_loadpolicy($1)
+	seutil_read_config($1)
+	seutil_manage_bin_policy($1)
+	seutil_use_newrole_fds($1)
+	seutil_manage_module_store($1)
+	seutil_get_semanage_trans_lock($1)
+	seutil_get_semanage_read_lock($1)
+
+	userdom_dontaudit_write_user_home_content_files($1)
+
+')
+
+
+#######################################
+## <summary>
+##	All rules necessary to run setfiles command
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`seutil_setfiles',`
+
+	gen_require(`
+		type policy_src_t, policy_config_t;
+		type file_context_t, default_context_t;
+	')
+
+	allow $1 self:capability { dac_override dac_read_search fowner };
+	dontaudit $1 self:capability sys_tty_config;
+	allow $1 self:fifo_file rw_file_perms;
+	dontaudit $1 self:dir relabelfrom;
+	dontaudit $1 self:file relabelfrom;
+	dontaudit $1 self:lnk_file relabelfrom;
+
+
+	allow $1 { policy_src_t policy_config_t file_context_t default_context_t }:dir list_dir_perms;
+	allow $1 { policy_src_t policy_config_t file_context_t default_context_t }:file read_file_perms;
+	allow $1 { policy_src_t policy_config_t file_context_t default_context_t }:lnk_file { read_lnk_file_perms ioctl lock };
+
+	logging_send_audit_msgs($1)
+
+	kernel_read_system_state($1)
+	kernel_relabelfrom_unlabeled_dirs($1)
+	kernel_relabelfrom_unlabeled_files($1)
+	kernel_relabelfrom_unlabeled_symlinks($1)
+	kernel_relabelfrom_unlabeled_pipes($1)
+	kernel_relabelfrom_unlabeled_sockets($1)
+	kernel_use_fds($1)
+	kernel_rw_pipes($1)
+	kernel_rw_unix_dgram_sockets($1)
+	kernel_dontaudit_list_all_proc($1)
+	kernel_read_all_sysctls($1)
+	kernel_read_network_state_symlinks($1)
+
+	dev_relabel_all_dev_nodes($1)
+
+	domain_use_interactive_fds($1)
+	domain_read_all_domains_state($1)
+ 
+	files_read_etc_runtime_files($1)
+	files_read_etc_files($1)
+	files_list_all($1)
+	files_relabel_all_files($1)
+	files_list_isid_type_dirs($1)
+	files_read_isid_type_files($1)
+	files_read_all_symlinks($1)
+	files_dontaudit_read_all_symlinks($1)
+
+	fs_getattr_xattr_fs($1)
+	fs_list_all($1)
+	fs_getattr_all_files($1)
+	fs_search_auto_mountpoints($1)
+	fs_relabelfrom_noxattr_fs($1)
+
+	mls_file_read_all_levels($1)
+	mls_file_write_all_levels($1)
+	mls_file_upgrade($1)
+	mls_file_downgrade($1)
+
+	selinux_validate_context($1)
+	selinux_compute_access_vector($1)
+	selinux_compute_create_context($1)
+	selinux_compute_relabel_context($1)
+	selinux_compute_user_contexts($1)
+
+	term_use_all_terms($1)
+
+	# this is to satisfy the assertion:
+	auth_relabelto_shadow($1)
+
+	init_use_fds($1)
+	init_use_script_fds($1)
+	init_use_script_ptys($1)
+	init_exec_script_files($1)
+
+	logging_send_syslog_msg($1)
+
+	miscfiles_read_localization($1)
+
+	seutil_libselinux_linked($1)
+
+	userdom_use_all_users_fds($1)
+	# for config files in a home directory
+	userdom_read_user_home_content_files($1)
+
+	ifdef(`distro_debian',`
+	# udev tmpfs is populated with static device nodes
+	# and then relabeled afterwards; thus
+	# /dev/console has the tmpfs type
+		fs_rw_tmpfs_chr_files($1)
+	')
+
+	ifdef(`distro_redhat',`
+		fs_rw_tmpfs_chr_files($1)
+		fs_rw_tmpfs_blk_files($1)
+		fs_relabel_tmpfs_blk_file($1)
+		fs_relabel_tmpfs_chr_file($1)
+	')
+
+	ifdef(`distro_ubuntu',`
+		optional_policy(`
+			unconfined_domain($1)
+		')
+	')
+
+	optional_policy(`
+		hotplug_use_fds($1)
+	')
+')

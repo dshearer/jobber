@@ -1,0 +1,40 @@
+## <summary>Mediawiki policy</summary>
+
+#######################################
+## <summary>
+##      Allow the specified domain to read
+##      mediawiki tmp files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`mediawiki_read_tmp_files',`
+        gen_require(`
+                type httpd_mediawiki_tmp_t;
+        ')
+
+        files_search_tmp($1)
+        read_files_pattern($1, httpd_mediawiki_tmp_t, httpd_mediawiki_tmp_t)
+		read_lnk_files_pattern($1, httpd_mediawiki_tmp_t, httpd_mediawiki_tmp_t)
+')
+
+#######################################
+## <summary>
+##      Delete mediawiki tmp files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`mediawiki_delete_tmp_files',`
+        gen_require(`
+                type httpd_mediawiki_tmp_t;
+        ')
+
+        delete_files_pattern($1, httpd_mediawiki_tmp_t, httpd_mediawiki_tmp_t)
+')

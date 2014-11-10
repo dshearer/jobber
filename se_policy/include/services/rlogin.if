@@ -1,0 +1,41 @@
+## <summary>Remote login daemon</summary>
+
+########################################
+## <summary>
+##	Execute rlogind in the rlogin domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`rlogin_domtrans',`
+	gen_require(`
+		type rlogind_t, rlogind_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, rlogind_exec_t, rlogind_t)
+')
+
+########################################
+## <summary>
+##	read rlogin homedir content (.config)
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rlogin_read_home_content',`
+	gen_require(`
+		type rlogind_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	list_dirs_pattern($1, rlogind_home_t, rlogind_home_t)
+	read_files_pattern($1, rlogind_home_t, rlogind_home_t)
+	read_lnk_files_pattern($1, rlogind_home_t, rlogind_home_t)
+')

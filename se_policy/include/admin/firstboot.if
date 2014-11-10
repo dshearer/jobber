@@ -1,0 +1,176 @@
+## <summary>
+##	Final system configuration run during the first boot
+##	after installation of Red Hat/Fedora systems.
+## </summary>
+
+########################################
+## <summary>
+##	Execute firstboot in the firstboot domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`firstboot_domtrans',`
+	gen_require(`
+		type firstboot_t, firstboot_exec_t;
+	')
+
+	domtrans_pattern($1, firstboot_exec_t, firstboot_t)
+')
+
+########################################
+## <summary>
+##	Execute firstboot in the firstboot domain, and
+##	allow the specified role the firstboot domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the firstboot domain.
+##	</summary>
+## </param>
+#
+interface(`firstboot_run',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	firstboot_domtrans($1)
+	role $2 types firstboot_t;
+')
+
+########################################
+## <summary>
+##	Inherit and use a file descriptor from firstboot.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`firstboot_use_fds',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	allow $1 firstboot_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to inherit a
+##	file descriptor from firstboot.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`firstboot_dontaudit_use_fds',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	dontaudit $1 firstboot_t:fd use;
+')
+
+########################################
+## <summary>
+##	Write to a firstboot unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`firstboot_write_pipes',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	allow $1 firstboot_t:fifo_file write;
+')
+
+########################################
+## <summary>
+##	Read and Write to a firstboot unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`firstboot_rw_pipes',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	allow $1 firstboot_t:fifo_file { read write };
+')
+
+########################################
+## <summary>
+## 	Do not audit attemps to read and write to a firstboot unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`firstboot_dontaudit_rw_pipes',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	dontaudit $1 firstboot_t:fifo_file { read write };
+')
+
+########################################
+## <summary>
+## 	Do not audit attemps to read and write to a firstboot
+##	unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`firstboot_dontaudit_rw_stream_sockets',`
+	gen_require(`
+		type firstboot_t;
+	')
+
+	dontaudit $1 firstboot_t:unix_stream_socket { read write };
+')
+
+#######################################
+## <summary>
+##  dontaudit read and write an leaked file descriptors
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain to not audit.
+##  </summary>
+## </param>
+#
+interface(`firstboot_dontaudit_leaks',`
+    gen_require(`
+        type firstboot_t;
+    ')
+
+    dontaudit $1 firstboot_t:socket_class_set { read write };
+    dontaudit $1 firstboot_t:fifo_file rw_inherited_fifo_file_perms;
+')

@@ -1,0 +1,287 @@
+## <summary>Ricci cluster management agent</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run ricci.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ricci_domtrans',`
+	gen_require(`
+		type ricci_t, ricci_exec_t;
+	')
+
+	domtrans_pattern($1, ricci_exec_t, ricci_t)
+')
+
+#######################################
+## <summary>
+##  Execute ricci server in the ricci domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The type of the process performing this action.
+##  </summary>
+## </param>
+#
+interface(`ricci_initrc_domtrans', `
+    gen_require(`
+        type ricci_initrc_exec_t;
+    ')
+
+    init_labeled_script_domtrans($1, ricci_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run ricci_modcluster.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ricci_domtrans_modcluster',`
+	gen_require(`
+		type ricci_modcluster_t, ricci_modcluster_exec_t;
+	')
+
+	domtrans_pattern($1, ricci_modcluster_exec_t, ricci_modcluster_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to use
+##	ricci_modcluster file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of process not to audit.
+##	</summary>
+## </param>
+#
+interface(`ricci_dontaudit_use_modcluster_fds',`
+	gen_require(`
+		type ricci_modcluster_t;
+	')
+
+	dontaudit $1 ricci_modcluster_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read write
+##	ricci_modcluster unamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of process not to audit.
+##	</summary>
+## </param>
+#
+interface(`ricci_dontaudit_rw_modcluster_pipes',`
+	gen_require(`
+		type ricci_modcluster_t;
+	')
+
+	dontaudit $1 ricci_modcluster_t:fifo_file { read write };
+')
+
+########################################
+## <summary>
+##	Connect to ricci_modclusterd over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ricci_stream_connect_modclusterd',`
+	gen_require(`
+		type ricci_modclusterd_t, ricci_modcluster_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, ricci_modcluster_var_run_t, ricci_modcluster_var_run_t, ricci_modclusterd_t)
+')
+
+#######################################
+## <summary>
+## Read and write to ricci_modclusterd temporary file system.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`ricci_rw_modclusterd_tmpfs_files',`
+        gen_require(`
+				type ricci_modclusterd_tmpfs_t;
+        ')
+
+        allow $1 ricci_modclusterd_tmpfs_t:file rw_file_perms;
+        allow $1 ricci_modclusterd_tmpfs_t:file unlink;
+')    
+
+########################################
+## <summary>
+##	Execute a domain transition to run ricci_modlog.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ricci_domtrans_modlog',`
+	gen_require(`
+		type ricci_modlog_t, ricci_modlog_exec_t;
+	')
+
+	domtrans_pattern($1, ricci_modlog_exec_t, ricci_modlog_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run ricci_modrpm.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ricci_domtrans_modrpm',`
+	gen_require(`
+		type ricci_modrpm_t, ricci_modrpm_exec_t;
+	')
+
+	domtrans_pattern($1, ricci_modrpm_exec_t, ricci_modrpm_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run ricci_modservice.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ricci_domtrans_modservice',`
+	gen_require(`
+		type ricci_modservice_t, ricci_modservice_exec_t;
+	')
+
+	domtrans_pattern($1, ricci_modservice_exec_t, ricci_modservice_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run ricci_modstorage.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ricci_domtrans_modstorage',`
+	gen_require(`
+		type ricci_modstorage_t, ricci_modstorage_exec_t;
+	')
+
+	domtrans_pattern($1, ricci_modstorage_exec_t, ricci_modstorage_t)
+')
+
+######################################
+## <summary>
+##      Allow the specified domain to read ricci's lib files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`ricci_read_lib_files',`
+    gen_require(`
+        type ricci_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+	list_dirs_pattern($1, ricci_var_lib_t, ricci_var_lib_t)
+    read_files_pattern($1, ricci_var_lib_t, ricci_var_lib_t)
+')
+
+#####################################
+## <summary>
+##      Allow the specified domain to manage ricci's lib files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`ricci_manage_lib_files',`
+    gen_require(`
+        type ricci_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+	manage_dirs_pattern($1, ricci_var_lib_t, ricci_var_lib_t)
+    manage_files_pattern($1, ricci_var_lib_t, ricci_var_lib_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an ricci environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ricci_admin',`
+	gen_require(`
+		type ricci_t, ricci_initrc_exec_t, ricci_tmp_t;
+		type ricci_var_lib_t, ricci_var_log_t, ricci_var_run_t;
+	')
+
+	allow $1 ricci_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, ricci_t, ricci_t)
+
+	init_labeled_script_domtrans($1, ricci_initrc_exec_t)
+    domain_system_change_exemption($1)
+    role_transition $2 ricci_initrc_exec_t system_r;
+    allow $2 system_r;
+
+	files_search_tmp($1)
+	admin_pattern($1, ricci_tmp_t)
+	
+	files_search_var_lib($1)
+	admin_pattern($1, ricci_var_lib_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, ricci_var_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, ricci_var_run_t)
+')

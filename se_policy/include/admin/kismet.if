@@ -1,0 +1,247 @@
+## <summary>Kismet is an 802.11 layer2 wireless network detector, sniffer, and intrusion detection system.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run kismet.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`kismet_domtrans',`
+	gen_require(`
+		type kismet_t, kismet_exec_t;
+	')
+
+	domtrans_pattern($1, kismet_exec_t, kismet_t)
+	allow kismet_t $1:process signull;
+')
+
+########################################
+## <summary>
+##	Execute kismet in the kismet domain, and
+##	allow the specified role the kismet domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the kismet domain.
+##	</summary>
+## </param>
+#
+interface(`kismet_run',`
+	gen_require(`
+		type kismet_t;
+	')
+
+	kismet_domtrans($1)
+	role $2 types kismet_t;
+')
+
+########################################
+## <summary>
+##	Read kismet PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kismet_read_pid_files',`
+	gen_require(`
+		type kismet_var_run_t;
+	')
+
+	allow $1 kismet_var_run_t:file read_file_perms;
+	files_search_pids($1)
+')
+
+########################################
+## <summary>
+##	Manage kismet var_run files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kismet_manage_pid_files',`
+	gen_require(`
+		type kismet_var_run_t;
+	')
+
+	allow $1 kismet_var_run_t:file manage_file_perms;
+	files_search_pids($1)	
+')
+
+########################################
+## <summary>
+##	Search kismet lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kismet_search_lib',`
+	gen_require(`
+		type kismet_var_lib_t;
+	')
+
+	allow $1 kismet_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read kismet lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kismet_read_lib_files',`
+	gen_require(`
+		type kismet_var_lib_t;
+	')
+
+	allow $1 kismet_var_lib_t:file read_file_perms;
+	allow $1 kismet_var_lib_t:dir list_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	kismet lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kismet_manage_lib_files',`
+	gen_require(`
+		type kismet_var_lib_t;
+	')
+
+	manage_files_pattern($1, kismet_var_lib_t, kismet_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Manage kismet var_lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kismet_manage_lib',`
+	gen_require(`
+		type kismet_var_lib_t;
+	')
+
+	manage_dirs_pattern($1, kismet_var_lib_t, kismet_var_lib_t)
+	manage_files_pattern($1, kismet_var_lib_t, kismet_var_lib_t)
+	manage_lnk_files_pattern($1, kismet_var_lib_t, kismet_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read kismet's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kismet_read_log',`
+	gen_require(`
+		type kismet_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, kismet_log_t, kismet_log_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	kismet log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`kismet_append_log',`
+	gen_require(`
+		type kismet_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, kismet_log_t, kismet_log_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to manage kismet log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`kismet_manage_log',`
+	gen_require(`
+		type kismet_log_t;
+	')
+
+	manage_dirs_pattern($1, kismet_log_t, kismet_log_t)
+	manage_files_pattern($1, kismet_log_t, kismet_log_t)
+	manage_lnk_files_pattern($1, kismet_log_t, kismet_log_t)
+	logging_search_logs($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate an kismet environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kismet_admin',`
+	gen_require(`
+		type kismet_t;
+	')
+
+	ps_process_pattern($1, kismet_t)
+	allow $1 kismet_t:process { ptrace signal_perms };
+
+	kismet_manage_pid_files($1)
+	kismet_manage_lib($1)
+	kismet_manage_log($1)
+')

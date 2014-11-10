@@ -1,0 +1,184 @@
+
+## <summary>Telepathy framework.</summary>
+
+#######################################
+## <summary>
+##  Creates basic types for telepathy
+##  domain
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+#
+template(`telepathy_domain_template',`
+
+	gen_require(`
+		attribute telepathy_domain;
+		attribute telepathy_executable;
+	')
+
+	type telepathy_$1_t, telepathy_domain;
+	type telepathy_$1_exec_t, telepathy_executable;
+	application_domain(telepathy_$1_t, telepathy_$1_exec_t)
+	ubac_constrained(telepathy_$1_t)
+
+	type telepathy_$1_tmp_t;
+	files_tmp_file(telepathy_$1_tmp_t)
+	ubac_constrained(telepathy_$1_tmp_t)
+')
+
+#######################################
+## <summary>
+##  	Role access for telepathy domains
+###     that executes via dbus-session
+## </summary>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+template(`telepathy_dbus_session_role', `
+	gen_require(`
+		attribute telepathy_domain;
+
+		type telepathy_gabble_t, telepathy_msn_t;
+                type telepathy_idle_t, telepathy_mission_control_t, telepathy_salut_t;
+                type telepathy_sofiasip_t, telepathy_stream_engine_t, telepathy_sunshine_t;
+
+                type telepathy_gabble_exec_t, telepathy_msn_exec_t;
+                type telepathy_idle_exec_t, telepathy_mission_control_exec_t, telepathy_salut_exec_t;
+                type telepathy_sofiasip_exec_t, telepathy_stream_engine_exec_t, telepathy_sunshine_exec_t;
+
+	')
+
+	dbus_session_domain(telepathy_gabble_t, telepathy_gabble_exec_t)
+	dbus_session_domain(telepathy_idle_t, telepathy_idle_exec_t)
+	dbus_session_domain(telepathy_mission_control_t, telepathy_mission_control_exec_t)
+	dbus_session_domain(telepathy_msn_t, telepathy_msn_exec_t)
+	dbus_session_domain(telepathy_salut_t, telepathy_salut_exec_t)
+	dbus_session_domain(telepathy_sofiasip_t, telepathy_sofiasip_exec_t)
+	dbus_session_domain(telepathy_stream_engine_t, telepathy_stream_engine_exec_t)
+	dbus_session_domain(telepathy_sunshine_t, telepathy_sunshine_exec_t)
+	
+        role $1 types telepathy_domain;
+
+	allow $2 telepathy_domain:process { ptrace signal_perms };
+	ps_process_pattern($2, telepathy_domain)
+
+	optional_policy(`
+		telepathy_dbus_chat($2)
+	')
+
+	telepathy_gabble_stream_connect($2)
+	telepathy_msn_stream_connect($2)
+	telepathy_salut_stream_connect($2)	
+')
+
+########################################
+## <summary>
+##	Send DBus messages to and from
+##	all Telepathy domain.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`telepathy_dbus_chat', `
+	gen_require(`
+		attribute telepathy_domain;
+		class dbus send_msg;
+	')
+
+	allow $1 telepathy_domain:dbus send_msg;
+	allow telepathy_domain $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send DBus messages to and from
+##	Telepathy Gabble.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`telepathy_gabble_dbus_chat', `
+	gen_require(`
+		type telepathy_gabble_t;
+		class dbus send_msg;
+	')
+
+	allow $1 telepathy_gabble_t:dbus send_msg;
+	allow telepathy_gabble_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Stream connect to Telepathy Gabble
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`telepathy_gabble_stream_connect', `
+	gen_require(`
+		type telepathy_gabble_t, telepathy_gabble_tmp_t;
+	')
+
+	stream_connect_pattern($1, telepathy_gabble_tmp_t, telepathy_gabble_tmp_t, telepathy_gabble_t)
+	files_search_tmp($1)
+')
+
+#######################################
+## <summary>
+##      Stream connect to telepathy MSN managers
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`telepathy_msn_stream_connect', `
+        gen_require(`
+                type telepathy_msn_t, telepathy_msn_tmp_t;
+        ')
+
+        stream_connect_pattern($1, telepathy_msn_tmp_t, telepathy_msn_tmp_t, telepathy_msn_t)
+        files_search_tmp($1)
+')
+
+
+########################################
+## <summary>
+##	Stream connect to Telepathy Salut
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`telepathy_salut_stream_connect', `
+	gen_require(`
+		type telepathy_salut_t, telepathy_salut_tmp_t;
+	')
+
+	stream_connect_pattern($1, telepathy_salut_tmp_t, telepathy_salut_tmp_t, telepathy_salut_t)
+	files_search_tmp($1)
+')

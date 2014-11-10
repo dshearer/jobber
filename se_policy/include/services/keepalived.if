@@ -1,0 +1,23 @@
+
+## <summary> keepalived - load-balancing and high-availability service</summary>
+
+########################################
+## <summary>
+##	Execute keepalived in the keepalived domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`keepalived_domtrans',`
+	gen_require(`
+		type keepalived_t, keepalived_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, keepalived_exec_t, keepalived_t)
+')
+
+

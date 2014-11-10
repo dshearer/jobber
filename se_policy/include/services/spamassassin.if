@@ -1,0 +1,361 @@
+## <summary>Filter used for removing unsolicited email.</summary>
+
+########################################
+## <summary>
+##	Role access for spamassassin
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`spamassassin_role',`
+	gen_require(`
+		type spamc_t, spamc_exec_t, spamc_tmp_t;
+		type spamassassin_t, spamassassin_exec_t;
+		type spamassassin_home_t, spamassassin_tmp_t;
+	')
+
+	role $1 types { spamc_t spamassassin_t };
+
+	domtrans_pattern($2, spamassassin_exec_t, spamassassin_t)
+
+	allow $2 spamassassin_t:process { ptrace signal_perms };
+	ps_process_pattern($2, spamassassin_t)
+
+	domtrans_pattern($2, spamc_exec_t, spamc_t)
+
+	allow $2 spamc_t:process { ptrace signal_perms };
+	ps_process_pattern($2, spamc_t)
+
+	manage_dirs_pattern($2, spamassassin_home_t, spamassassin_home_t)
+	manage_files_pattern($2, spamassassin_home_t, spamassassin_home_t)
+	manage_lnk_files_pattern($2, spamassassin_home_t, spamassassin_home_t)
+	relabel_dirs_pattern($2, spamassassin_home_t, spamassassin_home_t)
+	relabel_files_pattern($2, spamassassin_home_t, spamassassin_home_t)
+	relabel_lnk_files_pattern($2, spamassassin_home_t, spamassassin_home_t)
+')
+
+########################################
+## <summary>
+##	Execute the standalone spamassassin
+##	program in the caller directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_exec',`
+	gen_require(`
+		type spamassassin_exec_t;
+	')
+
+	can_exec($1, spamassassin_exec_t)
+
+')
+
+########################################
+## <summary>
+##	Singnal the spam assassin daemon
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_signal_spamd',`
+	gen_require(`
+		type spamd_t;
+	')
+
+	allow $1 spamd_t:process signal;
+')
+
+########################################
+## <summary>
+##	Execute the spamassassin daemon
+##	program in the caller directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_exec_spamd',`
+	gen_require(`
+		type spamd_exec_t;
+	')
+
+	can_exec($1, spamd_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute spamassassin client in the spamassassin client domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_domtrans_client',`
+	gen_require(`
+		type spamc_t, spamc_exec_t;
+	')
+
+	domtrans_pattern($1, spamc_exec_t, spamc_t)
+	allow $1 spamc_exec_t:file ioctl;
+')
+
+########################################
+## <summary>
+##	Send kill signal to spamassassin client
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_kill_client',`
+	gen_require(`
+		type spamc_t;
+	')
+
+	allow $1 spamc_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Manage spamc home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_manage_home_client',`
+	gen_require(`
+		type spamc_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	manage_dirs_pattern($1, spamc_home_t, spamc_home_t)
+	manage_files_pattern($1, spamc_home_t, spamc_home_t)
+	manage_lnk_files_pattern($1, spamc_home_t, spamc_home_t)
+')
+
+########################################
+## <summary>
+##	Execute the spamassassin client
+##	program in the caller directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_exec_client',`
+	gen_require(`
+		type spamc_exec_t;
+	')
+
+	can_exec($1, spamc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute spamassassin standalone client in the user spamassassin domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_domtrans_local_client',`
+	gen_require(`
+		type spamassassin_t, spamassassin_exec_t;
+	')
+
+	domtrans_pattern($1, spamassassin_exec_t, spamassassin_t)
+')
+
+########################################
+## <summary>
+##	read spamd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_read_lib_files',`
+	gen_require(`
+		type spamd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	list_dirs_pattern($1, spamd_var_lib_t, spamd_var_lib_t)
+	read_files_pattern($1, spamd_var_lib_t, spamd_var_lib_t)
+	read_lnk_files_pattern($1, spamd_var_lib_t, spamd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	spamd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_manage_lib_files',`
+	gen_require(`
+		type spamd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, spamd_var_lib_t, spamd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read temporary spamd file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_read_spamd_tmp_files',`
+	gen_require(`
+		type spamd_tmp_t;
+	')
+
+	files_search_tmp($1)
+	allow $1 spamd_tmp_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get attributes of temporary
+##	spamd sockets/
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`spamassassin_dontaudit_getattr_spamd_tmp_sockets',`
+	gen_require(`
+		type spamd_tmp_t;
+	')
+
+	dontaudit $1 spamd_tmp_t:sock_file getattr_sock_file_perms;
+')
+
+########################################
+## <summary>
+##	Connect to run spamd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to connect.
+##	</summary>
+## </param>
+#
+interface(`spamd_stream_connect',`
+	gen_require(`
+		type spamd_t, spamd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, spamd_var_run_t, spamd_var_run_t, spamd_t)
+')
+
+#######################################
+## <summary>
+##  Read spamd pid file.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to connect.
+##  </summary>
+## </param>
+#
+interface(`spamassassin_read_pid_files',`
+    gen_require(`
+        type spamd_var_run_t;
+    ')
+
+    files_search_pids($1)
+    read_files_pattern($1, spamd_var_run_t, spamd_var_run_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an spamassassin environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the spamassassin domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`spamassassin_spamd_admin',`
+	gen_require(`
+		type spamd_t, spamd_tmp_t, spamd_log_t;
+		type spamd_spool_t, spamd_var_lib_t, spamd_var_run_t;
+		type spamd_initrc_exec_t;
+	')
+
+	allow $1 spamd_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, spamd_t, spamd_t)
+		
+	init_labeled_script_domtrans($1, spamd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 spamd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_tmp($1)
+	admin_pattern($1, spamd_tmp_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, spamd_log_t)
+
+	files_list_spool($1)
+	admin_pattern($1, spamd_spool_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, spamd_var_lib_t)
+
+	files_list_pids($1)
+	admin_pattern($1, spamd_var_run_t)
+')

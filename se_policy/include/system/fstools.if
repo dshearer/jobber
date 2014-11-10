@@ -1,0 +1,156 @@
+## <summary>Tools for filesystem management, such as mkfs and fsck.</summary>
+
+########################################
+## <summary>
+##	Execute fs tools in the fstools domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`fstools_domtrans',`
+	gen_require(`
+		type fsadm_t, fsadm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, fsadm_exec_t, fsadm_t)
+')
+
+########################################
+## <summary>
+##	Execute fs tools in the fstools domain, and
+##	allow the specified role the fs tools domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the fs tools domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`fstools_run',`
+	gen_require(`
+		type fsadm_t;
+	')
+
+	fstools_domtrans($1)
+	role $2 types fsadm_t;
+')
+
+########################################
+## <summary>
+##	Execute fsadm in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`fstools_exec',`
+	gen_require(`
+		type fsadm_exec_t;
+	')
+
+	can_exec($1, fsadm_exec_t)
+')
+
+########################################
+## <summary>
+##	Send signal to fsadm process
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fstools_signal',`
+	gen_require(`
+		type fsadm_t;
+	')
+
+	allow $1 fsadm_t:process signal;
+')
+
+########################################
+## <summary>
+##	Read fstools unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fstools_read_pipes',`
+	gen_require(`
+		type fsadm_t;
+	')
+
+	allow $1 fsadm_t:fifo_file read_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Relabel a file to the type used by the
+##	filesystem tools programs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`fstools_relabelto_entry_files',`
+	gen_require(`
+		type fsadm_exec_t;
+	')
+
+	allow $1 fsadm_exec_t:file relabelto;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete a file used by the
+##	filesystem tools programs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`fstools_manage_entry_files',`
+	gen_require(`
+		type fsadm_exec_t;
+	')
+
+	allow $1 fsadm_exec_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Getattr swapfile
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`fstools_getattr_swap_files',`
+	gen_require(`
+		type swapfile_t;
+	')
+
+	allow $1 swapfile_t:file getattr;
+')

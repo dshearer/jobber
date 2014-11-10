@@ -1,0 +1,141 @@
+## <summary>Run .NET server and client applications on Linux.</summary>
+
+#######################################
+## <summary>
+##	The role template for the mono module.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a derived domains which are used
+##	for mono applications.
+##	</p>
+## </desc>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+template(`mono_role_template',`
+	gen_require(`
+		type mono_exec_t;
+	')
+
+	type $1_mono_t;
+	domain_type($1_mono_t)
+	domain_entry_file($1_mono_t, mono_exec_t)
+	role $2 types $1_mono_t;
+
+	domain_interactive_fd($1_mono_t)
+	application_type($1_mono_t)
+
+	userdom_unpriv_usertype($1, $1_mono_t)
+	userdom_manage_tmpfs_role($2, $1_mono_t)
+
+	allow $1_mono_t self:process { ptrace signal getsched execheap execmem execstack };
+	allow $3 $1_mono_t:process { getattr ptrace noatsecure signal_perms };
+
+	domtrans_pattern($3, mono_exec_t, $1_mono_t)
+
+	fs_dontaudit_rw_tmpfs_files($1_mono_t)
+	corecmd_bin_domtrans($1_mono_t, $1_t)
+ifdef(`hide_broken_symptoms', `
+	dontaudit $1_t $1_mono_t:socket_class_set { read write };
+')
+
+	optional_policy(`
+		xserver_role($1_r, $1_mono_t)
+	')
+')
+
+########################################
+## <summary>
+##	Execute the mono program in the mono domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mono_domtrans',`
+	gen_require(`
+		type mono_t, mono_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, mono_exec_t, mono_t)
+')
+
+########################################
+## <summary>
+##	Execute mono in the mono domain, and
+##	allow the specified role the mono domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the mono domain.
+##	</summary>
+## </param>
+#
+interface(`mono_run',`
+	gen_require(`
+		type mono_t;
+	')
+
+	mono_domtrans($1)
+	role $2 types mono_t;
+')
+
+########################################
+## <summary>
+##	Execute the mono program in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mono_exec',`
+	gen_require(`
+		type mono_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, mono_exec_t)
+')
+
+########################################
+## <summary>
+##	Read and write to mono shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mono_rw_shm',`
+	gen_require(`
+		type mono_t;
+	')
+
+	allow $1 mono_t:shm rw_shm_perms;
+')

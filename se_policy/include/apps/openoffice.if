@@ -1,0 +1,124 @@
+## <summary>Openoffice</summary>
+
+#######################################
+## <summary>
+##	The per role template for the openoffice module.
+## </summary>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+interface(`openoffice_plugin_role',`
+	gen_require(`
+		type openoffice_exec_t;
+		type openoffice_t;
+	')
+	
+	########################################
+	#
+	# Local policy
+	#
+
+	domtrans_pattern($1, openoffice_exec_t, openoffice_t)
+	allow $1 openoffice_t:process { signal sigkill };
+')
+
+#######################################
+## <summary>
+##	role for openoffice
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a derived domains which are used
+##	for java applications.
+##	</p>
+## </desc>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+interface(`openoffice_role_template',`
+	gen_require(`
+		type openoffice_exec_t;
+	')
+
+	role $2 types $1_openoffice_t;
+
+	type $1_openoffice_t;
+	domain_type($1_openoffice_t)
+	domain_entry_file($1_openoffice_t, openoffice_exec_t)
+	domain_interactive_fd($1_openoffice_t)
+
+	userdom_unpriv_usertype($1, $1_openoffice_t)
+	userdom_exec_user_home_content_files($1_openoffice_t)
+
+	allow $1_openoffice_t self:process { getsched sigkill execheap execmem execstack };
+
+	allow $3 $1_openoffice_t:process { getattr ptrace signal_perms noatsecure siginh rlimitinh };
+	allow $1_openoffice_t $3:tcp_socket { read write };
+
+	domtrans_pattern($3, openoffice_exec_t, $1_openoffice_t)
+
+	dev_read_urand($1_openoffice_t)
+	dev_read_rand($1_openoffice_t)
+
+	fs_dontaudit_rw_tmpfs_files($1_openoffice_t)
+
+	allow $3 $1_openoffice_t:process { signal sigkill };
+	allow $1_openoffice_t $3:unix_stream_socket connectto;
+
+	optional_policy(`
+		xserver_role($2, $1_openoffice_t)
+	')
+')
+
+########################################
+## <summary>
+##	Execute openoffice_exec_t 
+##	in the specified domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute a openoffice_exec_t
+##	in the specified domain.  
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`openoffice_exec_domtrans',`
+	gen_require(`
+		type openoffice_exec_t;
+	')
+
+	allow $2 openoffice_exec_t:file entrypoint;
+	domtrans_pattern($1, openoffice_exec_t, $2)
+')

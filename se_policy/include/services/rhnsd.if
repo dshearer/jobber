@@ -1,0 +1,91 @@
+
+## <summary>policy for rhnsd</summary>
+
+########################################
+## <summary>
+##	Transition to rhnsd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rhnsd_domtrans',`
+	gen_require(`
+		type rhnsd_t, rhnsd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, rhnsd_exec_t, rhnsd_t)
+')
+
+########################################
+## <summary>
+##	Execute rhnsd server in the rhnsd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhnsd_initrc_domtrans',`
+	gen_require(`
+		type rhnsd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, rhnsd_initrc_exec_t)
+')
+
+######################################
+## <summary>
+## Allow the specified domain to manage
+## rhnsd configuration files.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`rhnsd_manage_config',`
+    gen_require(`
+        type rhnsd_conf_t;
+    ')
+
+    files_search_etc($1)
+    manage_files_pattern( $1, rhnsd_conf_t, rhnsd_conf_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an rhnsd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rhnsd_admin',`
+	gen_require(`
+		type rhnsd_t;
+		type rhnsd_initrc_exec_t;
+	')
+
+	allow $1 rhnsd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, rhnsd_t)
+
+	rhnsd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 rhnsd_initrc_exec_t system_r;
+	allow $2 system_r;
+')

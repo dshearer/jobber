@@ -1,0 +1,87 @@
+## <summary>Deny Hosts.</summary>
+## <desc>
+##	<p>
+##		DenyHosts is a script intended to be run by Linux
+##		system administrators to help thwart SSH server attacks
+##		(also known as dictionary based attacks and brute force
+##		attacks).
+##	</p>
+## </desc>
+
+########################################
+## <summary>
+##	Execute a domain transition to run denyhosts.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`denyhosts_domtrans', `
+	gen_require(`
+		type denyhosts_t, denyhosts_exec_t;
+	')
+
+	domtrans_pattern($1, denyhosts_exec_t, denyhosts_t)
+')
+
+########################################
+## <summary>
+##	Execute denyhost server in the denyhost domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`denyhosts_initrc_domtrans', `
+	gen_require(`
+		type denyhosts_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, denyhosts_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an denyhosts environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`denyhosts_admin', `
+	gen_require(`
+		type denyhosts_t, denyhosts_var_lib_t, denyhosts_var_lock_t;
+		type denyhosts_var_log_t, denyhosts_initrc_exec_t;
+	')
+
+	allow $1 denyhosts_t:process { ptrace signal_perms getattr };
+	
+	denyhosts_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 denyhosts_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	kernel_search_proc($1)
+	ps_process_pattern($1, denyhosts_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, denyhosts_var_lib_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, denyhosts_var_log_t)
+
+	files_search_locks($1)
+	admin_pattern($1, denyhosts_var_lock_t)
+')

@@ -1,0 +1,118 @@
+## <summary>Automatic IPv6 Connectivity Client Utility.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run aiccu.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`aiccu_domtrans',`
+	gen_require(`
+		type aiccu_t, aiccu_exec_t;
+	')
+
+	domtrans_pattern($1, aiccu_exec_t, aiccu_t)
+	corecmd_search_bin($1)
+')
+
+
+########################################
+## <summary>
+##	Execute aiccu server in the aiccu domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`aiccu_initrc_domtrans',`
+	gen_require(`
+		type aiccu_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, aiccu_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read aiccu PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`aiccu_read_pid_files',`
+	gen_require(`
+		type aiccu_var_run_t;
+	')
+
+	allow $1 aiccu_var_run_t:file read_file_perms;
+	files_search_pids($1)
+')
+
+########################################
+## <summary>
+##	Manage aiccu PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`aiccu_manage_var_run',`
+	gen_require(`
+		type aiccu_var_run_t;
+	')
+
+	manage_dirs_pattern($1, aiccu_var_run_t, aiccu_var_run_t)
+	manage_files_pattern($1, aiccu_var_run_t, aiccu_var_run_t)
+	manage_lnk_files_pattern($1, aiccu_var_run_t, aiccu_var_run_t)
+	files_search_pids($1)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an aiccu environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`aiccu_admin',`
+	gen_require(`
+		type aiccu_t, aiccu_initrc_exec_t, aiccu_etc_t;
+		type aiccu_var_run_t;
+	')
+
+	allow $1 aiccu_t:process { ptrace signal_perms };
+	ps_process_pattern($1, aiccu_t)
+
+	aiccu_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 aiccu_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	admin_pattern($1, aiccu_etc_t)
+	files_search_etc($1)
+
+	admin_pattern($1, aiccu_var_run_t)
+	files_search_pids($1)
+')

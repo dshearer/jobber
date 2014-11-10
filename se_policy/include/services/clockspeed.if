@@ -1,0 +1,44 @@
+## <summary>Clockspeed simple network time protocol client</summary>
+
+########################################
+## <summary>
+##	Execute clockspeed utilities in the clockspeed_cli domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`clockspeed_domtrans_cli',`
+	gen_require(`
+		type clockspeed_cli_t, clockspeed_cli_exec_t;
+	')
+
+	domtrans_pattern($1, clockspeed_cli_exec_t, clockspeed_cli_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified role the clockspeed_cli domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the clockspeed_cli domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`clockspeed_run_cli',`
+	gen_require(`
+		type clockspeed_cli_t;
+	')
+
+	role $2 types clockspeed_cli_t;
+	clockspeed_domtrans_cli($1)
+')

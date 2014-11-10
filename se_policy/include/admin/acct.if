@@ -1,0 +1,80 @@
+## <summary>Berkeley process accounting</summary>
+
+########################################
+## <summary>
+##	Transition to the accounting management domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`acct_domtrans',`
+	gen_require(`
+		type acct_t, acct_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, acct_exec_t, acct_t)
+')
+
+########################################
+## <summary>
+##	Execute accounting management tools in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`acct_exec',`
+	gen_require(`
+		type acct_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, acct_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute accounting management data in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+# cjp: this is added for logrotate, and does
+# not make sense to me.
+interface(`acct_exec_data',`
+	gen_require(`
+		type acct_data_t;
+	')
+
+	files_search_var($1)
+	can_exec($1, acct_data_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete process accounting data.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`acct_manage_data',`
+	gen_require(`
+		type acct_data_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, acct_data_t, acct_data_t)
+	manage_lnk_files_pattern($1, acct_data_t, acct_data_t)
+')

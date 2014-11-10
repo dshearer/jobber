@@ -1,0 +1,79 @@
+## <summary>Conman is a program for connecting to remote consoles being managed by conmand</summary>
+
+########################################
+## <summary>
+##	Execute conman in the conman domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`conman_domtrans',`
+	gen_require(`
+		type conman_t, conman_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, conman_exec_t, conman_t)
+')
+
+########################################
+## <summary>
+##	Read conman's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`conman_read_log',`
+	gen_require(`
+		type conman_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, conman_log_t, conman_log_t)
+')
+
+########################################
+## <summary>
+##	Append to conman log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`conman_append_log',`
+	gen_require(`
+		type conman_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, conman_log_t, conman_log_t)
+')
+
+########################################
+## <summary>
+##	Manage conman log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`conman_manage_log',`
+	gen_require(`
+		type conman_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, conman_log_t, conman_log_t)
+	manage_files_pattern($1, conman_log_t, conman_log_t)
+')
+

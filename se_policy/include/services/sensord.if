@@ -1,0 +1,41 @@
+
+## <summary>Sensor information logging daemon</summary>
+
+########################################
+## <summary>
+##	Execute sensord in the sensord domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`sensord_domtrans',`
+	gen_require(`
+		type sensord_t, sensord_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, sensord_exec_t, sensord_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an sensord environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sensord_admin',`
+	gen_require(`
+		type sensord_t;
+	')
+
+	allow $1 sensord_t:process { ptrace signal_perms };
+	ps_process_pattern($1, sensord_t)
+')

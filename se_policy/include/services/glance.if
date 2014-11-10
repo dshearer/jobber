@@ -1,0 +1,264 @@
+
+## <summary>policy for glance</summary>
+
+########################################
+## <summary>
+##	Transition to glance registry.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`glance_domtrans_registry',`
+	gen_require(`
+		type glance_registry_t, glance_registry_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, glance_registry_exec_t, glance_registry_t)
+')
+
+########################################
+## <summary>
+##	Transition to glance api.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`glance_domtrans_api',`
+	gen_require(`
+		type glance_api_t, glance_api_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, glance_api_exec_t, glance_api_t)
+')
+
+########################################
+## <summary>
+##	Read glance's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`glance_read_log',`
+	gen_require(`
+		type glance_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, glance_log_t, glance_log_t)
+')
+
+########################################
+## <summary>
+##	Append to glance log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glance_append_log',`
+	gen_require(`
+		type glance_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, glance_log_t, glance_log_t)
+')
+
+########################################
+## <summary>
+##	Manage glance log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glance_manage_log',`
+	gen_require(`
+		type glance_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, glance_log_t, glance_log_t)
+	manage_files_pattern($1, glance_log_t, glance_log_t)
+	manage_lnk_files_pattern($1, glance_log_t, glance_log_t)
+')
+
+########################################
+## <summary>
+##	Search glance lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glance_search_lib',`
+	gen_require(`
+		type glance_var_lib_t;
+	')
+
+	allow $1 glance_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read glance lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glance_read_lib_files',`
+	gen_require(`
+		type glance_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, glance_var_lib_t, glance_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage glance lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glance_manage_lib_files',`
+	gen_require(`
+		type glance_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, glance_var_lib_t, glance_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage glance lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glance_manage_lib_dirs',`
+	gen_require(`
+		type glance_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, glance_var_lib_t, glance_var_lib_t)
+')
+
+
+########################################
+## <summary>
+##	Read glance PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glance_read_pid_files',`
+	gen_require(`
+		type glance_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, glance_var_run_t, glance_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage glance PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glance_manage_pid_files',`
+	gen_require(`
+		type glance_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, glance_var_run_t, glance_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an glance environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`glance_admin',`
+	gen_require(`
+		type glance_registry_t, glance_api_t, glance_log_t;
+		type glance_var_lib_t, glance_var_run_t;
+		type glance_registry_initrc_exec_t, glance_api_initrc_exec_t;
+	')
+
+	allow $1 glance_registry_t:process signal_perms;
+	ps_process_pattern($1, glance_registry_t)
+
+	allow $1 glance_api_t:process signal_perms;
+	ps_process_pattern($1, glance_api_t)
+
+	init_labeled_script_domtrans($1, glance_registry_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 glance_registry_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	init_labeled_script_domtrans($1, glance_api_initrc_exec_t)
+	role_transition $2 glance_api_initrc_exec_t system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, glance_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, glance_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, glance_var_run_t)
+')

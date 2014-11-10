@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "$0 is no longer supported, better tools exist for creating policy"
+echo "Please use /usr/bin/sepolgen, slide or polgengui to generate policy"

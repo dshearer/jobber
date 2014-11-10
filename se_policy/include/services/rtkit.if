@@ -1,0 +1,81 @@
+## <summary>Realtime scheduling for user processes.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run rtkit_daemon.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rtkit_daemon_domtrans',`
+	gen_require(`
+		type rtkit_daemon_t, rtkit_daemon_exec_t;
+	')
+
+	domtrans_pattern($1, rtkit_daemon_exec_t, rtkit_daemon_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	rtkit_daemon over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rtkit_daemon_dbus_chat',`
+	gen_require(`
+		type rtkit_daemon_t;
+		class dbus send_msg;
+	')
+
+	allow $1 rtkit_daemon_t:dbus send_msg;
+	allow rtkit_daemon_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Do not audit send and receive messages from
+##	rtkit_daemon over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rtkit_daemon_dontaudit_dbus_chat',`
+	gen_require(`
+		type rtkit_daemon_t;
+		class dbus send_msg;
+	')
+
+	dontaudit $1 rtkit_daemon_t:dbus send_msg;
+	dontaudit rtkit_daemon_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Allow rtkit to control scheduling for your process
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rtkit_scheduled',`
+	gen_require(`
+		type rtkit_daemon_t;
+	')
+
+	ps_process_pattern(rtkit_daemon_t, $1)
+	allow rtkit_daemon_t $1:process { getsched setsched };
+	rtkit_daemon_dbus_chat($1)
+')

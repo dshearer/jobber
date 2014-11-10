@@ -1,0 +1,280 @@
+## <summary>Policy framework for controlling privileges for system-wide services.</summary>
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	policykit over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`policykit_dbus_chat',`
+	gen_require(`
+		type policykit_t;
+		class dbus send_msg;
+	')
+
+	ps_process_pattern(policykit_t, $1)
+
+	allow $1 policykit_t:dbus send_msg;
+	allow policykit_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	policykit over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`policykit_dbus_chat_auth',`
+	gen_require(`
+		type policykit_auth_t;
+		class dbus send_msg;
+	')
+
+	ps_process_pattern(policykit_auth_t, $1)
+
+	allow $1 policykit_auth_t:dbus send_msg;
+	allow policykit_auth_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run polkit_auth.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`policykit_domtrans_auth',`
+	gen_require(`
+		type policykit_auth_t, policykit_auth_exec_t;
+	')
+
+	domtrans_pattern($1, policykit_auth_exec_t, policykit_auth_t)
+')
+
+########################################
+## <summary>
+##	Execute a policy_auth in the policy_auth domain, and
+##	allow the specified role the policy_auth domain,
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the load_policy domain.
+##	</summary>
+## </param>
+#
+interface(`policykit_run_auth',`
+	gen_require(`
+		type policykit_auth_t;
+	')
+
+	policykit_domtrans_auth($1)
+	role $2 types policykit_auth_t;
+
+	allow $1 policykit_auth_t:process signal;
+	ps_process_pattern(policykit_auth_t, $1)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run polkit_grant.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`policykit_domtrans_grant',`
+	gen_require(`
+		type policykit_grant_t, policykit_grant_exec_t;
+	')
+
+	domtrans_pattern($1, policykit_grant_exec_t, policykit_grant_t)
+')
+
+########################################
+## <summary>
+##	Execute a policy_grant in the policy_grant domain, and
+##	allow the specified role the policy_grant domain,
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the load_policy domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`policykit_run_grant',`
+	gen_require(`
+		type policykit_grant_t;
+	')
+
+	policykit_domtrans_grant($1)
+	role $2 types policykit_grant_t;
+
+	allow $1 policykit_grant_t:process signal;
+
+	ps_process_pattern(policykit_grant_t, $1)
+')
+
+########################################
+## <summary>
+##	read policykit reload files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`policykit_read_reload',`
+	gen_require(`
+		type policykit_reload_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, policykit_reload_t, policykit_reload_t)
+')
+
+########################################
+## <summary>
+##	rw policykit reload files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`policykit_rw_reload',`
+	gen_require(`
+		type policykit_reload_t;
+	')
+
+	files_search_var_lib($1)
+	rw_files_pattern($1, policykit_reload_t, policykit_reload_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run polkit_resolve.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`policykit_domtrans_resolve',`
+	gen_require(`
+		type policykit_resolve_t, policykit_resolve_exec_t;
+	')
+
+	domtrans_pattern($1, policykit_resolve_exec_t, policykit_resolve_t)
+
+	ps_process_pattern(policykit_resolve_t, $1)
+')
+
+########################################
+## <summary>
+##	Search policykit lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`policykit_search_lib',`
+	gen_require(`
+		type policykit_var_lib_t;
+	')
+
+	allow $1 policykit_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	read policykit lib files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`policykit_read_lib',`
+	gen_require(`
+		type policykit_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, policykit_var_lib_t, policykit_var_lib_t)
+
+	# Broken placement
+	cron_read_system_job_lib_files($1)
+')
+
+#######################################
+## <summary>
+##	The per role template for the policykit module.
+## </summary>
+## <param name="user_role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+template(`policykit_role',`
+	policykit_run_auth($2, $1)
+	policykit_run_grant($2, $1)
+	policykit_read_lib($2)
+	policykit_read_reload($2)
+	policykit_dbus_chat($2)
+')
+########################################
+## <summary>
+##	Send generic signal to policy_auth
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`policykit_signal_auth',`
+	gen_require(`
+		type policykit_auth_t;
+	')
+
+	allow $1 policykit_auth_t:process signal;
+')

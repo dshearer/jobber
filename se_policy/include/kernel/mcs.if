@@ -1,0 +1,150 @@
+## <summary>Multicategory security policy</summary>
+## <required val="true">
+##	Contains attributes used in MCS policy.
+## </required>
+
+########################################
+## <summary>
+##	This domain is allowed to read files and directories
+##	regardless of their MCS category set.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain target for user exemption.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mcs_file_read_all',`
+	gen_require(`
+		attribute mcsreadall;
+	')
+
+	typeattribute $1 mcsreadall;
+')
+
+########################################
+## <summary>
+##	This domain is allowed to write files and directories
+##	regardless of their MCS category set.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain target for user exemption.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mcs_file_write_all',`
+	gen_require(`
+		attribute mcswriteall;
+	')
+
+	typeattribute $1 mcswriteall;
+')
+
+########################################
+## <summary>
+##	This domain is allowed to sigkill and sigstop 
+##	all domains regardless of their MCS category set.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain target for user exemption.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mcs_killall',`
+	gen_require(`
+		attribute mcskillall;
+	')
+
+	typeattribute $1 mcskillall;
+')
+
+########################################
+## <summary>
+##	This domain is allowed to ptrace
+##	all domains regardless of their MCS
+##	category set.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain target for user exemption.
+##	</summary>
+## </param>
+#
+interface(`mcs_ptrace_all',`
+	gen_require(`
+		attribute mcsptraceall;
+	')
+
+	typeattribute $1 mcsptraceall;
+')
+
+########################################
+## <summary>
+##	Make specified domain MCS trusted
+##	for setting any category set for
+##	the processes it executes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain target for user exemption.
+##	</summary>
+## </param>
+#
+interface(`mcs_process_set_categories',`
+	gen_require(`
+		attribute mcssetcats;
+	')
+
+	typeattribute $1 mcssetcats;
+')
+
+#######################################
+## <summary>
+##      Make specified process type MCS untrusted.
+## </summary>
+## <desc>
+##      <p>
+##      Make specified process type MCS untrusted.  This
+##      prevents this process from sending signals to other processes 
+##      with different mcs labels
+##      object.
+##      </p>
+## </desc>
+## <param name="domain">
+##      <summary>
+##      The type of the process.
+##      </summary>
+## </param>
+#
+interface(`mcs_untrusted_proc',`
+        gen_require(`
+                attribute mcsuntrustedproc;
+        ')
+
+        typeattribute $1 mcsuntrustedproc;
+')
+
+######################################
+## <summary>
+##  Make specified domain MCS trusted
+##  for writing to sockets at any level.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`mcs_socket_write_all_levels',`
+    gen_require(`
+        attribute mcsnetwrite;
+    ')
+
+    typeattribute $1 mcsnetwrite;
+')

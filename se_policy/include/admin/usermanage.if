@@ -1,0 +1,378 @@
+## <summary>Policy for managing user accounts.</summary>
+
+########################################
+## <summary>
+##	Execute chfn in the chfn domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_domtrans_chfn',`
+	gen_require(`
+		type chfn_t, chfn_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, chfn_exec_t, chfn_t)
+
+ifdef(`hide_broken_symptoms', `
+	dontaudit chfn_t $1:socket_class_set { read write };
+')
+')
+
+########################################
+## <summary>
+##	Execute chfn in the chfn domain, and
+##	allow the specified role the chfn domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the chfn domain.
+##	</summary>
+## </param>
+#
+interface(`usermanage_run_chfn',`
+	gen_require(`
+		type chfn_t;
+	')
+
+	usermanage_domtrans_chfn($1)
+	role $2 types chfn_t;
+')
+
+########################################
+## <summary>
+##	Execute groupadd in the groupadd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_domtrans_groupadd',`
+	gen_require(`
+		type groupadd_t, groupadd_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, groupadd_exec_t, groupadd_t)
+
+ifdef(`hide_broken_symptoms', `
+	dontaudit groupadd_t $1:socket_class_set { read write };
+')
+')
+
+#######################################
+## <summary>
+##  Check access to the groupadd executable.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`usermanage_access_check_groupadd',`
+    gen_require(`
+        type groupadd_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    allow $1 groupadd_exec_t:file { getattr_file_perms execute };
+')
+
+
+
+########################################
+## <summary>
+##	Execute groupadd in the groupadd domain, and
+##	allow the specified role the groupadd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the groupadd domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`usermanage_run_groupadd',`
+	gen_require(`
+		type groupadd_t;
+	')
+
+	usermanage_domtrans_groupadd($1)
+	role $2 types groupadd_t;
+
+	optional_policy(`
+		nscd_run(groupadd_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Execute passwd in the passwd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_domtrans_passwd',`
+	gen_require(`
+		type passwd_t, passwd_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, passwd_exec_t, passwd_t)
+
+ifdef(`hide_broken_symptoms', `
+	dontaudit passwd_t $1:socket_class_set { read write };
+')
+')
+
+########################################
+## <summary>
+##	Send sigkills to passwd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`usermanage_kill_passwd',`
+	gen_require(`
+		type passwd_t;
+	')
+
+	allow $1 passwd_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Execute passwd in the passwd domain, and
+##	allow the specified role the passwd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the passwd domain.
+##	</summary>
+## </param>
+#
+interface(`usermanage_run_passwd',`
+	gen_require(`
+		type passwd_t;
+	')
+
+	usermanage_domtrans_passwd($1)
+	role $2 types passwd_t;
+	auth_run_chk_passwd(passwd_t, $2)
+')
+
+#######################################
+## <summary>
+##  Check access to the passwd executable
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`usermanage_access_check_passwd',`
+    gen_require(`
+        type passwd_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    allow $1 passwd_exec_t:file { getattr_file_perms execute };
+')
+
+########################################
+## <summary>
+##	Execute password admin functions in
+##	the admin passwd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`usermanage_domtrans_admin_passwd',`
+	gen_require(`
+		type sysadm_passwd_t, admin_passwd_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, admin_passwd_exec_t, sysadm_passwd_t)
+')
+
+########################################
+## <summary>
+##	Execute passwd admin functions in the admin
+##	passwd domain, and allow the specified role
+##	the admin passwd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the admin passwd domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`usermanage_run_admin_passwd',`
+	gen_require(`
+		type sysadm_passwd_t;
+	')
+
+	usermanage_domtrans_admin_passwd($1)
+	role $2 types sysadm_passwd_t;
+
+	optional_policy(`
+		nscd_run(sysadm_passwd_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to use useradd fds
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_dontaudit_use_useradd_fds',`
+	gen_require(`
+		type useradd_t;
+	')
+
+	dontaudit $1 useradd_t:fd use;
+')
+
+########################################
+## <summary>
+##	Execute useradd in the useradd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_domtrans_useradd',`
+	gen_require(`
+		type useradd_t, useradd_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, useradd_exec_t, useradd_t)
+ifdef(`hide_broken_symptoms', `
+	dontaudit useradd_t $1:socket_class_set { read write };
+')
+')
+
+########################################
+## <summary>
+##	Execute useradd in the useradd domain, and
+##	allow the specified role the useradd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the useradd domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`usermanage_run_useradd',`
+	gen_require(`
+		type useradd_t;
+	')
+
+	usermanage_domtrans_useradd($1)
+	role $2 types useradd_t;
+
+	# Add/remove user home directories
+	userdom_manage_home_role($2, useradd_t)
+
+	seutil_run_semanage(useradd_t, $2)
+
+	optional_policy(`
+		nscd_run(useradd_t, $2)
+	')
+')
+
+#######################################
+## <summary>
+##      Check access to the useradd executable.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`usermanage_access_check_useradd',`
+        gen_require(`
+                type useradd_exec_t;
+        ')
+
+        corecmd_search_bin($1)
+        allow $1 useradd_exec_t:file { getattr_file_perms execute };
+')
+
+
+########################################
+## <summary>
+##	Read the crack database.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`usermanage_read_crack_db',`
+	gen_require(`
+		type crack_db_t;
+	')
+
+	read_files_pattern($1, crack_db_t, crack_db_t)
+')

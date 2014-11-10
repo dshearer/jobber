@@ -1,0 +1,75 @@
+## <summary>Remote-Console (out-of-band) and System Management Software (in-band) based on Intelligent Platform Management Interface specification</summary>
+
+#####################################
+## <summary>
+##  Creates types and rules for a basic
+##  freeipmi init daemon domain.
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+template(`freeipmi_domain_template',`
+    gen_require(`
+        attribute freeipmi_domain, freeipmi_pid;
+    ')
+
+    #############################
+    #
+    # Declarations
+    #
+
+    type freeipmi_$1_t, freeipmi_domain;
+    type freeipmi_$1_exec_t;
+    init_daemon_domain(freeipmi_$1_t, freeipmi_$1_exec_t)
+    role system_r types freeipmi_$1_t;
+
+    type freeipmi_$1_initrc_exec_t;
+    init_script_file(freeipmi_$1_initrc_exec_t)
+
+    type freeipmi_$1_var_run_t, freeipmi_pid;
+    files_pid_file(freeipmi_$1_var_run_t)
+
+    #############################
+    #
+    # Local policy
+    #
+
+    manage_files_pattern(freeipmi_$1_t, freeipmi_$1_var_run_t, freeipmi_$1_var_run_t)
+
+    kernel_read_system_state(freeipmi_$1_t)
+
+    corenet_all_recvfrom_netlabel(freeipmi_$1_t)
+    corenet_all_recvfrom_unlabeled(freeipmi_$1_t)
+
+    dev_read_raw_memory(freeipmi_$1_t)
+
+    auth_use_nsswitch(freeipmi_$1_t)
+
+    logging_send_syslog_msg(freeipmi_$1_t)
+    
+    miscfiles_read_localization(freeipmi_$1_t)
+')
+
+####################################
+## <summary>
+##	Connect to cluster domains over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`freeipmi_stream_connect',`
+	gen_require(`
+		attribute freeipmi_domain, freeipmi_pid;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, freeipmi_pid, freeipmi_pid, freeipmi_domain)
+')
+

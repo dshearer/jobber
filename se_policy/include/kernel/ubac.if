@@ -1,0 +1,197 @@
+## <summary>User-based access control policy</summary>
+## <required val="true">
+##	Contains attributes used in UBAC policy.
+## </required>
+
+########################################
+## <summary>
+##	Constrain by user-based access control (UBAC).
+## </summary>
+## <desc>
+##	<p>
+##	Constrain the specified type by user-based
+##	access control (UBAC).  Typically, these are
+##	user processes or user files that need to be
+##	differentiated by SELinux user.  Normally this
+##	does not include administrative or privileged
+##	programs. For the UBAC rules to be enforced,
+##	both the subject (source) type and the object
+##	(target) types must be UBAC constrained.
+##	</p>
+## </desc>
+## <param name="type">
+##	<summary>
+##	Type to be constrained by UBAC.
+##	</summary>
+## </param>
+## <infoflow type="none"/>
+#
+interface(`ubac_constrained',`
+	gen_require(`
+		attribute ubac_constrained_type;
+	')
+
+	typeattribute $1 ubac_constrained_type;
+')
+
+########################################
+## <summary>
+##	Exempt user-based access control for files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be exempted.
+##	</summary>
+## </param>
+#
+interface(`ubac_file_exempt',`
+	gen_require(`
+		attribute ubacfile;
+	')
+
+	typeattribute $1 ubacfile;
+')
+
+########################################
+## <summary>
+##	Exempt user-based access control for processes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be exempted.
+##	</summary>
+## </param>
+#
+interface(`ubac_process_exempt',`
+	gen_require(`
+		attribute ubacproc;
+	')
+
+	typeattribute $1 ubacproc;
+')
+
+########################################
+## <summary>
+##	Exempt user-based access control for file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be exempted.
+##	</summary>
+## </param>
+#
+interface(`ubac_fd_exempt',`
+	gen_require(`
+		attribute ubacfd;
+	')
+
+	typeattribute $1 ubacfd;
+')
+
+########################################
+## <summary>
+##	Exempt user-based access control for sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be exempted.
+##	</summary>
+## </param>
+#
+interface(`ubac_socket_exempt',`
+	gen_require(`
+		attribute ubacsock;
+	')
+
+	typeattribute $1 ubacsock;
+')
+
+########################################
+## <summary>
+##	Exempt user-based access control for SysV IPC.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be exempted.
+##	</summary>
+## </param>
+#
+interface(`ubac_sysvipc_exempt',`
+	gen_require(`
+		attribute ubacipc;
+	')
+
+	typeattribute $1 ubacipc;
+')
+
+########################################
+## <summary>
+##	Exempt user-based access control for X Windows.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be exempted.
+##	</summary>
+## </param>
+#
+interface(`ubac_xwin_exempt',`
+	gen_require(`
+		attribute ubacxwin;
+	')
+
+	typeattribute $1 ubacxwin;
+')
+
+########################################
+## <summary>
+##	Exempt user-based access control for dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be exempted.
+##	</summary>
+## </param>
+#
+interface(`ubac_dbus_exempt',`
+	gen_require(`
+		attribute ubacdbus;
+	')
+
+	typeattribute $1 ubacdbus;
+')
+
+########################################
+## <summary>
+##	Exempt user-based access control for keys.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be exempted.
+##	</summary>
+## </param>
+#
+interface(`ubac_key_exempt',`
+	gen_require(`
+		attribute ubackey;
+	')
+
+	typeattribute $1 ubackey;
+')
+
+########################################
+## <summary>
+##	Exempt user-based access control for databases.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be exempted.
+##	</summary>
+## </param>
+#
+interface(`ubac_db_exempt',`
+	gen_require(`
+		attribute ubacdb;
+	')
+
+	typeattribute $1 ubacdb;
+')

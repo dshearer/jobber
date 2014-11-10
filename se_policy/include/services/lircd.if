@@ -1,0 +1,96 @@
+## <summary>Linux infared remote control daemon</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run lircd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`lircd_domtrans',`
+	gen_require(`
+		type lircd_t, lircd_exec_t;
+	')
+
+	domain_auto_trans($1, lircd_exec_t, lircd_t)
+
+')
+
+######################################
+## <summary>
+##	Connect to lircd over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lircd_stream_connect',`
+	gen_require(`
+		type lircd_var_run_t, lircd_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, lircd_var_run_t, lircd_var_run_t, lircd_t)
+')
+
+#######################################
+## <summary>
+##	Read lircd etc file
+## </summary>
+## <param name="domain">
+## <summary>
+##	The type of the process performing this action.
+## </summary>
+## </param>
+#
+interface(`lircd_read_config',`
+	gen_require(`
+		type lircd_etc_t;
+	')
+
+	read_files_pattern($1, lircd_etc_t, lircd_etc_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	a lircd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the syslog domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lircd_admin',`
+	gen_require(`
+		type lircd_t, lircd_var_run_t;
+		type lircd_initrc_exec_t, lircd_etc_t;
+	')
+
+	allow $1 lircd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, lircd_t)
+
+	init_labeled_script_domtrans($1, lircd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 lircd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, lircd_etc_t)
+
+	files_search_pids($1)
+	admin_pattern($1, lircd_var_run_t)
+')

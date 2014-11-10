@@ -1,0 +1,244 @@
+## <summary>policy for matahari</summary>
+
+######################################
+## <summary>
+##      Creates types and rules for a basic
+##      matahari init daemon domain.
+## </summary>
+## <param name="prefix">
+##      <summary>
+##      Prefix for the domain.
+##      </summary>
+## </param>
+#
+template(`matahari_domain_template',`
+        gen_require(`
+                attribute matahari_domain;
+        ')
+
+	##############################
+	#        
+	#  Declarations
+	#                        
+
+        type matahari_$1_t, matahari_domain;
+        type matahari_$1_exec_t;
+        init_daemon_domain(matahari_$1_t, matahari_$1_exec_t)
+')		
+
+########################################
+## <summary>
+##	Search matahari lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`matahari_search_lib',`
+	gen_require(`
+		type matahari_var_lib_t;
+	')
+
+	allow $1 matahari_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read matahari lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`matahari_read_lib_files',`
+	gen_require(`
+		type matahari_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        read_files_pattern($1, matahari_var_lib_t, matahari_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	matahari lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`matahari_manage_lib_files',`
+	gen_require(`
+		type matahari_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_files_pattern($1, matahari_var_lib_t, matahari_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage matahari lib dirs files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`matahari_manage_lib_dirs',`
+	gen_require(`
+		type matahari_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_dirs_pattern($1, matahari_var_lib_t, matahari_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read matahari PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`matahari_read_pid_files',`
+	gen_require(`
+		type matahari_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 matahari_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read matahari PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`matahari_manage_pid_files',`
+	gen_require(`
+		type matahari_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, matahari_var_run_t, matahari_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run matahari_hostd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`matahari_hostd_domtrans',`
+	gen_require(`
+		type matahari_hostd_t, matahari_hostd_exec_t;
+	')
+
+	domtrans_pattern($1, matahari_hostd_exec_t, matahari_hostd_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run matahari_netd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`matahari_netd_domtrans',`
+	gen_require(`
+		type matahari_netd_t, matahari_netd_exec_t;
+	')
+
+	domtrans_pattern($1, matahari_netd_exec_t, matahari_netd_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run matahari_serviced.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`matahari_serviced_domtrans',`
+	gen_require(`
+		type matahari_serviced_t, matahari_serviced_exec_t;
+	')
+
+	domtrans_pattern($1, matahari_serviced_exec_t, matahari_serviced_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an matahari environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`matahari_admin',`
+	gen_require(`
+		type matahari_initrc_exec_t, matahari_hostd_t;
+		type matahari_netd_t, matahari_serviced_t, matahari_sysconfigd_t;
+		type matahari_var_lib_t, matahari_var_run_t;
+	')
+
+	init_labeled_script_domtrans($1, matahari_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 matahari_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	allow $1 matahari_netd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, matahari_netd_t)
+
+	allow $1 matahari_hostd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, matahari_hostd_t)
+
+	allow $1 matahari_serviced_t:process { ptrace signal_perms };
+	ps_process_pattern($1, matahari_serviced_t)
+
+	allow $1 matahari_sysconfigd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, matahari_sysconfigd_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, matahari_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, matahari_var_run_t)
+')

@@ -1,0 +1,211 @@
+## <summary>Execute a command with a substitute user</summary>
+
+#######################################
+## <summary>
+##	The role template for the sudo module.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a derived domain which is allowed
+##	to change the linux user id, to run commands as a different
+##	user.
+##	</p>
+## </desc>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user role (e.g., user
+##	is the prefix for user_r).
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The user role.
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The user domain associated with the role.
+##	</summary>
+## </param>
+#
+template(`sudo_role_template',`
+
+	gen_require(`
+		type sudo_exec_t;
+		type sudo_db_t;
+		attribute sudodomain;
+	')
+
+	##############################
+	#
+	# Declarations
+	#
+
+	type $1_sudo_t, sudodomain; 
+	application_domain($1_sudo_t, sudo_exec_t)
+	domain_interactive_fd($1_sudo_t)
+	domain_role_change_exemption($1_sudo_t)
+	ubac_constrained($1_sudo_t)
+	role $2 types $1_sudo_t;
+
+	manage_dirs_pattern($1_sudo_t, sudo_db_t, sudo_db_t)
+	manage_files_pattern($1_sudo_t, sudo_db_t, sudo_db_t)
+
+	##############################
+	#
+	# Local Policy
+	#
+
+	# Use capabilities.
+	allow $1_sudo_t self:capability { chown fowner setuid setgid dac_override sys_nice sys_resource };
+	allow $1_sudo_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+	allow $1_sudo_t self:process { setexec setrlimit };
+	allow $1_sudo_t self:fd use;
+	allow $1_sudo_t self:fifo_file rw_fifo_file_perms;
+	allow $1_sudo_t self:shm create_shm_perms;
+	allow $1_sudo_t self:sem create_sem_perms;
+	allow $1_sudo_t self:msgq create_msgq_perms;
+	allow $1_sudo_t self:msg { send receive };
+	allow $1_sudo_t self:unix_dgram_socket create_socket_perms;
+	allow $1_sudo_t self:unix_stream_socket create_stream_socket_perms;
+	allow $1_sudo_t self:unix_dgram_socket sendto;
+	allow $1_sudo_t self:unix_stream_socket connectto;
+	allow $1_sudo_t self:key manage_key_perms;
+
+	allow $1_sudo_t $3:key search;
+
+	# Enter this derived domain from the user domain
+	domtrans_pattern($3, sudo_exec_t, $1_sudo_t)
+
+	ifdef(`hide_broken_symptoms', `
+		dontaudit $1_sudo_t $3:socket_class_set { read write };
+	')
+
+	# By default, revert to the calling domain when a shell is executed.
+	corecmd_shell_domtrans($1_sudo_t, $3)
+	corecmd_bin_domtrans($1_sudo_t, $3)
+	allow $3 $1_sudo_t:fd use;
+	allow $3 $1_sudo_t:fifo_file rw_file_perms;
+	allow $3 $1_sudo_t:process signal_perms;
+
+	kernel_read_kernel_sysctls($1_sudo_t)
+	kernel_read_system_state($1_sudo_t)
+	kernel_link_key($1_sudo_t)
+
+	application_signal($1_sudo_t)
+
+	corecmd_read_bin_symlinks($1_sudo_t)
+	corecmd_exec_all_executables($1_sudo_t)
+
+	dev_read_urand($1_sudo_t)
+	dev_rw_generic_usb_dev($1_sudo_t)
+	dev_read_sysfs($1_sudo_t)
+    dev_dontaudit_getattr_all_chr_files($1_sudo_t)
+    dev_dontaudit_getattr_all_blk_files($1_sudo_t)
+
+	domain_use_interactive_fds($1_sudo_t)
+	domain_sigchld_interactive_fds($1_sudo_t)
+	domain_getattr_all_entry_files($1_sudo_t)
+
+	files_read_etc_files($1_sudo_t)
+	files_read_var_files($1_sudo_t)
+	files_read_usr_symlinks($1_sudo_t)
+	files_getattr_usr_files($1_sudo_t)
+	# for some PAM modules and for cwd
+	files_dontaudit_search_home($1_sudo_t)
+	files_list_tmp($1_sudo_t)
+
+	fs_search_auto_mountpoints($1_sudo_t)
+	fs_getattr_all_fs($1_sudo_t)
+
+	selinux_validate_context($1_sudo_t)
+	selinux_compute_relabel_context($1_sudo_t)
+
+	term_relabel_all_ttys($1_sudo_t)
+	term_relabel_all_ptys($1_sudo_t)
+	term_getattr_pty_fs($1_sudo_t)
+
+	auth_run_chk_passwd($1_sudo_t, $2)
+	# sudo stores a token in the pam_pid directory
+	auth_manage_pam_pid($1_sudo_t)
+	auth_use_nsswitch($1_sudo_t)
+    auth_read_lastlog($1_sudo_t)
+
+	init_rw_utmp($1_sudo_t)
+
+	logging_send_audit_msgs($1_sudo_t)
+	logging_send_syslog_msg($1_sudo_t)
+	logging_set_audit_parameters($1_sudo_t)
+
+	miscfiles_read_localization($1_sudo_t)
+
+	seutil_read_default_contexts($1_sudo_t)
+	seutil_libselinux_linked($1_sudo_t)
+
+	userdom_spec_domtrans_all_users($1_sudo_t)
+	userdom_manage_user_home_content_files($1_sudo_t)
+	userdom_manage_user_home_content_symlinks($1_sudo_t)
+	userdom_manage_user_tmp_files($1_sudo_t)
+	userdom_manage_user_tmp_symlinks($1_sudo_t)
+	userdom_use_user_terminals($1_sudo_t)
+	# for some PAM modules and for cwd
+	userdom_search_user_home_content($1_sudo_t)
+	userdom_search_admin_dir($1_sudo_t)
+	userdom_manage_all_users_keys($1_sudo_t)
+
+	mta_role($2, $1_sudo_t)
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_manage_nfs_files($1_sudo_t)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_manage_cifs_files($1_sudo_t)
+	')
+
+	optional_policy(`
+		dbus_system_bus_client($1_sudo_t)
+	')
+
+	optional_policy(`
+		fprintd_dbus_chat($1_sudo_t)
+	')
+
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to the sudo domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sudo_sigchld',`
+	gen_require(`
+		attribute sudodomain;
+	')
+
+	allow $1 sudodomain:process sigchld;
+')
+
+######################################
+## <summary>
+##  Allow execute sudo in called domain.
+##  This interfaces is added for nova-stack policy.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`sudo_exec',`
+    gen_require(`
+        type sudo_exec_t;
+    ')
+
+        can_exec($1, sudo_exec_t)
+')

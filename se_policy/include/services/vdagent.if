@@ -1,0 +1,122 @@
+
+## <summary>policy for vdagent</summary>
+
+#####################################
+## <summary>
+##  Getattr on vdagent executable.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`vdagent_getattr_exec',`
+    gen_require(`
+        type vdagent_exec_t;
+    ')
+
+    allow $1 vdagent_exec_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run vdagent.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`vdagent_domtrans',`
+	gen_require(`
+		type vdagent_t, vdagent_exec_t;
+	')
+
+	domtrans_pattern($1, vdagent_exec_t, vdagent_t)
+')
+
+#######################################
+## <summary>
+##  Get the attributes of vdagent logs.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`vdagent_getattr_log',`
+    gen_require(`
+        type vdagent_log_t;
+    ')
+
+    logging_search_logs($1)
+    allow $1 vdagent_log_t:file getattr_file_perms;
+')
+
+########################################
+## <summary>
+##	Read vdagent PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vdagent_read_pid_files',`
+	gen_require(`
+		type vdagent_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 vdagent_var_run_t:file read_file_perms;
+')
+
+#####################################
+## <summary>
+##      Connect to vdagent over a unix domain
+##      stream socket.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`vdagent_stream_connect',`
+        gen_require(`
+                type vdagent_var_run_t, vdagent_t;
+        ')
+
+        files_search_pids($1)
+        stream_connect_pattern($1, vdagent_var_run_t, vdagent_var_run_t, vdagent_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an vdagent environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vdagent_admin',`
+	gen_require(`
+		type vdagent_t;
+                type vdagent_var_run_t;
+	')
+
+	allow $1 vdagent_t:process { ptrace signal_perms };
+	ps_process_pattern($1, vdagent_t)
+
+	files_search_pids($1)
+	admin_pattern($1, vdagent_var_run_t)
+
+')
+

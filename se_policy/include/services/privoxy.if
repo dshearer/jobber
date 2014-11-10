@@ -1,0 +1,43 @@
+## <summary>Privacy enhancing web proxy.</summary>
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an privoxy environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`privoxy_admin',`
+	gen_require(`
+		type privoxy_t, privoxy_log_t;
+		type privoxy_etc_rw_t, privoxy_var_run_t;
+		type privoxy_initrc_exec_t;
+	')
+
+	allow $1 privoxy_t:process { ptrace signal_perms };
+	ps_process_pattern($1, privoxy_t)
+
+	init_labeled_script_domtrans($1, privoxy_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 privoxy_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_list_logs($1)
+	admin_pattern($1, privoxy_log_t)
+
+	files_list_etc($1)
+	admin_pattern($1, privoxy_etc_rw_t)
+
+	files_list_pids($1)
+	admin_pattern($1, privoxy_var_run_t)
+')

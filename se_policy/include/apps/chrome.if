@@ -1,0 +1,133 @@
+
+## <summary>policy for chrome</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run chrome_sandbox.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`chrome_domtrans_sandbox',`
+	gen_require(`
+		type chrome_sandbox_t, chrome_sandbox_exec_t;
+	')
+
+	domtrans_pattern($1, chrome_sandbox_exec_t, chrome_sandbox_t)
+	ps_process_pattern(chrome_sandbox_t, $1)
+
+	allow $1 chrome_sandbox_t:fd use;
+
+	ifdef(`hide_broken_symptoms',`
+		fs_dontaudit_rw_anon_inodefs_files(chrome_sandbox_t)
+	')
+')
+
+
+########################################
+## <summary>
+##	Execute chrome_sandbox in the chrome_sandbox domain, and
+##	allow the specified role the chrome_sandbox domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the chrome_sandbox domain.
+##	</summary>
+## </param>
+#
+interface(`chrome_run_sandbox',`
+	gen_require(`
+		type chrome_sandbox_t;
+		type chrome_sandbox_nacl_t;
+	')
+
+	chrome_domtrans_sandbox($1)
+	role $2 types chrome_sandbox_t;
+	role $2 types chrome_sandbox_nacl_t;
+')
+
+########################################
+## <summary>
+##	Role access for chrome sandbox
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`chrome_role_notrans',`
+	gen_require(`
+		type chrome_sandbox_t;
+		type chrome_sandbox_tmpfs_t;
+		type chrome_sandbox_nacl_t;
+	')
+
+	role $1 types chrome_sandbox_t;
+	role $1 types chrome_sandbox_nacl_t;
+
+	ps_process_pattern($2, chrome_sandbox_t)
+	allow $2 chrome_sandbox_t:process signal_perms;
+
+	allow chrome_sandbox_t $2:unix_dgram_socket { read write };
+	allow $2 chrome_sandbox_t:unix_dgram_socket { read write };
+	allow chrome_sandbox_t $2:unix_stream_socket rw_socket_perms;
+	allow chrome_sandbox_nacl_t $2:unix_stream_socket rw_socket_perms;
+	allow $2 chrome_sandbox_nacl_t:unix_stream_socket { getattr read write };
+	allow $2 chrome_sandbox_t:unix_stream_socket { getattr read write };
+
+	allow $2 chrome_sandbox_t:shm rw_shm_perms;
+
+	allow $2 chrome_sandbox_tmpfs_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Role access for chrome sandbox
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`chrome_role',`
+	chrome_role_notrans($1, $2)
+	chrome_domtrans_sandbox($2)
+')
+
+########################################
+## <summary>
+##	Dontaudit read/write to a chrome_sandbox leaks
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`chrome_dontaudit_sandbox_leaks',`
+	gen_require(`
+		type chrome_sandbox_t;
+	')
+
+	dontaudit $1 chrome_sandbox_t:unix_stream_socket { read write };
+')

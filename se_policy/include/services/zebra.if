@@ -1,0 +1,87 @@
+## <summary>Zebra border gateway protocol network routing service</summary>
+
+########################################
+## <summary>
+##	Read the configuration files for zebra.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`zebra_read_config',`
+	gen_require(`
+		type zebra_conf_t;
+	')
+
+	files_search_etc($1)
+	allow $1 zebra_conf_t:dir list_dir_perms;
+	read_files_pattern($1, zebra_conf_t, zebra_conf_t)
+	read_lnk_files_pattern($1, zebra_conf_t, zebra_conf_t)
+')
+
+########################################
+## <summary>
+##	Connect to zebra over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`zebra_stream_connect',`
+	gen_require(`
+		type zebra_t, zebra_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, zebra_var_run_t, zebra_var_run_t, zebra_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an zebra environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the zebra domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`zebra_admin',`
+	gen_require(`
+		type zebra_t, zebra_tmp_t, zebra_log_t;
+		type zebra_conf_t, zebra_var_run_t;
+		type zebra_initrc_exec_t;
+	')
+
+	allow $1 zebra_t:process { ptrace signal_perms };
+	ps_process_pattern($1, zebra_t)
+
+	init_labeled_script_domtrans($1, zebra_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 zebra_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, zebra_conf_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, zebra_log_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, zebra_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, zebra_var_run_t)
+')

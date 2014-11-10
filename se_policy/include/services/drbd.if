@@ -1,0 +1,124 @@
+
+## <summary>policy for drbd</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run drbd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`drbd_domtrans',`
+	gen_require(`
+		type drbd_t, drbd_exec_t;
+	')
+
+	domtrans_pattern($1, drbd_exec_t, drbd_t)
+')
+
+########################################
+## <summary>
+##	Search drbd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`drbd_search_lib',`
+	gen_require(`
+		type drbd_var_lib_t;
+	')
+
+	allow $1 drbd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read drbd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`drbd_read_lib_files',`
+	gen_require(`
+		type drbd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        read_files_pattern($1, drbd_var_lib_t, drbd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	drbd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`drbd_manage_lib_files',`
+	gen_require(`
+		type drbd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_files_pattern($1, drbd_var_lib_t, drbd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage drbd lib dirs files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`drbd_manage_lib_dirs',`
+	gen_require(`
+		type drbd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_dirs_pattern($1, drbd_var_lib_t, drbd_var_lib_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an drbd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`drbd_admin',`
+	gen_require(`
+		type drbd_t;
+                type drbd_var_lib_t;
+	')
+
+	allow $1 drbd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, drbd_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, drbd_var_lib_t)
+
+')
+

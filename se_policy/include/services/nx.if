@@ -1,0 +1,86 @@
+## <summary>NX remote desktop</summary>
+
+########################################
+## <summary>
+##	Transition to NX server.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nx_spec_domtrans_server',`
+	gen_require(`
+		type nx_server_t, nx_server_exec_t;
+	')
+
+	spec_domtrans_pattern($1, nx_server_exec_t, nx_server_t)
+')
+
+########################################
+## <summary>
+##	Read nx home directory content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nx_read_home_files',`
+	gen_require(`
+		type nx_server_home_ssh_t, nx_server_var_lib_t;
+	')
+
+	allow $1  nx_server_var_lib_t:dir search_dir_perms;
+	read_files_pattern($1, nx_server_home_ssh_t, nx_server_home_ssh_t)
+	read_lnk_files_pattern($1, nx_server_home_ssh_t, nx_server_home_ssh_t)
+')
+
+########################################
+## <summary>
+##	Read nx home directory content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nx_search_var_lib',`
+	gen_require(`
+		type nx_server_var_lib_t;
+	')
+
+	allow $1  nx_server_var_lib_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Create an object in the root directory, with a private
+##	type using a type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="private type">
+##	<summary>
+##	The type of the object to be created.
+##	</summary>
+## </param>
+## <param name="object">
+##	<summary>
+##	The object class of the object being created.
+##	</summary>
+## </param>
+#
+interface(`nx_var_lib_filetrans',`
+	gen_require(`
+		type nx_server_var_lib_t;
+	')
+
+	filetrans_pattern($1, nx_server_var_lib_t, $2, $3)
+')

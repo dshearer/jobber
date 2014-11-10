@@ -1,0 +1,98 @@
+
+## <summary>policy for swift</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the swift domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`swift_domtrans',`
+	gen_require(`
+		type swift_t, swift_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, swift_exec_t, swift_t)
+')
+
+########################################
+## <summary>
+##	Read swift PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`swift_read_pid_files',`
+	gen_require(`
+		type swift_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, swift_var_run_t, swift_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage swift data files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`swift_manage_data_files',`
+	gen_require(`
+		type swift_data_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, swift_data_t, swift_data_t)
+	manage_dirs_pattern($1, swift_data_t, swift_data_t)
+')
+
+#####################################
+## <summary>
+##	Read and write swift lock files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`swift_manage_lock',`
+	gen_require(`
+		type swift_lock_t;
+	')
+
+	files_search_locks($1)
+    manage_files_pattern($1, swift_lock_t, swift_lock_t)
+')
+
+#######################################
+## <summary>
+##  Transition content labels to swift named content
+## </summary>
+## <param name="domain">
+##  <summary>
+##      Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`swift_filetrans_lock',`
+    gen_require(`
+        type swift_lock_t;
+    ')
+
+    files_lock_filetrans($1, swift_lock_t, file)
+')
+

@@ -1,0 +1,98 @@
+## <summary>Update dynamic IP address at DynDNS.org.</summary>
+
+#######################################
+## <summary>
+##	Execute ddclient in the ddclient domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`ddclient_domtrans',`
+	gen_require(`
+		type ddclient_t, ddclient_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ddclient_exec_t, ddclient_t)
+')
+
+########################################
+## <summary>
+##	Execute ddclient in the ddclient
+##	domain, and allow the specified
+##	role the ddclient domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	 Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ddclient_run',`
+	gen_require(`
+		type ddclient_t;
+	')
+
+	ddclient_domtrans($1)
+	role $2 types ddclient_t;
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an ddclient environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ddclient_admin',`
+	gen_require(`
+		type ddclient_t, ddclient_etc_t, ddclient_log_t;
+		type ddclient_var_t, ddclient_var_lib_t, ddclient_tmp_t;
+		type ddclient_var_run_t, ddclient_initrc_exec_t;
+	')
+
+	allow $1 ddclient_t:process signal_perms;
+	ps_process_pattern($1, ddclient_t)
+
+	init_labeled_script_domtrans($1, ddclient_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 ddclient_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, ddclient_etc_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, ddclient_log_t)
+
+	files_list_var($1)
+	admin_pattern($1, ddclient_var_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, ddclient_var_lib_t)
+
+	files_list_pids($1)
+	admin_pattern($1, ddclient_var_run_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, ddclient_tmp_t)
+')

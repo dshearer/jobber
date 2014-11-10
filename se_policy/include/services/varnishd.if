@@ -1,0 +1,219 @@
+## <summary>Varnishd http accelerator daemon</summary>
+
+#######################################
+## <summary>
+##	Execute varnishd in the varnishd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`varnishd_domtrans',`
+	gen_require(`
+		type varnishd_t, varnishd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, varnishd_exec_t, varnishd_t)
+')
+
+#######################################
+## <summary>
+##	Execute varnishd 
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`varnishd_exec',`
+	gen_require(`
+		type varnishd_exec_t;
+	')
+
+	can_exec($1, varnishd_exec_t)
+')
+
+######################################
+## <summary>
+##	Read varnishd configuration file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`varnishd_read_config',`
+	gen_require(`
+		type varnishd_etc_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, varnishd_etc_t, varnishd_etc_t)
+')
+
+#####################################
+## <summary>
+##  Read varnish lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`varnishd_read_lib_files',`
+    gen_require(`
+        type varnishd_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    read_files_pattern($1, varnishd_var_lib_t, varnishd_var_lib_t)
+')
+
+#######################################
+## <summary>
+##	Read varnish logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`varnishd_read_log',`
+	gen_require(`
+		type varnishlog_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, varnishlog_log_t, varnishlog_log_t)
+')
+
+######################################
+## <summary>
+##	Append varnish logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`varnishd_append_log',`
+	gen_require(`
+		type varnishlog_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, varnishlog_log_t, varnishlog_log_t)
+')
+
+#####################################
+## <summary>
+##	Manage varnish logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`varnishd_manage_log',`
+	gen_require(`
+		type varnishlog_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_files_pattern($1, varnishlog_log_t, varnishlog_log_t)
+')
+
+######################################
+## <summary>
+##	All of the rules required to administrate 
+##	an varnishlog environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the varnishlog domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`varnishd_admin_varnishlog',`
+	gen_require(`
+		type varnishlog_t;
+		type varnishlog_var_run_t, varnishlog_log_t;
+		type varnishlog_initrc_exec_t;
+	')
+
+	allow $1 varnishlog_t:process { ptrace signal_perms };
+	ps_process_pattern($1, varnishlog_t)
+
+	init_labeled_script_domtrans($1, varnishlog_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 varnishlog_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+ 	admin_pattern($1, varnishlog_var_run_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, varnishlog_log_t)
+
+')
+
+#######################################
+## <summary>
+##	All of the rules required to administrate 
+##	an varnishd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the varnishd domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`varnishd_admin',`
+	gen_require(`
+		type varnishd_t, varnishd_var_lib_t, varnishd_etc_t;
+		type varnishd_var_run_t, varnishd_tmp_t; 
+		type varnishd_initrc_exec_t;
+	')
+
+	allow $1 varnishd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, varnishd_t)
+
+	init_labeled_script_domtrans($1, varnishd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 varnishd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var_lib($1)
+	admin_pattern($1, varnishd_var_lib_t)
+
+	files_search_etc($1)
+	admin_pattern($1, varnishd_etc_t)
+
+	files_search_pids($1)
+	admin_pattern($1, varnishd_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, varnishd_tmp_t)
+
+')

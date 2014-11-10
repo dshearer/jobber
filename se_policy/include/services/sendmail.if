@@ -1,0 +1,360 @@
+## <summary>Policy for sendmail.</summary>
+
+########################################
+## <summary>
+##	Sendmail stub interface.  No access allowed.
+## </summary>
+## <param name="domain" unused="true">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_stub',`
+	gen_require(`
+		type sendmail_t;
+	')
+')
+
+########################################
+## <summary>
+##	Allow attempts to read and write to
+##	sendmail unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`sendmail_rw_pipes',`
+	gen_require(`
+		type sendmail_t;
+	')
+
+	allow $1 sendmail_t:fifo_file rw_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Domain transition to sendmail.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_domtrans',`
+	gen_require(`
+		type sendmail_t;
+	')
+
+	mta_sendmail_domtrans($1, sendmail_t)
+')
+
+#######################################
+## <summary>
+##  Execute sendmail in the sendmail domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The type of the process performing this action.
+##  </summary>
+## </param>
+#
+interface(`sendmail_initrc_domtrans', `
+    gen_require(`
+        type sendmail_initrc_exec_t;
+    ')
+
+    init_labeled_script_domtrans($1, sendmail_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute the sendmail program in the sendmail domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the sendmail domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`sendmail_run',`
+	gen_require(`
+		type sendmail_t;
+	')
+
+	sendmail_domtrans($1)
+	role $2 types sendmail_t;
+')
+
+########################################
+## <summary>
+##	Send generic signals to sendmail.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_signal',`
+	gen_require(`
+		type sendmail_t;
+	')
+
+	allow $1 sendmail_t:process signal;
+')
+
+########################################
+## <summary>
+##	Read and write sendmail TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_rw_tcp_sockets',`
+	gen_require(`
+		type sendmail_t;
+	')
+
+	allow $1 sendmail_t:tcp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write
+##	sendmail TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`sendmail_dontaudit_rw_tcp_sockets',`
+	gen_require(`
+		type sendmail_t;
+	')
+
+	dontaudit $1 sendmail_t:tcp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Read and write sendmail unix_stream_sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_rw_unix_stream_sockets',`
+	gen_require(`
+		type sendmail_t;
+	')
+
+	allow $1 sendmail_t:unix_stream_socket rw_socket_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write
+##	sendmail unix_stream_sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_dontaudit_rw_unix_stream_sockets',`
+	gen_require(`
+		type sendmail_t;
+	')
+
+	dontaudit $1 sendmail_t:unix_stream_socket rw_socket_perms;
+')
+
+########################################
+## <summary>
+##	Read sendmail logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`sendmail_read_log',`
+	gen_require(`
+		type sendmail_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, sendmail_log_t, sendmail_log_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete sendmail logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`sendmail_manage_log',`
+	gen_require(`
+		type sendmail_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_files_pattern($1, sendmail_log_t, sendmail_log_t)
+')
+
+########################################
+## <summary>
+##	Create sendmail logs with the correct type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_create_log',`
+	gen_require(`
+		type sendmail_log_t;
+	')
+
+	logging_log_filetrans($1, sendmail_log_t, file)
+')
+
+########################################
+## <summary>
+##	Manage sendmail tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_manage_tmp_files',`
+	gen_require(`
+		type sendmail_tmp_t;
+	')
+
+	files_search_tmp($1)
+	manage_files_pattern($1, sendmail_tmp_t, sendmail_tmp_t)
+')
+
+########################################
+## <summary>
+##	Execute sendmail in the unconfined sendmail domain, and
+##	allow the specified role the unconfined sendmail domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`sendmail_run_unconfined',`
+	gen_require(`
+		type unconfined_sendmail_t;
+	')
+
+	sendmail_domtrans_unconfined($1)
+	role $2 types unconfined_sendmail_t;
+')
+
+########################################
+## <summary>
+##	Execute sendmail in the unconfined sendmail domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sendmail_domtrans_unconfined',`
+	gen_require(`
+		type unconfined_sendmail_t, sendmail_exec_t;
+	')
+
+	domtrans_pattern($1, sendmail_exec_t, unconfined_sendmail_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an sendmail environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`sendmail_admin',`
+	gen_require(`
+		type sendmail_t, sendmail_initrc_exec_t, sendmail_log_t; 
+		type sendmail_tmp_t, sendmail_var_run_t, unconfined_sendmail_t;
+		type mail_spool_t;
+	')
+
+	allow $1 sendmail_t:process { ptrace signal_perms };
+	ps_process_pattern($1, sendmail_t)
+
+	allow $1 unconfined_sendmail_t:process { ptrace signal_perms };
+	ps_process_pattern($1, unconfined_sendmail_t)
+
+    init_labeled_script_domtrans($1, sendmail_initrc_exec_t)
+    domain_system_change_exemption($1)
+    role_transition $2 sendmail_initrc_exec_t system_r;
+    allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, sendmail_log_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, sendmail_tmp_t)
+
+	files_search_pids($1)
+	admin_pattern($1, sendmail_var_run_t)
+
+	files_search_spool($1)
+	admin_pattern($1, mail_spool_t)
+')

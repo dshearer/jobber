@@ -1,0 +1,38 @@
+## <summary>hddtemp hard disk temperature tool running as a daemon</summary>
+
+#######################################
+## <summary>
+##	Execute hddtemp in the hddtemp domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hddtemp_domtrans',`
+	gen_require(`
+		type hddtemp_t, hddtemp_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, hddtemp_exec_t, hddtemp_t)
+')
+
+######################################
+## <summary>
+##	Execute hddtemp 
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hddtemp_exec',`
+	gen_require(`
+		type hddtemp_exec_t;
+	')
+
+	can_exec($1, hddtemp_exec_t)
+')

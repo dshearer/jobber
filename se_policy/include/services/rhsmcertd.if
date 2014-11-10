@@ -1,0 +1,305 @@
+
+## <summary>Subscription Management Certificate Daemon policy</summary>
+
+########################################
+## <summary>
+##	Transition to rhsmcertd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rhsmcertd_domtrans',`
+	gen_require(`
+		type rhsmcertd_t, rhsmcertd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, rhsmcertd_exec_t, rhsmcertd_t)
+')
+
+
+########################################
+## <summary>
+##	Execute rhsmcertd server in the rhsmcertd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhsmcertd_initrc_domtrans',`
+	gen_require(`
+		type rhsmcertd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, rhsmcertd_initrc_exec_t)
+')
+
+
+########################################
+## <summary>
+##	Read rhsmcertd's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rhsmcertd_read_log',`
+	gen_require(`
+		type rhsmcertd_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, rhsmcertd_log_t, rhsmcertd_log_t)
+')
+
+########################################
+## <summary>
+##	Append to rhsmcertd log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhsmcertd_append_log',`
+	gen_require(`
+		type rhsmcertd_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, rhsmcertd_log_t, rhsmcertd_log_t)
+')
+
+########################################
+## <summary>
+##	Manage rhsmcertd log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhsmcertd_manage_log',`
+	gen_require(`
+		type rhsmcertd_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, rhsmcertd_log_t, rhsmcertd_log_t)
+	manage_files_pattern($1, rhsmcertd_log_t, rhsmcertd_log_t)
+	manage_lnk_files_pattern($1, rhsmcertd_log_t, rhsmcertd_log_t)
+')
+
+########################################
+## <summary>
+##	Search rhsmcertd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhsmcertd_search_lib',`
+	gen_require(`
+		type rhsmcertd_var_lib_t;
+	')
+
+	allow $1 rhsmcertd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read rhsmcertd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhsmcertd_read_lib_files',`
+	gen_require(`
+		type rhsmcertd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, rhsmcertd_var_lib_t, rhsmcertd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage rhsmcertd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhsmcertd_manage_lib_files',`
+	gen_require(`
+		type rhsmcertd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, rhsmcertd_var_lib_t, rhsmcertd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage rhsmcertd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhsmcertd_manage_lib_dirs',`
+	gen_require(`
+		type rhsmcertd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, rhsmcertd_var_lib_t, rhsmcertd_var_lib_t)
+')
+
+
+########################################
+## <summary>
+##	Read rhsmcertd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhsmcertd_read_pid_files',`
+	gen_require(`
+		type rhsmcertd_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 rhsmcertd_var_run_t:file read_file_perms;
+')
+
+####################################
+## <summary>
+##  Connect to rhsmcertd over a unix domain
+##  stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhsmcertd_stream_connect',`
+	gen_require(`
+		type rhsmcertd_t, rhsmcertd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, rhsmcertd_var_run_t, rhsmcertd_var_run_t, rhsmcertd_t)
+')
+
+#######################################
+## <summary>
+##  Send and receive messages from
+##  rhsmcertd over dbus.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhsmcertd_dbus_chat',`
+	gen_require(`
+		type rhsmcertd_t;
+		class dbus send_msg;
+	')
+
+	allow $1 rhsmcertd_t:dbus send_msg;
+	allow rhsmcertd_t $1:dbus send_msg;
+')
+
+######################################
+## <summary>
+##  Dontaudit Send and receive messages from
+##  rhsmcertd over dbus.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhsmcertd_dontaudit_dbus_chat',`
+    gen_require(`
+        type rhsmcertd_t;
+        class dbus send_msg;
+    ')
+
+    dontaudit $1 rhsmcertd_t:dbus send_msg;
+    dontaudit rhsmcertd_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an rhsmcertd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rhsmcertd_admin',`
+	gen_require(`
+		type rhsmcertd_t;
+	type rhsmcertd_initrc_exec_t;
+	type rhsmcertd_log_t;
+	type rhsmcertd_var_lib_t;
+	type rhsmcertd_var_run_t;
+	')
+
+	allow $1 rhsmcertd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, rhsmcertd_t)
+
+	rhsmcertd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 rhsmcertd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, rhsmcertd_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, rhsmcertd_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, rhsmcertd_var_run_t)
+
+')
+

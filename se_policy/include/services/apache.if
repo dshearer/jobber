@@ -1,0 +1,1566 @@
+## <summary>Apache web server</summary>
+
+########################################
+## <summary>
+##	Create a set of derived types for apache
+##	web content.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix to be used for deriving type names.
+##	</summary>
+## </param>
+#
+template(`apache_content_template',`
+	gen_require(`
+		attribute httpd_exec_scripts;
+		attribute httpd_script_exec_type;
+		type httpd_t, httpd_suexec_t, httpd_log_t;
+		type httpd_sys_content_t;
+	')
+	#This type is for webpages
+	type httpd_$1_content_t; # customizable;
+	typealias httpd_$1_content_t alias httpd_$1_script_ro_t;
+	files_type(httpd_$1_content_t)
+
+	# This type is used for .htaccess files
+	type httpd_$1_htaccess_t; # customizable;
+	files_type(httpd_$1_htaccess_t)
+
+	# Type that CGI scripts run as
+	type httpd_$1_script_t;
+	domain_type(httpd_$1_script_t)
+	role system_r types httpd_$1_script_t;
+
+	search_dirs_pattern(httpd_$1_script_t, httpd_sys_content_t, httpd_script_exec_type)
+
+	# This type is used for executable scripts files
+	type httpd_$1_script_exec_t, httpd_script_exec_type; # customizable;
+	corecmd_shell_entry_type(httpd_$1_script_t)
+	domain_entry_file(httpd_$1_script_t, httpd_$1_script_exec_t)
+
+	type httpd_$1_rw_content_t; # customizable
+	typealias httpd_$1_rw_content_t alias { httpd_$1_script_rw_t httpd_$1_content_rw_t };
+	files_type(httpd_$1_rw_content_t)
+
+	type httpd_$1_ra_content_t; # customizable
+	typealias httpd_$1_ra_content_t alias { httpd_$1_script_ra_t httpd_$1_content_ra_t };
+	files_type(httpd_$1_ra_content_t)
+
+	read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_htaccess_t)
+
+	domtrans_pattern(httpd_suexec_t, httpd_$1_script_exec_t, httpd_$1_script_t)
+
+	allow httpd_t { httpd_$1_content_t httpd_$1_rw_content_t httpd_$1_script_exec_t }:dir search_dir_perms;
+	allow httpd_suexec_t { httpd_$1_content_t httpd_$1_rw_content_t httpd_$1_script_exec_t }:dir search_dir_perms;
+
+	allow httpd_$1_script_t self:fifo_file rw_file_perms;
+	allow httpd_$1_script_t self:unix_stream_socket connectto;
+
+	allow httpd_$1_script_t httpd_t:fifo_file write;
+	# apache should set close-on-exec
+	dontaudit httpd_$1_script_t httpd_t:unix_stream_socket { read write };
+
+	# Allow the script process to search the cgi directory, and users directory
+	allow httpd_$1_script_t httpd_$1_content_t:dir search_dir_perms;
+
+	append_files_pattern(httpd_$1_script_t, httpd_log_t, httpd_log_t)
+	logging_search_logs(httpd_$1_script_t)
+
+	can_exec(httpd_$1_script_t, httpd_$1_script_exec_t)
+	allow httpd_$1_script_t httpd_$1_script_exec_t:dir list_dir_perms;
+
+	allow httpd_$1_script_t httpd_$1_ra_content_t:dir { list_dir_perms add_entry_dir_perms };
+	read_files_pattern(httpd_$1_script_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
+	append_files_pattern(httpd_$1_script_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
+	read_lnk_files_pattern(httpd_$1_script_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
+
+	allow httpd_$1_script_t httpd_$1_content_t:dir list_dir_perms;
+	read_files_pattern(httpd_$1_script_t, httpd_$1_content_t, httpd_$1_content_t)
+	read_lnk_files_pattern(httpd_$1_script_t, httpd_$1_content_t, httpd_$1_content_t)
+
+	manage_dirs_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+	manage_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+	manage_lnk_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+	manage_fifo_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+	manage_sock_files_pattern(httpd_$1_script_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+
+	kernel_dontaudit_search_sysctl(httpd_$1_script_t)
+	kernel_dontaudit_search_kernel_sysctl(httpd_$1_script_t)
+
+	dev_read_rand(httpd_$1_script_t)
+	dev_read_urand(httpd_$1_script_t)
+
+	corecmd_exec_all_executables(httpd_$1_script_t)
+	application_exec_all(httpd_$1_script_t)
+
+	files_exec_etc_files(httpd_$1_script_t)
+	files_read_etc_files(httpd_$1_script_t)
+	files_search_home(httpd_$1_script_t)
+
+	libs_exec_ld_so(httpd_$1_script_t)
+	libs_exec_lib_files(httpd_$1_script_t)
+
+	miscfiles_read_fonts(httpd_$1_script_t)
+	miscfiles_read_public_files(httpd_$1_script_t)
+
+	seutil_dontaudit_search_config(httpd_$1_script_t)
+
+	apache_dontaudit_leaks(httpd_$1_script_t)
+
+	# Allow the web server to run scripts and serve pages
+	tunable_policy(`httpd_builtin_scripting',`
+		manage_dirs_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+		manage_files_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+		manage_lnk_files_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+		rw_sock_files_pattern(httpd_t, httpd_$1_rw_content_t, httpd_$1_rw_content_t)
+
+		allow httpd_t httpd_$1_ra_content_t:dir { list_dir_perms add_entry_dir_perms };
+		read_files_pattern(httpd_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
+		append_files_pattern(httpd_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
+		read_lnk_files_pattern(httpd_t, httpd_$1_ra_content_t, httpd_$1_ra_content_t)
+
+		allow httpd_t httpd_$1_content_t:dir list_dir_perms;
+		read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
+		read_lnk_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
+
+		allow httpd_t httpd_$1_content_t:dir list_dir_perms;
+		read_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
+		read_lnk_files_pattern(httpd_t, httpd_$1_content_t, httpd_$1_content_t)
+		allow httpd_t httpd_$1_script_t:unix_stream_socket connectto;
+	')
+
+	tunable_policy(`httpd_enable_cgi',`
+		allow httpd_$1_script_t httpd_$1_script_exec_t:file entrypoint;
+
+		# privileged users run the script:
+		domtrans_pattern(httpd_exec_scripts, httpd_$1_script_exec_t, httpd_$1_script_t)
+
+		allow httpd_exec_scripts httpd_$1_script_exec_t:file read_file_perms;
+
+		# apache runs the script:
+		domtrans_pattern(httpd_t, httpd_$1_script_exec_t, httpd_$1_script_t)
+
+		allow httpd_t httpd_$1_script_exec_t:file read_file_perms;
+		allow httpd_t httpd_$1_script_exec_t:lnk_file read_lnk_file_perms;
+
+		allow httpd_t httpd_$1_script_t:process { signal sigkill sigstop };
+		allow httpd_t httpd_$1_script_exec_t:dir list_dir_perms;
+
+		allow httpd_$1_script_t self:process { setsched signal_perms };
+		allow httpd_$1_script_t self:unix_stream_socket create_stream_socket_perms;
+		allow httpd_$1_script_t self:unix_dgram_socket create_socket_perms;
+
+		allow httpd_$1_script_t httpd_t:fd use;
+		allow httpd_$1_script_t httpd_t:process sigchld;
+
+		kernel_read_system_state(httpd_$1_script_t)
+
+		dev_read_urand(httpd_$1_script_t)
+
+		fs_getattr_xattr_fs(httpd_$1_script_t)
+
+		files_read_etc_runtime_files(httpd_$1_script_t)
+		files_read_usr_files(httpd_$1_script_t)
+
+		libs_read_lib_files(httpd_$1_script_t)
+
+		miscfiles_read_localization(httpd_$1_script_t)
+		allow httpd_$1_script_t httpd_sys_content_t:dir search_dir_perms;
+	')
+
+	optional_policy(`
+		tunable_policy(`httpd_enable_cgi && allow_ypbind',`
+			nis_use_ypbind_uncond(httpd_$1_script_t)
+		')
+	')
+
+	optional_policy(`
+		postgresql_unpriv_client(httpd_$1_script_t)
+	')
+
+	optional_policy(`
+		nscd_socket_use(httpd_$1_script_t)
+	')
+
+	dontaudit httpd_$1_script_t httpd_t:tcp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Role access for apache
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`apache_role',`
+	gen_require(`
+		attribute httpdcontent;
+		type httpd_user_content_t, httpd_user_htaccess_t;
+		type httpd_user_script_t, httpd_user_script_exec_t;
+		type httpd_user_ra_content_t, httpd_user_rw_content_t;
+	')
+
+	role $1 types httpd_user_script_t;
+
+	allow $2 httpd_user_content_t:{ dir file lnk_file } { relabelto relabelfrom };
+
+	allow $2 httpd_user_htaccess_t:file { manage_file_perms relabelto relabelfrom };
+
+	manage_dirs_pattern($2, httpd_user_ra_content_t, httpd_user_ra_content_t)
+	manage_files_pattern($2, httpd_user_ra_content_t, httpd_user_ra_content_t)
+	manage_lnk_files_pattern($2, httpd_user_ra_content_t, httpd_user_ra_content_t)
+	relabel_dirs_pattern($2, httpd_user_ra_content_t, httpd_user_ra_content_t)
+	relabel_files_pattern($2, httpd_user_ra_content_t, httpd_user_ra_content_t)
+	relabel_lnk_files_pattern($2, httpd_user_ra_content_t, httpd_user_ra_content_t)
+
+	manage_dirs_pattern($2, httpd_user_content_t, httpd_user_content_t)
+	manage_files_pattern($2, httpd_user_content_t, httpd_user_content_t)
+	manage_lnk_files_pattern($2, httpd_user_content_t, httpd_user_content_t)
+	relabel_dirs_pattern($2, httpd_user_content_t, httpd_user_content_t)
+	relabel_files_pattern($2, httpd_user_content_t, httpd_user_content_t)
+	relabel_lnk_files_pattern($2, httpd_user_content_t, httpd_user_content_t)
+
+	manage_dirs_pattern($2, httpd_user_rw_content_t, httpd_user_rw_content_t)
+	manage_files_pattern($2, httpd_user_rw_content_t, httpd_user_rw_content_t)
+	manage_lnk_files_pattern($2, httpd_user_rw_content_t, httpd_user_rw_content_t)
+	relabel_dirs_pattern($2, httpd_user_rw_content_t, httpd_user_rw_content_t)
+	relabel_files_pattern($2, httpd_user_rw_content_t, httpd_user_rw_content_t)
+	relabel_lnk_files_pattern($2, httpd_user_rw_content_t, httpd_user_rw_content_t)
+
+	manage_dirs_pattern($2, httpd_user_script_exec_t, httpd_user_script_exec_t)
+	manage_files_pattern($2, httpd_user_script_exec_t, httpd_user_script_exec_t)
+	manage_lnk_files_pattern($2, httpd_user_script_exec_t, httpd_user_script_exec_t)
+	relabel_dirs_pattern($2, httpd_user_script_exec_t, httpd_user_script_exec_t)
+	relabel_files_pattern($2, httpd_user_script_exec_t, httpd_user_script_exec_t)
+	relabel_lnk_files_pattern($2, httpd_user_script_exec_t, httpd_user_script_exec_t)
+
+	tunable_policy(`httpd_enable_cgi',`
+		# If a user starts a script by hand it gets the proper context
+		domtrans_pattern($2, httpd_user_script_exec_t, httpd_user_script_t)
+	')
+
+	tunable_policy(`httpd_enable_cgi && httpd_unified',`
+		domtrans_pattern($2, httpdcontent, httpd_user_script_t)
+	')
+')
+
+########################################
+## <summary>
+##	Read httpd user scripts executables.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_read_user_scripts',`
+	gen_require(`
+		type httpd_user_script_exec_t;
+	')
+
+	allow $1 httpd_user_script_exec_t:dir list_dir_perms;
+	read_files_pattern($1, httpd_user_script_exec_t, httpd_user_script_exec_t)
+	read_lnk_files_pattern($1, httpd_user_script_exec_t, httpd_user_script_exec_t)
+')
+
+########################################
+## <summary>
+##	Read user web content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_read_user_content',`
+	gen_require(`
+		type httpd_user_content_t;
+	')
+
+	allow $1 httpd_user_content_t:dir list_dir_perms;
+	read_files_pattern($1, httpd_user_content_t, httpd_user_content_t)
+	read_lnk_files_pattern($1, httpd_user_content_t, httpd_user_content_t)
+')
+
+########################################
+## <summary>
+##	Read user web content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_manage_user_content',`
+	gen_require(`
+		type httpd_user_content_t;
+	')
+
+	allow $1 httpd_user_content_t:dir list_dir_perms;
+	manage_files_pattern($1, httpd_user_content_t, httpd_user_content_t)
+	manage_lnk_files_pattern($1, httpd_user_content_t, httpd_user_content_t)
+')
+
+########################################
+## <summary>
+##	Transition to apache.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_domtrans',`
+	gen_require(`
+		type httpd_t, httpd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, httpd_exec_t, httpd_t)
+')
+
+######################################
+## <summary>
+##  Allow the specified domain to execute apache
+##  in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`apache_exec',`
+    gen_require(`
+        type httpd_exec_t;
+    ')
+
+    can_exec($1, httpd_exec_t)
+')
+
+#######################################
+## <summary>
+##	Send a generic signal to apache.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_signal',`
+	gen_require(`
+		type httpd_t;
+	')
+
+	allow $1 httpd_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send a null signal to apache.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_signull',`
+	gen_require(`
+		type httpd_t;
+	')
+
+	allow $1 httpd_t:process signull;
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to apache.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_sigchld',`
+	gen_require(`
+		type httpd_t;
+	')
+
+	allow $1 httpd_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Inherit and use file descriptors from Apache.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_use_fds',`
+	gen_require(`
+		type httpd_t;
+	')
+
+	allow $1 httpd_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write Apache
+##	unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_dontaudit_rw_fifo_file',`
+	gen_require(`
+		type httpd_t;
+	')
+
+	dontaudit $1 httpd_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write Apache
+##	unix domain stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_dontaudit_rw_stream_sockets',`
+	gen_require(`
+		type httpd_t;
+	')
+
+	dontaudit $1 httpd_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write Apache
+##	TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_dontaudit_rw_tcp_sockets',`
+	gen_require(`
+		type httpd_t;
+	')
+
+	dontaudit $1 httpd_t:tcp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete all web content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`apache_manage_all_content',`
+	gen_require(`
+		attribute httpdcontent, httpd_script_exec_type;
+	')
+
+	manage_dirs_pattern($1, httpdcontent, httpdcontent)
+	manage_files_pattern($1, httpdcontent, httpdcontent)
+	manage_lnk_files_pattern($1, httpdcontent, httpdcontent)
+
+	manage_dirs_pattern($1, httpd_script_exec_type, httpd_script_exec_type)
+	manage_files_pattern($1, httpd_script_exec_type, httpd_script_exec_type)
+	manage_lnk_files_pattern($1, httpd_script_exec_type, httpd_script_exec_type)
+')
+
+########################################
+## <summary>
+##	Allow domain to  set the attributes
+##	of the APACHE cache directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_setattr_cache_dirs',`
+	gen_require(`
+		type httpd_cache_t;
+	')
+
+	allow $1 httpd_cache_t:dir setattr;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to list
+##	Apache cache.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_list_cache',`
+	gen_require(`
+		type httpd_cache_t;
+	')
+
+	list_dirs_pattern($1, httpd_cache_t, httpd_cache_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read
+##	and write Apache cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_rw_cache_files',`
+	gen_require(`
+		type httpd_cache_t;
+	')
+
+	allow $1 httpd_cache_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to delete
+##	Apache cache dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_delete_cache_dirs',`
+	gen_require(`
+		type httpd_cache_t;
+	')
+
+	delete_dirs_pattern($1, httpd_cache_t, httpd_cache_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to delete
+##	Apache cache.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_delete_cache_files',`
+	gen_require(`
+		type httpd_cache_t;
+	')
+
+	delete_files_pattern($1, httpd_cache_t, httpd_cache_t)
+')
+
+#######################################
+## <summary>
+## Allow the specified domain to search
+## apache configuration dirs.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`apache_search_config',`
+	gen_require(`
+		type httpd_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 httpd_config_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read
+##	apache configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`apache_read_config',`
+	gen_require(`
+		type httpd_config_t;
+	')
+
+	files_search_etc($1)
+	allow $1 httpd_config_t:dir list_dir_perms;
+	read_files_pattern($1, httpd_config_t, httpd_config_t)
+	read_lnk_files_pattern($1, httpd_config_t, httpd_config_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to manage
+##	apache configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_manage_config',`
+	gen_require(`
+		type httpd_config_t;
+	')
+
+	files_search_etc($1)
+	manage_dirs_pattern($1, httpd_config_t, httpd_config_t)
+	manage_files_pattern($1, httpd_config_t, httpd_config_t)
+	read_lnk_files_pattern($1, httpd_config_t, httpd_config_t)
+')
+
+########################################
+## <summary>
+##	Execute the Apache helper program with
+##	a domain transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_domtrans_helper',`
+	gen_require(`
+		type httpd_helper_t, httpd_helper_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, httpd_helper_exec_t, httpd_helper_t)
+')
+
+########################################
+## <summary>
+##	Execute the Apache helper program with
+##	a domain transition, and allow the
+##	specified role the Apache helper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`apache_run_helper',`
+	gen_require(`
+		type httpd_helper_t;
+	')
+
+	apache_domtrans_helper($1)
+	role $2 types httpd_helper_t;
+')
+
+########################################
+## <summary>
+##     dontaudit attempts to read
+##     apache log files.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+## <rolecap/>
+#
+interface(`apache_dontaudit_read_log',`
+       gen_require(`
+               type httpd_log_t;
+       ')
+
+       dontaudit $1 httpd_log_t:file read_file_perms;
+       dontaudit $1 httpd_log_t:lnk_file read_lnk_file_perms;
+')
+
+
+########################################
+## <summary>
+##	Allow the specified domain to read
+##	apache log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`apache_read_log',`
+	gen_require(`
+		type httpd_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 httpd_log_t:dir list_dir_perms;
+	read_files_pattern($1, httpd_log_t, httpd_log_t)
+	read_lnk_files_pattern($1, httpd_log_t, httpd_log_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	to apache log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_append_log',`
+	gen_require(`
+		type httpd_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 httpd_log_t:dir list_dir_perms;
+	append_files_pattern($1, httpd_log_t, httpd_log_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to append to the
+##	Apache logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`apache_dontaudit_append_log',`
+	gen_require(`
+		type httpd_log_t;
+	')
+
+	dontaudit $1 httpd_log_t:file { getattr append };
+')
+
+######################################
+## <summary>
+##  Allow the specified domain to write
+##  to apache log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`apache_write_log',`
+    gen_require(`
+        type httpd_log_t;
+')
+
+allow $1 httpd_log_t:file write;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to manage
+##	to apache log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_manage_log',`
+	gen_require(`
+		type httpd_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, httpd_log_t, httpd_log_t)
+	manage_files_pattern($1, httpd_log_t, httpd_log_t)
+	read_lnk_files_pattern($1, httpd_log_t, httpd_log_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search Apache
+##	module directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`apache_dontaudit_search_modules',`
+	gen_require(`
+		type httpd_modules_t;
+	')
+
+	dontaudit $1 httpd_modules_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to list
+##	the contents of the apache modules
+##	directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_list_modules',`
+	gen_require(`
+		type httpd_modules_t;
+	')
+
+	allow $1 httpd_modules_t:dir list_dir_perms;
+	read_lnk_files_pattern($1, httpd_modules_t, httpd_modules_t)
+')
+
+#######################################
+## <summary>
+##  Allow the specified domain to read
+##  the apache modules files.
+##  directory.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`apache_read_modules',`
+    gen_require(`
+        type httpd_modules_t;
+    ')
+	
+    allow $1 httpd_modules_t:dir list_dir_perms;
+	read_files_pattern($1,httpd_modules_t, httpd_modules_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to execute
+##	apache modules.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_exec_modules',`
+	gen_require(`
+		type httpd_modules_t;
+	')
+
+	allow $1 httpd_modules_t:dir list_dir_perms;
+	allow $1 httpd_modules_t:lnk_file read_lnk_file_perms;
+	can_exec($1, httpd_modules_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run httpd_rotatelogs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_domtrans_rotatelogs',`
+	gen_require(`
+		type httpd_rotatelogs_t, httpd_rotatelogs_exec_t;
+	')
+
+	domtrans_pattern($1, httpd_rotatelogs_exec_t, httpd_rotatelogs_t)
+')
+
+######################################
+## <summary>
+##  Execute httpd_rotatelogs in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`apache_exec_rotatelogs',`
+    gen_require(`
+        type httpd_rotatelogs_exec_t;
+    ')
+
+    can_exec($1, httpd_rotatelogs_exec_t)
+')
+
+######################################
+## <summary>
+##  Execute httpd system scripts in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`apache_exec_sys_script',`
+    gen_require(`
+        type httpd_sys_script_exec_t;
+    ')
+
+    allow $1 httpd_sys_script_exec_t:dir search_dir_perms;
+    can_exec($1, httpd_sys_script_exec_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to list
+##	apache system content files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_list_sys_content',`
+	gen_require(`
+		type httpd_sys_content_t;
+	')
+
+	list_dirs_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
+	read_lnk_files_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
+	files_search_var($1)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to manage
+##	apache system content files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+# Note that httpd_sys_content_t is found in /var, /etc, /srv and /usr
+interface(`apache_manage_sys_content',`
+	gen_require(`
+		type httpd_sys_content_t;
+	')
+
+	files_search_var($1)
+	apache_search_sys_content($1)
+	manage_dirs_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
+	manage_files_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
+	manage_lnk_files_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
+')
+
+######################################
+## <summary>
+##  Allow the specified domain to manage
+##  apache system content rw files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`apache_manage_sys_content_rw',`
+    gen_require(`
+		type httpd_sys_rw_content_t;
+	')
+
+	files_search_var($1)
+	apache_search_sys_content($1)
+    manage_dirs_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+    manage_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+    manage_lnk_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to delete
+##	apache system content rw files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`apache_delete_sys_content_rw',`
+	gen_require(`
+		type httpd_sys_rw_content_t;
+	')
+
+	files_search_tmp($1)
+	apache_search_sys_content($1)
+	delete_dirs_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+	delete_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+	delete_lnk_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+	delete_fifo_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+	delete_sock_files_pattern($1, httpd_sys_rw_content_t, httpd_sys_rw_content_t)
+')
+
+########################################
+## <summary>
+##	Execute all web scripts in the system
+##	script domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: this interface specifically added to allow
+# sysadm_t to run scripts
+interface(`apache_domtrans_sys_script',`
+	gen_require(`
+		attribute httpdcontent;
+		type httpd_sys_script_t;
+		type httpd_sys_content_t;
+		type httpd_sys_script_exec_t;
+	')
+
+	tunable_policy(`httpd_enable_cgi',`
+		domtrans_pattern($1, httpd_sys_script_exec_t, httpd_sys_script_t)
+	')
+
+	tunable_policy(`httpd_enable_cgi && httpd_unified',`
+		domtrans_pattern($1, httpdcontent, httpd_sys_script_t)
+	')
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write Apache
+##	system script unix domain stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_dontaudit_rw_sys_script_stream_sockets',`
+	gen_require(`
+		type httpd_sys_script_t;
+	')
+
+	dontaudit $1 httpd_sys_script_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	Execute all user scripts in the user
+##	script domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_domtrans_all_scripts',`
+	gen_require(`
+		attribute httpd_exec_scripts;
+	')
+
+	typeattribute $1 httpd_exec_scripts;
+')
+
+########################################
+## <summary>
+##	Execute all user scripts in the user
+##	script domain.  Add user script domains
+##	to the specified role.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the script domains.
+##	</summary>
+## </param>
+#
+interface(`apache_run_all_scripts',`
+	gen_require(`
+		attribute httpd_exec_scripts, httpd_script_domains;
+	')
+
+	role $2 types httpd_script_domains;
+	apache_domtrans_all_scripts($1)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read
+##	apache squirrelmail data.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_read_squirrelmail_data',`
+	gen_require(`
+		type httpd_squirrelmail_t;
+	')
+
+	read_files_pattern($1, httpd_squirrelmail_t, httpd_squirrelmail_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	apache squirrelmail data.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_append_squirrelmail_data',`
+	gen_require(`
+		type httpd_squirrelmail_t;
+	')
+
+	allow $1 httpd_squirrelmail_t:file append_file_perms;
+')
+
+########################################
+## <summary>
+##	Search apache system content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_search_sys_content',`
+	gen_require(`
+		type httpd_sys_content_t;
+	')
+
+	allow $1 httpd_sys_content_t:dir search_dir_perms;
+')
+
+#######################################
+## <summary>
+##  Getattr apache system content.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain to not audit.
+##  </summary>
+## </param>
+#
+interface(`apache_getattr_sys_content',`
+    gen_require(`
+        type httpd_sys_content_t;
+    ')
+
+    getattr_files_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
+')
+
+########################################
+## <summary>
+##	Read apache system content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`apache_read_sys_content',`
+	gen_require(`
+		type httpd_sys_content_t;
+	')
+
+	allow $1 httpd_sys_content_t:dir list_dir_perms;
+	read_files_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
+	read_lnk_files_pattern($1, httpd_sys_content_t, httpd_sys_content_t)
+')
+
+########################################
+## <summary>
+##	Search apache system CGI directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_search_sys_scripts',`
+	gen_require(`
+		type httpd_sys_content_t, httpd_sys_script_exec_t;
+	')
+
+	search_dirs_pattern($1, httpd_sys_content_t, httpd_sys_script_exec_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete all user web content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`apache_manage_all_user_content',`
+	gen_require(`
+		attribute httpd_user_content_type, httpd_user_script_exec_type;
+	')
+
+	manage_dirs_pattern($1, httpd_user_content_type, httpd_user_content_type)
+	manage_files_pattern($1, httpd_user_content_type, httpd_user_content_type)
+	manage_lnk_files_pattern($1, httpd_user_content_type, httpd_user_content_type)
+
+	manage_dirs_pattern($1, httpd_user_script_exec_type, httpd_user_script_exec_type)
+	manage_files_pattern($1, httpd_user_script_exec_type, httpd_user_script_exec_type)
+	manage_lnk_files_pattern($1, httpd_user_script_exec_type, httpd_user_script_exec_type)
+')
+
+########################################
+## <summary>
+##	Search system script state directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`apache_search_sys_script_state',`
+	gen_require(`
+		type httpd_sys_script_t;
+	')
+
+	allow $1 httpd_sys_script_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read
+##	apache tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_read_tmp_files',`
+	gen_require(`
+		type httpd_tmp_t;
+	')
+
+	files_search_tmp($1)
+	read_files_pattern($1, httpd_tmp_t, httpd_tmp_t)
+')
+
+######################################
+## <summary>
+##  Dontaudit attempts to read and write
+##  apache tmp files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`apache_dontaudit_rw_tmp_files',`
+    gen_require(`
+        type httpd_tmp_t;
+    ')
+
+    dontaudit $1 httpd_tmp_t:file { read write };
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to write
+##	apache tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apache_dontaudit_write_tmp_files',`
+	gen_require(`
+		type httpd_tmp_t;
+	')
+
+	dontaudit $1 httpd_tmp_t:file write;
+')
+
+########################################
+## <summary>
+##	Execute CGI in the specified domain.
+## </summary>
+##	<desc>
+##	<p>
+##	Execute CGI in the specified domain.
+##	</p>
+##	<p>
+##	This is an interface to support third party modules
+##	and its use is not allowed in upstream reference
+##	policy.
+##	</p>
+##	</desc>
+## <param name="domain">
+##	<summary>
+##	Domain run the cgi script in.
+##	</summary>
+## </param>
+## <param name="entrypoint">
+##	<summary>
+##	Type of the executable to enter the cgi domain.
+##	</summary>
+## </param>
+#
+interface(`apache_cgi_domain',`
+	gen_require(`
+		type httpd_t, httpd_sys_script_exec_t;
+	')
+
+	domtrans_pattern(httpd_t, $2, $1)
+	apache_search_sys_scripts($1)
+
+	allow httpd_t $1:process signal;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate an apache environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`apache_admin',`
+	gen_require(`
+		attribute httpdcontent;
+		attribute httpd_script_exec_type;
+
+		type httpd_t, httpd_config_t, httpd_log_t;
+		type httpd_modules_t, httpd_lock_t;
+		type httpd_var_run_t, httpd_php_tmp_t;
+		type httpd_suexec_tmp_t, httpd_tmp_t;
+		type httpd_initrc_exec_t, httpd_bool_t;
+	')
+
+	allow $1 httpd_t:process { getattr ptrace signal_perms };
+	ps_process_pattern($1, httpd_t)
+
+	init_labeled_script_domtrans($1, httpd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 httpd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	apache_manage_all_content($1)
+	miscfiles_manage_public_files($1)
+
+	files_search_etc($1)
+	admin_pattern($1, httpd_config_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, httpd_log_t)
+
+	admin_pattern($1, httpd_modules_t)
+
+	admin_pattern($1, httpd_lock_t)
+	files_lock_filetrans($1, httpd_lock_t, file)
+
+	admin_pattern($1, httpd_var_run_t)
+	files_pid_filetrans($1, httpd_var_run_t, file)
+
+	kernel_search_proc($1)
+	allow $1 httpd_t:dir list_dir_perms;
+	ps_process_pattern($1, httpd_t)
+	read_lnk_files_pattern($1, httpd_t, httpd_t)
+
+	admin_pattern($1, httpdcontent)
+	admin_pattern($1, httpd_script_exec_type)
+
+	seutil_domtrans_setfiles($1)
+
+	admin_pattern($1, httpd_tmp_t)
+	admin_pattern($1, httpd_php_tmp_t)
+	admin_pattern($1, httpd_suexec_tmp_t)
+
+ifdef(`TODO',`
+	allow httpd_setsebool_t httpd_bool_t:dir list_dir_perms;
+	allow httpd_setsebool_t httpd_bool_t:file rw_file_perms;
+')
+')
+
+########################################
+## <summary>
+##	dontaudit read and write an leaked file descriptors
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`apache_dontaudit_leaks',`
+	gen_require(`
+		type httpd_t, httpd_tmp_t;
+	')
+
+	dontaudit $1 httpd_t:fifo_file rw_inherited_fifo_file_perms;
+ 	dontaudit $1 httpd_t:tcp_socket { read write };
+	dontaudit $1 httpd_t:unix_dgram_socket { read write };
+	dontaudit $1 httpd_t:unix_stream_socket { read write };
+	dontaudit $1 httpd_tmp_t:file { read write };
+')
+
+#######################################
+## <summary>
+##  Allow getattr of suexec
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The type of the process performing this action.
+##  </summary>
+## </param>
+#
+interface(`apache_getattr_suexec',`
+    gen_require(`
+        type httpd_suexec_exec_t;
+    ')
+
+	allow $1 httpd_suexec_exec_t:file getattr;
+')
+
+#######################################
+## <summary>
+##  Read and write of httpd unix stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`apache_rw_stream_sockets',`
+    gen_require(`
+        type httpd_t;
+    ')
+
+    allow $1 httpd_t:unix_stream_socket rw_socket_perms;
+')
+
+#######################################
+## <summary>
+##  Allow any httpd_exec_t to be an entrypoint of this domain
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`apache_entrypoint',`
+    gen_require(`
+        type httpd_exec_t;
+    ')
+    allow $1 httpd_exec_t:file entrypoint;
+')
+
+

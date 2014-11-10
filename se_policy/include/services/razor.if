@@ -1,0 +1,200 @@
+## <summary>A distributed, collaborative, spam detection and filtering network.</summary>
+## <desc>
+##	<p>
+##	A distributed, collaborative, spam detection and filtering network.
+##	</p>
+##	<p>
+##	This policy will work with either the ATrpms provided config
+##	file in /etc/razor, or with the default of dumping everything into
+##	$HOME/.razor.
+##	</p>
+## </desc>
+
+#######################################
+## <summary>
+##	Template to create types and rules common to
+##	all razor domains.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix of the domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+#
+template(`razor_common_domain_template',`
+	gen_require(`
+		type razor_exec_t, razor_etc_t, razor_log_t, razor_var_lib_t;
+	')
+	type $1_t;
+	domain_type($1_t)
+	domain_entry_file($1_t, razor_exec_t)
+
+	allow $1_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+	allow $1_t self:fd use;
+	allow $1_t self:fifo_file rw_fifo_file_perms;
+	allow $1_t self:unix_dgram_socket create_socket_perms;
+	allow $1_t self:unix_stream_socket create_stream_socket_perms;
+	allow $1_t self:unix_dgram_socket sendto;
+	allow $1_t self:unix_stream_socket connectto;
+	allow $1_t self:shm create_shm_perms;
+	allow $1_t self:sem create_sem_perms;
+	allow $1_t self:msgq create_msgq_perms;
+	allow $1_t self:msg { send receive };
+	allow $1_t self:tcp_socket create_socket_perms;
+
+	# Read system config file
+	allow $1_t razor_etc_t:dir list_dir_perms;
+	allow $1_t razor_etc_t:file read_file_perms;
+	allow $1_t razor_etc_t:lnk_file { getattr read };
+
+	manage_dirs_pattern($1_t, razor_log_t, razor_log_t)
+	manage_files_pattern($1_t, razor_log_t, razor_log_t)
+	manage_lnk_files_pattern($1_t, razor_log_t, razor_log_t)
+	logging_log_filetrans($1_t, razor_log_t, file)
+
+	manage_dirs_pattern($1_t, razor_var_lib_t, razor_var_lib_t)
+	manage_files_pattern($1_t, razor_var_lib_t, razor_var_lib_t)
+	manage_lnk_files_pattern($1_t, razor_var_lib_t, razor_var_lib_t)
+	files_search_var_lib($1_t)
+
+	# Razor is one executable and several symlinks
+	allow $1_t razor_exec_t:file read_file_perms;
+	allow $1_t razor_exec_t:lnk_file read_lnk_file_perms;
+
+	kernel_read_system_state($1_t)
+	kernel_read_network_state($1_t)
+	kernel_read_software_raid_state($1_t)
+	kernel_getattr_core_if($1_t)
+	kernel_getattr_message_if($1_t)
+	kernel_read_kernel_sysctls($1_t)
+
+	corecmd_exec_bin($1_t)
+
+	corenet_all_recvfrom_unlabeled($1_t)
+	corenet_all_recvfrom_netlabel($1_t)
+	corenet_tcp_sendrecv_generic_if($1_t)
+	corenet_raw_sendrecv_generic_if($1_t)
+	corenet_tcp_sendrecv_generic_node($1_t)
+	corenet_raw_sendrecv_generic_node($1_t)
+	corenet_tcp_sendrecv_razor_port($1_t)
+
+	# mktemp and other randoms
+	dev_read_rand($1_t)
+	dev_read_urand($1_t)
+
+	files_search_pids($1_t)
+	# Allow access to various files in the /etc/directory including mtab
+	# and nsswitch
+	files_read_etc_files($1_t)
+	files_read_etc_runtime_files($1_t)
+
+	fs_search_auto_mountpoints($1_t)
+
+	libs_read_lib_files($1_t)
+
+	miscfiles_read_localization($1_t)
+
+	sysnet_read_config($1_t)
+	sysnet_dns_name_resolve($1_t)
+
+	optional_policy(`
+		nis_use_ypbind($1_t)
+	')
+')
+
+########################################
+## <summary>
+##	Role access for razor
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`razor_role',`
+	gen_require(`
+		type razor_t, razor_exec_t, razor_home_t;
+	')
+
+	role $1 types razor_t;
+
+	# Transition from the user domain to the derived domain.
+	domtrans_pattern($2, razor_exec_t, razor_t)
+
+	# allow ps to show razor and allow the user to kill it 
+	ps_process_pattern($2, razor_t)
+	allow $2 razor_t:process signal;
+
+	manage_dirs_pattern($2, razor_home_t, razor_home_t)
+	manage_files_pattern($2, razor_home_t, razor_home_t)
+	manage_lnk_files_pattern($2, razor_home_t, razor_home_t)
+	relabel_dirs_pattern($2, razor_home_t, razor_home_t)
+	relabel_files_pattern($2, razor_home_t, razor_home_t)
+	relabel_lnk_files_pattern($2, razor_home_t, razor_home_t)
+')
+
+########################################
+## <summary>
+##	Execute razor in the system razor domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`razor_domtrans',`
+	gen_require(`
+		type razor_t, razor_exec_t;
+	')
+
+	domtrans_pattern($1, razor_exec_t, razor_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete razor files
+##	in a user home subdirectory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+template(`razor_manage_user_home_files',`
+	gen_require(`
+		type razor_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	manage_files_pattern($1, razor_home_t, razor_home_t)
+	read_lnk_files_pattern($1, razor_home_t, razor_home_t)
+')
+
+########################################
+## <summary>
+##	read razor lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`razor_read_lib_files',`
+	gen_require(`
+		type razor_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, razor_var_lib_t, razor_var_lib_t)
+')
+

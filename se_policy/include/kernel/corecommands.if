@@ -1,0 +1,1094 @@
+## <summary>
+## Core policy for shells, and generic programs
+## in /bin, /sbin, /usr/bin, and /usr/sbin.
+## </summary>
+## <required val="true">
+##	Contains the base bin and sbin directory types
+##	which need to be searched for the kernel to
+##	run init.
+## </required>
+
+########################################
+## <summary>
+##	Make the specified type usable for files
+##	that are exectuables, such as binary programs.
+##	This does not include shared libraries.
+## </summary>
+## <param name="type">
+##	<summary>
+##	Type to be used for files.
+##	</summary>
+## </param>
+#
+interface(`corecmd_executable_file',`
+	gen_require(`
+		attribute exec_type;
+	')
+
+	typeattribute $1 exec_type;
+
+	files_type($1)
+')
+
+########################################
+## <summary>
+##	Create a aliased type to generic bin files.  (Deprecated)
+## </summary>
+## <desc>
+##	<p>
+##	Create a aliased type to generic bin files.  (Deprecated)
+##	</p>
+##	<p>
+##	This is added to support targeted policy.  Its
+##	use should be limited.  It has no effect
+##	on the strict policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Alias type for bin_t.
+##	</summary>
+## </param>
+#
+interface(`corecmd_bin_alias',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Make general progams in bin an entrypoint for
+##	the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain for which bin_t is an entrypoint.
+##	</summary>
+## </param>
+#
+interface(`corecmd_bin_entry_type',`
+	gen_require(`
+		type bin_t;
+	')
+
+	domain_entry_file($1, bin_t)
+')
+
+########################################
+## <summary>
+##	Make general progams in sbin an entrypoint for
+##	the specified domain.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain for which sbin programs are an entrypoint.
+##	</summary>
+## </param>
+#
+interface(`corecmd_sbin_entry_type',`
+	corecmd_bin_entry_type($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_bin_entry_type() instead.')
+')
+
+########################################
+## <summary>
+##	Make the shell an entrypoint for the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain for which the shell is an entrypoint.
+##	</summary>
+## </param>
+#
+interface(`corecmd_shell_entry_type',`
+	gen_require(`
+		type shell_exec_t;
+	')
+
+	domain_entry_file($1, shell_exec_t)
+')
+
+########################################
+## <summary>
+##	Search the contents of bin directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_search_bin',`
+	gen_require(`
+		type bin_t;
+	')
+
+	search_dirs_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search the contents of bin directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_dontaudit_search_bin',`
+	gen_require(`
+		type bin_t;
+	')
+
+	dontaudit $1 bin_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	List the contents of bin directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_list_bin',`
+	gen_require(`
+		type bin_t;
+	')
+
+	list_dirs_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Do not auidt attempts to write bin directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_dontaudit_write_bin_dirs',`
+	gen_require(`
+		type bin_t;
+	')
+
+	dontaudit $1 bin_t:dir write;
+')
+
+#######################################
+## <summary>
+##      Do not audit attempts to write bin files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain to not audit.
+##      </summary>
+## </param>
+#
+interface(`corecmd_dontaudit_write_bin_files',`
+        gen_require(`
+                type bin_t;
+        ')
+
+        dontaudit $1 bin_t:file write;
+')
+
+########################################
+## <summary>
+##	Get the attributes of files in bin directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_getattr_bin_files',`
+	gen_require(`
+		type bin_t;
+	')
+
+	getattr_files_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Get the attributes of files in bin directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_dontaudit_getattr_bin_files',`
+	gen_require(`
+		type bin_t;
+	')
+
+	dontaudit $1 bin_t:dir search_dir_perms;
+	dontaudit $1 bin_t:file getattr_file_perms;
+')
+
+########################################
+## <summary>
+##	Read files in bin directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_read_bin_files',`
+	gen_require(`
+		type bin_t;
+	')
+
+	read_files_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Read symbolic links in bin directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_read_bin_symlinks',`
+	gen_require(`
+		type bin_t;
+	')
+
+	read_lnk_files_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Read pipes in bin directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_read_bin_pipes',`
+	gen_require(`
+		type bin_t;
+	')
+
+	read_fifo_files_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Read named sockets in bin directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_read_bin_sockets',`
+	gen_require(`
+		type bin_t;
+	')
+
+	read_sock_files_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Execute generic programs in bin directories,
+##	in the caller domain.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to execute generic programs
+##	in system bin directories (/bin, /sbin, /usr/bin,
+##	/usr/sbin) a without domain transition.
+##	</p>
+##	<p>
+##	Typically, this interface should be used when the domain
+##	executes general system progams within the privileges
+##	of the source domain.  Some examples of these programs
+##	are ls, cp, sed, python, and tar. This does not include
+##	shells, such as bash.
+##	</p>
+##	<p>
+##	Related interface:
+##	</p>
+##	<ul>
+##		<li>corecmd_exec_shell()</li>
+##	</ul>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_exec_bin',`
+	gen_require(`
+		type bin_t;
+	')
+
+	read_lnk_files_pattern($1, bin_t, bin_t)
+	list_dirs_pattern($1, bin_t, bin_t)
+	can_exec($1, bin_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete bin files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_manage_bin_files',`
+	gen_require(`
+		type bin_t;
+	')
+
+	manage_files_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Relabel to and from the bin type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_relabel_bin_files',`
+	gen_require(`
+		type bin_t;
+	')
+
+	relabel_files_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Mmap a bin file as executable.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_mmap_bin_files',`
+	gen_require(`
+		type bin_t;
+	')
+
+	mmap_files_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Execute a file in a bin directory
+##	in the specified domain but do not
+##	do it automatically. This is an explicit
+##	transition, requiring the caller to use setexeccon().
+## </summary>
+## <desc>
+##	<p>
+##	Execute a file in a bin directory
+##	in the specified domain.  This allows
+##	the specified domain to execute any file
+##	on these filesystems in the specified
+##	domain.  This is not suggested.
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+##	<p>
+##	This interface was added to handle
+##	the userhelper policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`corecmd_bin_spec_domtrans',`
+	gen_require(`
+		type bin_t;
+	')
+
+	read_lnk_files_pattern($1, bin_t, bin_t)
+	domain_transition_pattern($1, bin_t, $2)
+')
+
+########################################
+## <summary>
+##	Execute a file in a bin directory
+##	in the specified domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute a file in a bin directory
+##	in the specified domain.  This allows
+##	the specified domain to execute any file
+##	on these filesystems in the specified
+##	domain.  This is not suggested.
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+##	<p>
+##	This interface was added to handle
+##	the ssh-agent policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`corecmd_bin_domtrans',`
+	gen_require(`
+		type bin_t;
+	')
+
+	corecmd_bin_spec_domtrans($1, $2)
+	type_transition $1 bin_t:process $2;
+')
+
+########################################
+## <summary>
+##	Search the contents of sbin directories.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_search_sbin',`
+	corecmd_search_bin($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_search_bin() instead.')
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search
+##	sbin directories.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corecmd_dontaudit_search_sbin',`
+	corecmd_dontaudit_search_bin($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_dontaudit_search_bin() instead.')
+')
+
+########################################
+## <summary>
+##	List the contents of sbin directories.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_list_sbin',`
+	corecmd_list_bin($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_list_bin() instead.')
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write
+##	sbin directories.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corecmd_dontaudit_write_sbin_dirs',`
+	corecmd_dontaudit_write_bin_dirs($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_dontaudit_write_bin_dirs() instead.')
+')
+
+########################################
+## <summary>
+##	Get the attributes of sbin files.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_getattr_sbin_files',`
+	corecmd_getattr_bin_files($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_getattr_bin_files() instead.')
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attibutes
+##	of sbin files.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`corecmd_dontaudit_getattr_sbin_files',`
+	corecmd_dontaudit_getattr_bin_files($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_dontaudit_getattr_bin_files() instead.')
+')
+
+########################################
+## <summary>
+##	Read files in sbin directories.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_read_sbin_files',`
+	corecmd_read_bin_files($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_read_bin_files() instead.')
+')
+
+########################################
+## <summary>
+##	Read symbolic links in sbin directories.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_read_sbin_symlinks',`
+	corecmd_read_bin_symlinks($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_read_bin_symlinks() instead.')
+')
+
+########################################
+## <summary>
+##	Read named pipes in sbin directories.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_read_sbin_pipes',`
+	corecmd_read_bin_pipes($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_read_bin_pipes() instead.')
+')
+
+########################################
+## <summary>
+##	Read named sockets in sbin directories.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_read_sbin_sockets',`
+	corecmd_read_bin_sockets($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_read_bin_sockets() instead.')
+')
+
+########################################
+## <summary>
+##	Execute generic programs in sbin directories,
+##	in the caller domain.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_exec_sbin',`
+	corecmd_exec_bin($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_exec_bin() instead.')
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete sbin files.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`corecmd_manage_sbin_files',`
+	corecmd_manage_bin_files($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_manage_bin_files() instead.')
+')
+
+########################################
+## <summary>
+##	Relabel to and from the sbin type.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`corecmd_relabel_sbin_files',`
+	corecmd_relabel_bin_files($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_relabel_bin_files() instead.')
+')
+
+########################################
+## <summary>
+##	Mmap a sbin file as executable.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`corecmd_mmap_sbin_files',`
+	corecmd_mmap_bin_files($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_mmap_bin_files() instead.')
+')
+
+########################################
+## <summary>
+##	Execute a file in a sbin directory
+##	in the specified domain.  (Deprecated)
+## </summary>
+## <desc>
+##	<p>
+##	Execute a file in a sbin directory
+##	in the specified domain.  This allows
+##	the specified domain to execute any file
+##	on these filesystems in the specified
+##	domain.  This is not suggested.  (Deprecated)
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+##	<p>
+##	This interface was added to handle
+##	the ssh-agent policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`corecmd_sbin_domtrans',`
+	corecmd_bin_domtrans($1, $2)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_bin_domtrans() instead.')
+')
+
+########################################
+## <summary>
+##	Execute a file in a sbin directory
+##	in the specified domain but do not
+##	do it automatically. This is an explicit
+##	transition, requiring the caller to use setexeccon().  (Deprecated)
+## </summary>
+## <desc>
+##	<p>
+##	Execute a file in a sbin directory
+##	in the specified domain.  This allows
+##	the specified domain to execute any file
+##	on these filesystems in the specified
+##	domain.  This is not suggested.  (Deprecated)
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+##	<p>
+##	This interface was added to handle
+##	the userhelper policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`corecmd_sbin_spec_domtrans',`
+	corecmd_bin_spec_domtrans($1, $2)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_bin_spec_domtrans() instead.')
+')
+
+########################################
+## <summary>
+##	Check if a shell is executable (DAC-wise).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_check_exec_shell',`
+	gen_require(`
+		type bin_t, shell_exec_t;
+	')
+
+	list_dirs_pattern($1, bin_t, bin_t)
+	read_lnk_files_pattern($1, bin_t, bin_t)
+	allow $1 shell_exec_t:file execute;
+')
+
+########################################
+## <summary>
+##	Execute shells in the caller domain.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to execute shells without
+##	a domain transition.
+##	</p>
+##	<p>
+##	Typically, this interface should be used when the domain
+##	executes shells within the privileges
+##	of the source domain.  Some examples of these programs
+##	are bash, tcsh, and zsh.
+##	</p>
+##	<p>
+##	Related interface:
+##	</p>
+##	<ul>
+##		<li>corecmd_exec_bin()</li>
+##	</ul>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_exec_shell',`
+	gen_require(`
+		type bin_t, shell_exec_t;
+	')
+
+	list_dirs_pattern($1, bin_t, bin_t)
+	read_lnk_files_pattern($1, bin_t, bin_t)
+	can_exec($1, shell_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute ls in the caller domain.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_exec_ls',`
+	corecmd_exec_bin($1)
+	refpolicywarn(`$0() has been deprecated, please use corecmd_exec_bin() instead.')
+')
+
+########################################
+## <summary>
+##	Execute a shell in the target domain.  This
+##	is an explicit transition, requiring the
+##	caller to use setexeccon().
+## </summary>
+## <desc>
+##	<p>
+##	Execute a shell in the target domain.  This
+##	is an explicit transition, requiring the
+##	caller to use setexeccon().
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the shell process.
+##	</summary>
+## </param>
+#
+interface(`corecmd_shell_spec_domtrans',`
+	gen_require(`
+		type bin_t, shell_exec_t;
+	')
+
+	list_dirs_pattern($1, bin_t, bin_t)
+	read_lnk_files_pattern($1, bin_t, bin_t)
+	domain_transition_pattern($1, shell_exec_t, $2)
+')
+
+########################################
+## <summary>
+##	Execute a shell in the specified domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute a shell in the specified domain.
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the shell process.
+##	</summary>
+## </param>
+#
+interface(`corecmd_shell_domtrans',`
+	gen_require(`
+		type shell_exec_t;
+	')
+
+	corecmd_shell_spec_domtrans($1, $2)
+	type_transition $1 shell_exec_t:process $2;
+')
+
+########################################
+## <summary>
+##	Execute chroot in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_exec_chroot',`
+	gen_require(`
+		type chroot_exec_t;
+	')
+
+	read_lnk_files_pattern($1, bin_t, bin_t)
+	can_exec($1, chroot_exec_t)
+	allow $1 self:capability sys_chroot;
+')
+
+########################################
+## <summary>
+##	Get the attributes of all executable files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`corecmd_getattr_all_executables',`
+	gen_require(`
+		attribute exec_type;
+		type bin_t;
+	')
+
+	allow $1 bin_t:dir list_dir_perms;
+	getattr_files_pattern($1, bin_t, exec_type)
+')
+
+########################################
+## <summary>
+##	Read all executable files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`corecmd_read_all_executables',`
+	gen_require(`
+		attribute exec_type;
+	')
+
+	read_files_pattern($1, exec_type, exec_type)
+')
+
+########################################
+## <summary>
+##	Execute all executable files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`corecmd_exec_all_executables',`
+	gen_require(`
+		attribute exec_type;
+		type bin_t;
+	')
+
+	can_exec($1, exec_type)
+	list_dirs_pattern($1, bin_t, bin_t)
+	read_lnk_files_pattern($1, bin_t, exec_type)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to execute all executables.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_dontaudit_exec_all_executables',`
+	gen_require(`
+		attribute exec_type;
+	')
+
+	dontaudit $1 exec_type:file { execute execute_no_trans };
+')
+
+########################################
+## <summary>
+##	Create, read, write, and all executable files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`corecmd_manage_all_executables',`
+	gen_require(`
+		attribute exec_type;
+		type bin_t;
+	')
+
+	manage_dirs_pattern($1, bin_t, exec_type)
+	manage_files_pattern($1, bin_t, exec_type)
+	manage_lnk_files_pattern($1, bin_t, bin_t)
+')
+
+########################################
+## <summary>
+##	Relabel to and from the bin type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`corecmd_relabel_all_executables',`
+	gen_require(`
+		attribute exec_type;
+		type bin_t;
+	')
+
+	relabel_files_pattern($1, bin_t, exec_type)
+')
+
+########################################
+## <summary>
+##	Mmap all executables as executable.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`corecmd_mmap_all_executables',`
+	gen_require(`
+		attribute exec_type;
+		type bin_t;
+	')
+
+	mmap_files_pattern($1, bin_t, exec_type)
+')

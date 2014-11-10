@@ -1,0 +1,175 @@
+## <summary>Automated backup program.</summary>
+
+########################################
+## <summary>
+##	Execute amrecover in the amanda_recover domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`amanda_domtrans_recover',`
+	gen_require(`
+		type amanda_recover_t, amanda_recover_exec_t;
+	')
+
+	domtrans_pattern($1, amanda_recover_exec_t, amanda_recover_t)
+')
+
+########################################
+## <summary>
+##	Execute amrecover in the amanda_recover domain, and
+##	allow the specified role the amanda_recover domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the amanda_recover domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`amanda_run_recover',`
+	gen_require(`
+		type amanda_recover_t;
+	')
+
+	amanda_domtrans_recover($1)
+	role $2 types amanda_recover_t;
+')
+
+########################################
+## <summary>
+##	Search amanda library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`amanda_search_lib',`
+	gen_require(`
+		type amanda_usr_lib_t;
+	')
+
+	allow $1 amanda_usr_lib_t:dir search_dir_perms;
+	files_search_usr($1)
+')
+
+#######################################
+## <summary>
+##  Allow append amanda lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain to allow
+##  </summary>
+## </param>
+#
+interface(`amanda_append_lib_files',`
+    gen_require(`
+        type amanda_var_lib_t;
+    ')
+
+    allow $1 amanda_var_lib_t:file { append_file_perms };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read /etc/dumpdates.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`amanda_dontaudit_read_dumpdates',`
+	gen_require(`
+		type amanda_dumpdates_t;
+	')
+
+	dontaudit $1 amanda_dumpdates_t:file { getattr read };
+')
+
+########################################
+## <summary>
+##	Allow read/writing /etc/dumpdates.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to allow
+##	</summary>
+## </param>
+#
+interface(`amanda_rw_dumpdates_files',`
+	gen_require(`
+		type amanda_dumpdates_t;
+	')
+
+	allow $1 amanda_dumpdates_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Search amanda library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`amanda_manage_lib',`
+	gen_require(`
+		type amanda_usr_lib_t;
+	')
+
+	allow $1 amanda_usr_lib_t:dir manage_dir_perms;
+	files_search_usr($1)
+')
+
+########################################
+## <summary>
+##	Allow read/writing amanda logs
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to allow
+##	</summary>
+## </param>
+#
+interface(`amanda_append_log_files',`
+	gen_require(`
+		type amanda_log_t;
+	')
+
+	allow $1 amanda_log_t:file { read_file_perms append_file_perms };
+')
+
+#######################################
+## <summary>
+##	Search amanda var library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`amanda_search_var_lib',`
+	gen_require(`
+		type amanda_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	allow $1 amanda_var_lib_t:dir search_dir_perms;
+
+')

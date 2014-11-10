@@ -8,6 +8,13 @@ CLIENT_USER = jobber_client
 CLIENT_PERMS = 4755
 DAEMON_PERMS = 0755
 
+SE_FILES = se_policy/jobber.fc \
+           se_policy/jobber.if \
+           se_policy/jobber.te \
+           ${wildcard se_policy/include/**} \
+           se_policy/Makefile \
+           se_policy/policygentool
+
 .PHONY : build
 build :
 	go install github.com/dshearer/jobber
@@ -15,7 +22,12 @@ build :
 	go install github.com/dshearer/jobber/${DAEMON}
 
 .PHONY : install
-install : build ${DESTDIR}/bin/${CLIENT} ${DESTDIR}/sbin/${DAEMON} /etc/init.d/jobber /var/lock/subsys/jobber
+install : build \
+          ${DESTDIR}/bin/${CLIENT} \
+          ${DESTDIR}/sbin/${DAEMON} \
+          /etc/init.d/jobber \
+          /var/lock/subsys/jobber \
+          se_policy/.installed
 
 ${DESTDIR}/bin/${CLIENT} : ${GOPATH}/bin/${CLIENT}
 	-userdel ${CLIENT_USER}
@@ -35,6 +47,14 @@ ${DESTDIR}/sbin/${DAEMON} : ${GOPATH}/bin/${DAEMON}
 /var/lock/subsys/jobber : ${DESTDIR}/sbin/${DAEMON} /etc/init.d/jobber
 	service jobber restart
 
+se_policy/jobber.pp : ${SE_FILES}
+	${MAKE} -C se_policy
+
+se_policy/.installed : se_policy/jobber.pp
+	semodule -i $< -v
+	restorecon -Rv /usr/local /etc/init.d
+	touch $@
+
 .PHONY : uninstall
 uninstall :
 	service jobber stop
@@ -42,9 +62,12 @@ uninstall :
 	chkconfig --del jobber
 	rm -f ${DESTDIR}/bin/${CLIENT} ${DESTDIR}/sbin/${DAEMON} /etc/init.d/jobber
 	-userdel ${CLIENT_USER}
+	semodule -r jobber -v
+	rm -f se_policy/.installed
 
 .PHONY : clean
 clean :
 	go clean -i github.com/dshearer/jobber
 	go clean -i github.com/dshearer/jobber/${CLIENT}
 	go clean -i github.com/dshearer/jobber/${DAEMON}
+	${MAKE} -C se_policy clean

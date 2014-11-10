@@ -1,0 +1,121 @@
+
+## <summary>policy for pkcsslotd</summary>
+
+########################################
+## <summary>
+##	Transition to pkcsslotd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`pkcsslotd_domtrans',`
+	gen_require(`
+		type pkcsslotd_t, pkcsslotd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, pkcsslotd_exec_t, pkcsslotd_t)
+')
+
+########################################
+## <summary>
+##	Search pkcsslotd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcsslotd_search_lib',`
+	gen_require(`
+		type pkcsslotd_var_lib_t;
+	')
+
+	allow $1 pkcsslotd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read pkcsslotd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcsslotd_read_lib_files',`
+	gen_require(`
+		type pkcsslotd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, pkcsslotd_var_lib_t, pkcsslotd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage pkcsslotd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcsslotd_manage_lib_files',`
+	gen_require(`
+		type pkcsslotd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, pkcsslotd_var_lib_t, pkcsslotd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage pkcsslotd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcsslotd_manage_lib_dirs',`
+	gen_require(`
+		type pkcsslotd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, pkcsslotd_var_lib_t, pkcsslotd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an pkcsslotd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pkcsslotd_admin',`
+	gen_require(`
+		type pkcsslotd_t;
+		type pkcsslotd_var_lib_t;
+	')
+
+	allow $1 pkcsslotd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, pkcsslotd_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, pkcsslotd_var_lib_t)
+')

@@ -1,0 +1,23 @@
+
+## <summary>policy for firewallgui</summary>
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	firewallgui over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`firewallgui_dbus_chat',`
+	gen_require(`
+		type firewallgui_t;
+		class dbus send_msg;
+	')
+
+	allow $1 firewallgui_t:dbus send_msg;
+	allow firewallgui_t $1:dbus send_msg;
+')

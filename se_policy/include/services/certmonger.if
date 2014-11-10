@@ -1,0 +1,237 @@
+
+## <summary>Certificate status monitor and PKI enrollment client</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run certmonger.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`certmonger_domtrans',`
+	gen_require(`
+		type certmonger_t, certmonger_exec_t;
+	')
+
+	domtrans_pattern($1, certmonger_exec_t, certmonger_t)
+')
+
+
+########################################
+## <summary>
+##	Execute certmonger server in the certmonger domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`certmonger_initrc_domtrans',`
+	gen_require(`
+		type certmonger_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, certmonger_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read certmonger PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certmonger_read_pid_files',`
+	gen_require(`
+		type certmonger_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 certmonger_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage certmonger var_run files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certmonger_manage_var_run',`
+	gen_require(`
+		type certmonger_var_run_t;
+	')
+
+         manage_dirs_pattern($1, certmonger_var_run_t, certmonger_var_run_t)
+         manage_files_pattern($1, certmonger_var_run_t, certmonger_var_run_t)
+         manage_lnk_files_pattern($1, certmonger_var_run_t, certmonger_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	Search certmonger lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certmonger_search_lib',`
+	gen_require(`
+		type certmonger_var_lib_t;
+	')
+
+	allow $1 certmonger_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read certmonger lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certmonger_read_lib_files',`
+	gen_require(`
+		type certmonger_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        read_files_pattern($1, certmonger_var_lib_t, certmonger_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	certmonger lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certmonger_manage_lib_files',`
+	gen_require(`
+		type certmonger_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_files_pattern($1, certmonger_var_lib_t,  certmonger_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage certmonger var_lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certmonger_manage_var_lib',`
+	gen_require(`
+		type certmonger_var_lib_t;
+	')
+
+         manage_dirs_pattern($1, certmonger_var_lib_t, certmonger_var_lib_t)
+         manage_files_pattern($1, certmonger_var_lib_t, certmonger_var_lib_t)
+         manage_lnk_files_pattern($1, certmonger_var_lib_t, certmonger_var_lib_t)
+')
+
+#######################################
+## <summary>
+##  Dontaudit certmonger leaked files descriptors.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`certmonger_dontaudit_leaks',`
+    gen_require(`
+        type certmonger_t;
+		type certmonger_var_run_t;
+    ')
+
+	dontaudit $1 certmonger_var_run_t:file { read write };
+	dontaudit $1 certmonger_t:fifo_file { write read };
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	certmonger over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certmonger_dbus_chat',`
+	gen_require(`
+		type certmonger_t;
+		class dbus send_msg;
+	')
+
+	allow $1 certmonger_t:dbus send_msg;
+	allow certmonger_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an certmonger environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`certmonger_admin',`
+	gen_require(`
+		type certmonger_t, certmonger_initrc_exec_t;	
+		type  certmonger_var_lib_t, certmonger_var_run_t;
+	')
+
+	allow $1 certmonger_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, certmonger_t, certmonger_t)
+
+	# Allow certmonger_t to restart the apache service
+	certmonger_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 certmonger_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var_lib($1)
+	admin_pattern($1, certmonger_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, certmonger_var_run_t)
+')

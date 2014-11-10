@@ -1,0 +1,63 @@
+## <summary>Thunderbird email client</summary>
+
+########################################
+## <summary>
+##	Role access for thunderbird
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`thunderbird_role',`
+	gen_require(`
+		type thunderbird_t, thunderbird_exec_t;
+		type thunderbird_home_t, thunderbird_tmpfs_t;
+	')
+
+	role $1 types thunderbird_t;
+
+	domain_auto_trans($2, thunderbird_exec_t, thunderbird_t)
+	allow $2 thunderbird_t:fd use;
+	allow $2 thunderbird_t:shm { associate getattr };
+	allow $2 thunderbird_t:unix_stream_socket connectto;
+	allow thunderbird_t $2:fd use;
+	allow thunderbird_t $2:process sigchld;
+	allow thunderbird_t $2:unix_stream_socket connectto;
+
+	# allow ps to show thunderbird and allow the user to kill it 
+	ps_process_pattern($2, thunderbird_t)
+	allow $2 thunderbird_t:process signal;
+
+	# Access ~/.thunderbird
+	manage_dirs_pattern($2, thunderbird_home_t, thunderbird_home_t)
+	manage_files_pattern($2, thunderbird_home_t, thunderbird_home_t)
+	manage_lnk_files_pattern($2, thunderbird_home_t, thunderbird_home_t)
+	relabel_dirs_pattern($2, thunderbird_home_t, thunderbird_home_t)
+	relabel_files_pattern($2, thunderbird_home_t, thunderbird_home_t)
+	relabel_lnk_files_pattern($2, thunderbird_home_t, thunderbird_home_t)
+')
+
+########################################
+## <summary>
+##	Run thunderbird in the user thunderbird domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`thunderbird_domtrans',`
+	gen_require(`
+		type thunderbird_t, thunderbird_exec_t;
+	')
+
+	domtrans_pattern($1, thunderbird_exec_t, thunderbird_t)
+')

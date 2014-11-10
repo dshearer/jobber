@@ -1,0 +1,1750 @@
+## <summary>Common policy for authentication and user login.</summary>
+
+########################################
+## <summary>
+##	Role access for password authentication.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_role',`
+	gen_require(`
+		type chkpwd_t, chkpwd_exec_t, shadow_t;
+	')
+
+	role $1 types chkpwd_t;
+
+	# Transition from the user domain to this domain.
+	#domtrans_pattern($2, chkpwd_exec_t, chkpwd_t)
+	auth_domtrans_chkpwd($2)
+
+	ps_process_pattern($2, chkpwd_t)
+
+	dontaudit $2 shadow_t:file read_file_perms;
+
+	logging_send_syslog_msg($2)
+	logging_send_audit_msgs($2)
+
+	usermanage_read_crack_db($2)
+')
+
+########################################
+## <summary>
+##	Use PAM for authentication.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_use_pam',`
+	# for SSP/ProPolice
+	dev_read_urand($1)
+	# for encrypted homedir
+	dev_read_sysfs($1)
+
+	auth_domtrans_chk_passwd($1)
+	auth_domtrans_upd_passwd($1)
+	auth_dontaudit_read_shadow($1)
+	auth_read_login_records($1)
+	auth_append_login_records($1)
+	auth_rw_lastlog($1)
+	auth_rw_faillog($1)
+	auth_exec_pam($1)
+	auth_use_nsswitch($1)
+
+	logging_send_audit_msgs($1)
+	logging_send_syslog_msg($1)
+
+	optional_policy(`
+		dbus_system_bus_client($1)
+
+		optional_policy(`
+			consolekit_dbus_chat($1)
+		')
+		
+		optional_policy(`
+        	fprintd_dbus_chat($1)
+        ')
+
+	')
+
+	optional_policy(`
+		kerberos_manage_host_rcache($1)
+		kerberos_read_config($1)
+	')
+
+	optional_policy(`
+		locallogin_getattr_home_content($1)
+	')
+
+	optional_policy(`
+		nis_authenticate($1)
+	')
+')
+
+########################################
+## <summary>
+##	Make the specified domain used for a login program.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain type used for a login program domain.
+##	</summary>
+## </param>
+#
+interface(`auth_login_pgm_domain',`
+	gen_require(`
+		type var_auth_t, auth_cache_t;
+		attribute polydomain;
+        attribute login_pgm;
+	')
+
+	domain_type($1)
+	typeattribute $1 polydomain;
+    typeattribute $1 login_pgm;
+
+	domain_subj_id_change_exemption($1)
+	domain_role_change_exemption($1)
+	domain_obj_id_change_exemption($1)
+	role system_r types $1;
+
+	# Needed for pam_selinux_permit to cleanup properly
+	domain_read_all_domains_state($1)
+	domain_kill_all_domains($1)
+
+	# pam_keyring
+	allow $1 self:capability ipc_lock;
+	allow $1 self:process setkeycreate;
+	allow $1 self:key manage_key_perms;
+	userdom_manage_all_users_keys($1)
+
+	files_list_var_lib($1)
+	manage_files_pattern($1, var_auth_t, var_auth_t)
+	manage_dirs_pattern($1, var_auth_t, var_auth_t)
+	manage_sock_files_pattern($1, var_auth_t, var_auth_t)
+
+	manage_dirs_pattern($1, auth_cache_t, auth_cache_t)
+	manage_files_pattern($1, auth_cache_t, auth_cache_t)
+	manage_sock_files_pattern($1, auth_cache_t, auth_cache_t)
+	files_var_filetrans($1, auth_cache_t, dir)
+
+	# needed for afs - https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=253321
+	kernel_rw_afs_state($1)
+
+	corenet_tcp_connect_pki_ca_port($1)
+
+	# for fingerprint readers
+	dev_rw_input_dev($1)
+	dev_rw_generic_usb_dev($1)
+
+	files_read_etc_files($1)
+
+	fs_list_auto_mountpoints($1)
+
+	selinux_get_fs_mount($1)
+	selinux_validate_context($1)
+	selinux_compute_access_vector($1)
+	selinux_compute_create_context($1)
+	selinux_compute_relabel_context($1)
+	selinux_compute_user_contexts($1)
+
+	mls_file_read_all_levels($1)
+	mls_file_write_all_levels($1)
+	mls_file_upgrade($1)
+	mls_file_downgrade($1)
+	mls_process_set_level($1)
+	mls_fd_share_all_levels($1)
+
+	auth_manage_faillog($1)
+	auth_manage_pam_pid($1)
+	auth_use_pam($1)
+
+	init_rw_utmp($1)
+
+	logging_set_loginuid($1)
+	logging_set_tty_audit($1)
+
+	seutil_read_config($1)
+	seutil_read_login_config($1)
+	seutil_read_default_contexts($1)
+
+	userdom_set_rlimitnh($1)
+	userdom_stream_connect($1)
+	userdom_read_user_home_content_symlinks($1)
+	userdom_delete_user_tmp_files($1)
+	userdom_search_admin_dir($1)
+
+    tunable_policy(`authlogin_shadow',`
+        auth_tunable_read_shadow($1)
+    ')
+
+	 tunable_policy(`authlogin_radius',`
+		corenet_udp_bind_all_unreserved_ports($1)
+	')
+
+	optional_policy(`
+		afs_rw_udp_sockets($1)
+	')
+
+	optional_policy(`
+		kerberos_read_config($1)
+	')
+
+	optional_policy(`
+		oddjob_dbus_chat($1)
+		oddjob_domtrans_mkhomedir($1)
+	')
+
+	optional_policy(`
+		corecmd_exec_bin($1)
+		storage_getattr_fixed_disk_dev($1)
+		mount_domtrans($1)
+	')
+
+	optional_policy(`
+		fprintd_dbus_chat($1)
+	')
+
+	optional_policy(`
+		ssh_agent_exec($1)
+		ssh_read_user_home_files($1)
+		userdom_read_user_home_content_files($1)
+	')
+')
+
+########################################
+## <summary>
+##	Use the login program as an entry point program.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of process using the login program as entry point.
+##	</summary>
+## </param>
+#
+interface(`auth_login_entry_type',`
+	gen_require(`
+		type login_exec_t;
+	')
+
+	domain_entry_file($1, login_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute a login_program in the target domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the login_program process.
+##	</summary>
+## </param>
+#
+interface(`auth_domtrans_login_program',`
+	gen_require(`
+		type login_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, login_exec_t,$2)
+')
+
+########################################
+## <summary>
+##	Execute a login_program in the target domain,
+##	with a range transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the login_program process.
+##	</summary>
+## </param>
+## <param name="range">
+##	<summary>
+##	Range of the login program.
+##	</summary>
+## </param>
+#
+interface(`auth_ranged_domtrans_login_program',`
+	gen_require(`
+		type login_exec_t;
+	')
+
+	auth_domtrans_login_program($1,$2)
+
+	ifdef(`enable_mcs',`
+		range_transition $1 login_exec_t:process $3;
+	')
+
+	ifdef(`enable_mls',`
+		range_transition $1 login_exec_t:process $3;
+	')
+')
+
+########################################
+## <summary>
+##	Search authentication cache
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_search_cache',`
+	gen_require(`
+		type auth_cache_t;
+	')
+
+	allow $1 auth_cache_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read authentication cache
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_read_cache',`
+	gen_require(`
+		type auth_cache_t;
+	')
+
+	read_files_pattern($1, auth_cache_t, auth_cache_t)
+')
+
+########################################
+## <summary>
+##	Read/Write authentication cache
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_rw_cache',`
+	gen_require(`
+		type auth_cache_t;
+	')
+
+	rw_files_pattern($1, auth_cache_t, auth_cache_t)
+')
+
+########################################
+## <summary>
+##	Manage authentication cache
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_manage_cache',`
+	gen_require(`
+		type auth_cache_t;
+	')
+
+	manage_dirs_pattern($1, auth_cache_t, auth_cache_t)
+	manage_files_pattern($1, auth_cache_t, auth_cache_t)
+')
+
+#######################################
+## <summary>
+##	Automatic transition from cache_t to cache.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_var_filetrans_cache',`
+	gen_require(`
+		type auth_cache_t;
+	')
+
+	files_var_filetrans($1, auth_cache_t, { file dir } )
+')
+
+########################################
+## <summary>
+##	Run unix_chkpwd to check a password.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_domtrans_chk_passwd',`
+	gen_require(`
+		type chkpwd_t, chkpwd_exec_t, shadow_t;
+		type auth_cache_t;
+	')
+
+	allow $1 auth_cache_t:dir search_dir_perms;
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, chkpwd_exec_t, chkpwd_t)
+
+	dontaudit $1 shadow_t:file read_file_perms;
+
+	dev_read_rand($1)
+	dev_read_urand($1)
+
+	auth_use_nsswitch($1)
+	auth_rw_faillog($1)
+
+	logging_send_audit_msgs($1)
+
+	miscfiles_read_certs($1)
+
+	optional_policy(`
+		kerberos_read_keytab($1)
+		kerberos_connect_524($1)
+	')
+
+	optional_policy(`
+        openct_stream_connect($1)
+        openct_signull($1)
+        openct_read_pid_files($1)
+    ')
+
+	optional_policy(`
+		pcscd_manage_pub_files($1)
+		pcscd_manage_pub_pipes($1)
+		pcscd_stream_connect($1)
+	')
+
+	optional_policy(`
+		samba_stream_connect_winbind($1)
+	')
+
+	auth_domtrans_upd_passwd($1)
+')
+
+########################################
+## <summary>
+##	Run unix_chkpwd to check a password.
+## 	Stripped down version to be called within boolean
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_domtrans_chkpwd',`
+	gen_require(`
+		type chkpwd_t, chkpwd_exec_t, shadow_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, chkpwd_exec_t, chkpwd_t)
+	dontaudit $1 shadow_t:file { getattr read };
+	auth_domtrans_upd_passwd($1)
+')
+
+########################################
+## <summary>
+##	Execute chkpwd programs in the chkpwd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the chkpwd domain.
+##	</summary>
+## </param>
+#
+interface(`auth_run_chk_passwd',`
+	gen_require(`
+		type chkpwd_t;
+	')
+
+	auth_domtrans_chk_passwd($1)
+	role $2 types chkpwd_t;
+	auth_run_upd_passwd($1, $2)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run unix_update.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`auth_domtrans_upd_passwd',`
+	gen_require(`
+		type updpwd_t, updpwd_exec_t;
+	')
+
+	domtrans_pattern($1, updpwd_exec_t, updpwd_t)
+	auth_dontaudit_read_shadow($1)
+
+')
+
+########################################
+## <summary>
+##	Execute updpwd programs in the updpwd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the updpwd domain.
+##	</summary>
+## </param>
+#
+interface(`auth_run_upd_passwd',`
+	gen_require(`
+		type updpwd_t;
+	')
+
+	auth_domtrans_upd_passwd($1)
+	role $2 types updpwd_t;
+')
+
+########################################
+## <summary>
+##	Get the attributes of the shadow passwords file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_getattr_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	files_search_etc($1)
+	allow $1 shadow_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of the shadow passwords file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`auth_dontaudit_getattr_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	dontaudit $1 shadow_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Read the shadow passwords file (/etc/shadow)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: these next three interfaces are split 
+# since typeattribute does not work in conditionals
+# yet, otherwise they should be one interface.
+# 
+interface(`auth_read_shadow',`
+	auth_can_read_shadow_passwords($1)
+	auth_tunable_read_shadow($1)
+')
+
+########################################
+## <summary>
+##	Pass shadow assertion for reading.
+## </summary>
+## <desc>
+##	<p>
+##	Pass shadow assertion for reading.
+##	This should only be used with
+##	auth_tunable_read_shadow(), and
+##	only exists because typeattribute
+##	does not work in conditionals.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_can_read_shadow_passwords',`
+	gen_require(`
+		attribute can_read_shadow_passwords;
+	')
+
+	typeattribute $1 can_read_shadow_passwords;
+')
+
+########################################
+## <summary>
+##	Pass shadow assertion for reading.
+## </summary>
+## <desc>
+##	<p>
+##	Pass shadow assertion for reading.
+##	This should only be used with
+##	auth_tunable_read_shadow(), and
+##	only exists because typeattribute
+##	does not work in conditionals.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_can_write_shadow_passwords',`
+	gen_require(`
+		attribute can_write_shadow_passwords;
+	')
+
+	typeattribute $1 can_write_shadow_passwords;
+')
+
+########################################
+## <summary>
+##	Read the shadow password file.
+## </summary>
+## <desc>
+##	<p>
+##	Read the shadow password file.  This
+##	should only be used in a conditional;
+##	it does not pass the reading shadow
+##	assertion.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_tunable_read_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	files_list_etc($1)
+	allow $1 shadow_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read the shadow
+##	password file (/etc/shadow).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`auth_dontaudit_read_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	dontaudit $1 shadow_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write the shadow password file (/etc/shadow).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_rw_shadow',`
+	gen_require(`
+		attribute can_read_shadow_passwords, can_write_shadow_passwords;
+		type shadow_t;
+	')
+
+	files_list_etc($1)
+	allow $1 shadow_t:file rw_file_perms;
+	typeattribute $1 can_read_shadow_passwords, can_write_shadow_passwords;
+')
+########################################
+## <summary>
+##	Create, read, write, and delete the shadow
+##	password file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_tunable_manage_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	allow $1 shadow_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the shadow
+##	password file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_manage_shadow',`
+	gen_require(`
+		attribute can_read_shadow_passwords, can_write_shadow_passwords;
+		type shadow_t;
+	')
+
+	allow $1 shadow_t:file manage_file_perms;
+	typeattribute $1 can_read_shadow_passwords, can_write_shadow_passwords;
+')
+
+#######################################
+## <summary>
+##	Automatic transition from etc to shadow.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_etc_filetrans_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	files_etc_filetrans($1, shadow_t, file)
+')
+
+#######################################
+## <summary>
+##	Relabel to the shadow
+##	password file type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_relabelto_shadow',`
+	gen_require(`
+		attribute can_relabelto_shadow_passwords;
+		type shadow_t;
+	')
+
+	files_search_etc($1)
+	allow $1 shadow_t:file relabelto;
+	typeattribute $1 can_relabelto_shadow_passwords;
+')
+
+#######################################
+## <summary>
+##	Relabel from and to the shadow
+##	password file type.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_relabel_shadow',`
+	gen_require(`
+		attribute can_relabelto_shadow_passwords;
+		type shadow_t;
+	')
+
+	files_search_etc($1)
+	allow $1 shadow_t:file relabel_file_perms;
+	typeattribute $1 can_relabelto_shadow_passwords;
+')
+
+#######################################
+## <summary>
+##	Append to the login failure log.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_append_faillog',`
+	gen_require(`
+		type faillog_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 faillog_t:file append_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write the login failure log.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_rw_faillog',`
+	gen_require(`
+		type faillog_t;
+	')
+
+	logging_search_logs($1)
+	rw_files_pattern($1, faillog_t, faillog_t)
+')
+
+#######################################
+## <summary>
+##  Manage the login failure log.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`auth_manage_faillog',`
+    gen_require(`
+        type faillog_t;
+    ')
+
+    files_search_pids($1)
+	logging_search_logs($1)
+    allow $1 faillog_t:dir manage_dir_perms;
+    allow $1 faillog_t:file manage_file_perms;
+')
+
+#######################################
+## <summary>
+##	Read the last logins log.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`auth_read_lastlog',`
+	gen_require(`
+		type lastlog_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 lastlog_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##	Append only to the last logins log.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_append_lastlog',`
+	gen_require(`
+		type lastlog_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 lastlog_t:file { append_file_perms lock };
+')
+
+#######################################
+## <summary>
+##	Read and write to the last logins log.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_rw_lastlog',`
+	gen_require(`
+		type lastlog_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 lastlog_t:file { rw_file_perms lock setattr };
+')
+
+########################################
+## <summary>
+##	Execute pam programs in the pam domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_domtrans_pam',`
+	gen_require(`
+		type pam_t, pam_exec_t;
+	')
+
+	domtrans_pattern($1, pam_exec_t, pam_t)
+')
+
+########################################
+## <summary>
+##	Send generic signals to pam processes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_signal_pam',`
+	gen_require(`
+		type pam_t;
+	')
+
+	allow $1 pam_t:process signal;
+')
+
+########################################
+## <summary>
+##	Execute pam programs in the PAM domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the PAM domain.
+##	</summary>
+## </param>
+#
+interface(`auth_run_pam',`
+	gen_require(`
+		type pam_t;
+	')
+
+	auth_domtrans_pam($1)
+	role $2 types pam_t;
+')
+
+########################################
+## <summary>
+##	Execute the pam program.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_exec_pam',`
+	gen_require(`
+		type pam_exec_t;
+	')
+
+	can_exec($1, pam_exec_t)
+')
+
+########################################
+## <summary>
+##	Manage var auth files. Used by various other applications
+##	and pam applets etc.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_manage_var_auth',`
+	gen_require(`
+		type var_auth_t;
+	')
+
+	files_search_var($1)
+	allow $1 var_auth_t:dir manage_dir_perms;
+	allow $1 var_auth_t:file rw_file_perms;
+	allow $1 var_auth_t:lnk_file rw_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##	Read PAM PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_read_pam_pid',`
+	gen_require(`
+		type pam_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 pam_var_run_t:dir list_dir_perms;
+	allow $1 pam_var_run_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##	Do not audit attemps to read PAM PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`auth_dontaudit_read_pam_pid',`
+	gen_require(`
+		type pam_var_run_t;
+	')
+
+	dontaudit $1 pam_var_run_t:file { getattr read };
+')
+
+########################################
+## <summary>
+##	Delete pam PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_delete_pam_pid',`
+	gen_require(`
+		type pam_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 pam_var_run_t:dir del_entry_dir_perms;
+	allow $1 pam_var_run_t:file delete_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage pam PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_manage_pam_pid',`
+	gen_require(`
+		type pam_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 pam_var_run_t:dir manage_dir_perms;
+	allow $1 pam_var_run_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute pam_console with a domain transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_domtrans_pam_console',`
+	gen_require(`
+		type pam_console_t, pam_console_exec_t;
+	')
+
+	domtrans_pattern($1, pam_console_exec_t, pam_console_t)
+')
+
+########################################
+## <summary>
+##	Search the contents of the
+##	pam_console data directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_search_pam_console_data',`
+	gen_require(`
+		type pam_var_console_t;
+	')
+
+	files_search_pids($1)
+	allow $1 pam_var_console_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	List the contents of the pam_console
+##	data directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_list_pam_console_data',`
+	gen_require(`
+		type pam_var_console_t;
+	')
+
+	files_search_pids($1)
+	allow $1 pam_var_console_t:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read pam_console data files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_read_pam_console_data',`
+	gen_require(`
+		type pam_var_console_t;
+	')
+
+	files_search_pids($1)
+	allow $1 pam_var_console_t:dir list_dir_perms;
+	allow $1 pam_var_console_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	pam_console data files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_manage_pam_console_data',`
+	gen_require(`
+		type pam_var_console_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, pam_var_console_t, pam_var_console_t)
+	manage_lnk_files_pattern($1, pam_var_console_t, pam_var_console_t)
+')
+
+#######################################
+## <summary>
+##	Delete pam_console data.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_delete_pam_console_data',`
+	gen_require(`
+		type pam_var_console_t;
+	')
+
+	files_search_var($1)
+	files_search_pids($1)
+	delete_files_pattern($1, pam_var_console_t, pam_var_console_t)
+')
+
+########################################
+## <summary>
+##	Read all directories on the filesystem, except
+##	the shadow passwords and listed exceptions.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the domain perfoming this action.
+##	</summary>
+## </param>
+## <param name="exception_types" optional="true">
+##	<summary>
+##	The types to be excluded.  Each type or attribute
+##	must be negated by the caller.
+##	</summary>
+## </param>
+#
+interface(`auth_read_all_dirs_except_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	files_read_all_dirs_except($1,$2 -shadow_t)
+')
+
+########################################
+## <summary>
+##	Read all files on the filesystem, except
+##	the shadow passwords and listed exceptions.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the domain perfoming this action.
+##	</summary>
+## </param>
+## <param name="exception_types" optional="true">
+##	<summary>
+##	The types to be excluded.  Each type or attribute
+##	must be negated by the caller.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`auth_read_all_files_except_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	files_read_all_files_except($1,$2 -shadow_t)
+')
+
+########################################
+## <summary>
+##	Read all symbolic links on the filesystem, except
+##	the shadow passwords and listed exceptions.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the domain perfoming this action.
+##	</summary>
+## </param>
+## <param name="exception_types" optional="true">
+##	<summary>
+##	The types to be excluded.  Each type or attribute
+##	must be negated by the caller.
+##	</summary>
+## </param>
+#
+interface(`auth_read_all_symlinks_except_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	files_read_all_symlinks_except($1,$2 -shadow_t)
+')
+
+########################################
+## <summary>
+##	Relabel all files on the filesystem, except
+##	the shadow passwords and listed exceptions.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the domain perfoming this action.
+##	</summary>
+## </param>
+## <param name="exception_types" optional="true">
+##	<summary>
+##	The types to be excluded.  Each type or attribute
+##	must be negated by the caller.
+##	</summary>
+## </param>
+#
+
+interface(`auth_relabel_all_files_except_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	files_relabel_all_files($1,$2 -shadow_t)
+')
+
+########################################
+## <summary>
+##	Read and write all files on the filesystem, except
+##	the shadow passwords and listed exceptions.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the domain perfoming this action.
+##	</summary>
+## </param>
+## <param name="exception_types" optional="true">
+##	<summary>
+##	The types to be excluded.  Each type or attribute
+##	must be negated by the caller.
+##	</summary>
+## </param>
+#
+
+interface(`auth_rw_all_files_except_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	files_rw_all_files($1,$2 -shadow_t)
+')
+
+########################################
+## <summary>
+##	Manage all files on the filesystem, except
+##	the shadow passwords and listed exceptions.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the domain perfoming this action.
+##	</summary>
+## </param>
+## <param name="exception_types" optional="true">
+##	<summary>
+##	The types to be excluded.  Each type or attribute
+##	must be negated by the caller.
+##	</summary>
+## </param>
+#
+
+interface(`auth_manage_all_files_except_shadow',`
+	gen_require(`
+		type shadow_t;
+	')
+
+	files_manage_all_files($1,$2 -shadow_t)
+')
+
+########################################
+## <summary>
+##	Execute utempter programs in the utempter domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_domtrans_utempter',`
+	gen_require(`
+		type utempter_t, utempter_exec_t;
+	')
+
+	domtrans_pattern($1, utempter_exec_t, utempter_t)
+')
+
+########################################
+## <summary>
+##	Execute utempter programs in the utempter domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the utempter domain.
+##	</summary>
+## </param>
+#
+interface(`auth_run_utempter',`
+	gen_require(`
+		type utempter_t;
+	')
+
+	auth_domtrans_utempter($1)
+	role $2 types utempter_t;
+')
+
+#######################################
+## <summary>
+##	Do not audit attemps to execute utempter executable.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`auth_dontaudit_exec_utempter',`
+	gen_require(`
+		type utempter_exec_t;
+	')
+
+	dontaudit $1 utempter_exec_t:file { execute execute_no_trans };
+')
+
+########################################
+## <summary>
+##	Set the attributes of login record files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_setattr_login_records',`
+	gen_require(`
+		type wtmp_t;
+	')
+
+	allow $1 wtmp_t:file setattr;
+	logging_search_logs($1)
+')
+
+########################################
+## <summary>
+##	Read login records files (/var/log/wtmp).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`auth_read_login_records',`
+	gen_require(`
+		type wtmp_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 wtmp_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read login records
+##	files (/var/log/wtmp).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`auth_dontaudit_read_login_records',`
+	gen_require(`
+		type wtmp_t;
+	')
+
+	dontaudit $1 wtmp_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write to
+##	login records files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`auth_dontaudit_write_login_records',`
+	gen_require(`
+		type wtmp_t;
+	')
+
+	dontaudit $1 wtmp_t:file write;
+')
+
+#######################################
+## <summary>
+##	Append to login records (wtmp).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_append_login_records',`
+	gen_require(`
+		type wtmp_t;
+	')
+
+	allow $1 wtmp_t:file append_file_perms;
+	logging_search_logs($1)
+')
+
+#######################################
+## <summary>
+##	Write to login records (wtmp).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_write_login_records',`
+	gen_require(`
+		type wtmp_t;
+	')
+
+	allow $1 wtmp_t:file { write_file_perms lock };
+')
+
+########################################
+## <summary>
+##	Read and write login records.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_rw_login_records',`
+	gen_require(`
+		type wtmp_t;
+	')
+
+	allow $1 wtmp_t:file rw_file_perms;
+	logging_search_logs($1)
+')
+
+########################################
+## <summary>
+##	Create a login records in the log directory
+##	using a type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_log_filetrans_login_records',`
+	gen_require(`
+		type wtmp_t;
+	')
+
+	logging_log_filetrans($1, wtmp_t, file)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete login
+##	records files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_manage_login_records',`
+	gen_require(`
+		type wtmp_t;
+	')
+
+	logging_rw_generic_log_dirs($1)
+	allow $1 wtmp_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Use nsswitch to look up user, password, group, or
+##	host information.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to look up user, password,
+##	group, or host information using the name service.
+##	The most common use of this interface is for services
+##	that do host name resolution (usually DNS resolution).
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+#
+interface(`auth_use_nsswitch',`
+
+	allow $1 self:netlink_route_socket r_netlink_socket_perms;
+
+	files_list_var_lib($1)
+
+	# read /etc/nsswitch.conf
+	files_read_etc_files($1)
+
+	miscfiles_read_certs($1)
+
+	sysnet_dns_name_resolve($1)
+	sysnet_use_ldap($1)
+
+	optional_policy(`
+		avahi_stream_connect($1)
+	')
+
+	optional_policy(`
+		dirsrv_stream_connect($1)
+	')
+
+	optional_policy(`
+		ldap_stream_connect($1)
+	')
+
+ 	optional_policy(`
+		likewise_stream_connect_lsassd($1)
+	')
+
+	optional_policy(`
+		kerberos_use($1)
+	')
+
+	optional_policy(`
+		nis_use_ypbind($1)
+	')
+
+	optional_policy(`
+		nscd_use($1)
+	')
+
+	optional_policy(`
+		nslcd_stream_connect($1)
+	')
+
+	optional_policy(`
+		sssd_read_public_files($1)
+		sssd_stream_connect($1)
+		sssd_read_lib_files($1)
+	')
+
+	optional_policy(`
+		samba_stream_connect_winbind($1)
+		samba_read_var_files($1)
+		samba_dontaudit_write_var_files($1)
+	')
+')
+
+########################################
+## <summary>
+##	Unconfined access to the authlogin module.
+## </summary>
+## <desc>
+##	<p>
+##	Unconfined access to the authlogin module.
+##	</p>
+##	<p>
+##	Currently, this only allows assertions for
+##	the shadow passwords file (/etc/shadow) to
+##	be passed.  No access is granted yet.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_unconfined',`
+	gen_require(`
+		attribute can_read_shadow_passwords;
+		attribute can_write_shadow_passwords;
+		attribute can_relabelto_shadow_passwords;
+	')
+
+	typeattribute $1 can_read_shadow_passwords;
+	typeattribute $1 can_write_shadow_passwords;
+	typeattribute $1 can_relabelto_shadow_passwords;
+')
+
+########################################
+## <summary>
+##	Send generic signals to chkpwd processes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`auth_signal_chk_passwd',`
+	gen_require(`
+		type chkpwd_t;
+	')
+
+	allow $1 chkpwd_t:process signal;
+')

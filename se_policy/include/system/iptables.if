@@ -1,0 +1,171 @@
+## <summary>Policy for iptables.</summary>
+
+########################################
+## <summary>
+##	Execute iptables in the iptables domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`iptables_domtrans',`
+	gen_require(`
+		type iptables_t, iptables_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, iptables_exec_t, iptables_t)
+
+	ifdef(`hide_broken_symptoms', `
+	        dontaudit iptables_t $1:socket_class_set { read write };
+	')
+')
+
+########################################
+## <summary>
+##	Execute iptables in the iptables domain, and
+##	allow the specified role the iptables domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the iptables domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`iptables_run',`
+	gen_require(`
+		type iptables_t;
+	')
+
+	iptables_domtrans($1)
+	role $2 types iptables_t;
+
+	sysnet_run_ifconfig(iptables_t, $2)
+
+	optional_policy(`
+		modutils_run_insmod(iptables_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Execute iptables in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`iptables_exec',`
+	gen_require(`
+		type iptables_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, iptables_exec_t)
+')
+
+#####################################
+## <summary>
+##	Execute iptables in the iptables domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`iptables_initrc_domtrans',`
+	gen_require(`
+		type iptables_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, iptables_initrc_exec_t)
+')
+
+#####################################
+## <summary>
+##	Set the attributes of iptables config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`iptables_setattr_config',`
+	gen_require(`
+		type iptables_conf_t;
+	')
+
+	files_search_etc($1)
+	allow $1 iptables_conf_t:file setattr;
+')
+
+#####################################
+## <summary>
+##	Read iptables config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`iptables_read_config',`
+	gen_require(`
+		type iptables_conf_t;
+	')
+
+	files_search_etc($1)
+	allow $1 iptables_conf_t:dir list_dir_perms;
+	read_files_pattern($1, iptables_conf_t, iptables_conf_t)
+')
+
+#####################################
+## <summary>
+##	Create files in /etc with the type used for
+##	the iptables config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`iptables_etc_filetrans_config',`
+	gen_require(`
+		type iptables_conf_t;
+	')
+
+	files_etc_filetrans($1, iptables_conf_t, file)
+')
+
+###################################
+## <summary>
+##	Manage iptables config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`iptables_manage_config',`
+	gen_require(`
+		type iptables_conf_t;
+		type etc_t;
+	')
+
+	files_search_etc($1)
+	manage_files_pattern($1, iptables_conf_t, iptables_conf_t)
+')

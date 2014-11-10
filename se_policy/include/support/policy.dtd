@@ -1,0 +1,44 @@
+<!ENTITY  % inline.class  "pre|p|ul|ol|li">
+
+<!ELEMENT policy (layer+,(tunable|bool)*)>
+<!ELEMENT layer (summary,module+)>
+<!ATTLIST layer
+      name CDATA #REQUIRED>
+<!ELEMENT module (summary,desc?,required?,(interface|template)*,(bool|tunable)*)>
+<!ATTLIST module 
+      name CDATA #REQUIRED
+      filename CDATA #REQUIRED>
+<!ELEMENT required (#PCDATA)>
+<!ATTLIST required
+      val (true|false) "false">
+<!ELEMENT tunable (desc)>
+<!ATTLIST tunable
+      name CDATA #REQUIRED
+      dftval CDATA #REQUIRED>
+<!ELEMENT bool (desc)>
+<!ATTLIST bool
+      name CDATA #REQUIRED
+      dftval CDATA #REQUIRED>
+<!ELEMENT summary (#PCDATA)>
+<!ELEMENT interface (summary,desc?,param+,infoflow?,(rolebase|rolecap)?)>
+<!ATTLIST interface name CDATA #REQUIRED lineno CDATA #REQUIRED>
+<!ELEMENT template (summary,desc?,param+,(rolebase|rolecap)?)>
+<!ATTLIST template name CDATA #REQUIRED lineno CDATA #REQUIRED>
+<!ELEMENT desc (#PCDATA|%inline.class;)*>
+<!ELEMENT param (summary)>
+<!ATTLIST param 
+      name CDATA #REQUIRED
+      optional (true|false) "false"
+      unused (true|false) "false">
+<!ELEMENT infoflow EMPTY>
+<!ATTLIST infoflow 
+      type CDATA #REQUIRED
+      weight CDATA #IMPLIED>
+<!ELEMENT rolebase EMPTY>
+<!ELEMENT rolecap EMPTY>
+
+<!ATTLIST pre caption CDATA #IMPLIED>
+<!ELEMENT p (#PCDATA|%inline.class;)*>
+<!ELEMENT ul (li+)>
+<!ELEMENT ol (li+)>
+<!ELEMENT li (#PCDATA|%inline.class;)*>

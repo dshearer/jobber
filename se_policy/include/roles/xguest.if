@@ -1,0 +1,50 @@
+## <summary>Least priviledged X user</summary>
+
+########################################
+## <summary>
+##	Change to the xguest role.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`xguest_role_change',`
+	gen_require(`
+		role xguest_r;
+	')
+
+	allow $1 xguest_r;
+')
+
+########################################
+## <summary>
+##	Change from the xguest role.
+## </summary>
+## <desc>
+##	<p>
+##	Change from the xguest role to
+##	the specified role.
+##	</p>
+##	<p>
+##	This is an interface to support third party modules
+##	and its use is not allowed in upstream reference
+##	policy.
+##	</p>
+## </desc>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`xguest_role_change_to',`
+	gen_require(`
+		role xguest_r;
+	')
+
+	allow xguest_r $1;
+')

@@ -1,0 +1,40 @@
+
+## <summary>libStorageMgmt  plug-in  daemon </summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the lsmd domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`lsmd_domtrans',`
+	gen_require(`
+		type lsmd_t, lsmd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, lsmd_exec_t, lsmd_t)
+')
+########################################
+## <summary>
+##	Read lsmd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lsmd_read_pid_files',`
+	gen_require(`
+		type lsmd_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, lsmd_var_run_t, lsmd_var_run_t)
+')
+

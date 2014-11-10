@@ -1,0 +1,45 @@
+## <summary>Policy for TCP daemon.</summary>
+
+########################################
+## <summary>
+##	Execute tcpd in the tcpd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`tcpd_domtrans',`
+	gen_require(`
+		type tcpd_t, tcpd_exec_t;
+	')
+
+	domtrans_pattern($1, tcpd_exec_t, tcpd_t)
+')
+
+########################################
+## <summary>
+##	Create a domain for services that
+##	utilize tcp wrappers.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Type to be used as a domain.
+##	</summary>
+## </param>
+## <param name="entry_point">
+##	<summary>
+##	Type of the program to be used as an entry point to this domain.
+##	</summary>
+## </param>
+#
+interface(`tcpd_wrapped_domain',`
+	gen_require(`
+		type tcpd_t;
+		role system_r;
+	')
+
+	domtrans_pattern(tcpd_t, $2, $1)
+	role system_r types $1;
+')

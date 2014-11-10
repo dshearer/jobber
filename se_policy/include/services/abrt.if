@@ -1,0 +1,441 @@
+## <summary>ABRT - automated bug-reporting tool</summary>
+
+######################################
+## <summary>
+##	Execute abrt in the abrt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`abrt_domtrans',`
+	gen_require(`
+		type abrt_t, abrt_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, abrt_exec_t, abrt_t)
+')
+
+######################################
+## <summary>
+##	Execute abrt in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_exec',`
+	gen_require(`
+		type abrt_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, abrt_exec_t)
+')
+
+########################################
+## <summary>
+##	Send a null signal to abrt.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_signull',`
+	gen_require(`
+		type abrt_t;
+	')
+
+	allow $1 abrt_t:process signull;
+')
+
+########################################
+## <summary>
+##	Allow the domain to read abrt state files in /proc.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_read_state',`
+	gen_require(`
+		type abrt_t;
+	')
+
+	kernel_search_proc($1)
+	ps_process_pattern($1, abrt_t)
+')
+
+########################################
+## <summary>
+##	Connect to abrt over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_stream_connect',`
+	gen_require(`
+		type abrt_t, abrt_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, abrt_var_run_t, abrt_var_run_t, abrt_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	abrt over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_dbus_chat',`
+	gen_require(`
+		type abrt_t;
+		class dbus send_msg;
+	')
+
+	allow $1 abrt_t:dbus send_msg;
+	allow abrt_t $1:dbus send_msg;
+')
+
+#####################################
+## <summary>
+##	Execute abrt-helper in the abrt-helper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`abrt_domtrans_helper',`
+	gen_require(`
+		type abrt_helper_t, abrt_helper_exec_t;
+	')
+
+	domtrans_pattern($1, abrt_helper_exec_t, abrt_helper_t)
+')
+
+########################################
+## <summary>
+##	Execute abrt helper in the abrt_helper domain, and
+##	allow the specified role the abrt_helper domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`abrt_run_helper',`
+	gen_require(`
+		type abrt_helper_t;
+	')
+
+	abrt_domtrans_helper($1)
+	role $2 types abrt_helper_t;
+')
+
+########################################
+## <summary>
+##	Read abrt cache
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_read_cache',`
+	gen_require(`
+		type abrt_var_cache_t;
+	')
+
+	read_files_pattern($1, abrt_var_cache_t, abrt_var_cache_t)
+	read_lnk_files_pattern($1, abrt_var_cache_t, abrt_var_cache_t)
+')
+
+########################################
+## <summary>
+##	Append abrt cache
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_append_cache',`
+	gen_require(`
+		type abrt_var_cache_t;
+	')
+
+	append_files_pattern($1, abrt_var_cache_t, abrt_var_cache_t)
+')
+
+########################################
+## <summary>
+##	Manage abrt cache
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_manage_cache',`
+	gen_require(`
+		type abrt_var_cache_t;
+	')
+
+	manage_files_pattern($1, abrt_var_cache_t, abrt_var_cache_t)
+	manage_lnk_files_pattern($1, abrt_var_cache_t, abrt_var_cache_t)
+	manage_dirs_pattern($1, abrt_var_cache_t, abrt_var_cache_t)
+')
+
+####################################
+## <summary>
+##	Read abrt configuration file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_read_config',`
+	gen_require(`
+		type abrt_etc_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, abrt_etc_t, abrt_etc_t)
+')
+
+######################################
+## <summary>
+##	Read abrt logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_read_log',`
+	gen_require(`
+		type abrt_var_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, abrt_var_log_t, abrt_var_log_t)
+')
+
+######################################
+## <summary>
+##	Read abrt PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_read_pid_files',`
+	gen_require(`
+		type abrt_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, abrt_var_run_t, abrt_var_run_t)
+')
+
+######################################
+## <summary>
+##	Create, read, write, and delete abrt PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_manage_pid_files',`
+	gen_require(`
+		type abrt_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, abrt_var_run_t, abrt_var_run_t)
+')
+
+########################################
+## <summary>
+##	Read and write abrt fifo files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`abrt_rw_fifo_file',`
+	gen_require(`
+		type abrt_t;
+	')
+
+	allow $1 abrt_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+#####################################
+## <summary>
+##	All of the rules required to administrate
+##	an abrt environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the abrt domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`abrt_admin',`
+	gen_require(`
+		type abrt_t, abrt_etc_t;
+		type abrt_var_cache_t, abrt_var_log_t;
+		type abrt_var_run_t, abrt_tmp_t;
+		type abrt_initrc_exec_t;
+	')
+
+	allow $1 abrt_t:process { ptrace signal_perms };
+	ps_process_pattern($1, abrt_t)
+
+	init_labeled_script_domtrans($1, abrt_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 abrt_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, abrt_etc_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, abrt_var_log_t)
+
+	files_list_var($1)
+	admin_pattern($1, abrt_var_cache_t)
+
+	files_list_pids($1)
+	admin_pattern($1, abrt_var_run_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, abrt_tmp_t)
+')
+
+####################################
+## <summary>
+##  Execute abrt-retrace in the abrt-retrace domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`abrt_domtrans_retrace_worker',`
+    gen_require(`
+        type abrt_retrace_worker_t, abrt_retrace_worker_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    domtrans_pattern($1, abrt_retrace_worker_exec_t, abrt_retrace_worker_t)
+')
+
+######################################
+## <summary>
+##  Manage abrt retrace server cache
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`abrt_manage_spool_retrace',`
+    gen_require(`
+        type abrt_retrace_spool_t;
+    ')
+
+	manage_dirs_pattern($1, abrt_retrace_spool_t, abrt_retrace_spool_t)
+	manage_files_pattern($1, abrt_retrace_spool_t, abrt_retrace_spool_t)
+	manage_lnk_files_pattern($1, abrt_retrace_spool_t, abrt_retrace_spool_t)
+    manage_sock_files_pattern($1, abrt_retrace_spool_t, abrt_retrace_spool_t)
+')
+
+#####################################
+## <summary>
+##  Read abrt retrace server cache
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`abrt_read_spool_retrace',`
+    gen_require(`
+        type abrt_retrace_spool_t;
+    ')
+
+    list_dirs_pattern($1, abrt_retrace_spool_t, abrt_retrace_spool_t)
+    read_files_pattern($1, abrt_retrace_spool_t, abrt_retrace_spool_t)
+    read_lnk_files_pattern($1, abrt_retrace_spool_t, abrt_retrace_spool_t)
+')
+
+
+#####################################
+## <summary>
+##  Read abrt retrace server cache
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`abrt_read_cache_retrace',`
+    gen_require(`
+        type abrt_retrace_cache_t;
+    ')
+
+    list_dirs_pattern($1, abrt_retrace_cache_t, abrt_retrace_cache_t)
+    read_files_pattern($1, abrt_retrace_cache_t, abrt_retrace_cache_t)
+    read_lnk_files_pattern($1, abrt_retrace_cache_t, abrt_retrace_cache_t)
+')

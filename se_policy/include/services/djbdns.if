@@ -1,0 +1,90 @@
+## <summary>small and secure DNS daemon</summary>
+
+########################################
+## <summary>
+##	Create a set of derived types for djbdns 
+##	components that are directly supervised by daemontools.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix to be used for deriving type names.
+##	</summary>
+## </param>
+#
+template(`djbdns_daemontools_domain_template',`
+
+	type djbdns_$1_t;
+	type djbdns_$1_exec_t;
+	type djbdns_$1_conf_t;
+	files_config_file(djbdns_$1_conf_t)
+
+	domain_type(djbdns_$1_t)
+	domain_entry_file(djbdns_$1_t, djbdns_$1_exec_t)
+	role system_r types djbdns_$1_t;
+
+	daemontools_service_domain(djbdns_$1_t, djbdns_$1_exec_t)
+	daemontools_read_svc(djbdns_$1_t)
+
+	allow djbdns_$1_t self:capability { net_bind_service setgid setuid sys_chroot };
+	allow djbdns_$1_t self:process signal;
+	allow djbdns_$1_t self:fifo_file rw_fifo_file_perms;
+	allow djbdns_$1_t self:tcp_socket create_stream_socket_perms;
+	allow djbdns_$1_t self:udp_socket create_socket_perms;
+
+	allow djbdns_$1_t djbdns_$1_conf_t:dir list_dir_perms;
+	allow djbdns_$1_t djbdns_$1_conf_t:file read_file_perms;
+
+	corenet_all_recvfrom_unlabeled(djbdns_$1_t)
+	corenet_all_recvfrom_netlabel(djbdns_$1_t)
+	corenet_tcp_sendrecv_generic_if(djbdns_$1_t)
+	corenet_udp_sendrecv_generic_if(djbdns_$1_t)
+	corenet_tcp_sendrecv_generic_node(djbdns_$1_t)
+	corenet_udp_sendrecv_generic_node(djbdns_$1_t)
+	corenet_tcp_sendrecv_all_ports(djbdns_$1_t)
+	corenet_udp_sendrecv_all_ports(djbdns_$1_t)
+	corenet_tcp_bind_generic_node(djbdns_$1_t)
+	corenet_udp_bind_generic_node(djbdns_$1_t)
+	corenet_tcp_bind_dns_port(djbdns_$1_t)
+	corenet_udp_bind_dns_port(djbdns_$1_t)
+	corenet_udp_bind_generic_port(djbdns_$1_t)
+	corenet_sendrecv_dns_server_packets(djbdns_$1_t)
+	corenet_sendrecv_generic_server_packets(djbdns_$1_t)
+
+	files_search_var(djbdns_$1_t)
+')
+
+#####################################
+## <summary>
+##  Allow search the djbdns-tinydns key ring.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`djbdns_search_key_tinydns',`
+    gen_require(`
+        type djbdns_tinydns_t;
+    ')
+
+    allow $1 djbdns_tinydns_t:key search;
+')
+
+#####################################
+## <summary>
+##  Allow link to the djbdns-tinydns key ring.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`djbdns_link_key_tinydns',`
+    gen_require(`
+        type djbdns_tinydn_t;
+    ')
+
+    allow $1 djbdns_tinydn_t:key link;
+')

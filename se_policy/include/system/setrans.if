@@ -1,0 +1,42 @@
+## <summary>SELinux MLS/MCS label translation service.</summary>
+
+########################################
+## <summary>
+##	Execute setrans server in the setrans domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+#
+interface(`setrans_initrc_domtrans',`
+	gen_require(`
+		type setrans_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, setrans_initrc_exec_t)
+')
+
+#######################################
+## <summary>
+##	Allow a domain to translate contexts.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`setrans_translate_context',`
+	gen_require(`
+		type setrans_t, setrans_var_run_t;
+		class context translate;
+	')
+
+	allow $1 self:unix_stream_socket create_stream_socket_perms;
+	allow $1 setrans_t:context translate;
+	stream_connect_pattern($1, setrans_var_run_t, setrans_var_run_t, setrans_t)
+	files_list_pids($1)
+')

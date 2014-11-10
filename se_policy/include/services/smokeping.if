@@ -1,0 +1,167 @@
+## <summary>Smokeping network latency measurement.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run smokeping.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`smokeping_domtrans',`
+	gen_require(`
+		type smokeping_t, smokeping_exec_t;
+	')
+
+	domtrans_pattern($1, smokeping_exec_t, smokeping_t)
+')
+
+########################################
+## <summary>
+##	Execute smokeping server in the smokeping domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`smokeping_initrc_domtrans',`
+	gen_require(`
+		type smokeping_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, smokeping_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read smokeping PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`smokeping_read_pid_files',`
+	gen_require(`
+		type smokeping_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 smokeping_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage smokeping PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`smokeping_manage_pid_files',`
+	gen_require(`
+		type smokeping_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, smokeping_var_run_t, smokeping_var_run_t)
+')
+
+########################################
+## <summary>
+##	Get attributes of smokeping lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`smokeping_getattr_lib_files',`
+	gen_require(`
+		type smokeping_var_lib_t;
+	')
+
+	getattr_files_pattern($1, smokeping_var_lib_t, smokeping_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read smokeping lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`smokeping_read_lib_files',`
+	gen_require(`
+		type smokeping_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, smokeping_var_lib_t, smokeping_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage smokeping lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`smokeping_manage_lib_files',`
+	gen_require(`
+		type smokeping_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, smokeping_var_lib_t, smokeping_var_lib_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	a smokeping environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`smokeping_admin',`
+	gen_require(`
+		type smokeping_t, smokeping_initrc_exec_t;
+	')
+
+	allow $1 smokeping_t:process { ptrace signal_perms };
+	ps_process_pattern($1, smokeping_t)
+
+	smokeping_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 smokeping_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	smokeping_manage_pid_files($1)
+
+	smokeping_manage_lib_files($1)
+')

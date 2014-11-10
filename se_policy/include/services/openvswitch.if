@@ -1,0 +1,159 @@
+
+## <summary> Open vSwitch provides standard network bridging functions and support for the OpenFlow protocol for remote per-flow control of traffic. </summary>
+
+
+########################################
+## <summary>
+##	Transition to openvswitch.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`openvswitch_domain_template',`
+	gen_require(`
+		attribute openvswitch_domain;
+	')
+
+	type openvswitch_$1_t;
+	type openvswitch_$1_exec_t;
+	init_daemon_domain(openvswitch_$1_t, openvswitch_$1_exec_t)
+
+	logging_send_syslog_msg(openvswitch_$1_t)
+')
+
+#######################################
+## <summary>
+##  Execute TEMPLATE in the openvswitch domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`openvswitch_domtrans',`
+    gen_require(`
+            type openvswitch_t, openvswitch_exec_t;
+                ')
+
+        corecmd_search_bin($1)
+        domtrans_pattern($1, openvswitch_exec_t, openvswitch_t)
+')
+
+#######################################
+## <summary>
+##  Allow stream connect to openvswitch.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`openvswitch_stream_connect',`
+    gen_require(`
+        type openvswitch_t, openvswitch_var_run_t;
+    ')
+
+    files_search_pids($1)
+    stream_connect_pattern($1, openvswitch_var_run_t, openvswitch_var_run_t, openvswitch_t)
+')
+
+#######################################
+## <summary>
+##  Read openvswitch PID files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`openvswitch_read_pid_files',`
+    gen_require(`
+            type openvswitch_var_run_t;
+                ')
+
+        files_search_pids($1)
+        read_files_pattern($1, openvswitch_var_run_t, openvswitch_var_run_t)
+')
+
+########################################
+## <summary>
+##	Search openvswitch lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openvswitch_search_lib',`
+	gen_require(`
+		type openvswitch_var_lib_t;
+	')
+
+	allow $1 openvswitch_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read openvswitch lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openvswitch_read_lib_files',`
+	gen_require(`
+		type openvswitch_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, openvswitch_var_lib_t, openswitch_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage openvswitch lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openvswitch_manage_lib_files',`
+	gen_require(`
+		type openvswitch_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, openvswitch_var_lib_t, openswitchg_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage openvswitch lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openvswitch_manage_lib_dirs',`
+	gen_require(`
+		type openvswitch_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, openvswitch_var_lib_t, openswitch_var_lib_t)
+')
+

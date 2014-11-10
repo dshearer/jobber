@@ -1,0 +1,145 @@
+## <summary>Certmaster SSL certificate distribution service</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run certmaster.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`certmaster_domtrans',`
+	gen_require(`
+		type certmaster_t, certmaster_exec_t;
+	')
+
+	domtrans_pattern($1, certmaster_exec_t, certmaster_t)
+')
+
+###################################
+## <summary>
+##  Execute certmaster in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`certmaster_exec',`
+    gen_require(`
+        type certmaster_exec_t;
+    ')
+
+    can_exec($1, certmaster_exec_t)
+    corecmd_search_bin($1)
+')
+
+#######################################
+## <summary>
+##	read certmaster logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certmaster_read_log',`
+	gen_require(`
+		type certmaster_var_log_t;
+	')
+
+	read_files_pattern($1, certmaster_var_log_t, certmaster_var_log_t)
+	logging_search_logs($1)
+')
+
+#######################################
+## <summary>
+##	Append to certmaster logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certmaster_append_log',`
+	gen_require(`
+		type certmaster_var_log_t;
+	')
+
+	append_files_pattern($1, certmaster_var_log_t, certmaster_var_log_t)
+	logging_search_logs($1)
+')
+
+#######################################
+## <summary>
+##	Create, read, write, and delete
+##	certmaster logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certmaster_manage_log',`
+	gen_require(`
+		type certmaster_var_log_t;
+	')
+
+	manage_files_pattern($1, certmaster_var_log_t, certmaster_var_log_t)
+	manage_lnk_files_pattern($1, certmaster_var_log_t, certmaster_var_log_t)
+	logging_search_logs($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an snort environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+## 	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the syslog domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`certmaster_admin',`
+	gen_require(`
+		type certmaster_t, certmaster_var_run_t, certmaster_var_lib_t;
+		type certmaster_etc_rw_t, certmaster_var_log_t;
+		type certmaster_initrc_exec_t;
+	')
+
+	allow $1 certmaster_t:process { ptrace signal_perms };
+	ps_process_pattern($1, certmaster_t)
+
+	init_labeled_script_domtrans($1, certmaster_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 certmaster_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	miscfiles_manage_cert_dirs($1)	
+	miscfiles_manage_cert_files($1)	
+
+	admin_pattern($1, certmaster_etc_rw_t)
+
+	files_list_pids($1)
+	admin_pattern($1, certmaster_var_run_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, certmaster_var_log_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, certmaster_var_lib_t)
+')

@@ -1,0 +1,15 @@
+## <summary>Perdition POP and IMAP proxy</summary>
+
+########################################
+## <summary>
+##	Connect to perdition over a TCP socket  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`perdition_tcp_connect',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')

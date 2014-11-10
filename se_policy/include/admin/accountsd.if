@@ -1,0 +1,158 @@
+## <summary>policy for accountsd</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run accountsd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`accountsd_domtrans',`
+	gen_require(`
+		type accountsd_t, accountsd_exec_t;
+	')
+
+	domtrans_pattern($1, accountsd_exec_t, accountsd_t)
+')
+
+########################################
+## <summary>
+##	Search accountsd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_search_lib',`
+	gen_require(`
+		type accountsd_var_lib_t;
+	')
+
+	allow $1 accountsd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read accountsd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_read_lib_files',`
+	gen_require(`
+		type accountsd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        read_files_pattern($1, accountsd_var_lib_t, accountsd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	accountsd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_manage_lib_files',`
+	gen_require(`
+		type accountsd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_files_pattern($1, accountsd_var_lib_t,  accountsd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage accountsd var_lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_manage_var_lib',`
+	gen_require(`
+		type accountsd_var_lib_t;
+	')
+
+         manage_dirs_pattern($1, accountsd_var_lib_t, accountsd_var_lib_t)
+         manage_files_pattern($1, accountsd_var_lib_t, accountsd_var_lib_t)
+         manage_lnk_files_pattern($1, accountsd_var_lib_t, accountsd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	accountsd over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_dbus_chat',`
+	gen_require(`
+		type accountsd_t;
+		class dbus send_msg;
+	')
+
+	allow $1 accountsd_t:dbus send_msg;
+	allow accountsd_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write Accounts Daemon
+##	fifo file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_dontaudit_rw_fifo_file',`
+	gen_require(`
+		type accountsd_t;
+	')
+
+	dontaudit $1 accountsd_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an accountsd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`accountsd_admin',`
+	gen_require(`
+		type accountsd_t;
+	')
+	allow $1 accountsd_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, accountsd_t, accountsd_t)
+
+	accountsd_manage_var_lib($1)
+')

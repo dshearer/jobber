@@ -1,0 +1,17 @@
+## <summary>Services for loading CPU microcode and CPU frequency scaling.</summary>
+
+########################################
+## <summary>
+##	CPUcontrol stub interface.  No access allowed.
+## </summary>
+## <param name="domain" unused="true">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cpucontrol_stub',`
+	gen_require(`
+		type cpucontrol_t;
+	')
+')

@@ -1,0 +1,58 @@
+## <summary>IPv6 router advertisement daemon</summary>
+
+######################################
+## <summary>
+##	Read radvd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`radvd_read_pid_files',`
+	gen_require(`
+		type radvd_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, radvd_var_run_t, radvd_var_run_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an radvd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`radvd_admin',`
+	gen_require(`
+		type radvd_t, radvd_etc_t;
+		type radvd_var_run_t, radvd_initrc_exec_t;
+	')
+
+	allow $1 radvd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, radvd_t)
+
+	init_labeled_script_domtrans($1, radvd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 radvd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, radvd_etc_t)
+
+	files_list_pids($1)
+	admin_pattern($1, radvd_var_run_t)
+')

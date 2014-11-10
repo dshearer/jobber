@@ -1,0 +1,102 @@
+## <summary>File system quota management</summary>
+
+########################################
+## <summary>
+##	Execute quota management tools in the quota domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`quota_domtrans',`
+	gen_require(`
+		type quota_t, quota_exec_t;
+	')
+
+	domtrans_pattern($1, quota_exec_t, quota_t)
+')
+
+########################################
+## <summary>
+##	Execute quota management tools in the quota domain, and
+##	allow the specified role the quota domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the quota domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`quota_run',`
+	gen_require(`
+		type quota_t;
+	')
+
+	quota_domtrans($1)
+	role $2 types quota_t;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of filesystem quota data files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`quota_dontaudit_getattr_db',`
+	gen_require(`
+		type quota_db_t;
+	')
+
+	dontaudit $1 quota_db_t:file getattr;
+')
+
+#######################################
+## <summary>
+##  Alow to read of filesystem quota data files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain to not audit.
+##  </summary>
+## </param>
+#
+interface(`quota_read_db',`
+    gen_require(`
+        type quota_db_t;
+    ')
+
+    allow $1 quota_db_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete quota
+##	flag files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`quota_manage_flags',`
+	gen_require(`
+		type quota_flag_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, quota_flag_t, quota_flag_t)
+')

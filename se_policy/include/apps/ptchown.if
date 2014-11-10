@@ -1,0 +1,44 @@
+## <summary>helper function for grantpt(3), changes ownship and permissions of pseudotty</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run ptchown.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ptchown_domtrans',`
+	gen_require(`
+		type ptchown_t, ptchown_exec_t;
+	')
+
+	domtrans_pattern($1, ptchown_exec_t, ptchown_t)
+')
+
+########################################
+## <summary>
+##	Execute ptchown in the ptchown domain, and
+##	allow the specified role the ptchown domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the ptchown domain.
+##	</summary>
+## </param>
+#
+interface(`ptchown_run',`
+	gen_require(`
+		type ptchown_t;
+	')
+
+	ptchown_domtrans($1)
+	role $2 types ptchown_t;
+')

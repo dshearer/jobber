@@ -1,0 +1,45 @@
+## <summary>policy for z/OS Remote-services Audit dispatcher plugin</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run audispd-zos-remote.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`zosremote_domtrans',`
+	gen_require(`
+		type zos_remote_t, zos_remote_exec_t;
+	')
+
+	domtrans_pattern($1, zos_remote_exec_t, zos_remote_t)
+')
+
+########################################
+## <summary>
+##	Allow specified type and role to transition and
+##	run in the zos_remote_t domain. Allow specified type
+##	to use zos_remote_t terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the zos_remote domain.
+##	</summary>
+## </param>
+#
+interface(`zosremote_run',`
+	gen_require(`
+		type zos_remote_t;
+	')
+
+	zosremote_domtrans($1)
+	role $2 types zos_remote_t;
+')

@@ -1,0 +1,80 @@
+## <summary>Policy for the Anaconda installer.</summary>
+
+########################################
+## <summary>
+##	Execute preupgrade in the caller domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`anaconda_exec_preupgrade',`
+	gen_require(`
+		type preupgrade_exec_t;
+	')
+
+	corecmd_search_bin($1)
+    can_exec($1, preupgrade_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run preupgrade.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`anaconda_domtrans_preupgrade',`
+	gen_require(`
+		type preupgrade_t, preupgrade_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, preupgrade_exec_t, preupgrade_t)
+')
+
+########################################
+## <summary>
+##	Read preupgrade lib files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`anaconda_read_lib_files_preupgrade',`
+	gen_require(`
+		type preupgrade_data_t;
+	')
+
+	read_files_pattern($1, preupgrade_data_t, preupgrade_data_t)
+	read_lnk_files_pattern($1, preupgrade_data_t, preupgrade_data_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Manage preupgrade lib files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`anaconda_manage_lib_files_preupgrade',`
+	gen_require(`
+		type preupgrade_data_t;
+	')
+
+	manage_dirs_pattern($1, preupgrade_data_t, preupgrade_data_t)
+	manage_files_pattern($1, preupgrade_data_t, preupgrade_data_t)
+	manage_lnk_files_pattern($1, preupgrade_data_t, preupgrade_data_t)
+	files_search_var_lib($1)
+')

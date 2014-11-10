@@ -1,0 +1,314 @@
+## <summary>Policy for udev.</summary>
+
+######################################
+## <summary>
+##  Execute udev in the udev domain, and
+##  allow the specified role the udev domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  The role to be allowed the iptables domain.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`udev_run',`
+    gen_require(`
+        type udev_t;
+    ')
+
+    udev_domtrans($1)
+    role $2 types udev_t;
+')
+
+########################################
+## <summary>
+##	Send generic signals to udev.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udev_signal',`
+	gen_require(`
+		type udev_t;
+	')
+
+	allow $1 udev_t:process signal;
+')
+
+########################################
+## <summary>
+##	Execute udev in the udev domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`udev_domtrans',`
+	gen_require(`
+		type udev_t, udev_exec_t;
+	')
+
+	domtrans_pattern($1, udev_exec_t, udev_t)
+')
+
+########################################
+## <summary>
+##	Execute udev in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udev_exec',`
+	gen_require(`
+		type udev_exec_t;
+	')
+
+	can_exec($1, udev_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute a udev helper in the udev domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`udev_helper_domtrans',`
+	gen_require(`
+		type udev_t, udev_helper_exec_t;
+	')
+
+	domtrans_pattern($1, udev_helper_exec_t, udev_t)
+')
+
+########################################
+## <summary>
+##	Allow process to read udev process state.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udev_read_state',`
+	gen_require(`
+		type udev_t;
+	')
+
+	kernel_search_proc($1)
+	ps_process_pattern($1, udev_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to inherit a
+##	udev file descriptor.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`udev_dontaudit_use_fds',`
+	gen_require(`
+		type udev_t;
+	')
+
+	dontaudit $1 udev_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read or write
+##	to a udev unix datagram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`udev_dontaudit_rw_dgram_sockets',`
+	gen_require(`
+		type udev_t;
+	')
+
+	dontaudit $1 udev_t:unix_dgram_socket { read write };
+')
+
+########################################
+## <summary>
+##	Do not audit search of udev database directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`udev_dontaudit_search_db',`
+	gen_require(`
+		type udev_tbl_t;
+	')
+
+	dontaudit $1 udev_tbl_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read the udev device table.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to read the udev device table.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="10"/>
+#
+interface(`udev_read_db',`
+	gen_require(`
+		type udev_tbl_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	allow $1 udev_tbl_t:dir list_dir_perms;
+	read_files_pattern($1, udev_tbl_t, udev_tbl_t)
+	read_lnk_files_pattern($1, udev_tbl_t, udev_tbl_t)
+')
+
+########################################
+## <summary>
+##	Allow process to modify list of devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`udev_rw_db',`
+	gen_require(`
+		type udev_tbl_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	allow $1 udev_tbl_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow process to delete list of devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`udev_delete_db',`
+	gen_require(`
+		type udev_tbl_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	allow $1 udev_tbl_t:file unlink;
+')
+
+#######################################
+## <summary>
+##      Create, read, write, and delete
+##      udev pid files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`udev_read_pid_files',`
+        gen_require(`
+                type udev_var_run_t;
+        ')
+
+        dev_list_all_dev_nodes($1)
+        files_search_pids($1)
+        allow $1 udev_var_run_t:dir list_dir_perms;
+        read_files_pattern($1, udev_var_run_t, udev_var_run_t)
+        read_lnk_files_pattern($1, udev_var_run_t, udev_var_run_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	udev pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`udev_manage_pid_files',`
+	gen_require(`
+		type udev_var_run_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, udev_var_run_t, udev_var_run_t)
+')
+
+#######################################
+## <summary>
+##  Create a domain for processes
+##  which can be started by udev.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Type to be used as a domain.
+##  </summary>
+## </param>
+## <param name="entry_point">
+##  <summary>
+##  Type of the program to be used as an entry point to this domain.
+##  </summary>
+## </param>
+#
+interface(`udev_system_domain',`
+    gen_require(`
+        type udev_t;
+        role system_r;
+    ')
+
+    domain_type($1)
+    domain_entry_file($1, $2)
+
+    role system_r types $1;
+
+    domtrans_pattern(udev_t, $2, $1)
+
+    dontaudit $1 udev_t:unix_dgram_socket { read write };
+')

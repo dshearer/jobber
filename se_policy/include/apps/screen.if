@@ -1,0 +1,182 @@
+## <summary>GNU terminal multiplexer</summary>
+
+#######################################
+## <summary>
+##	The role template for the screen module.
+## </summary>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user role (e.g., user
+##	is the prefix for user_r).
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+template(`screen_role_template',`
+	gen_require(`
+		type screen_exec_t, screen_tmp_t;
+		type screen_home_t, screen_var_run_t;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+	type $1_screen_t;
+	application_domain($1_screen_t, screen_exec_t)
+	domain_interactive_fd($1_screen_t)
+	ubac_constrained($1_screen_t)
+	role $2 types $1_screen_t;
+
+	########################################
+	#
+	# Local policy
+	#
+
+	allow $1_screen_t self:capability { setuid setgid fsetid };
+	allow $1_screen_t self:process signal_perms;
+	allow $1_screen_t self:fifo_file rw_fifo_file_perms;
+	allow $1_screen_t self:tcp_socket create_stream_socket_perms;
+	allow $1_screen_t self:udp_socket create_socket_perms;
+	# Internal screen networking
+	allow $1_screen_t self:fd use;
+	allow $1_screen_t self:unix_stream_socket create_socket_perms;
+	allow $1_screen_t self:unix_dgram_socket create_socket_perms;
+
+	manage_dirs_pattern($1_screen_t, screen_tmp_t, screen_tmp_t)
+	manage_files_pattern($1_screen_t, screen_tmp_t, screen_tmp_t)
+	manage_fifo_files_pattern($1_screen_t, screen_tmp_t, screen_tmp_t)
+	files_tmp_filetrans($1_screen_t, screen_tmp_t, { file dir })
+
+	# Create fifo
+	manage_fifo_files_pattern($1_screen_t, screen_var_run_t, screen_var_run_t)
+	manage_dirs_pattern($1_screen_t, screen_var_run_t, screen_var_run_t)
+	files_pid_filetrans($1_screen_t, screen_var_run_t, dir)
+
+	allow $1_screen_t screen_home_t:dir list_dir_perms;
+	manage_dirs_pattern($1_screen_t, screen_home_t, screen_home_t)
+    manage_fifo_files_pattern($1_screen_t, screen_home_t, screen_home_t)
+    userdom_user_home_dir_filetrans($1_screen_t, screen_home_t, dir)
+	userdom_admin_home_dir_filetrans($1_screen_t, screen_home_t, dir)
+	read_files_pattern($1_screen_t, screen_home_t, screen_home_t)
+	read_lnk_files_pattern($1_screen_t, screen_home_t, screen_home_t)
+
+	allow $1_screen_t $3:process signal;
+
+	domtrans_pattern($3, screen_exec_t, $1_screen_t)
+	allow $3 $1_screen_t:process { signal sigchld };
+	allow $1_screen_t $3:process signal;
+
+	manage_dirs_pattern($3, screen_home_t, screen_home_t)
+	manage_files_pattern($3, screen_home_t, screen_home_t)
+	manage_lnk_files_pattern($3, screen_home_t, screen_home_t)
+	relabel_dirs_pattern($3, screen_home_t, screen_home_t)
+	relabel_files_pattern($3, screen_home_t, screen_home_t)
+	relabel_lnk_files_pattern($3, screen_home_t, screen_home_t)
+
+	manage_dirs_pattern($3, screen_var_run_t, screen_var_run_t)
+	manage_files_pattern($3, screen_var_run_t, screen_var_run_t)
+	manage_lnk_files_pattern($3, screen_var_run_t, screen_var_run_t)
+	manage_fifo_files_pattern($3, screen_var_run_t, screen_var_run_t)
+
+	kernel_read_system_state($1_screen_t)
+	kernel_read_kernel_sysctls($1_screen_t)
+
+	corecmd_list_bin($1_screen_t)
+	corecmd_read_bin_files($1_screen_t)
+	corecmd_read_bin_symlinks($1_screen_t)
+	corecmd_read_bin_pipes($1_screen_t)
+	corecmd_read_bin_sockets($1_screen_t)
+	# Revert to the user domain when a shell is executed.
+	corecmd_shell_domtrans($1_screen_t, $3)
+	corecmd_bin_domtrans($1_screen_t, $3)
+
+	corenet_all_recvfrom_unlabeled($1_screen_t)
+	corenet_all_recvfrom_netlabel($1_screen_t)
+	corenet_tcp_sendrecv_generic_if($1_screen_t)
+	corenet_udp_sendrecv_generic_if($1_screen_t)
+	corenet_tcp_sendrecv_generic_node($1_screen_t)
+	corenet_udp_sendrecv_generic_node($1_screen_t)
+	corenet_tcp_sendrecv_all_ports($1_screen_t)
+	corenet_udp_sendrecv_all_ports($1_screen_t)
+	corenet_tcp_connect_all_ports($1_screen_t)
+
+	dev_dontaudit_getattr_all_chr_files($1_screen_t)
+	dev_dontaudit_getattr_all_blk_files($1_screen_t)
+	# for SSP
+	dev_read_urand($1_screen_t)
+
+	domain_use_interactive_fds($1_screen_t)
+	domain_sigchld_interactive_fds($1_screen_t)
+	domain_read_all_domains_state($1_screen_t)
+
+	files_search_tmp($1_screen_t)
+	files_search_home($1_screen_t)
+	files_list_home($1_screen_t)
+	files_read_usr_files($1_screen_t)
+	files_read_etc_files($1_screen_t)
+
+	fs_search_auto_mountpoints($1_screen_t)
+	fs_getattr_xattr_fs($1_screen_t)
+
+	auth_domtrans_chk_passwd($1_screen_t)
+	auth_use_nsswitch($1_screen_t)
+	auth_dontaudit_read_shadow($1_screen_t)
+	auth_dontaudit_exec_utempter($1_screen_t)
+
+	# Write to utmp.
+	init_rw_utmp($1_screen_t)
+
+	logging_send_syslog_msg($1_screen_t)
+
+	miscfiles_read_localization($1_screen_t)
+
+	seutil_read_config($1_screen_t)
+
+	userdom_use_user_terminals($1_screen_t)
+	userdom_create_user_pty($1_screen_t)
+	userdom_user_home_domtrans($1_screen_t, $3)
+	userdom_setattr_user_ptys($1_screen_t)
+	userdom_setattr_user_ttys($1_screen_t)
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_cifs_domtrans($1_screen_t, $3)
+		fs_read_cifs_symlinks($1_screen_t)
+		fs_list_cifs($1_screen_t)
+	')
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_nfs_domtrans($1_screen_t, $3)
+		fs_list_nfs($1_screen_t)
+		fs_read_nfs_symlinks($1_screen_t)
+	')
+')
+
+######################################
+## <summary>
+##      Execute the rssh program
+##      in the caller domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`screen_exec',`
+        gen_require(`
+                type screen_exec_t;
+        ')
+
+        can_exec($1, screen_exec_t)
+')

@@ -1,0 +1,63 @@
+## <summary>Utilities for configuring the linux ethernet bridge</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run brctl.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`brctl_domtrans',`
+	gen_require(`
+		type brctl_t, brctl_exec_t;
+	')
+
+	domtrans_pattern($1, brctl_exec_t, brctl_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run brctl.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`brctl_exec',`
+	gen_require(`
+		type brctl_exec_t;
+	')
+
+    can_exec($1, brctl_exec_t)
+')
+
+######################################
+## <summary>
+##      Execute brctl in the brctl domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to transition.
+##      </summary>
+## </param>
+## <param name="role">
+##      <summary>
+##      Role allowed access.
+##      </summary>
+## </param>
+## <rolecap/>
+#
+interface(`brctl_run',`
+        gen_require(`
+                type brctl_t, brctl_exec_t;
+        ')
+
+        brctl_domtrans($1)
+        role $2 types brctl_t;
+')
+

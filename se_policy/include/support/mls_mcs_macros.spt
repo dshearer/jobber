@@ -1,0 +1,57 @@
+########################################
+#
+# gen_cats(N)
+#
+# declares categores c0 to c(N-1)
+#
+define(`decl_cats',`dnl
+category c$1;
+ifelse(`$1',`$2',,`decl_cats(incr($1),$2)')dnl
+')
+
+define(`gen_cats',`decl_cats(0,decr($1))')
+
+########################################
+#
+# gen_sens(N)
+#
+# declares sensitivites s0 to s(N-1) with dominance
+# in increasing numeric order with s0 lowest, s(N-1) highest
+#
+define(`decl_sens',`dnl
+sensitivity s$1;
+ifelse(`$1',`$2',,`decl_sens(incr($1),$2)')dnl
+')
+
+define(`gen_dominance',`s$1 ifelse(`$1',`$2',,`gen_dominance(incr($1),$2)')')
+
+define(`gen_sens',`
+# Each sensitivity has a name and zero or more aliases.
+decl_sens(0,decr($1))
+
+# Define the ordering of the sensitivity levels (least to greatest)
+dominance { gen_dominance(0,decr($1)) }
+')
+
+########################################
+#
+# gen_levels(N,M)
+#
+# levels from s0 to (N-1) with categories c0 to (M-1)
+#
+define(`decl_levels',`dnl
+level s$1:c0.c$3;
+ifelse(`$1',`$2',,`decl_levels(incr($1),$2,$3)')dnl
+')
+
+define(`gen_levels',`decl_levels(0,decr($1),decr($2))')
+
+########################################
+#
+# Basic level names for system low and high
+#
+define(`mls_systemlow',`s0')
+define(`mls_systemhigh',`s`'decr(mls_num_sens):c0.c`'decr(mls_num_cats)')
+define(`mcs_systemlow',`s0')
+define(`mcs_systemhigh',`s0:c0.c`'decr(mcs_num_cats)')
+define(`mcs_allcats',`c0.c`'decr(mcs_num_cats)')

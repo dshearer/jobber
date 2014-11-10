@@ -1,0 +1,51 @@
+## <summary>Filesystem namespacing/polyinstantiation application.</summary>
+
+########################################
+## <summary>
+##	The role template for the seunshare module.
+## </summary>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the user role (e.g., user
+##	is the prefix for user_r).
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role.
+##	</summary>
+## </param>
+#
+interface(`seunshare_role_template',`
+	gen_require(`
+		attribute seunshare_domain;
+		type seunshare_exec_t;
+	')
+
+	type $1_seunshare_t, seunshare_domain;
+	application_domain($1_seunshare_t, seunshare_exec_t)
+	role $2 types $1_seunshare_t;
+
+	mls_process_set_level($1_seunshare_t)
+
+	domtrans_pattern($3, seunshare_exec_t, $1_seunshare_t)
+	sandbox_transition($1_seunshare_t, $2)
+
+	ps_process_pattern($3, $1_seunshare_t)
+	allow $3 $1_seunshare_t:process signal_perms;
+
+	allow $1_seunshare_t $3:process transition;
+	dontaudit $1_seunshare_t $3:process { noatsecure siginh rlimitinh };
+
+	corecmd_bin_domtrans($1_seunshare_t, $1_t)
+	corecmd_shell_domtrans($1_seunshare_t, $1_t)
+
+	ifdef(`hide_broken_symptoms', `
+		dontaudit $1_seunshare_t $3:socket_class_set { read write };
+	')
+')

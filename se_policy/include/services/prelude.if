@@ -1,0 +1,150 @@
+## <summary>Prelude hybrid intrusion detection system</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run prelude.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`prelude_domtrans',`
+	gen_require(`
+		type prelude_t, prelude_exec_t;
+	')
+
+	domtrans_pattern($1, prelude_exec_t, prelude_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run prelude_audisp.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`prelude_domtrans_audisp',`
+	gen_require(`
+		type prelude_audisp_t, prelude_audisp_exec_t;
+	')
+
+	domtrans_pattern($1, prelude_audisp_exec_t, prelude_audisp_t)
+')
+
+########################################
+## <summary>
+##	Signal the prelude_audisp domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed acccess.
+## </summary>
+## </param>
+#
+interface(`prelude_signal_audisp',`
+	gen_require(`
+		type prelude_audisp_t;
+	')
+
+	allow $1 prelude_audisp_t:process signal;
+')
+
+########################################
+## <summary>
+##	Read the prelude spool files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelude_read_spool',`
+	gen_require(`
+		type prelude_spool_t;
+	')
+
+	files_search_spool($1)
+	read_files_pattern($1, prelude_spool_t, prelude_spool_t)
+')
+
+########################################
+## <summary>
+##	Manage to prelude-manager spool files.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`prelude_manage_spool',`
+	gen_require(`
+		type prelude_spool_t;
+	')
+
+	files_search_spool($1)
+	manage_dirs_pattern($1, prelude_spool_t, prelude_spool_t)
+	manage_files_pattern($1, prelude_spool_t, prelude_spool_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an prelude environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`prelude_admin',`
+	gen_require(`
+		type prelude_t, prelude_spool_t;
+		type prelude_var_run_t, prelude_var_lib_t;
+		type prelude_audisp_t, prelude_audisp_var_run_t;
+		type prelude_initrc_exec_t;
+
+		type prelude_lml_t, prelude_lml_tmp_t;
+		type prelude_lml_var_run_t;
+	')
+
+	allow $1 prelude_t:process { ptrace signal_perms };
+	ps_process_pattern($1, prelude_t)
+
+	allow $1 prelude_audisp_t:process { ptrace signal_perms };
+	ps_process_pattern($1, prelude_audisp_t)
+
+	allow $1 prelude_lml_t:process { ptrace signal_perms };
+	ps_process_pattern($1, prelude_lml_t)
+
+	init_labeled_script_domtrans($1, prelude_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 prelude_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	admin_pattern($1, prelude_spool_t)
+	
+	files_search_var_lib($1)
+	admin_pattern($1, prelude_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, prelude_var_run_t)
+	admin_pattern($1, prelude_audisp_var_run_t)
+	
+	files_search_tmp($1)
+	admin_pattern($1, prelude_lml_tmp_t)
+	admin_pattern($1, prelude_lml_var_run_t)
+')

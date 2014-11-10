@@ -1,0 +1,417 @@
+## <summary>Berkeley internet name domain DNS server.</summary>
+
+########################################
+## <summary>
+##	Execute bind server in the bind domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_initrc_domtrans',`
+	gen_require(`
+		type named_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, named_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute ndc in the ndc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_domtrans_ndc',`
+	gen_require(`
+		type ndc_t, ndc_exec_t;
+	')
+
+	domtrans_pattern($1, ndc_exec_t, ndc_t)
+')
+
+########################################
+## <summary>
+##	Send generic signals to BIND.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_signal',`
+	gen_require(`
+		type named_t;
+	')
+
+	allow $1 named_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send null sigals to BIND.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_signull',`
+	gen_require(`
+		type named_t;
+	')
+
+	allow $1 named_t:process signull;
+')
+
+########################################
+## <summary>
+##	Send BIND the kill signal
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_kill',`
+	gen_require(`
+		type named_t;
+	')
+
+	allow $1 named_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Execute ndc in the ndc domain, and
+##	allow the specified role the ndc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the bind domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`bind_run_ndc',`
+	gen_require(`
+		type ndc_t;
+	')
+
+	bind_domtrans_ndc($1)
+	role $2 types ndc_t;
+')
+
+########################################
+## <summary>
+##	Execute bind in the named domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_domtrans',`
+	gen_require(`
+		type named_t, named_exec_t;
+	')
+
+	domtrans_pattern($1, named_exec_t, named_t)
+')
+
+########################################
+## <summary>
+##	Read DNSSEC keys.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_read_dnssec_keys',`
+	gen_require(`
+		type named_conf_t, named_zone_t, dnssec_t;
+	')
+
+	read_files_pattern($1, { named_conf_t named_zone_t }, dnssec_t)
+')
+
+########################################
+## <summary>
+##	Read BIND named configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_read_config',`
+	gen_require(`
+		type named_conf_t;
+	')
+
+	read_files_pattern($1, named_conf_t, named_conf_t)
+')
+
+########################################
+## <summary>
+##	Write BIND named configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_write_config',`
+	gen_require(`
+		type named_conf_t;
+	')
+
+	write_files_pattern($1, named_conf_t, named_conf_t)
+	allow $1 named_conf_t:file setattr;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	BIND configuration directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_manage_config_dirs',`
+	gen_require(`
+		type named_conf_t;
+	')
+
+	manage_dirs_pattern($1, named_conf_t, named_conf_t)
+')
+
+########################################
+## <summary>
+##	Search the BIND cache directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_search_cache',`
+	gen_require(`
+		type named_conf_t, named_cache_t, named_zone_t;
+	')
+
+	files_search_var($1)
+	allow $1 named_conf_t:dir search_dir_perms;
+	allow $1 named_zone_t:dir search_dir_perms;
+	allow $1 named_cache_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	BIND cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_manage_cache',`
+	gen_require(`
+		type named_cache_t, named_zone_t;
+	')
+
+	files_search_var($1)
+	allow $1 named_zone_t:dir search_dir_perms;
+	manage_files_pattern($1, named_cache_t, named_cache_t)
+	manage_lnk_files_pattern($1, named_cache_t, named_cache_t)
+')
+
+########################################
+## <summary>
+##	Set the attributes of the BIND pid directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_setattr_pid_dirs',`
+	gen_require(`
+		type named_var_run_t;
+	')
+
+	allow $1 named_var_run_t:dir setattr;
+')
+
+#######################################
+## <summary>
+## Read BIND log files.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`bind_read_log',`
+	gen_require(`
+		type named_zone_t;
+		type named_log_t;
+	')
+
+	files_search_var($1)
+	allow $1 named_zone_t:dir search_dir_perms;
+	read_files_pattern($1, named_log_t, named_log_t)
+')
+
+########################################
+## <summary>
+##	Set the attributes of the BIND zone directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_setattr_zone_dirs',`
+	gen_require(`
+		type named_zone_t;
+	')
+
+	allow $1 named_zone_t:dir setattr;
+')
+
+########################################
+## <summary>
+##	Read BIND zone files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_read_zone',`
+	gen_require(`
+		type named_zone_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, named_zone_t, named_zone_t)
+')
+
+########################################
+## <summary>
+##	Manage BIND zone files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_manage_zone',`
+	gen_require(`
+		type named_zone_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, named_zone_t, named_zone_t)
+')
+
+########################################
+## <summary>
+##	Send and receive datagrams to and from named.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bind_udp_chat_named',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an bind environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the bind domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`bind_admin',`
+	gen_require(`
+		type named_t, named_tmp_t, named_log_t;
+		type named_conf_t, named_var_run_t;
+		type named_cache_t, named_zone_t;
+		type dnssec_t, ndc_t;
+		type named_initrc_exec_t;
+	')
+
+	allow $1 named_t:process { ptrace signal_perms };
+	ps_process_pattern($1, named_t)
+
+	allow $1 ndc_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ndc_t)
+
+	bind_run_ndc($1, $2)
+
+	init_labeled_script_domtrans($1, named_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 named_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_tmp($1)
+	admin_pattern($1, named_tmp_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, named_log_t)
+
+	files_list_etc($1)
+	admin_pattern($1, named_conf_t)
+
+	admin_pattern($1, named_cache_t)
+	admin_pattern($1, named_zone_t)
+	admin_pattern($1, dnssec_t)
+
+	files_list_pids($1)
+	admin_pattern($1, named_var_run_t)
+')

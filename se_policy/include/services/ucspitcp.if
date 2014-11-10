@@ -1,0 +1,35 @@
+## <summary>ucspitcp policy</summary>
+## <desc>
+##	<p>
+##	Policy for DJB's ucspi-tcpd
+##	</p>
+## </desc>
+
+########################################
+## <summary>
+##	Define a specified domain as a ucspitcp service.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="entrypoint">
+##	<summary>
+##	The type associated with the process program.
+##	</summary>
+## </param>
+#
+interface(`ucspitcp_service_domain', `
+	gen_require(`
+		type ucspitcp_t;
+		role system_r;
+	')
+
+	domain_type($1)
+	domain_entry_file($1, $2)
+
+	role system_r types $1;
+
+	domtrans_pattern(ucspitcp_t, $2, $1)
+')

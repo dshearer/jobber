@@ -1,0 +1,188 @@
+## <summary>Filesystem automounter service.</summary>
+
+########################################
+## <summary>
+##	Execute automount in the automount domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`automount_domtrans',`
+	gen_require(`
+		type automount_t, automount_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, automount_exec_t, automount_t)
+')
+
+########################################
+## <summary>
+##	Send automount a signal
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+#
+interface(`automount_signal',`
+	gen_require(`
+		type automount_t;
+	')
+
+	allow $1 automount_t:process signal;
+')
+
+########################################
+## <summary>
+##	Execute automount in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`automount_exec_config',`
+	refpolicywarn(`$0(): has been deprecated, please use files_exec_etc_files() instead.')
+	files_exec_etc_files($1)
+')
+
+########################################
+## <summary>
+##	Allow the domain to read state files in /proc.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to allow access.
+##	</summary>
+## </param>
+#
+interface(`automount_read_state',`
+	gen_require(`
+		type automount_t;
+	')
+
+	kernel_search_proc($1)
+	ps_process_pattern($1, automount_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to file descriptors for automount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`automount_dontaudit_use_fds',`
+	gen_require(`
+		type automount_t;
+	')
+
+	dontaudit $1 automount_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write automount daemon unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`automount_dontaudit_write_pipes',`
+	gen_require(`
+		type automount_t;
+	')
+
+	dontaudit $1 automount_t:fifo_file write;
+')
+
+########################################
+## <summary>
+##     Allow domain to search of automount temporary
+##     directories.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain to not audit.
+##     </summary>
+## </param>
+#
+interface(`automount_search_tmp_dirs',`
+    gen_require(`
+        type automount_tmp_t;
+    ')
+
+    search_dirs_pattern($1, automount_tmp_t, automount_tmp_t)
+')
+  
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of automount temporary directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`automount_dontaudit_getattr_tmp_dirs',`
+	gen_require(`
+		type automount_tmp_t;
+	')
+
+	dontaudit $1 automount_tmp_t:dir getattr;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an automount environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the automount domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`automount_admin',`
+	gen_require(`
+		type automount_t, automount_lock_t, automount_tmp_t;
+		type automount_var_run_t, automount_initrc_exec_t;
+	')
+
+	allow $1 automount_t:process { ptrace signal_perms };
+	ps_process_pattern($1, automount_t)
+
+	init_labeled_script_domtrans($1, automount_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 automount_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_var($1)
+	admin_pattern($1, automount_lock_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, automount_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, automount_var_run_t)
+')

@@ -1,0 +1,151 @@
+
+## <summary> Instrumentation System Server </summary>
+
+########################################
+## <summary>
+##	Execute stapserver in the stapserver domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`stapserver_domtrans',`
+	gen_require(`
+		type stapserver_t, stapserver_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, stapserver_exec_t, stapserver_t)
+')
+########################################
+## <summary>
+##	Read stapserver's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`stapserver_read_log',`
+	gen_require(`
+		type stapserver_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, stapserver_log_t, stapserver_log_t)
+')
+
+########################################
+## <summary>
+##	Append to stapserver log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`stapserver_append_log',`
+	gen_require(`
+		type stapserver_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, stapserver_log_t, stapserver_log_t)
+')
+
+########################################
+## <summary>
+##	Manage stapserver log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`stapserver_manage_log',`
+	gen_require(`
+		type stapserver_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, stapserver_log_t, stapserver_log_t)
+	manage_files_pattern($1, stapserver_log_t, stapserver_log_t)
+	manage_lnk_files_pattern($1, stapserver_log_t, stapserver_log_t)
+')
+########################################
+## <summary>
+##	Read stapserver PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`stapserver_read_pid_files',`
+	gen_require(`
+		type stapserver_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 stapserver_var_run_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##      Manage stapserver lib files
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`stapserver_manage_lib',`
+        gen_require(`
+                type stapserver_var_lib_t;
+        ')
+
+        manage_dirs_pattern($1, stapserver_var_lib_t, stapserver_var_lib_t)
+        manage_files_pattern($1, stapserver_var_lib_t, stapserver_var_lib_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an stapserver environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`stapserver_admin',`
+	gen_require(`
+		type stapserver_t;
+		type stapserver_log_t;
+		type stapserver_var_run_t;
+	')
+
+	allow $1 stapserver_t:process { ptrace signal_perms };
+	ps_process_pattern($1, stapserver_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, stapserver_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, stapserver_var_run_t)
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

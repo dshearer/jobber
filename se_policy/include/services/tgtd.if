@@ -1,0 +1,65 @@
+## <summary>Linux Target Framework Daemon.</summary>
+## <desc>
+##	<p>
+##	Linux target framework (tgt) aims to simplify various
+##	SCSI target driver (iSCSI, Fibre Channel, SRP, etc) creation
+##	and maintenance. Our key goals are the clean integration into
+##	the scsi-mid layer and implementing a great portion of tgt
+##	in user space.
+##	</p>
+## </desc>
+
+#####################################
+## <summary>
+##      Allow read and write access to tgtd semaphores.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`tgtd_rw_semaphores',`
+        gen_require(`
+                type tgtd_t;
+        ')
+
+        allow $1 tgtd_t:sem rw_sem_perms;
+')
+
+#######################################
+## <summary>
+##      Manage tgtd sempaphores.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`tgtd_manage_semaphores',`
+        gen_require(`
+                type tgtd_t;
+        ')
+
+        allow $1 tgtd_t:sem create_sem_perms;
+')
+
+#######################################
+## <summary>
+##  Connect to tgtd using a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`tgtd_stream_connect',`
+    gen_require(`
+        type tgtd_t, tgtd_var_run_t;
+    ')
+
+    files_search_var_lib($1)
+    stream_connect_pattern($1, tgtd_var_run_t, tgtd_var_run_t, tgtd_t)
+')

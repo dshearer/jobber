@@ -1,0 +1,264 @@
+
+## <summary>policy for dspam</summary>
+
+
+########################################
+## <summary>
+##	Execute a domain transition to run dspam.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dspam_domtrans',`
+	gen_require(`
+		type dspam_t, dspam_exec_t;
+	')
+
+	domtrans_pattern($1, dspam_exec_t, dspam_t)
+')
+
+
+########################################
+## <summary>
+##	Execute dspam server in the dspam domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`dspam_initrc_domtrans',`
+	gen_require(`
+		type dspam_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, dspam_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read dspam's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`dspam_read_log',`
+	gen_require(`
+		type dspam_log_t;
+	')
+
+	logging_search_logs($1)
+        read_files_pattern($1, dspam_log_t, dspam_log_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	dspam log files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed to transition.
+## 	</summary>
+## </param>
+#
+interface(`dspam_append_log',`
+	gen_require(`
+		type dspam_log_t;
+	')
+
+	logging_search_logs($1)
+        append_files_pattern($1, dspam_log_t, dspam_log_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to manage dspam log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`dspam_manage_log',`
+	gen_require(`
+		type dspam_log_t;
+	')
+
+	logging_search_logs($1)
+        manage_dirs_pattern($1, dspam_log_t, dspam_log_t)
+        manage_files_pattern($1, dspam_log_t, dspam_log_t)
+        manage_lnk_files_pattern($1, dspam_log_t, dspam_log_t)
+')
+
+########################################
+## <summary>
+##	Search dspam lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dspam_search_lib',`
+	gen_require(`
+		type dspam_var_lib_t;
+	')
+
+	allow $1 dspam_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read dspam lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dspam_read_lib_files',`
+	gen_require(`
+		type dspam_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        read_files_pattern($1, dspam_var_lib_t, dspam_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	dspam lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dspam_manage_lib_files',`
+	gen_require(`
+		type dspam_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_files_pattern($1, dspam_var_lib_t, dspam_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage dspam lib dirs files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dspam_manage_lib_dirs',`
+	gen_require(`
+		type dspam_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_dirs_pattern($1, dspam_var_lib_t, dspam_var_lib_t)
+')
+
+
+########################################
+## <summary>
+##	Read dspam PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dspam_read_pid_files',`
+	gen_require(`
+		type dspam_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 dspam_var_run_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##  Connect to DSPAM using a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`dspam_stream_connect',`
+    gen_require(`
+        type dspam_t, dspam_var_run_t, dspam_tmp_t;
+    ')
+
+    files_search_pids($1)
+	files_search_tmp($1)
+    stream_connect_pattern($1, dspam_var_run_t, dspam_var_run_t, dspam_t)
+    stream_connect_pattern($1, dspam_tmp_t, dspam_tmp_t, dspam_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an dspam environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`dspam_admin',`
+	gen_require(`
+		type dspam_t;
+		type dspam_initrc_exec_t;
+		type dspam_log_t;
+		type dspam_var_lib_t;
+		type dspam_var_run_t;
+	')
+
+	allow $1 dspam_t:process signal_perms;
+	ps_process_pattern($1, dspam_t)
+
+	dspam_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 dspam_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, dspam_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, dspam_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, dspam_var_run_t)
+
+')

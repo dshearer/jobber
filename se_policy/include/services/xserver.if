@@ -1,0 +1,1749 @@
+## <summary>X Windows Server</summary>
+
+########################################
+## <summary>
+##	Rules required for using the X Windows server
+##	and environment, for restricted users.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_restricted_role',`
+	gen_require(`
+		type xserver_t, xserver_exec_t, xserver_tmp_t, xserver_tmpfs_t;
+		type user_fonts_t, user_fonts_cache_t, user_fonts_config_t, xdm_tmp_t;
+		type iceauth_t, iceauth_exec_t, iceauth_home_t;
+		type xauth_t, xauth_exec_t, xauth_home_t;
+		class dbus send_msg;
+	')
+
+	role $1 types { xserver_t xauth_t iceauth_t };
+
+	# Xserver read/write client shm
+	allow xserver_t $2:fd use;
+	allow xserver_t $2:shm rw_shm_perms;
+
+	domtrans_pattern($2, xserver_exec_t, xserver_t)
+	allow xserver_t $2:process { getpgid signal };
+
+	allow xserver_t $2:shm rw_shm_perms;
+
+	allow $2 user_fonts_t:dir list_dir_perms;
+	allow $2 user_fonts_t:file read_file_perms;
+
+	allow $2 user_fonts_config_t:dir list_dir_perms;
+	allow $2 user_fonts_config_t:file read_file_perms;
+
+	manage_dirs_pattern($2, user_fonts_cache_t, user_fonts_cache_t)
+	manage_files_pattern($2, user_fonts_cache_t, user_fonts_cache_t)
+
+	stream_connect_pattern($2, xserver_tmp_t, xserver_tmp_t, xserver_t)
+	allow $2 xserver_tmp_t:sock_file unlink;
+	files_search_tmp($2)
+
+	# Communicate via System V shared memory.
+	allow $2 xserver_t:shm r_shm_perms;
+	allow $2 xserver_tmpfs_t:file read_file_perms;
+
+	# allow ps to show iceauth
+	ps_process_pattern($2, iceauth_t)
+
+	domtrans_pattern($2, iceauth_exec_t, iceauth_t)
+
+	allow $2 iceauth_home_t:file read_file_perms;
+
+	domtrans_pattern($2, xauth_exec_t, xauth_t)
+
+	allow $2 xauth_t:process signal;
+
+	# allow ps to show xauth
+	ps_process_pattern($2, xauth_t)
+	allow $2 xserver_t:process signal;
+
+	allow $2 xauth_home_t:file read_file_perms;
+
+	# for when /tmp/.X11-unix is created by the system
+	allow $2 xdm_t:fd use;
+	allow $2 xdm_t:fifo_file rw_inherited_fifo_file_perms;
+	allow $2 xdm_tmp_t:dir search_dir_perms;
+	allow $2 xdm_tmp_t:sock_file rw_inherited_sock_file_perms;
+	dontaudit $2 xdm_t:tcp_socket { read write };
+	dontaudit $2 xdm_tmp_t:dir setattr_dir_perms;
+
+	allow $2 xdm_t:dbus send_msg;
+	allow xdm_t  $2:dbus send_msg;
+
+	# Client read xserver shm
+	allow $2 xserver_t:fd use;
+	allow $2 xserver_tmpfs_t:file read_file_perms;
+
+	# Read /tmp/.X0-lock
+	allow $2 xserver_tmp_t:file read_inherited_file_perms;
+
+	dev_rw_xserver_misc($2)
+	dev_rw_power_management($2)
+	dev_read_input($2)
+	dev_read_misc($2)
+	dev_write_misc($2)
+	# open office is looking for the following
+	dev_getattr_agp_dev($2)
+
+	# GNOME checks for usb and other devices:
+	dev_rw_usbfs($2)
+
+	term_use_virtio_console($2)
+
+	miscfiles_read_fonts($2)
+	miscfiles_read_hwdata($2)
+	miscfiles_setattr_fonts_cache_dirs($2)
+
+	xserver_common_x_domain_template(user, $2)
+	xserver_xsession_entry_type($2)
+	xserver_dontaudit_write_log($2)
+	xserver_stream_connect_xdm($2)
+	# certain apps want to read xdm.pid file
+	xserver_read_xdm_pid($2)
+	# gnome-session creates socket under /tmp/.ICE-unix/
+	xserver_create_xdm_tmp_sockets($2)
+	# Needed for escd, remove if we get escd policy
+	xserver_manage_xdm_tmp_files($2)
+
+	ifdef(`hide_broken_symptoms',`
+		dontaudit iceauth_t $2:socket_class_set { read write };
+	')
+
+	# Client write xserver shm
+	tunable_policy(`allow_write_xshm',`
+		allow $2 xserver_t:shm rw_shm_perms;
+		allow $2 xserver_tmpfs_t:file rw_file_perms;
+	')
+
+	tunable_policy(`user_direct_dri',`
+		dev_rw_dri($2)
+	',`
+        dev_dontaudit_rw_dri($2)
+    ')
+
+	optional_policy(`
+		gnome_read_gconf_config($2)
+	')
+')
+
+########################################
+## <summary>
+##	Rules required for using the X Windows server
+##	and environment.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_role',`
+	gen_require(`
+		type iceauth_home_t, xserver_t, xserver_tmpfs_t, xauth_home_t;
+		type user_fonts_t, user_fonts_cache_t, user_fonts_config_t;
+	')
+
+	xserver_restricted_role($1, $2)
+
+	# Communicate via System V shared memory.
+	allow $2 xserver_t:shm rw_shm_perms;
+	allow $2 xserver_tmpfs_t:file rw_file_perms;
+
+	allow $2 iceauth_home_t:file manage_file_perms;
+	allow $2 iceauth_home_t:file relabel_file_perms;
+
+	allow $2 xauth_home_t:file manage_file_perms;
+	allow $2 xauth_home_t:file relabel_file_perms;
+
+	mls_xwin_read_to_clearance($2)
+	manage_dirs_pattern($2, user_fonts_t, user_fonts_t)
+	manage_files_pattern($2, user_fonts_t, user_fonts_t)
+	relabel_dirs_pattern($2, user_fonts_t, user_fonts_t)
+	relabel_files_pattern($2, user_fonts_t, user_fonts_t)
+
+	manage_dirs_pattern($2, user_fonts_cache_t, user_fonts_cache_t)
+	manage_files_pattern($2, user_fonts_cache_t, user_fonts_cache_t)
+	relabel_dirs_pattern($2, user_fonts_cache_t, user_fonts_cache_t)
+	relabel_files_pattern($2, user_fonts_cache_t, user_fonts_cache_t)
+
+	manage_dirs_pattern($2, user_fonts_config_t, user_fonts_config_t)
+	manage_files_pattern($2, user_fonts_config_t, user_fonts_config_t)
+	relabel_dirs_pattern($2, user_fonts_config_t, user_fonts_config_t)
+	relabel_files_pattern($2, user_fonts_config_t, user_fonts_config_t)
+
+')
+
+#######################################
+## <summary>
+##	Create sessions on the X server, with read-only
+##	access to the X server shared
+##	memory segments.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="tmpfs_type">
+##	<summary>
+##	The type of the domain SYSV tmpfs files.
+##	</summary>
+## </param>
+#
+interface(`xserver_ro_session',`
+	gen_require(`
+		type xserver_t, xserver_tmp_t, xserver_tmpfs_t;
+	')
+
+	# Xserver read/write client shm
+	allow xserver_t $1:fd use;
+	allow xserver_t $1:shm rw_shm_perms;
+	allow xserver_t $2:file rw_file_perms;
+
+	# Connect to xserver
+	allow $1 xserver_t:unix_stream_socket connectto;
+	allow $1 xserver_t:process signal;
+
+	# Read /tmp/.X0-lock
+	allow $1 xserver_tmp_t:file read_file_perms;
+
+	# Client read xserver shm
+	allow $1 xserver_t:fd use;
+	allow $1 xserver_t:shm r_shm_perms;
+	allow $1 xserver_tmpfs_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##	Create sessions on the X server, with read and write
+##	access to the X server shared
+##	memory segments.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="tmpfs_type">
+##	<summary>
+##	The type of the domain SYSV tmpfs files.
+##	</summary>
+## </param>
+#
+interface(`xserver_rw_session',`
+	gen_require(`
+		type xserver_t, xserver_tmpfs_t;
+	')
+
+	xserver_ro_session($1, $2)
+	allow $1 xserver_t:shm rw_shm_perms;
+	allow $1 xserver_tmpfs_t:file rw_file_perms;
+')
+
+#######################################
+## <summary>
+##	Create non-drawing client sessions on an X server.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_non_drawing_client',`
+	gen_require(`
+		class x_drawable { getattr get_property };
+		class x_extension { query use };
+		class x_gc { create setattr };
+		class x_property read;
+
+		type xserver_t, xdm_var_run_t;
+		type xextension_t, xproperty_t, root_xdrawable_t;
+	')
+
+	allow $1 self:x_gc { create setattr };
+
+	allow $1 xdm_var_run_t:dir search;
+	allow $1 xserver_t:unix_stream_socket connectto;
+
+	allow $1 xextension_t:x_extension { query use };
+	allow $1 root_xdrawable_t:x_drawable { getattr get_property };
+	allow $1 xproperty_t:x_property read;
+')
+
+#######################################
+## <summary>
+##	Create full client sessions
+##	on a user X server.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="tmpfs_type">
+##	<summary>
+##	The type of the domain SYSV tmpfs files.
+##	</summary>
+## </param>
+#
+interface(`xserver_user_client',`
+	refpolicywarn(`$0() has been deprecated, please use xserver_user_x_domain_template instead.')
+	gen_require(`
+		type xdm_t, xdm_tmp_t;
+		type xauth_home_t, iceauth_home_t, xserver_t, xserver_tmpfs_t;
+	')
+
+	allow $1 self:shm create_shm_perms;
+	allow $1 self:unix_dgram_socket create_socket_perms;
+	allow $1 self:unix_stream_socket { connectto create_stream_socket_perms };
+
+	# Read .Xauthority file
+	allow $1 xauth_home_t:file read_file_perms;
+	allow $1 iceauth_home_t:file read_file_perms;
+
+	# for when /tmp/.X11-unix is created by the system
+	allow $1 xdm_t:fd use;
+	allow $1 xdm_t:fifo_file rw_inherited_fifo_file_perms;
+	allow $1 xdm_tmp_t:dir search;
+	allow $1 xdm_tmp_t:sock_file { read write };
+	dontaudit $1 xdm_t:tcp_socket { read write };
+
+	# Allow connections to X server.
+	files_search_tmp($1)
+
+	miscfiles_read_fonts($1)
+
+	userdom_search_user_home_dirs($1)
+	# for .xsession-errors
+	userdom_dontaudit_write_user_home_content_files($1)
+
+	xserver_ro_session($1, $2)
+	xserver_use_user_fonts($1)
+
+	xserver_read_xdm_tmp_files($1)
+
+	# Client write xserver shm
+	tunable_policy(`allow_write_xshm',`
+		allow $1 xserver_t:shm rw_shm_perms;
+		allow $1 xserver_tmpfs_t:file rw_file_perms;
+	')
+')
+
+#######################################
+## <summary>
+##	Interface to provide X object permissions on a given X server to
+##	an X client domain.  Provides the minimal set required by a basic
+##	X client application.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix of the X client domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Client domain allowed access.
+##	</summary>
+## </param>
+#
+template(`xserver_common_x_domain_template',`
+	gen_require(`
+		type root_xdrawable_t;
+		type xproperty_t, $1_xproperty_t;
+		type xevent_t, client_xevent_t;
+		type input_xevent_t, $1_input_xevent_t;
+
+		attribute x_domain;
+		attribute xdrawable_type, xcolormap_type;
+		attribute input_xevent_type;
+
+		class x_drawable all_x_drawable_perms;
+		class x_property all_x_property_perms;
+		class x_event all_x_event_perms;
+		class x_synthetic_event all_x_synthetic_event_perms;
+		class x_client destroy;
+		class x_server manage;
+		class x_screen { saver_setattr saver_hide saver_show };
+		class x_pointer { get_property set_property manage };
+		class x_keyboard { read manage };
+		type xdm_t, xserver_t;
+	')
+
+	##############################
+	#
+	# Local Policy
+	#
+
+	# Type attributes
+	typeattribute $2 x_domain;
+	typeattribute $2 xdrawable_type, xcolormap_type;
+
+	# X Properties
+	# disable property transitions for the time being.
+#	type_transition $2 xproperty_t:x_property $1_xproperty_t;
+
+	# X Windows
+	# new windows have the domain type
+	type_transition $2 root_xdrawable_t:x_drawable $2;
+
+	# X Input
+	# distinguish input events
+	type_transition $2 input_xevent_t:x_event $1_input_xevent_t;
+	# can send own events
+	allow $2 $1_input_xevent_t:{ x_event x_synthetic_event } send;
+	# can receive own events
+	allow $2 $1_input_xevent_t:{ x_event x_synthetic_event } receive;
+	# can receive default events
+	allow $2 client_xevent_t:{ x_event x_synthetic_event } receive;
+	allow $2 xevent_t:{ x_event x_synthetic_event } receive;
+	# dont audit send failures
+	dontaudit $2 input_xevent_type:x_event send;
+
+	allow $2 xdm_t:x_drawable { read add_child };
+	allow $2 xdm_t:x_client destroy;
+
+	allow $2 root_xdrawable_t:x_drawable write;
+	allow $2 xserver_t:x_server manage;
+	allow $2 xserver_t:x_screen { saver_setattr saver_hide saver_show };
+	allow $2 xserver_t:x_pointer { get_property set_property manage };
+	allow $2 xserver_t:x_keyboard { read manage };
+')
+
+#######################################
+## <summary>
+##	Template for creating the set of types used
+##	in an X windows domain.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix of the X client domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+#
+template(`xserver_object_types_template',`
+	gen_require(`
+		attribute xproperty_type, input_xevent_type, xevent_type;
+	')
+
+	##############################
+	#
+	# Declarations
+	#
+
+	# Types for properties
+	type $1_xproperty_t, xproperty_type;
+	ubac_constrained($1_xproperty_t)
+
+	# Types for events
+	type $1_input_xevent_t, input_xevent_type, xevent_type;
+	ubac_constrained($1_input_xevent_t)
+')
+
+#######################################
+## <summary>
+##	Interface to provide X object permissions on a given X server to
+##	an X client domain.  Provides the minimal set required by a basic
+##	X client application.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix of the X client domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Client domain allowed access.
+##	</summary>
+## </param>
+## <param name="tmpfs_type">
+##	<summary>
+##	The type of the domain SYSV tmpfs files.
+##	</summary>
+## </param>
+#
+template(`xserver_user_x_domain_template',`
+	gen_require(`
+		type xdm_t, xdm_tmp_t;
+		type xauth_home_t, iceauth_home_t, xserver_t, xserver_tmpfs_t;
+	')
+
+	allow $2 self:shm create_shm_perms;
+	allow $2 self:unix_dgram_socket create_socket_perms;
+	allow $2 self:unix_stream_socket { connectto create_stream_socket_perms };
+
+	# Read .Xauthority file
+	allow $2 xauth_home_t:file read_file_perms;
+	allow $2 iceauth_home_t:file read_file_perms;
+
+	# for when /tmp/.X11-unix is created by the system
+	allow $2 xdm_t:fd use;
+	allow $2 xdm_t:fifo_file rw_inherited_fifo_file_perms;
+	allow $2 xdm_tmp_t:dir search_dir_perms;
+	allow $2 xdm_tmp_t:sock_file rw_inherited_sock_file_perms;
+	dontaudit $2 xdm_t:tcp_socket { read write };
+
+	# Allow connections to X server.
+	files_search_tmp($2)
+
+	miscfiles_read_fonts($2)
+
+	userdom_search_user_home_dirs($2)
+	# for .xsession-errors
+	userdom_dontaudit_write_user_home_content_files($2)
+
+	xserver_ro_session($2, $3)
+	xserver_use_user_fonts($2)
+
+	xserver_read_xdm_tmp_files($2)
+	xserver_read_xdm_pid($2)
+	xserver_xdm_append_log($2)
+
+	# X object manager
+	xserver_object_types_template($1)
+	xserver_common_x_domain_template($1,$2)
+
+	# Client write xserver shm
+	tunable_policy(`allow_write_xshm',`
+		allow $2 xserver_t:shm rw_shm_perms;
+		allow $2 xserver_tmpfs_t:file rw_file_perms;
+	')
+')
+
+########################################
+## <summary>
+##	Read user fonts, user font configuration,
+##	and manage the user font cache.
+## </summary>
+## <desc>
+##	<p>
+##	Read user fonts, user font configuration,
+##	and manage the user font cache.
+##	</p>
+##	<p>
+##	This is a templated interface, and should only
+##	be called from a per-userdomain template.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_use_user_fonts',`
+	gen_require(`
+		type user_fonts_t, user_fonts_cache_t, user_fonts_config_t;
+	')
+
+	# Read per user fonts
+	allow $1 user_fonts_t:dir list_dir_perms;
+	allow $1 user_fonts_t:file read_file_perms;
+
+	# Manipulate the global font cache
+	manage_dirs_pattern($1, user_fonts_cache_t, user_fonts_cache_t)
+	manage_files_pattern($1, user_fonts_cache_t, user_fonts_cache_t)
+
+	# Read per user font config
+	allow $1 user_fonts_config_t:dir list_dir_perms;
+	allow $1 user_fonts_config_t:file read_file_perms;
+
+	userdom_search_user_home_dirs($1)
+')
+
+########################################
+## <summary>
+##	Transition to the Xauthority domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_domtrans_xauth',`
+	gen_require(`
+		type xauth_t, xauth_exec_t;
+	')
+
+	domtrans_pattern($1, xauth_exec_t, xauth_t)
+ifdef(`hide_broken_symptoms', `
+	dontaudit xauth_t $1:socket_class_set { read write };
+')
+')
+
+#####################################
+## <summary>
+##  Allow exec of Xauthority program..
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`xserver_exec_xauth',`
+    gen_require(`
+        type xauth_t, xauth_exec_t;
+    ')
+
+    can_exec($1, xauth_exec_t)
+')
+
+########################################
+## <summary>
+##	Dontaudit exec of Xauthority program.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_dontaudit_exec_xauth',`
+	gen_require(`
+		type xauth_exec_t;
+	')
+
+	dontaudit $1 xauth_exec_t:file execute;
+')
+
+########################################
+## <summary>
+##	Create a Xauthority file in the user home directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_user_home_dir_filetrans_user_xauth',`
+	gen_require(`
+		type xauth_home_t;
+	')
+
+	userdom_user_home_dir_filetrans($1, xauth_home_t, file)
+')
+
+########################################
+## <summary>
+##	Read all users fonts, user font configurations,
+##	and manage all users font caches.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_use_all_users_fonts',`
+	refpolicywarn(`$0() has been deprecated, please use xserver_use_user_fonts.')
+	xserver_use_user_fonts($1)
+')
+
+########################################
+## <summary>
+##	Read all users .Xauthority.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_read_user_xauth',`
+	gen_require(`
+		type xauth_home_t;
+	')
+
+	allow $1 xauth_home_t:file read_file_perms;
+	userdom_search_user_home_dirs($1)
+	xserver_read_xdm_pid($1)
+')
+
+########################################
+## <summary>
+##	Set the attributes of the X windows console named pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_setattr_console_pipes',`
+	gen_require(`
+		type xconsole_device_t;
+	')
+
+	allow $1 xconsole_device_t:fifo_file setattr_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write the X windows console named pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_rw_console',`
+	gen_require(`
+		type xconsole_device_t;
+	')
+
+	allow $1 xconsole_device_t:fifo_file rw_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Use file descriptors for xdm.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_use_xdm_fds',`
+	gen_require(`
+		type xdm_t;
+	')
+
+	allow $1 xdm_t:fd use; 
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to inherit
+##	XDM file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`xserver_dontaudit_use_xdm_fds',`
+	gen_require(`
+		type xdm_t;
+	')
+
+	dontaudit $1 xdm_t:fd use; 
+')
+
+########################################
+## <summary>
+##	Read and write XDM unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_rw_xdm_pipes',`
+	gen_require(`
+		type xdm_t;
+	')
+
+	allow $1 xdm_t:fifo_file { getattr read write }; 
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write
+##	XDM unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`xserver_dontaudit_rw_xdm_pipes',`
+
+	gen_require(`
+		type xdm_t;
+	')
+
+	dontaudit $1 xdm_t:fifo_file rw_fifo_file_perms; 
+')
+
+########################################
+## <summary>
+##	Connect to XDM over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_stream_connect_xdm',`
+	gen_require(`
+		type xdm_t, xdm_tmp_t, xdm_var_run_t;
+	')
+	
+	files_search_tmp($1)
+	files_search_pids($1)
+	stream_connect_pattern($1, xdm_tmp_t, xdm_tmp_t, xdm_t)
+	stream_connect_pattern($1, xdm_var_run_t, xdm_var_run_t, xdm_t)
+')
+
+########################################
+## <summary>
+##	Read xdm-writable configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_read_xdm_rw_config',`
+	gen_require(`
+		type xdm_rw_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 xdm_rw_etc_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Set the attributes of XDM temporary directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_setattr_xdm_tmp_dirs',`
+	gen_require(`
+		type xdm_tmp_t;
+	')
+
+	allow $1 xdm_tmp_t:dir setattr_dir_perms;
+')
+
+########################################
+## <summary>
+##	Create a named socket in a XDM
+##	temporary directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_create_xdm_tmp_sockets',`
+	gen_require(`
+		type xdm_tmp_t;
+	')
+
+	files_search_tmp($1)
+	allow $1 xdm_tmp_t:dir list_dir_perms;
+	create_sock_files_pattern($1, xdm_tmp_t, xdm_tmp_t)
+')
+
+########################################
+## <summary>
+##	Read XDM pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_read_xdm_pid',`
+	gen_require(`
+		type xdm_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, xdm_var_run_t, xdm_var_run_t)
+')
+
+#####################################
+## <summary>
+##  Dontaudit Read XDM pid files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`xserver_dontaudit_read_xdm_pid',`
+    gen_require(`
+        type xdm_var_run_t;
+    ')
+
+	dontaudit $1 xdm_var_run_t:dir search_dir_perms;
+    dontaudit $1 xdm_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read XDM var lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_read_xdm_lib_files',`
+	gen_require(`
+		type xdm_var_lib_t;
+	')
+
+	allow $1 xdm_var_lib_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Make an X session script an entrypoint for the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain for which the shell is an entrypoint.
+##	</summary>
+## </param>
+#
+interface(`xserver_xsession_entry_type',`
+	gen_require(`
+		type xsession_exec_t;
+	')
+
+	domain_entry_file($1, xsession_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute an X session in the target domain.  This
+##	is an explicit transition, requiring the
+##	caller to use setexeccon().
+## </summary>
+## <desc>
+##	<p>
+##	Execute an Xsession in the target domain.  This
+##	is an explicit transition, requiring the
+##	caller to use setexeccon().
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the shell process.
+##	</summary>
+## </param>
+#
+interface(`xserver_xsession_spec_domtrans',`
+	gen_require(`
+		type xsession_exec_t;
+	')
+
+	domain_trans($1, xsession_exec_t, $2)
+')
+
+########################################
+## <summary>
+##	Get the attributes of X server logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_getattr_log',`
+	gen_require(`
+		type xserver_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 xserver_log_t:file getattr_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write the X server
+##	log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_dontaudit_write_log',`
+	gen_require(`
+		type xserver_log_t;
+	')
+
+	dontaudit $1 xserver_log_t:file rw_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write the X server
+##	log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_delete_log',`
+	gen_require(`
+		type xserver_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 xserver_log_t:dir list_dir_perms;
+	delete_files_pattern($1, xserver_log_t, xserver_log_t)
+	delete_fifo_files_pattern($1, xserver_log_t, xserver_log_t)
+')
+
+########################################
+## <summary>
+##	Read X keyboard extension libraries.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_read_xkb_libs',`
+	gen_require(`
+		type xkb_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	allow $1 xkb_var_lib_t:dir list_dir_perms;
+	read_files_pattern($1, xkb_var_lib_t, xkb_var_lib_t)
+	read_lnk_files_pattern($1, xkb_var_lib_t, xkb_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read xdm config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_read_xdm_etc_files',`
+	gen_require(`
+		type xdm_etc_t;
+	')
+
+ 	files_search_etc($1)
+	read_files_pattern($1, xdm_etc_t, xdm_etc_t)
+')
+
+########################################
+## <summary>
+##	Manage xdm config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_manage_xdm_etc_files',`
+	gen_require(`
+		type xdm_etc_t;
+	')
+
+ 	files_search_etc($1)
+	manage_files_pattern($1, xdm_etc_t, xdm_etc_t)
+')
+
+########################################
+## <summary>
+##	Read xdm temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_read_xdm_tmp_files',`
+	gen_require(`
+		type xdm_tmp_t;
+	')
+
+ 	files_search_tmp($1)
+	read_files_pattern($1, xdm_tmp_t, xdm_tmp_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read xdm temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_dontaudit_read_xdm_tmp_files',`
+	gen_require(`
+		type xdm_tmp_t;
+	')
+
+	dontaudit $1 xdm_tmp_t:dir search_dir_perms;
+	dontaudit $1 xdm_tmp_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read write xdm temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_rw_xdm_tmp_files',`
+	gen_require(`
+		type xdm_tmp_t;
+	')
+
+	allow $1 xdm_tmp_t:dir search_dir_perms;
+	allow $1 xdm_tmp_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete xdm temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_manage_xdm_tmp_files',`
+	gen_require(`
+		type xdm_tmp_t;
+	')
+
+	manage_files_pattern($1, xdm_tmp_t, xdm_tmp_t)
+')
+
+########################################
+## <summary>
+##	dontaudit getattr xdm temporary named sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_dontaudit_getattr_xdm_tmp_sockets',`
+	gen_require(`
+		type xdm_tmp_t;
+	')
+
+	dontaudit $1 xdm_tmp_t:sock_file getattr_sock_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute the X server in the X server domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_domtrans',`
+	gen_require(`
+		type xserver_t, xserver_exec_t;
+	')
+
+ 	allow $1 xserver_t:process siginh;
+	domtrans_pattern($1, xserver_exec_t, xserver_t)
+')
+
+########################################
+## <summary>
+##	Signal X servers
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_signal',`
+	gen_require(`
+		type xserver_t;
+	')
+
+	allow $1 xserver_t:process signal;
+')
+
+########################################
+## <summary>
+##	Kill X servers
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_kill',`
+	gen_require(`
+		type xserver_t;
+	')
+
+	allow $1 xserver_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Read and write X server Sys V Shared
+##	memory segments.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_rw_shm',`
+	gen_require(`
+		type xserver_t;
+	')
+
+	allow $1 xserver_t:shm rw_shm_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write to
+##	X server sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_dontaudit_rw_tcp_sockets',`
+	gen_require(`
+		type xserver_t;
+	')
+
+	dontaudit $1 xserver_t:tcp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write X server
+##	unix domain stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_dontaudit_rw_stream_sockets',`
+	gen_require(`
+		type xserver_t;
+	')
+
+	dontaudit $1 xserver_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	Connect to the X server over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_stream_connect',`
+	gen_require(`
+		type xserver_t, xserver_tmp_t;
+	')
+
+	files_search_tmp($1)
+	stream_connect_pattern($1, xserver_tmp_t, xserver_tmp_t, xserver_t)
+')
+
+#####################################
+## <summary>
+##  Dontaudit attempts to connect to xserver
+##  over an unix stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain to not audit.
+##  </summary>
+## </param>
+#
+interface(`xserver_dontaudit_stream_connect',`
+    gen_require(`
+        type xserver_t, xserver_tmp_t;
+    ')
+
+    stream_connect_pattern($1, xserver_tmp_t, xserver_tmp_t, xserver_t)
+')
+
+########################################
+## <summary>
+##	Read X server temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_read_tmp_files',`
+	gen_require(`
+		type xserver_tmp_t;
+	')
+
+	allow $1 xserver_tmp_t:file read_file_perms;
+	files_search_tmp($1)
+')
+
+########################################
+## <summary>
+##	Interface to provide X object permissions on a given X server to
+##	an X client domain.  Gives the domain permission to read the
+##	virtual core keyboard and virtual core pointer devices.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_manage_core_devices',`
+	gen_require(`
+		type xserver_t;
+		class x_device all_x_device_perms;
+		class x_pointer all_x_pointer_perms;
+		class x_keyboard all_x_keyboard_perms;
+		class x_screen all_x_screen_perms;
+		class x_drawable { manage };
+		type root_xdrawable_t;
+		attribute x_domain;
+		class x_drawable { read manage setattr show };
+		class x_resource { write read };
+	')
+
+	allow $1 xserver_t:{ x_device x_pointer x_keyboard } *;
+	allow $1 xserver_t:{ x_screen } setattr;
+	
+	allow $1 x_domain:x_drawable { read manage setattr show };
+	allow $1 x_domain:x_resource { write read };
+	allow $1 root_xdrawable_t:x_drawable { manage read };
+')
+
+########################################
+## <summary>
+##	Interface to provide X object permissions on a given X server to
+##	an X client domain.  Gives the domain complete control over the
+##	display.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_unconfined',`
+	gen_require(`
+		attribute x_domain;
+		attribute xserver_unconfined_type;
+	')
+
+	typeattribute $1 x_domain;
+	typeattribute $1 xserver_unconfined_type;
+')
+
+########################################
+## <summary>
+##	Dontaudit append to .xsession-errors file
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_dontaudit_append_xdm_home_files',`
+	gen_require(`
+		type xdm_home_t;
+		type xserver_tmp_t;
+	')
+
+	dontaudit $1 xdm_home_t:file rw_inherited_file_perms;
+	dontaudit $1 xserver_tmp_t:file rw_inherited_file_perms;
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_dontaudit_rw_nfs_files($1)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_dontaudit_rw_cifs_files($1)
+	')
+')
+
+########################################
+## <summary>
+##	append to .xsession-errors file
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_append_xdm_home_files',`
+	gen_require(`
+		type xdm_home_t;
+		type xserver_tmp_t;
+	')
+
+	allow $1 xdm_home_t:file append_file_perms;
+	allow $1 xserver_tmp_t:file append_file_perms;
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_append_nfs_files($1)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_append_cifs_files($1)
+	')
+')
+
+########################################
+## <summary>
+##	Manage the xdm_spool files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_xdm_manage_spool',`
+	gen_require(`
+		type xdm_spool_t;
+	')
+
+	files_search_spool($1)
+	manage_files_pattern($1, xdm_spool_t, xdm_spool_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	xdm over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_dbus_chat_xdm',`
+	gen_require(`
+		type xdm_t;
+		class dbus send_msg;
+	')
+
+	allow $1 xdm_t:dbus send_msg;
+	allow xdm_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Read xserver files created in /var/run
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_read_pid',`
+	gen_require(`
+		type xserver_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, xserver_var_run_t, xserver_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute xserver files created in /var/run
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_exec_pid',`
+	gen_require(`
+		type xserver_var_run_t;
+	')
+
+	files_search_pids($1)
+	exec_files_pattern($1, xserver_var_run_t, xserver_var_run_t)
+')
+
+########################################
+## <summary>
+##	Write xserver files created in /var/run
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_write_pid',`
+	gen_require(`
+		type xserver_var_run_t;
+	')
+
+	files_search_pids($1)
+	write_files_pattern($1, xserver_var_run_t, xserver_var_run_t)
+')
+
+########################################
+## <summary>
+##	Allow append the xdm
+##	log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`xserver_xdm_append_log',`
+	gen_require(`
+		type xdm_log_t;
+		attribute xdmhomewriter;
+	')
+
+	typeattribute $1 xdmhomewriter;
+	append_files_pattern($1, xdm_log_t, xdm_log_t)
+')
+
+########################################
+## <summary>
+##	Read a user Iceauthority domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+template(`xserver_read_user_iceauth',`
+	gen_require(`
+		type iceauth_home_t;
+	')
+
+	# Read .Iceauthority file
+	allow $1 iceauth_home_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read user homedir fonts.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_rw_inherited_user_fonts',`
+	gen_require(`
+		type user_fonts_t;
+		type user_fonts_config_t;
+	')
+
+	allow $1 user_fonts_t:file rw_inherited_file_perms;
+	allow $1 user_fonts_t:file read_lnk_file_perms;
+
+	allow $1 user_fonts_config_t:file rw_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Search XDM var lib dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xserver_search_xdm_lib',`
+	gen_require(`
+		type xdm_var_lib_t;
+	')
+
+	allow $1 xdm_var_lib_t:dir search_dir_perms;
+')
+
+
+########################################
+## <summary>
+##	Make an X executable an entrypoint for the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain for which the shell is an entrypoint.
+##	</summary>
+## </param>
+#
+interface(`xserver_entry_type',`
+	gen_require(`
+		type xserver_exec_t;
+	')
+
+	domain_entry_file($1, xserver_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute xsever in the xserver domain, and
+##	allow the specified role the xserver domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the xserver domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`xserver_run',`
+	gen_require(`
+		type xserver_t;
+	')
+
+	xserver_domtrans($1)
+	role $2 types xserver_t;
+')
+
+########################################
+## <summary>
+##	Execute xsever in the xserver domain, and
+##	allow the specified role the xserver domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the xserver domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`xserver_run_xauth',`
+	gen_require(`
+		type xauth_t;
+	')
+
+	xserver_domtrans_xauth($1)
+	role $2 types xauth_t;
+')
+########################################
+## <summary>
+##	Read user homedir fonts.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`xserver_manage_home_fonts',`
+	gen_require(`
+		type user_fonts_t;
+		type user_fonts_config_t;
+	')
+
+	manage_dirs_pattern($1, user_fonts_t, user_fonts_t)
+	manage_files_pattern($1, user_fonts_t, user_fonts_t)
+	manage_lnk_files_pattern($1, user_fonts_t, user_fonts_t)
+
+	manage_files_pattern($1, user_fonts_config_t, user_fonts_config_t)
+')

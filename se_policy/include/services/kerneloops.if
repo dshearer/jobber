@@ -1,0 +1,115 @@
+## <summary>Service for reporting kernel oopses to kerneloops.org</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run kerneloops.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`kerneloops_domtrans',`
+	gen_require(`
+		type kerneloops_t;
+		type kerneloops_exec_t;
+	')
+
+	domtrans_pattern($1, kerneloops_exec_t, kerneloops_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	kerneloops over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kerneloops_dbus_chat',`
+	gen_require(`
+		type kerneloops_t;
+		class dbus send_msg;
+	')
+
+	allow $1 kerneloops_t:dbus send_msg;
+	allow kerneloops_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	dontaudit attempts to Send and receive messages from
+##	kerneloops over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kerneloops_dontaudit_dbus_chat',`
+	gen_require(`
+		type kerneloops_t;
+		class dbus send_msg;
+	')
+
+	dontaudit $1 kerneloops_t:dbus send_msg;
+	dontaudit kerneloops_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Allow domain to manage kerneloops tmp files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`kerneloops_manage_tmp_files',`
+	gen_require(`
+		type kerneloops_tmp_t;
+	')
+
+	manage_files_pattern($1, kerneloops_tmp_t, kerneloops_tmp_t)
+	files_search_tmp($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an kerneloops environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the kerneloops domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kerneloops_admin',`
+	gen_require(`
+		type kerneloops_t, kerneloops_initrc_exec_t;
+		type kerneloops_tmp_t;
+	')
+
+	allow $1 kerneloops_t:process { ptrace signal_perms };
+	ps_process_pattern($1, kerneloops_t)
+
+	init_labeled_script_domtrans($1, kerneloops_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 kerneloops_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	admin_pattern($1, kerneloops_tmp_t)
+')

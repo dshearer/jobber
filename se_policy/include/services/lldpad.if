@@ -1,0 +1,96 @@
+## <summary>Intel LLDP Agent.</summary>
+
+#######################################
+## <summary>
+##  Transition to lldpad.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`lldpad_domtrans',`
+    gen_require(`
+        type lldpad_t, lldpad_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    domtrans_pattern($1, lldpad_exec_t, lldpad_t)
+')
+
+#######################################
+## <summary>
+##	Send to lldpad with a unix dgram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lldpad_dgram_send',`
+	gen_require(`
+		type lldpad_t, lldpad_var_run_t;
+	')
+
+	files_search_pids($1)
+	dgram_send_pattern($1, lldpad_var_run_t, lldpad_var_run_t, lldpad_t)
+')
+
+#######################################
+## <summary>
+##	Recv to lldpad with a unix dgram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lldpad_dgram_recv',`
+	gen_require(`
+		type lldpad_t, lldpad_var_run_t;
+	')
+
+	files_search_pids($1)
+	dgram_send_pattern(lldpad_t, lldpad_var_run_t, lldpad_var_run_t, $1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an lldpad environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lldpad_admin',`
+	gen_require(`
+		type lldpad_t, lldpad_initrc_exec_t, lldpad_var_lib_t;
+		type lldpad_var_run_t;
+	')
+
+	allow $1 lldpad_t:process { signal_perms };
+	ps_process_pattern($1, lldpad_t)
+
+	init_labeled_script_domtrans($1, lldpad_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 lldpad_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var_lib($1)
+	admin_pattern($1, lldpad_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, lldpad_var_run_t)
+')

@@ -1,0 +1,267 @@
+## <summary>Prelink ELF shared library mappings.</summary>
+
+########################################
+## <summary>
+##	Execute the prelink program in the prelink domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelink_transition_domain_attribute',`
+    gen_require(`
+        attribute prelink_transition_domain;
+    ')
+
+    typeattribute $1 prelink_transition_domain;
+')
+
+########################################
+## <summary>
+##	Execute the prelink program in the prelink domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelink_domtrans_mask',`
+	gen_require(`
+        attribute prelink_transition_domain;
+        type prelink_exec_t, prelink_mask_t;
+	')
+
+    domtrans_pattern({ $1 -prelink_transition_domain }, prelink_exec_t, prelink_mask_t)
+	corecmd_search_bin($1)
+
+    allow $1 prelink_mask_t:process signal;
+
+	ifdef(`hide_broken_symptoms', `
+	        dontaudit prelink_mask_t $1:socket_class_set { read write };
+	        dontaudit prelink_mask_t $1:fifo_file { read write setattr };
+	')
+')
+
+########################################
+## <summary>
+##	Execute the prelink program in the prelink domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelink_role_access_mask',`
+	gen_require(`
+        type prelink_mask_t;
+	')
+    role $1 types prelink_mask_t;
+')
+
+########################################
+## <summary>
+##	Execute the prelink program in the prelink domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelink_domtrans',`
+	gen_require(`
+        attribute prelink_transition_domain;
+		type prelink_t, prelink_exec_t;
+	')
+
+    typeattribute $1 prelink_transition_domain;
+	corecmd_search_bin($1)
+	#domtrans_pattern($1, prelink_exec_t, prelink_t)
+
+	ifdef(`hide_broken_symptoms', `
+	        dontaudit prelink_t $1:socket_class_set { read write };
+	        dontaudit prelink_t $1:fifo_file { read write setattr };
+	')
+')
+
+########################################
+## <summary>
+##	Execute the prelink program in the current domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelink_exec',`
+	gen_require(`
+		type prelink_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, prelink_exec_t)
+')
+
+#######################################
+## <summary>
+##  Getattr the prelink program in the current domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`prelink_exec_getattr',`
+    gen_require(`
+        type prelink_exec_t;
+    ')
+
+	allow $1 prelink_exec_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Execute the prelink program in the prelink domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the prelink domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`prelink_run',`
+	gen_require(`
+		type prelink_t;
+	')
+
+	prelink_domtrans($1)
+	role $2 types prelink_t;
+')
+
+########################################
+## <summary>
+##	Make the specified file type prelinkable.
+## </summary>
+## <param name="file_type">
+##	<summary>
+##	File type to be prelinked.
+##	</summary>
+## </param>
+#
+# cjp: added for misc non-entrypoint objects
+interface(`prelink_object_file',`
+	gen_require(`
+		attribute prelink_object;
+	')
+
+	typeattribute $1 prelink_object;
+')
+
+########################################
+## <summary>
+##	Read the prelink cache.
+## </summary>
+## <param name="file_type">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelink_read_cache',`
+	gen_require(`
+		type prelink_cache_t;
+	')
+
+	files_search_etc($1)
+	allow $1 prelink_cache_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete the prelink cache.
+## </summary>
+## <param name="file_type">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelink_delete_cache',`
+	gen_require(`
+		type prelink_cache_t;
+	')
+
+	allow $1 prelink_cache_t:file unlink;
+	files_rw_etc_dirs($1)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	prelink log files.
+## </summary>
+## <param name="file_type">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelink_manage_log',`
+	gen_require(`
+		type prelink_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_files_pattern($1, prelink_log_t, prelink_log_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	prelink var_lib files.
+## </summary>
+## <param name="file_type">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelink_manage_lib',`
+	gen_require(`
+		type prelink_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, prelink_var_lib_t, prelink_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Relabel from files in the /boot directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`prelink_relabel_lib',`
+	gen_require(`
+		type prelink_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	relabel_files_pattern($1, prelink_var_lib_t, prelink_var_lib_t)
+')

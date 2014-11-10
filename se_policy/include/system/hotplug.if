@@ -1,0 +1,175 @@
+## <summary>
+## Policy for hotplug system, for supporting the
+## connection and disconnection of devices at runtime.
+## </summary>
+
+########################################
+## <summary>
+##	Execute hotplug with a domain transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hotplug_domtrans',`
+	gen_require(`
+		type hotplug_t, hotplug_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, hotplug_exec_t, hotplug_t)
+')
+
+########################################
+## <summary>
+##	Execute hotplug in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hotplug_exec',`
+	gen_require(`
+		type hotplug_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, hotplug_exec_t)
+')
+
+########################################
+## <summary>
+##	Inherit and use hotplug file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hotplug_use_fds',`
+	gen_require(`
+		type hotplug_t;
+	')
+
+	allow $1 hotplug_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to inherit
+##	hotplug file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`hotplug_dontaudit_use_fds',`
+	gen_require(`
+		type hotplug_t;
+	')
+
+	dontaudit $1 hotplug_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search the
+##	hotplug configuration directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`hotplug_dontaudit_search_config',`
+	gen_require(`
+		type hotplug_etc_t;
+	')
+
+	dontaudit $1 hotplug_etc_t:dir search;
+')
+
+########################################
+## <summary>
+##	Get the attributes of the hotplug configuration directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hotplug_getattr_config_dirs',`
+	gen_require(`
+		type hotplug_etc_t;
+	')
+
+	allow $1 hotplug_etc_t:dir getattr;
+')
+
+########################################
+## <summary>
+##	Search the hotplug configuration directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hotplug_search_config',`
+	gen_require(`
+		type hotplug_etc_t;
+	')
+
+	allow $1 hotplug_etc_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read the configuration files for hotplug.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`hotplug_read_config',`
+	gen_require(`
+		type hotplug_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 hotplug_etc_t:dir list_dir_perms;
+	read_files_pattern($1, hotplug_etc_t, hotplug_etc_t)
+	read_lnk_files_pattern($1, hotplug_etc_t, hotplug_etc_t)
+')
+
+########################################
+## <summary>
+##	Search the hotplug PIDs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hotplug_search_pids',`
+	gen_require(`
+		type hotplug_var_run_t;
+	')
+
+	allow $1 hotplug_var_run_t:dir search_dir_perms;
+	files_search_pids($1)
+')

@@ -1,0 +1,320 @@
+## <summary>policy for plymouthd</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run plymouthd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`plymouthd_domtrans', `
+	gen_require(`
+		type plymouthd_t, plymouthd_exec_t;
+	')
+
+	domtrans_pattern($1, plymouthd_exec_t, plymouthd_t)
+')
+
+########################################
+## <summary>
+##	Execute the plymoth daemon in the current domain
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`plymouthd_exec', `
+	gen_require(`
+		type plymouthd_exec_t;
+	')
+
+	can_exec($1, plymouthd_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute the plymoth command in the current domain
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`plymouthd_exec_plymouth', `
+	gen_require(`
+		type plymouth_exec_t;
+	')
+
+	can_exec($1, plymouth_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run plymouthd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`plymouthd_domtrans_plymouth', `
+	gen_require(`
+		type plymouth_t, plymouth_exec_t;
+	')
+
+	domtrans_pattern($1, plymouth_exec_t, plymouth_t)
+')
+
+
+########################################
+## <summary>
+##	Read plymouthd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`plymouthd_read_pid_files', `
+	gen_require(`
+		type plymouthd_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 plymouthd_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage plymouthd var_run files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`plymouthd_manage_var_run', `
+	gen_require(`
+		type plymouthd_var_run_t;
+	')
+
+         manage_dirs_pattern($1, plymouthd_var_run_t, plymouthd_var_run_t)
+         manage_files_pattern($1, plymouthd_var_run_t, plymouthd_var_run_t)
+         manage_lnk_files_pattern($1, plymouthd_var_run_t, plymouthd_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	Search plymouthd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`plymouthd_search_lib', `
+	gen_require(`
+		type plymouthd_var_lib_t;
+	')
+
+	allow $1 plymouthd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read plymouthd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`plymouthd_read_lib_files', `
+	gen_require(`
+		type plymouthd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        read_files_pattern($1, plymouthd_var_lib_t, plymouthd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	plymouthd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`plymouthd_manage_lib_files', `
+	gen_require(`
+		type plymouthd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_files_pattern($1, plymouthd_var_lib_t,  plymouthd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage plymouthd var_lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`plymouthd_manage_var_lib', `
+	gen_require(`
+		type plymouthd_var_lib_t;
+	')
+
+         manage_dirs_pattern($1, plymouthd_var_lib_t, plymouthd_var_lib_t)
+         manage_files_pattern($1, plymouthd_var_lib_t, plymouthd_var_lib_t)
+         manage_lnk_files_pattern($1, plymouthd_var_lib_t, plymouthd_var_lib_t)
+')
+
+
+########################################
+## <summary>
+##	Search plymouthd spool directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`plymouthd_search_spool', `
+	gen_require(`
+		type plymouthd_spool_t;
+	')
+
+	allow $1 plymouthd_spool_t:dir search_dir_perms;
+	files_search_spool($1)
+')
+
+########################################
+## <summary>
+##	Read plymouthd spool files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`plymouthd_read_spool_files', `
+	gen_require(`
+		type plymouthd_spool_t;
+	')
+
+	files_search_spool($1)
+        read_files_pattern($1, plymouthd_spool_t, plymouthd_spool_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	plymouthd spool files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`plymouthd_manage_spool_files', `
+	gen_require(`
+		type plymouthd_spool_t;
+	')
+
+	files_search_spool($1)
+        manage_files_pattern($1, plymouthd_spool_t, plymouthd_spool_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to manage plymouthd spool files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`plymouthd_manage_spool', `
+	gen_require(`
+		type plymouthd_spool_t;
+	')
+
+         manage_dirs_pattern($1, plymouthd_spool_t, plymouthd_spool_t)
+         manage_files_pattern($1, plymouthd_spool_t, plymouthd_spool_t)
+         manage_lnk_files_pattern($1, plymouthd_spool_t, plymouthd_spool_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an plymouthd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`plymouthd_admin', `
+	gen_require(`
+		type plymouthd_t, plymouthd_spool_t, plymouthd_var_lib_t;
+		type plymouthd_var_run_t;
+	')
+
+	allow $1 plymouthd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, plymouthd_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, plymouthd_spool_t)
+
+	admin_pattern($1, plymouthd_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, plymouthd_var_run_t)	
+
+')
+
+########################################
+## <summary>
+##      Allow domain to Stream socket connect
+##	to Plymouth daemon.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`plymouthd_stream_connect', `
+	gen_require(`
+		type plymouthd_t;
+	')
+
+	allow $1 plymouthd_t:unix_stream_socket connectto;
+')

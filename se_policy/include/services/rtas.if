@@ -1,0 +1,131 @@
+
+## <summary>Platform diagnostics report firmware events.</summary>
+
+########################################
+## <summary>
+##	Execute rtas_errd in the rtas_errd domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rtas_errd_domtrans',`
+	gen_require(`
+		type rtas_errd_t, rtas_errd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, rtas_errd_exec_t, rtas_errd_t)
+')
+
+########################################
+## <summary>
+##	Read rtas_errd's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rtas_errd_read_log',`
+	gen_require(`
+		type rtas_errd_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, rtas_errd_log_t, rtas_errd_log_t)
+')
+
+########################################
+## <summary>
+##	Append to rtas_errd log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rtas_errd_append_log',`
+	gen_require(`
+		type rtas_errd_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, rtas_errd_log_t, rtas_errd_log_t)
+')
+
+########################################
+## <summary>
+##	Manage rtas_errd log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rtas_errd_manage_log',`
+	gen_require(`
+		type rtas_errd_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, rtas_errd_log_t, rtas_errd_log_t)
+	manage_files_pattern($1, rtas_errd_log_t, rtas_errd_log_t)
+	manage_lnk_files_pattern($1, rtas_errd_log_t, rtas_errd_log_t)
+')
+
+########################################
+## <summary>
+##	Read rtas_errd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rtas_errd_read_pid_files',`
+	gen_require(`
+		type rtas_errd_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, rtas_errd_var_run_t, rtas_errd_var_run_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an rtas_errd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rtas_errd_admin',`
+	gen_require(`
+		type rtas_errd_t;
+		type rtas_errd_log_t, rtas_errd_var_run_t;
+    	type rtas_errd_unit_file_t;
+	')
+
+	allow $1 rtas_errd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, rtas_errd_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, rtas_errd_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, rtas_errd_var_run_t)
+
+	admin_pattern($1, rtas_errd_unit_file_t)
+	allow $1 rtas_errd_unit_file_t:service all_service_perms;
+')

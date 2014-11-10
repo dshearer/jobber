@@ -1,0 +1,232 @@
+## <summary>Squid caching http proxy server</summary>
+
+########################################
+## <summary>
+##	Execute squid in the squid domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`squid_domtrans',`
+	gen_require(`
+		type squid_t, squid_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, squid_exec_t, squid_t)
+')
+
+########################################
+## <summary>
+##	Execute squid 
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`squid_exec',`
+	gen_require(`
+		type squid_exec_t;
+	')
+
+	can_exec($1, squid_exec_t)
+')
+
+########################################
+## <summary>
+##	Send generic signals to squid.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`squid_signal',`
+	gen_require(`
+		type squid_t;
+	')
+
+	allow $1 squid_t:process signal;
+')
+
+########################################
+## <summary>
+##	Allow read and write squid
+##	unix domain stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`squid_rw_stream_sockets',`
+	gen_require(`
+		type squid_t;
+	')
+
+	allow $1 squid_t:unix_stream_socket rw_socket_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search squid cache dirs
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`squid_dontaudit_search_cache',`
+	gen_require(`
+		type squid_cache_t;
+	')
+
+	dontaudit $1 squid_cache_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read squid configuration file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`squid_read_config',`
+	gen_require(`
+		type squid_conf_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, squid_conf_t, squid_conf_t)
+')
+
+########################################
+## <summary>
+##	Append squid logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`squid_read_log',`
+	gen_require(`
+		type squid_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, squid_log_t, squid_log_t)
+')
+
+########################################
+## <summary>
+##	Append squid logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`squid_append_log',`
+	gen_require(`
+		type squid_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, squid_log_t, squid_log_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	squid logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`squid_manage_logs',`
+	gen_require(`
+		type squid_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_files_pattern($1, squid_log_t, squid_log_t)
+')
+
+########################################
+## <summary>
+##	Use squid services by connecting over TCP.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`squid_use',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an squid environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the squid domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`squid_admin',`
+	gen_require(`
+		type squid_t, squid_cache_t, squid_conf_t;
+		type squid_log_t, squid_var_run_t;
+		type squid_initrc_exec_t;
+	')
+
+	allow $1 squid_t:process { ptrace signal_perms };
+	ps_process_pattern($1, squid_t)
+
+	init_labeled_script_domtrans($1, squid_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 squid_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_var($1)
+	admin_pattern($1, squid_cache_t)
+
+	files_list_etc($1)
+	admin_pattern($1, squid_conf_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, squid_log_t)
+
+	files_list_pids($1)
+	admin_pattern($1, squid_var_run_t)
+')

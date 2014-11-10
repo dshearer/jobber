@@ -1,0 +1,369 @@
+## <summary>TCP/IP encryption</summary>
+
+########################################
+## <summary>
+##	Execute ipsec in the ipsec domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ipsec_domtrans',`
+	gen_require(`
+		type ipsec_t, ipsec_exec_t;
+	')
+
+	domtrans_pattern($1, ipsec_exec_t, ipsec_t)
+')
+
+#######################################
+## <summary>
+##  Execute ipsec in the ipsec_mgmt domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The type of the process performing this action.
+##  </summary>
+## </param>
+#
+interface(`ipsec_domtrans_mgmt',`
+	gen_require(`
+        type ipsec_mgmt_t, ipsec_mgmt_exec_t;
+    ')
+
+    domtrans_pattern($1, ipsec_mgmt_exec_t, ipsec_mgmt_t)
+')
+
+########################################
+## <summary>
+##	Connect to IPSEC using a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ipsec_stream_connect',`
+	gen_require(`
+		type ipsec_t, ipsec_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, ipsec_var_run_t, ipsec_var_run_t, ipsec_t)
+')
+
+########################################
+## <summary>
+##	Connect to racoon using a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ipsec_stream_connect_racoon',`
+	gen_require(`
+		type racoon_t, ipsec_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, ipsec_var_run_t, ipsec_var_run_t, racoon_t)
+')
+
+########################################
+## <summary>
+##	Get the attributes of an IPSEC key socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ipsec_getattr_key_sockets',`
+	gen_require(`
+		type ipsec_t;
+	')
+
+	allow $1 ipsec_t:key_socket getattr;
+')
+
+########################################
+## <summary>
+##	Execute the IPSEC management program in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ipsec_exec_mgmt',`
+	gen_require(`
+		type ipsec_exec_t;
+	')
+
+	can_exec($1, ipsec_exec_t)
+')
+
+########################################
+## <summary>
+##	Read the IPSEC configuration
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ipsec_read_config',`
+	gen_require(`
+		type ipsec_conf_file_t;
+	')
+
+	files_search_etc($1)
+	allow $1 ipsec_conf_file_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Match the default SPD entry.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ipsec_match_default_spd',`
+	gen_require(`
+		type ipsec_spd_t;
+	')
+
+	allow $1 ipsec_spd_t:association polmatch;
+	allow $1 self:association sendto;
+	allow $1 self:peer recv;
+')
+
+########################################
+## <summary>
+##	Set the context of a SPD entry to
+##	the default context.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ipsec_setcontext_default_spd',`
+	gen_require(`
+		type ipsec_spd_t;
+	')
+
+	allow $1 ipsec_spd_t:association setcontext;
+')
+
+########################################
+## <summary>
+##	write the ipsec_var_run_t files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ipsec_write_pid',`
+	gen_require(`
+		type ipsec_var_run_t;
+	')
+
+	files_search_pids($1)
+	write_files_pattern($1, ipsec_var_run_t, ipsec_var_run_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the IPSEC pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ipsec_manage_pid',`
+	gen_require(`
+		type ipsec_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, ipsec_var_run_t, ipsec_var_run_t)
+')
+
+########################################
+## <summary>
+##	Execute racoon in the racoon domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ipsec_domtrans_racoon',`
+	gen_require(`
+		type racoon_t, racoon_exec_t;
+	')
+
+	domtrans_pattern($1, racoon_exec_t, racoon_t)
+')
+
+########################################
+## <summary>
+##	Execute racoon and allow the specified role the domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ipsec_run_racoon',`
+	gen_require(`
+		type racoon_t;
+	')
+
+	ipsec_domtrans_racoon($1)
+	role $2 types racoon_t;
+')
+
+########################################
+## <summary>
+##	Execute setkey in the setkey domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ipsec_domtrans_setkey',`
+	gen_require(`
+		type setkey_t, setkey_exec_t;
+	')
+
+	domtrans_pattern($1, setkey_exec_t, setkey_t)
+')
+
+########################################
+## <summary>
+##	Execute setkey and allow the specified role the domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the racoon and setkey domains.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ipsec_run_setkey',`
+	gen_require(`
+		type setkey_t;
+	')
+
+	ipsec_domtrans_setkey($1)
+	role $2 types setkey_t;
+')
+
+#######################################
+## <summary>
+##  Send the kill signal to ipsec-mgmt
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ipsec_mgmt_kill',`
+    gen_require(`
+        type ipsec_mgmt_t;
+    ')
+
+    allow $1 ipsec_mgmt_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Send a generic signal to ipsec-mgmt
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ipsec_mgmt_signal',`
+	gen_require(`
+		type ipsec_mgmt_t;
+	')
+
+	allow $1 ipsec_mgmt_t:process signal;
+')
+
+########################################
+## <summary>
+##  Send a generic signull to ipsec-mgmt.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ipsec_mgmt_signull',`
+    gen_require(`
+        type ipsec_mgmt_t;
+    ')
+
+    allow $1 ipsec_mgmt_t:process signull;
+')
+
+#######################################
+## <summary>
+##      Send and receive messages from
+##      ipsec-mgmt over dbus.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`ipsec_mgmt_dbus_chat',`
+        gen_require(`
+                type ipsec_mgmt_t;
+                class dbus send_msg;
+        ')
+
+        allow $1 ipsec_mgmt_t:dbus send_msg;
+        allow ipsec_mgmt_t $1:dbus send_msg;
+')

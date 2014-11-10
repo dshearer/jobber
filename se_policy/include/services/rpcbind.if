@@ -1,0 +1,153 @@
+## <summary>Universal Addresses to RPC Program Number Mapper</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run rpcbind.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rpcbind_domtrans',`
+	gen_require(`
+		type rpcbind_t, rpcbind_exec_t;
+	')
+
+	domtrans_pattern($1, rpcbind_exec_t, rpcbind_t)
+')
+
+########################################
+## <summary>
+##	Connect to rpcbindd over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpcbind_stream_connect',`
+	gen_require(`
+		type rpcbind_t, rpcbind_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, rpcbind_var_run_t, rpcbind_var_run_t, rpcbind_t)
+')
+
+########################################
+## <summary>
+##	Read rpcbind PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpcbind_read_pid_files',`
+	gen_require(`
+		type rpcbind_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 rpcbind_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Search rpcbind lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpcbind_search_lib',`
+	gen_require(`
+		type rpcbind_var_lib_t;
+	')
+
+	allow $1 rpcbind_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read rpcbind lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpcbind_read_lib_files',`
+	gen_require(`
+		type rpcbind_var_lib_t;
+	')
+
+	read_files_pattern($1, rpcbind_var_lib_t, rpcbind_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	rpcbind lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpcbind_manage_lib_files',`
+	gen_require(`
+		type rpcbind_var_lib_t;
+	')
+
+	manage_files_pattern($1, rpcbind_var_lib_t, rpcbind_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an rpcbind environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the rpcbind domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rpcbind_admin',`
+	gen_require(`
+		type rpcbind_t, rpcbind_var_lib_t, rpcbind_var_run_t;
+		type rpcbind_initrc_exec_t;
+	')
+
+	allow $1 rpcbind_t:process { ptrace signal_perms };
+	ps_process_pattern($1, rpcbind_t)
+
+	init_labeled_script_domtrans($1, rpcbind_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 rpcbind_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var_lib($1)
+	admin_pattern($1, rpcbind_var_lib_t)
+	
+	files_search_pids($1)
+	admin_pattern($1, rpcbind_var_run_t)
+')

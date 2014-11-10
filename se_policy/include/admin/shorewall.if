@@ -1,0 +1,160 @@
+## <summary>Shoreline Firewall high-level tool for configuring netfilter</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run shorewall.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`shorewall_domtrans',`
+	gen_require(`
+		type shorewall_t, shorewall_exec_t;
+	')
+
+	domtrans_pattern($1, shorewall_exec_t, shorewall_t)
+')
+
+#####################################
+## <summary>
+##      Execute a domain transition to run shorewall.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`shorewall_domtrans_lib',`
+        gen_require(`
+                type shorewall_t, shorewall_var_lib_t;
+        ')
+
+        domtrans_pattern($1, shorewall_var_lib_t, shorewall_t)
+')
+
+#######################################
+## <summary>
+##	Read shorewall etc configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`shorewall_read_config',`
+	gen_require(`
+		type shorewall_etc_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, shorewall_etc_t, shorewall_etc_t)
+')
+
+######################################
+## <summary>
+##      Read shorewall /var/lib files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`shorewall_read_lib_files',`
+        gen_require(`
+                type shorewall_var_lib_t;
+       ')
+
+        files_search_var_lib($1)
+        search_dirs_pattern($1, shorewall_var_lib_t, shorewall_var_lib_t)
+        read_files_pattern($1, shorewall_var_lib_t, shorewall_var_lib_t)
+')
+
+#######################################
+## <summary>
+##      Read and write shorewall /var/lib files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`shorewall_rw_lib_files',`
+        gen_require(`
+                type shorewall_var_lib_t;
+       ')
+
+        files_search_var_lib($1)
+        search_dirs_pattern($1, shorewall_var_lib_t, shorewall_var_lib_t)
+        rw_files_pattern($1, shorewall_var_lib_t, shorewall_var_lib_t)
+')
+
+######################################
+## <summary>
+##      Read shorewall tmp files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`shorewall_read_tmp_files',`
+        gen_require(`
+                type shorewall_tmp_t;
+        ')
+
+        files_search_tmp($1)
+        read_files_pattern($1, shorewall_tmp_t, shorewall_tmp_t)
+')
+
+#######################################
+## <summary>
+##	All of the rules required to administrate 
+##	an shorewall environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the syslog domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`shorewall_admin',`
+	gen_require(`
+		type shorewall_t, shorewall_lock_t;
+		type shorewall_initrc_exec_t, shorewall_var_lib_t;
+		type shorewall_tmp_t, shorewall_etc_t;
+	')
+
+	allow $1 shorewall_t:process { ptrace signal_perms };
+	ps_process_pattern($1, shorewall_t)
+
+	init_labeled_script_domtrans($1, shorewall_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 shorewall_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, shorewall_etc_t)
+
+	files_search_locks($1)
+	admin_pattern($1, shorewall_lock_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, shorewall_var_lib_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, shorewall_tmp_t)
+')

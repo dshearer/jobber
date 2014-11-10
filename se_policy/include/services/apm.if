@@ -1,0 +1,113 @@
+## <summary>Advanced power management daemon</summary>
+
+########################################
+## <summary>
+##	Execute APM in the apm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apm_domtrans_client',`
+	gen_require(`
+		type apm_t, apm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, apm_exec_t, apm_t)
+')
+
+########################################
+## <summary>
+##	Use file descriptors for apmd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`apm_use_fds',`
+	gen_require(`
+		type apmd_t;
+	')
+
+	allow $1 apmd_t:fd use; 
+')
+
+########################################
+## <summary>
+##	Write to apmd unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`apm_write_pipes',`
+	gen_require(`
+		type apmd_t;
+	')
+
+	allow $1 apmd_t:fifo_file write; 
+')
+
+########################################
+## <summary>
+##	Read and write to an apm unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apm_rw_stream_sockets',`
+	gen_require(`
+		type apmd_t;
+	')
+
+	allow $1 apmd_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	Append to apm's log file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apm_append_log',`
+	gen_require(`
+		type apmd_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 apmd_log_t:file append;
+')
+
+########################################
+## <summary>
+##	Connect to apmd over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apm_stream_connect',`
+	gen_require(`
+		type apmd_t, apmd_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 apmd_var_run_t:sock_file write;
+	allow $1 apmd_t:unix_stream_socket connectto;
+')

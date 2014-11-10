@@ -1,0 +1,181 @@
+## <summary>Policy for logical volume management programs.</summary>
+
+########################################
+## <summary>
+##	Execute lvm programs in the lvm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`lvm_domtrans',`
+	gen_require(`
+		type lvm_t, lvm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, lvm_exec_t, lvm_t)
+')
+
+########################################
+## <summary>
+##	Execute lvm programs in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`lvm_exec',`
+	gen_require(`
+		type lvm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, lvm_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute lvm programs in the lvm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the LVM domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lvm_run',`
+	gen_require(`
+		type lvm_t;
+	')
+
+	lvm_domtrans($1)
+	role $2 types lvm_t;
+')
+
+########################################
+## <summary>
+##	Read LVM configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lvm_read_config',`
+	gen_require(`
+		type lvm_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 lvm_etc_t:dir list_dir_perms;
+	read_files_pattern($1, lvm_etc_t, lvm_etc_t)
+')
+
+########################################
+## <summary>
+##	Manage LVM configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lvm_manage_config',`
+	gen_require(`
+		type lvm_etc_t;
+	')
+
+	files_search_etc($1)
+	manage_dirs_pattern($1, lvm_etc_t, lvm_etc_t)
+	manage_files_pattern($1, lvm_etc_t, lvm_etc_t)
+')
+
+######################################
+## <summary>
+##	Execute a domain transition to run clvmd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`lvm_domtrans_clvmd',`
+	gen_require(`
+		type clvmd_t, clvmd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, clvmd_exec_t, clvmd_t)
+')
+
+######################################
+## <summary>
+## Read and write to clvmd temporary file system.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`lvm_rw_clvmd_tmpfs_files',`
+        gen_require(`
+                type clvmd_tmpfs_t;
+        ')
+
+        allow $1 clvmd_tmpfs_t:file rw_file_perms;
+        allow $1 clvmd_tmpfs_t:file unlink;
+')
+
+########################################
+## <summary>
+##     Delete lvm temporary file system.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`lvm_delete_clvmd_tmpfs_files',`
+       gen_require(`
+               type clvmd_tmpfs_t;
+       ')
+
+       allow $1 clvmd_tmpfs_t:file unlink;
+')
+
+#######################################
+## <summary>
+##  Send a message to lvm over the 
+##  datagram socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`lvm_dgram_send',`
+    gen_require(`
+        type lvm_t;
+    ')
+
+    allow $1 lvm_t:unix_dgram_socket sendto;
+')

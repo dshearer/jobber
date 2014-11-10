@@ -1,0 +1,86 @@
+## <summary>Gnome clock handler for setting the time.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run gnomeclock.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`gnomeclock_domtrans',`
+	gen_require(`
+		type gnomeclock_t, gnomeclock_exec_t;
+	')
+
+	domtrans_pattern($1, gnomeclock_exec_t, gnomeclock_t)
+')
+
+########################################
+## <summary>
+##	Execute gnomeclock in the gnomeclock domain, and
+##	allow the specified role the gnomeclock domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the gnomeclock domain.
+##	</summary>
+## </param>
+#
+interface(`gnomeclock_run',`
+	gen_require(`
+		type gnomeclock_t;
+	')
+
+	gnomeclock_domtrans($1)
+	role $2 types gnomeclock_t;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	gnomeclock over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gnomeclock_dbus_chat',`
+	gen_require(`
+		type gnomeclock_t;
+		class dbus send_msg;
+	')
+
+	allow $1 gnomeclock_t:dbus send_msg;
+	allow gnomeclock_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Do not audit send and receive messages from
+##	gnomeclock over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gnomeclock_dontaudit_dbus_chat',`
+	gen_require(`
+		type gnomeclock_t;
+		class dbus send_msg;
+	')
+
+	dontaudit $1 gnomeclock_t:dbus send_msg;
+	dontaudit gnomeclock_t $1:dbus send_msg;
+')

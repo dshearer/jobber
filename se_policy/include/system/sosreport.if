@@ -1,0 +1,131 @@
+
+## <summary>policy for sosreport</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run sosreport.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`sosreport_domtrans',`
+	gen_require(`
+		type sosreport_t, sosreport_exec_t;
+	')
+
+	domtrans_pattern($1, sosreport_exec_t, sosreport_t)
+')
+
+
+########################################
+## <summary>
+##	Execute sosreport in the sosreport domain, and
+##	allow the specified role the sosreport domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the sosreport domain.
+##	</summary>
+## </param>
+#
+interface(`sosreport_run',`
+	gen_require(`
+		type sosreport_t;
+	')
+
+	sosreport_domtrans($1)
+	role $2 types sosreport_t;
+')
+
+########################################
+## <summary>
+##	Role access for sosreport
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`sosreport_role',`
+	gen_require(`
+              type sosreport_t;
+	')
+
+	role $1 types sosreport_t;
+
+	sosreport_domtrans($2)
+
+	ps_process_pattern($2, sosreport_t)
+	allow $2 sosreport_t:process signal;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read
+##	sosreport tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sosreport_read_tmp_files',`
+	gen_require(`
+		type sosreport_tmp_t;
+	')
+
+	files_search_tmp($1)
+	read_files_pattern($1, sosreport_tmp_t, sosreport_tmp_t)
+')
+
+########################################
+## <summary>
+##	Delete sosreport tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sosreport_delete_tmp_files',`
+	gen_require(`
+		type sosreport_tmp_t;
+	')
+
+	files_delete_tmp_dir_entry($1)
+	delete_files_pattern($1, sosreport_tmp_t, sosreport_tmp_t)
+')
+
+########################################
+## <summary>
+##	Append sosreport tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`sosreport_append_tmp_files',`
+	gen_require(`
+		type sosreport_tmp_t;
+	')
+
+	allow $1 sosreport_tmp_t:file append;
+')

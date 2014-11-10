@@ -1,0 +1,85 @@
+
+## <summary>policy for fcoemon</summary>
+
+########################################
+## <summary>
+##	Transition to fcoemon.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`fcoemon_domtrans',`
+	gen_require(`
+		type fcoemon_t, fcoemon_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, fcoemon_exec_t, fcoemon_t)
+')
+
+
+########################################
+## <summary>
+##	Read fcoemon PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fcoemon_read_pid_files',`
+	gen_require(`
+		type fcoemon_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 fcoemon_var_run_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##      Send to a fcoemon unix dgram socket.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`fcoemon_dgram_send',`
+        gen_require(`
+                type fcoemon_t;
+        ')
+
+        allow $1 fcoemon_t:unix_dgram_socket sendto;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an fcoemon environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`fcoemon_admin',`
+	gen_require(`
+		type fcoemon_t;
+	type fcoemon_var_run_t;
+	')
+
+	allow $1 fcoemon_t:process { ptrace signal_perms };
+	ps_process_pattern($1, fcoemon_t)
+
+	files_search_pids($1)
+	admin_pattern($1, fcoemon_var_run_t)
+
+')
+

@@ -1,0 +1,81 @@
+## <summary>General Purpose Mouse driver</summary>
+
+########################################
+## <summary>
+##	Connect to GPM over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gpm_stream_connect',`
+	gen_require(`
+		type gpmctl_t, gpm_t;
+	')
+
+	allow $1 gpmctl_t:sock_file rw_sock_file_perms;
+	allow $1 gpm_t:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Get the attributes of the GPM
+##	control channel named socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gpm_getattr_gpmctl',`
+	gen_require(`
+		type gpmctl_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	allow $1 gpmctl_t:sock_file getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the 
+##	attributes of the GPM control channel
+##	named socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gpm_dontaudit_getattr_gpmctl',`
+	gen_require(`
+		type gpmctl_t;
+	')
+
+	dontaudit $1 gpmctl_t:sock_file getattr;
+')
+
+########################################
+## <summary>
+##	Set the attributes of the GPM
+##	control channel named socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gpm_setattr_gpmctl',`
+	gen_require(`
+		type gpmctl_t;
+	')
+
+	dev_list_all_dev_nodes($1)
+	allow $1 gpmctl_t:sock_file setattr;
+')

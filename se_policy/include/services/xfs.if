@@ -1,0 +1,59 @@
+## <summary>X Windows Font Server</summary>
+
+########################################
+## <summary>
+##	Read a X font server named socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xfs_read_sockets',`
+	gen_require(`
+		type xfs_tmp_t;
+	')
+
+	files_search_tmp($1)
+	read_sock_files_pattern($1, xfs_tmp_t, xfs_tmp_t)
+')
+
+########################################
+## <summary>
+##	Connect to a X font server over
+##	a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xfs_stream_connect',`
+	gen_require(`
+		type xfs_tmp_t, xfs_t;
+	')
+
+	files_search_tmp($1)
+	stream_connect_pattern($1, xfs_tmp_t, xfs_tmp_t, xfs_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to execute xfs
+##	in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xfs_exec',`
+	gen_require(`
+		type xfs_exec_t;
+	')
+
+	can_exec($1, xfs_exec_t)
+')

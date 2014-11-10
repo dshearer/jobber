@@ -1,0 +1,157 @@
+
+## <summary>Client-side service written in Python that responds to pings and runs rhn_check when told to by osa-dispatcher. </summary>
+
+########################################
+## <summary>
+##	Execute osad in the osad domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`osad_domtrans',`
+	gen_require(`
+		type osad_t, osad_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, osad_exec_t, osad_t)
+')
+
+########################################
+## <summary>
+##	Execute osad server in the osad domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`osad_initrc_domtrans',`
+	gen_require(`
+		type osad_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, osad_initrc_exec_t)
+')
+########################################
+## <summary>
+##	Read osad's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`osad_read_log',`
+	gen_require(`
+		type osad_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, osad_log_t, osad_log_t)
+')
+
+########################################
+## <summary>
+##	Append to osad log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`osad_append_log',`
+	gen_require(`
+		type osad_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, osad_log_t, osad_log_t)
+')
+
+########################################
+## <summary>
+##	Manage osad log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`osad_manage_log',`
+	gen_require(`
+		type osad_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, osad_log_t, osad_log_t)
+	manage_files_pattern($1, osad_log_t, osad_log_t)
+	manage_lnk_files_pattern($1, osad_log_t, osad_log_t)
+')
+########################################
+## <summary>
+##	Read osad PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`osad_read_pid_files',`
+	gen_require(`
+		type osad_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, osad_var_run_t, osad_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an osad environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`osad_admin',`
+	gen_require(`
+		type osad_t;
+		type osad_initrc_exec_t;
+		type osad_log_t;
+		type osad_var_run_t;
+	')
+
+	allow $1 osad_t:process { signal_perms };
+	ps_process_pattern($1, osad_t)
+
+	osad_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 osad_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, osad_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, osad_var_run_t)
+')

@@ -1,0 +1,397 @@
+## <summary>Policy for NIS (YP) servers and clients</summary>
+
+########################################
+## <summary>
+##	Use the ypbind service to access NIS services
+##	unconditionally.
+## </summary>
+## <desc>
+##	<p>
+##	Use the ypbind service to access NIS services
+##	unconditionally.
+##	</p>
+##	<p>
+##	This interface was added because of apache and
+##	spamassassin, to fix a nested conditionals problem.
+##	When that support is added, this should be removed,
+##	and the regular	interface should be used.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`nis_use_ypbind_uncond',`
+	gen_require(`
+		type var_yp_t;
+	')
+
+	allow $1 self:capability net_bind_service;
+
+	allow $1 self:tcp_socket create_stream_socket_perms;
+	allow $1 self:udp_socket create_socket_perms;
+
+	allow $1 var_yp_t:dir list_dir_perms;
+	allow $1 var_yp_t:lnk_file { getattr read };
+	allow $1 var_yp_t:file read_file_perms;
+
+	corenet_all_recvfrom_unlabeled($1)
+    corenet_all_recvfrom_netlabel($1)
+    corenet_tcp_sendrecv_generic_if($1)
+    corenet_udp_sendrecv_generic_if($1)
+    corenet_tcp_sendrecv_generic_node($1)
+    corenet_udp_sendrecv_generic_node($1)
+    corenet_tcp_sendrecv_all_ports($1)
+    corenet_udp_sendrecv_all_ports($1)
+    corenet_tcp_bind_generic_node($1)
+    corenet_udp_bind_generic_node($1)
+    corenet_tcp_bind_generic_port($1)
+    corenet_udp_bind_generic_port($1)
+    corenet_tcp_bind_all_rpc_ports($1)
+    corenet_udp_bind_all_rpc_ports($1)
+    corenet_dontaudit_tcp_bind_all_ports($1)
+    corenet_dontaudit_udp_bind_all_ports($1)
+    corenet_tcp_connect_portmap_port($1)
+    corenet_tcp_connect_all_reserved_ports($1)
+    corenet_tcp_connect_generic_port($1)
+	# Attempt to see if this is actually needed
+    # corenet_dontaudit_tcp_connect_all_ports($1)
+    corenet_sendrecv_portmap_client_packets($1)
+    corenet_sendrecv_generic_client_packets($1)
+	corenet_sendrecv_generic_server_packets($1)
+
+	sysnet_read_config($1)
+')
+
+########################################
+## <summary>
+##	Use the ypbind service to access NIS services.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to use the ypbind service
+##	to access Network Information Service (NIS) services.
+##	Information that can be retreived from NIS includes
+##	usernames, passwords, home directories, and groups.
+##	If the network is configured to have a single sign-on
+##	using NIS, it is likely that any program that does
+##	authentication will need this access.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="both" weight="10"/>
+## <rolecap/>
+#
+interface(`nis_use_ypbind',`
+	tunable_policy(`allow_ypbind',`
+		nis_use_ypbind_uncond($1)
+	')
+')
+
+########################################
+## <summary>
+##	Use the nis to authenticate passwords
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`nis_authenticate',`
+	tunable_policy(`allow_ypbind',`
+		nis_use_ypbind_uncond($1)
+		corenet_tcp_bind_all_rpc_ports($1)
+		corenet_udp_bind_all_rpc_ports($1)
+	')
+')
+
+########################################
+## <summary>
+##	Execute ypbind in the ypbind domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_domtrans_ypbind',`
+	gen_require(`
+		type ypbind_t, ypbind_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ypbind_exec_t, ypbind_t)
+')
+
+########################################
+## <summary>
+##	Execute ypbind in the ypbind domain, and
+##	allow the specified role the ypbind domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the ypbind domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`nis_run_ypbind',`
+	gen_require(`
+		type ypbind_t;
+	')
+
+	nis_domtrans_ypbind($1)
+	role $2 types ypbind_t;
+')
+
+########################################
+## <summary>
+##	Send generic signals to ypbind.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_signal_ypbind',`
+	gen_require(`
+		type ypbind_t;
+	')
+
+	allow $1 ypbind_t:process signal;
+')
+
+########################################
+## <summary>
+##	List the contents of the NIS data directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_list_var_yp',`
+	gen_require(`
+		type var_yp_t;
+	')
+
+	files_search_var($1)
+	allow $1 var_yp_t:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic to NIS clients.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_udp_send_ypbind',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Connect to ypbind over TCP.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_tcp_connect_ypbind',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Read ypbind pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_read_ypbind_pid',`
+	gen_require(`
+		type ypbind_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 ypbind_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete ypbind pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_delete_ypbind_pid',`
+	gen_require(`
+		type ypbind_t;
+	')
+
+	# TODO: add delete pid from dir call to files
+	allow $1 ypbind_t:file unlink;
+')
+
+########################################
+## <summary>
+##	Read ypserv configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_read_ypserv_config',`
+	gen_require(`
+		type ypserv_conf_t;
+	')
+
+	files_search_etc($1)
+	allow $1 ypserv_conf_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute ypxfr in the ypxfr domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_domtrans_ypxfr',`
+	gen_require(`
+		type ypxfr_t, ypxfr_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ypxfr_exec_t, ypxfr_t)
+')
+
+########################################
+## <summary>
+##	Execute nis server in the nis domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+#
+interface(`nis_initrc_domtrans',`
+	gen_require(`
+		type nis_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, nis_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute nis server in the nis domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nis_initrc_domtrans_ypbind',`
+	gen_require(`
+		type ypbind_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, ypbind_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an nis environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`nis_admin',`
+	gen_require(`
+		type ypbind_t, yppasswdd_t, ypserv_t, ypxfr_t;
+		type ypbind_tmp_t, ypserv_tmp_t, ypserv_conf_t;
+		type ypbind_var_run_t, yppasswdd_var_run_t, ypserv_var_run_t;
+		type ypbind_initrc_exec_t, nis_initrc_exec_t;
+	')
+
+	allow $1 ypbind_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ypbind_t)
+
+	allow $1 yppasswdd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, yppasswdd_t)
+
+	allow $1 ypserv_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ypserv_t)
+
+	allow $1 ypxfr_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ypxfr_t)
+
+	nis_initrc_domtrans($1)
+	nis_initrc_domtrans_ypbind($1)
+	domain_system_change_exemption($1)
+	role_transition $2 nis_initrc_exec_t system_r;
+	role_transition $2 ypbind_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_tmp($1)
+	admin_pattern($1, ypbind_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, ypbind_var_run_t)
+
+	admin_pattern($1, yppasswdd_var_run_t)
+
+	files_list_etc($1)
+	admin_pattern($1, ypserv_conf_t)
+
+	admin_pattern($1, ypserv_tmp_t)
+
+	admin_pattern($1, ypserv_var_run_t)
+')

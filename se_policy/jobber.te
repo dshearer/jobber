@@ -1,0 +1,26 @@
+
+policy_module(jobber,0.1.0)
+require {
+    type crond_t;
+    type initrc_t;
+    type unconfined_t;
+    role unconfined_r;
+    attribute file_type;
+    attribute exec_type;
+}
+
+########################################
+#
+# Declarations
+#
+
+type jobberd_exec_t, file_type, exec_type;
+
+########################################
+#
+# jobber local policy
+#
+domain_auto_trans(initrc_t, jobberd_exec_t, crond_t)
+domain_auto_trans(unconfined_t, jobberd_exec_t, crond_t)
+role_transition unconfined_r jobberd_exec_t system_r;
+

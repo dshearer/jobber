@@ -1,0 +1,70 @@
+## <summary>
+##	Determine of the console connected to the controlling terminal.
+## </summary>
+
+########################################
+## <summary>
+##	Execute consoletype in the consoletype domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`consoletype_domtrans',`
+	gen_require(`
+		type consoletype_t, consoletype_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, consoletype_exec_t, consoletype_t)
+	ifdef(`hide_broken_symptoms', `
+	        dontaudit consoletype_t $1:socket_class_set { read write };
+	')
+')
+
+########################################
+## <summary>
+##	Execute consoletype in the consoletype domain, and
+##	allow the specified role the consoletype domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the consoletype domain.
+##	</summary>
+## </param>
+#
+interface(`consoletype_run',`
+	gen_require(`
+		type consoletype_t;
+	')
+
+	consoletype_domtrans($1)
+	role $2 types consoletype_t;
+')
+
+########################################
+## <summary>
+##	Execute consoletype in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`consoletype_exec',`
+	gen_require(`
+		type consoletype_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, consoletype_exec_t)
+')

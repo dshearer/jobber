@@ -1,0 +1,59 @@
+## <summary>Bitlbee service</summary>
+
+########################################
+## <summary>
+##	Read bitlbee configuration files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	 Domain allowed accesss.
+##	</summary>
+## </param>
+#
+interface(`bitlbee_read_config',`
+	gen_require(`
+		type bitlbee_conf_t;
+	')
+
+	files_search_etc($1)
+	allow $1 bitlbee_conf_t:dir list_dir_perms;
+	allow $1 bitlbee_conf_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an bitlbee environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the bitlbee domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`bitlbee_admin',`
+	gen_require(`
+		type bitlbee_t, bitlbee_conf_t, bitlbee_var_t;
+		type bitlbee_initrc_exec_t;
+	')
+
+	allow $1 bitlbee_t:process { ptrace signal_perms };
+	ps_process_pattern($1, bitlbee_t)
+
+	init_labeled_script_domtrans($1, bitlbee_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 bitlbee_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, bitlbee_conf_t)
+
+	files_list_var($1)
+	admin_pattern($1, bitlbee_var_t)
+')

@@ -1,0 +1,181 @@
+## <summary>Zarafa collaboration platform.</summary>
+
+######################################
+## <summary>
+##	Creates types and rules for a basic
+##	zararfa init daemon domain.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
+## </param>
+#
+template(`zarafa_domain_template',`
+	gen_require(`
+		attribute zarafa_domain;
+	')
+
+	##############################
+	#
+	# $1_t declarations
+	#
+
+	type zarafa_$1_t, zarafa_domain;
+	type zarafa_$1_exec_t;
+	init_daemon_domain(zarafa_$1_t, zarafa_$1_exec_t)
+
+	type zarafa_$1_log_t;
+	logging_log_file(zarafa_$1_log_t)
+
+	type zarafa_$1_var_run_t;
+	files_pid_file(zarafa_$1_var_run_t)
+
+	##############################
+	#
+	# $1_t local policy
+	#
+
+	manage_files_pattern(zarafa_$1_t, zarafa_$1_var_run_t, zarafa_$1_var_run_t)
+	manage_sock_files_pattern(zarafa_$1_t, zarafa_$1_var_run_t, zarafa_$1_var_run_t)
+	files_pid_filetrans(zarafa_$1_t, zarafa_$1_var_run_t, { file sock_file })
+
+	manage_files_pattern(zarafa_$1_t, zarafa_$1_log_t, zarafa_$1_log_t)
+	logging_log_filetrans(zarafa_$1_t, zarafa_$1_log_t, { file })
+')
+
+######################################
+## <summary>
+##	Allow the specified domain to search
+##	zarafa configuration dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`zarafa_search_config',`
+	gen_require(`
+		type zarafa_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 zarafa_etc_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run zarafa_deliver.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`zarafa_domtrans_deliver',`
+	gen_require(`
+		type zarafa_deliver_t, zarafa_deliver_exec_t;
+	')
+
+	domtrans_pattern($1, zarafa_deliver_exec_t, zarafa_deliver_t)
+')
+
+########################################
+## <summary>
+##	Read zarafa_deliver executable.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`zarafa_read_deliver_exec',`
+	gen_require(`
+		type zarafa_deliver_exec_t;
+	')
+    allow $1 zarafa_deliver_exec_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run zarafa_server.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`zarafa_domtrans_server',`
+	gen_require(`
+		type zarafa_server_t, zarafa_server_exec_t;
+	')
+
+	domtrans_pattern($1, zarafa_server_exec_t, zarafa_server_t)
+')
+
+#######################################
+## <summary>
+##	Connect to zarafa-server unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`zarafa_stream_connect_server',`
+	gen_require(`
+		type zarafa_server_t, zarafa_server_var_run_t;
+	')
+
+	files_search_var_lib($1)
+	stream_connect_pattern($1, zarafa_server_var_run_t, zarafa_server_var_run_t, zarafa_server_t)
+')
+
+####################################
+## <summary>
+##  Allow the specified domain to manage
+##  zarafa /var/lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`zarafa_manage_lib_files',`
+    gen_require(`
+        type zarafa_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, zarafa_var_lib_t, zarafa_var_lib_t)
+	manage_lnk_files_pattern($1, zarafa_var_lib_t, zarafa_var_lib_t)
+    manage_dirs_pattern($1, zarafa_var_lib_t, zarafa_var_lib_t)
+')
+
+####################################
+## <summary>
+##  Allow the specified domain to manage
+##  zarafa /var/lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`zarafa_read_lib_files',`
+    gen_require(`
+        type zarafa_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    read_files_pattern($1, zarafa_var_lib_t, zarafa_var_lib_t)
+	read_lnk_files_pattern($1, zarafa_var_lib_t, zarafa_var_lib_t)
+    list_dirs_pattern($1, zarafa_var_lib_t, zarafa_var_lib_t)
+')

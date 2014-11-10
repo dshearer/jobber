@@ -1,0 +1,462 @@
+## <summary>Remote Procedure Call Daemon for managment of network based process communication</summary>
+
+########################################
+## <summary>
+##	RPC stub interface.  No access allowed.
+## </summary>
+## <param name="domain" unused="true">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpc_stub',`
+	gen_require(`
+		type exports_t;
+	')
+')
+
+#######################################
+## <summary>
+##	The template to define a rpc domain.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a domain to be used for
+##	a new rpc daemon.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The type of daemon to be used.
+##	</summary>
+## </param>
+#
+template(`rpc_domain_template', `
+	########################################
+	#
+	# Declarations
+	#
+
+	type $1_t;
+	type $1_exec_t;
+	init_daemon_domain($1_t, $1_exec_t)
+	domain_use_interactive_fds($1_t)
+
+	####################################
+	#
+	# Local Policy
+	#
+
+	dontaudit $1_t self:capability { net_admin sys_tty_config };
+	allow $1_t self:capability net_bind_service;
+	allow $1_t self:process signal_perms;
+	allow $1_t self:unix_dgram_socket create_socket_perms;
+	allow $1_t self:unix_stream_socket create_stream_socket_perms;
+	allow $1_t self:tcp_socket create_stream_socket_perms;
+	allow $1_t self:udp_socket create_socket_perms;
+
+	manage_dirs_pattern($1_t, var_lib_nfs_t, var_lib_nfs_t)
+	manage_files_pattern($1_t, var_lib_nfs_t, var_lib_nfs_t)
+
+	kernel_list_proc($1_t)
+	kernel_read_proc_symlinks($1_t)
+	kernel_read_kernel_sysctls($1_t)
+	# bind to arbitary unused ports
+	kernel_rw_rpc_sysctls($1_t)
+
+	dev_read_sysfs($1_t)
+	dev_read_urand($1_t)
+	dev_read_rand($1_t)
+
+	corenet_all_recvfrom_unlabeled($1_t)
+	corenet_all_recvfrom_netlabel($1_t)
+	corenet_tcp_sendrecv_generic_if($1_t)
+	corenet_udp_sendrecv_generic_if($1_t)
+	corenet_tcp_sendrecv_generic_node($1_t)
+	corenet_udp_sendrecv_generic_node($1_t)
+	corenet_tcp_sendrecv_all_ports($1_t)
+	corenet_udp_sendrecv_all_ports($1_t)
+	corenet_tcp_bind_generic_node($1_t)
+	corenet_udp_bind_generic_node($1_t)
+	corenet_tcp_bind_reserved_port($1_t)
+	corenet_tcp_connect_all_ports($1_t)
+	corenet_sendrecv_portmap_client_packets($1_t)
+	# do not log when it tries to bind to a port belonging to another domain
+	corenet_dontaudit_tcp_bind_all_ports($1_t)
+	corenet_dontaudit_udp_bind_all_ports($1_t)
+	# bind to arbitary unused ports
+	corenet_tcp_bind_generic_port($1_t)
+	corenet_udp_bind_generic_port($1_t)
+	corenet_tcp_bind_all_rpc_ports($1_t)
+	corenet_udp_bind_all_rpc_ports($1_t)
+	corenet_sendrecv_generic_server_packets($1_t)
+
+	fs_rw_rpc_named_pipes($1_t)
+	fs_search_auto_mountpoints($1_t)
+
+	files_read_etc_files($1_t)
+	files_read_etc_runtime_files($1_t)
+	files_search_var($1_t)
+	files_search_var_lib($1_t)
+	files_list_home($1_t)
+
+	auth_use_nsswitch($1_t)
+
+	logging_send_syslog_msg($1_t)
+
+	miscfiles_read_localization($1_t)
+
+	userdom_dontaudit_use_unpriv_user_fds($1_t)
+
+	optional_policy(`
+		rpcbind_stream_connect($1_t)
+	')
+
+	optional_policy(`
+		seutil_sigchld_newrole($1_t)
+	')
+
+	optional_policy(`
+		udev_read_db($1_t)
+	')
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic to rpc and recieve UDP traffic from rpc.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`rpc_udp_send',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of the NFS export file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`rpc_dontaudit_getattr_exports',`
+	gen_require(`
+		type exports_t;
+	')
+
+	dontaudit $1 exports_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Allow read access to exports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`rpc_read_exports',`
+	gen_require(`
+		type exports_t;
+	')
+
+	allow $1 exports_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow write access to exports.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`rpc_write_exports',`
+	gen_require(`
+		type exports_t;
+	')
+
+	allow $1 exports_t:file write;
+')
+
+########################################
+## <summary>
+##	Execute domain in nfsd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`rpc_domtrans_nfsd',`
+	gen_require(`
+		type nfsd_t, nfsd_exec_t;
+	')
+
+	domtrans_pattern($1, nfsd_exec_t, nfsd_t)
+')
+
+#######################################
+## <summary>
+##	Execute domain in nfsd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpc_initrc_domtrans_nfsd',`
+	gen_require(`
+		type nfsd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, nfsd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute domain in rpcd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`rpc_domtrans_rpcd',`
+	gen_require(`
+		type rpcd_t, rpcd_exec_t;
+	')
+
+	domtrans_pattern($1, rpcd_exec_t, rpcd_t)
+	allow rpcd_t $1:process signal;
+')
+
+########################################
+## <summary>
+##	Send kill signals to rpcd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpc_kill_rpcd',`
+	gen_require(`
+		type rpcd_t;
+	')
+
+	allow $1 rpcd_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Execute rpcd in the rcpd domain, and
+##	allow the specified role the rpcd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rpc_run_rpcd',`
+	gen_require(`
+		type rpcd_t;
+	')
+
+	rpc_domtrans_rpcd($1)
+	role $2 types rpcd_t;
+')
+
+#######################################
+## <summary>
+##	Execute domain in rpcd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpc_initrc_domtrans_rpcd',`
+	gen_require(`
+		type rpcd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, rpcd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read NFS exported content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rpc_read_nfs_content',`
+	gen_require(`
+		type nfsd_ro_t, nfsd_rw_t;
+	')
+
+	allow $1 { nfsd_ro_t nfsd_rw_t }:dir list_dir_perms;
+	allow $1 { nfsd_ro_t nfsd_rw_t }:file read_file_perms;
+	allow $1 { nfsd_ro_t nfsd_rw_t }:lnk_file { getattr read };
+')
+
+########################################
+## <summary>
+##	Allow domain to create read and write NFS directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rpc_manage_nfs_rw_content',`
+	gen_require(`
+		type nfsd_rw_t;
+	')
+
+	manage_dirs_pattern($1, nfsd_rw_t, nfsd_rw_t)
+	manage_files_pattern($1, nfsd_rw_t, nfsd_rw_t)
+	manage_lnk_files_pattern($1, nfsd_rw_t, nfsd_rw_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to create read and write NFS directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rpc_manage_nfs_ro_content',`
+	gen_require(`
+		type nfsd_ro_t;
+	')
+
+	manage_dirs_pattern($1, nfsd_ro_t, nfsd_ro_t)
+	manage_files_pattern($1, nfsd_ro_t, nfsd_ro_t)
+	manage_lnk_files_pattern($1, nfsd_ro_t, nfsd_ro_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to read and write to an NFS UDP socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpc_udp_rw_nfs_sockets',`
+	gen_require(`
+		type nfsd_t;
+	')
+
+	allow $1 nfsd_t:udp_socket rw_socket_perms;
+')
+
+########################################
+## <summary>
+##	Send UDP traffic to NFSd.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpc_udp_send_nfs',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Search NFS state data in /var/lib/nfs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpc_search_nfs_state_data',`
+	gen_require(`
+		type var_lib_nfs_t;
+	')
+
+	files_search_var_lib($1)
+	allow $1 var_lib_nfs_t:dir search;
+')
+
+########################################
+## <summary>
+##	Read NFS state data in /var/lib/nfs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpc_read_nfs_state_data',`
+	gen_require(`
+		type var_lib_nfs_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, var_lib_nfs_t, var_lib_nfs_t)
+')
+
+########################################
+## <summary>
+##	Manage NFS state data in /var/lib/nfs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rpc_manage_nfs_state_data',`
+	gen_require(`
+		type var_lib_nfs_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, var_lib_nfs_t, var_lib_nfs_t)
+	allow $1 var_lib_nfs_t:file relabel_file_perms;
+')

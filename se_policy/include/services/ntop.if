@@ -1,0 +1,157 @@
+## <summary>Network Top</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run ntop.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ntop_domtrans',`
+	gen_require(`
+		type ntop_t, ntop_exec_t;
+	')
+
+	domtrans_pattern($1, ntop_exec_t, ntop_t)
+')
+
+########################################
+## <summary>
+##	Execute ntop server in the ntop domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ntop_initrc_domtrans',`
+	gen_require(`
+		type ntop_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, ntop_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read ntop content in /etc
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ntop_read_config',`
+	gen_require(`
+		type ntop_etc_t;
+	')
+
+	read_files_pattern($1, ntop_etc_t, ntop_etc_t);
+	files_search_etc($1)
+')
+
+########################################
+## <summary>
+##	Search ntop dirs in /var/lib
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ntop_search_lib',`
+	gen_require(`
+		type ntop_var_lib_t;
+	')
+
+	search_dirs_pattern($1, ntop_var_lib_t, ntop_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read ntop files in /var/lib
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ntop_read_lib_files',`
+	gen_require(`
+		type ntop_var_lib_t;
+	')
+
+	read_files_pattern($1, ntop_var_lib_t, ntop_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Manage ntop files in /var/lib
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ntop_manage_lib_files',`
+	gen_require(`
+		type ntop_var_lib_t;
+	')
+
+	manage_files_pattern($1, ntop_var_lib_t, ntop_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an ntop environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ntop_admin',`
+	gen_require(`
+		type ntop_t, ntop_var_lib_t, ntop_var_run_t;
+		type ntop_etc_t, ntop_initrc_exec_t;
+		type ntop_tmp_t;
+	')
+
+	allow $1 ntop_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, ntop_t, ntop_t)
+
+	files_search_etc($1)
+	admin_pattern($1, ntop_etc_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, ntop_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, ntop_var_run_t)
+
+	admin_pattern($1, ntop_tmp_t)
+
+	ntop_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 ntop_initrc_exec_t system_r;
+	allow $2 system_r;
+')

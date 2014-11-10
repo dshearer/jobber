@@ -1,0 +1,83 @@
+## <summary>GIT revision control system.</summary>
+
+########################################
+## <summary>
+##	Role access for Git session.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role.
+##	</summary>
+## </param>
+#
+template(`git_role',`
+	gen_require(`
+		type git_session_t, gitd_exec_t, git_user_content_t;
+	')
+
+	########################################
+	#
+	# Declarations
+	#
+
+    role $1 types git_session_t;
+    
+
+	########################################
+	#
+	# Policy
+	#
+
+	allow $2 git_user_content_t:dir { manage_dir_perms relabel_dir_perms };
+	allow $2 git_user_content_t:file { exec_file_perms manage_file_perms relabel_file_perms };
+
+	allow $2 git_session_t:process signal_perms;
+
+	ps_process_pattern($2, git_session_t)
+
+	tunable_policy(`git_session_users',`
+		domtrans_pattern($2, gitd_exec_t, git_session_t)
+	',`
+		can_exec($2, gitd_exec_t)
+	')
+')
+
+########################################
+## <summary>
+##	Read generic system content files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`git_read_generic_sys_content_files',`
+	gen_require(`
+		type git_sys_content_t;
+	')
+
+	list_dirs_pattern($1, git_sys_content_t, git_sys_content_t)
+	read_files_pattern($1, git_sys_content_t, git_sys_content_t)
+    read_lnk_files_pattern($1, git_sys_content_t, git_sys_content_t)
+
+	files_search_var_lib($1)
+
+	tunable_policy(`git_system_use_cifs',`
+		fs_getattr_cifs($1)
+		fs_list_cifs($1)
+		fs_read_cifs_files($1)
+	')
+
+	tunable_policy(`git_system_use_nfs',`
+		fs_getattr_nfs($1)
+		fs_list_nfs($1)
+		fs_read_nfs_files($1)
+	')
+')
+

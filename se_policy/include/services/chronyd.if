@@ -1,0 +1,183 @@
+## <summary>Chrony NTP background daemon</summary>
+
+#####################################
+## <summary>
+##	Execute chronyd in the chronyd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`chronyd_domtrans',`
+	gen_require(`
+		type chronyd_t, chronyd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, chronyd_exec_t, chronyd_t)
+')
+
+########################################
+## <summary>
+##	Execute chronyd server in the chronyd  domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`chronyd_initrc_domtrans',`
+	gen_require(`
+		type chronyd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, chronyd_initrc_exec_t)
+')
+
+####################################
+## <summary>
+##	Execute chronyd
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`chronyd_exec',`
+	gen_require(`
+		type chronyd_exec_t;
+	')
+
+	can_exec($1, chronyd_exec_t)
+')
+
+#####################################
+## <summary>
+##	Read chronyd logs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`chronyd_read_log',`
+	gen_require(`
+		type chronyd_var_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, chronyd_var_log_t, chronyd_var_log_t)
+')
+
+########################################
+## <summary>
+##	Read and write chronyd shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`chronyd_rw_shm',`
+	gen_require(`
+		type chronyd_t, chronyd_tmpfs_t;
+	')
+
+	allow $1 chronyd_t:shm rw_shm_perms;
+	allow $1 chronyd_tmpfs_t:dir list_dir_perms;
+	rw_files_pattern($1, chronyd_tmpfs_t, chronyd_tmpfs_t)
+	read_lnk_files_pattern($1, chronyd_tmpfs_t, chronyd_tmpfs_t)
+	fs_search_tmpfs($1)
+')
+
+########################################
+## <summary>
+##	Read chronyd keys files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`chronyd_read_keys',`
+	gen_require(`
+		type chronyd_keys_t;
+	')
+
+	read_files_pattern($1, chronyd_keys_t, chronyd_keys_t)
+')
+
+########################################
+## <summary>
+##	Append chronyd keys files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`chronyd_append_keys',`
+	gen_require(`
+		type chronyd_keys_t;
+	')
+
+	append_files_pattern($1, chronyd_keys_t, chronyd_keys_t)
+')
+
+####################################
+## <summary>
+##	All of the rules required to administrate
+##	an chronyd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the chronyd domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`chronyd_admin',`
+	gen_require(`
+		type chronyd_t, chronyd_initrc_exec_t;
+		type chronyd_keys_t, chronyd_var_log_t; 
+        type chronyd_var_lib_t, chronyd_var_run_t;
+		type chronyd_tmpfs_t;
+	')
+
+	allow $1 chronyd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, chronyd_t)
+
+	init_labeled_script_domtrans($1, chronyd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 chronyd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, chronyd_keys_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, chronyd_var_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, chronyd_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, chronyd_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, chronyd_tmpfs_t)
+')
+

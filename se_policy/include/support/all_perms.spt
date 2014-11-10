@@ -1,0 +1,168 @@
+define(`all_filesystem_perms',`{ mount remount unmount getattr relabelfrom relabelto transition associate quotamod quotaget }')
+define(`all_dir_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append unlink link rename execute swapon quotaon mounton add_name remove_name reparent search rmdir open }')
+define(`all_file_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append unlink link rename execute swapon quotaon mounton execute_no_trans entrypoint execmod open }')
+define(`all_lnk_file_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append unlink link rename execute swapon quotaon mounton }')
+define(`all_chr_file_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append unlink link rename execute swapon quotaon mounton execute_no_trans entrypoint execmod open }')
+define(`all_blk_file_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append unlink link rename execute swapon quotaon mounton open }')
+define(`all_sock_file_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append unlink link rename execute swapon quotaon mounton open }')
+define(`all_fifo_file_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append unlink link rename execute swapon quotaon mounton open }')
+define(`all_fd_perms',`{ use }')
+define(`all_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_tcp_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind connectto newconn acceptfrom node_bind name_connect }')
+define(`all_udp_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind node_bind }')
+define(`all_rawip_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind node_bind }')
+define(`all_node_perms',`{ tcp_recv tcp_send udp_recv udp_send rawip_recv rawip_send enforce_dest dccp_recv dccp_send recvfrom sendto }')
+define(`all_netif_perms',`{ tcp_recv tcp_send udp_recv udp_send rawip_recv rawip_send dccp_recv dccp_send ingress egress }')
+define(`all_netlink_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_packet_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_key_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_unix_stream_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind connectto newconn acceptfrom }')
+define(`all_unix_dgram_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_process_perms',`{ fork transition sigchld sigkill sigstop signull signal ptrace getsched setsched getsession getpgid setpgid getcap setcap share getattr setexec setfscreate noatsecure siginh setrlimit rlimitinh dyntransition setcurrent execmem execstack execheap setkeycreate setsockcreate }')
+define(`all_ipc_perms',`{ create destroy getattr setattr read write associate unix_read unix_write }')
+define(`all_sem_perms',`{ create destroy getattr setattr read write associate unix_read unix_write }')
+define(`all_msgq_perms',`{ create destroy getattr setattr read write associate unix_read unix_write enqueue }')
+define(`all_msg_perms',`{ send receive }')
+define(`all_shm_perms',`{ create destroy getattr setattr read write associate unix_read unix_write lock }')
+define(`all_security_perms',`{ compute_av compute_create compute_member check_context load_policy compute_relabel compute_user setenforce setbool setsecparam setcheckreqprot read_policy }')
+define(`all_system_perms',`{ ipc_info syslog_read syslog_mod syslog_console module_request }')
+define(`all_capability_perms',`{ chown dac_override dac_read_search fowner fsetid kill setgid setuid setpcap linux_immutable net_bind_service net_broadcast net_admin net_raw ipc_lock ipc_owner sys_module sys_rawio sys_chroot sys_ptrace sys_pacct sys_admin sys_boot sys_nice sys_resource sys_time sys_tty_config mknod lease audit_write audit_control setfcap }')
+define(`all_capability2_perms',`{ mac_override mac_admin }')
+define(`all_passwd_perms',`{ passwd chfn chsh rootok crontab }')
+define(`all_x_drawable_perms',`{ create destroy read write blend getattr setattr list_child add_child remove_child list_property get_property set_property manage override show hide send receive }')
+define(`all_x_screen_perms',`{ getattr setattr hide_cursor show_cursor saver_getattr saver_setattr saver_hide saver_show }')
+define(`all_x_gc_perms',`{ create destroy getattr setattr use }')
+define(`all_x_font_perms',`{ create destroy getattr add_glyph remove_glyph use }')
+define(`all_x_colormap_perms',`{ create destroy read write getattr add_color remove_color install uninstall use }')
+define(`all_x_property_perms',`{ create destroy read write append getattr setattr }')
+define(`all_x_selection_perms',`{ read write getattr setattr }')
+define(`all_x_cursor_perms',`{ create destroy read write getattr setattr use }')
+define(`all_x_client_perms',`{ destroy getattr setattr manage }')
+define(`all_x_device_perms',`{ getattr setattr use read write getfocus setfocus bell force_cursor freeze grab manage list_property get_property set_property add remove create destroy }')
+define(`all_x_server_perms',`{ getattr setattr record debug grab manage }')
+define(`all_x_extension_perms',`{ query use }')
+define(`all_x_resource_perms',`{ read write }')
+define(`all_x_event_perms',`{ send receive }')
+define(`all_x_synthetic_event_perms',`{ send receive }')
+define(`all_netlink_route_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind nlmsg_read nlmsg_write }')
+define(`all_netlink_firewall_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind nlmsg_read nlmsg_write }')
+define(`all_netlink_tcpdiag_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind nlmsg_read nlmsg_write }')
+define(`all_netlink_nflog_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_netlink_xfrm_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind nlmsg_read nlmsg_write }')
+define(`all_netlink_selinux_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_netlink_audit_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind nlmsg_read nlmsg_write nlmsg_relay nlmsg_readpriv nlmsg_tty_audit }')
+define(`all_netlink_ip6fw_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind nlmsg_read nlmsg_write }')
+define(`all_netlink_dnrt_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_dbus_perms',`{ acquire_svc send_msg }')
+define(`all_nscd_perms',`{ getpwd getgrp gethost getstat admin shmempwd shmemgrp shmemhost getserv shmemserv getnetgrp shmemnetgrp }')
+define(`all_association_perms',`{ sendto recvfrom setcontext polmatch }')
+define(`all_netlink_kobject_uevent_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_appletalk_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_packet_perms',`{ send recv relabelto flow_in flow_out forward_in forward_out }')
+define(`all_key_perms',`{ view read write search link setattr create }')
+define(`all_context_perms',`{ translate contains }')
+define(`all_dccp_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind node_bind name_connect }')
+define(`all_memprotect_perms',`{ mmap_zero }')
+define(`all_db_database_perms',`{ create drop getattr setattr relabelfrom relabelto access install_module load_module get_param set_param }')
+define(`all_db_table_perms',`{ create drop getattr setattr relabelfrom relabelto use select update insert delete lock }')
+define(`all_db_procedure_perms',`{ create drop getattr setattr relabelfrom relabelto execute entrypoint install }')
+define(`all_db_column_perms',`{ create drop getattr setattr relabelfrom relabelto use select update insert }')
+define(`all_db_tuple_perms',`{ relabelfrom relabelto use select update insert delete }')
+define(`all_db_blob_perms',`{ create drop getattr setattr relabelfrom relabelto read write import export }')
+define(`all_peer_perms',`{ recv }')
+define(`all_x_application_data_perms',`{ paste paste_after_confirm copy }')
+define(`all_kernel_service_perms',`{ use_as_override create_files_as }')
+define(`all_tun_socket_perms',`{ ioctl read write create getattr setattr lock relabelfrom relabelto append bind connect listen accept getopt setopt shutdown recvfrom sendto recv_msg send_msg name_bind }')
+define(`all_x_pointer_perms',`{ getattr setattr use read write getfocus setfocus bell force_cursor freeze grab manage list_property get_property set_property add remove create destroy }')
+define(`all_x_keyboard_perms',`{ getattr setattr use read write getfocus setfocus bell force_cursor freeze grab manage list_property get_property set_property add remove create destroy }')
+define(`all_db_schema_perms',`{ create drop getattr setattr relabelfrom relabelto search add_name remove_name }')
+define(`all_db_view_perms',`{ create drop getattr setattr relabelfrom relabelto expand }')
+define(`all_db_sequence_perms',`{ create drop getattr setattr relabelfrom relabelto get_value next_value set_value }')
+define(`all_db_language_perms',`{ create drop getattr setattr relabelfrom relabelto implement execute }')
+
+define(`all_kernel_class_perms',`
+	class security all_security_perms;
+	class process all_process_perms;
+	class system all_system_perms;
+	class capability all_capability_perms;
+	class filesystem all_filesystem_perms;
+	class file all_file_perms;
+	class dir all_dir_perms;
+	class fd all_fd_perms;
+	class lnk_file all_lnk_file_perms;
+	class chr_file all_chr_file_perms;
+	class blk_file all_blk_file_perms;
+	class sock_file all_sock_file_perms;
+	class fifo_file all_fifo_file_perms;
+	class socket all_socket_perms;
+	class tcp_socket all_tcp_socket_perms;
+	class udp_socket all_udp_socket_perms;
+	class rawip_socket all_rawip_socket_perms;
+	class node all_node_perms;
+	class netif all_netif_perms;
+	class netlink_socket all_netlink_socket_perms;
+	class packet_socket all_packet_socket_perms;
+	class key_socket all_key_socket_perms;
+	class unix_stream_socket all_unix_stream_socket_perms;
+	class unix_dgram_socket all_unix_dgram_socket_perms;
+	class sem all_sem_perms;
+	class msg all_msg_perms;
+	class msgq all_msgq_perms;
+	class shm all_shm_perms;
+	class ipc all_ipc_perms;
+	class netlink_route_socket all_netlink_route_socket_perms;
+	class netlink_firewall_socket all_netlink_firewall_socket_perms;
+	class netlink_tcpdiag_socket all_netlink_tcpdiag_socket_perms;
+	class netlink_nflog_socket all_netlink_nflog_socket_perms;
+	class netlink_xfrm_socket all_netlink_xfrm_socket_perms;
+	class netlink_selinux_socket all_netlink_selinux_socket_perms;
+	class netlink_audit_socket all_netlink_audit_socket_perms;
+	class netlink_ip6fw_socket all_netlink_ip6fw_socket_perms;
+	class netlink_dnrt_socket all_netlink_dnrt_socket_perms;
+	class association all_association_perms;
+	class netlink_kobject_uevent_socket all_netlink_kobject_uevent_socket_perms;
+	class appletalk_socket all_appletalk_socket_perms;
+	class packet all_packet_perms;
+	class key all_key_perms;
+	class dccp_socket all_dccp_socket_perms;
+	class memprotect all_memprotect_perms;
+	class peer all_peer_perms;
+	class capability2 all_capability2_perms;
+	class kernel_service all_kernel_service_perms;
+	class tun_socket all_tun_socket_perms;
+')
+
+define(`all_userspace_class_perms',`
+	class passwd all_passwd_perms;
+	class x_drawable all_x_drawable_perms;
+	class x_screen all_x_screen_perms;
+	class x_gc all_x_gc_perms;
+	class x_font all_x_font_perms;
+	class x_colormap all_x_colormap_perms;
+	class x_property all_x_property_perms;
+	class x_selection all_x_selection_perms;
+	class x_cursor all_x_cursor_perms;
+	class x_client all_x_client_perms;
+	class x_device all_x_device_perms;
+	class x_server all_x_server_perms;
+	class x_extension all_x_extension_perms;
+	class dbus all_dbus_perms;
+	class nscd all_nscd_perms;
+	class context all_context_perms;
+	class db_database all_db_database_perms;
+	class db_table all_db_table_perms;
+	class db_procedure all_db_procedure_perms;
+	class db_column all_db_column_perms;
+	class db_tuple all_db_tuple_perms;
+	class db_blob all_db_blob_perms;
+	class x_resource all_x_resource_perms;
+	class x_event all_x_event_perms;
+	class x_synthetic_event all_x_synthetic_event_perms;
+	class x_application_data all_x_application_data_perms;
+	class x_pointer all_x_pointer_perms;
+	class x_keyboard all_x_keyboard_perms;
+	class db_schema all_db_schema_perms;
+	class db_view all_db_view_perms;
+	class db_sequence all_db_sequence_perms;
+	class db_language all_db_language_perms;
+')

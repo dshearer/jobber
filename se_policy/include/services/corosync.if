@@ -1,0 +1,165 @@
+## <summary>SELinux policy for Corosync Cluster Engine</summary>
+
+########################################
+## <summary>
+##      Execute a domain transition to run corosync.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`corosync_domtrans',`
+        gen_require(`
+                type corosync_t, corosync_exec_t;
+        ')
+
+        domtrans_pattern($1, corosync_exec_t, corosync_t)
+')
+
+#######################################
+## <summary>
+##  Execute a domain transition to run corosync.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`corosync_initrc_domtrans',`
+    gen_require(`
+        type corosync_initrc_exec_t;
+    ')
+
+    init_labeled_script_domtrans($1, corosync_initrc_exec_t)
+')
+
+
+#######################################
+## <summary>
+##      Execute corosync in the caller domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`corosync_exec',`
+        gen_require(`
+                type corosync_exec_t;
+        ')
+
+        corecmd_search_bin($1)
+        can_exec($1, corosync_exec_t)
+')
+
+#####################################
+## <summary>
+##      Connect to corosync over a unix domain
+##      stream socket.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`corosync_stream_connect',`
+        gen_require(`
+                type corosync_t, corosync_var_run_t;
+        ')
+
+        files_search_pids($1)
+        stream_connect_pattern($1, corosync_var_run_t, corosync_var_run_t, corosync_t)
+')
+
+#######################################
+## <summary>
+##      Allow the specified domain to read corosync's log files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`corosync_read_log',`
+        gen_require(`
+                type corosync_var_log_t;
+        ')
+
+        logging_search_logs($1)
+        list_dirs_pattern($1, corosync_var_log_t, corosync_var_log_t)
+        read_files_pattern($1, corosync_var_log_t, corosync_var_log_t)
+')
+
+#####################################
+## <summary>
+##  Allow the specified domain to read/write corosync's tmpfs files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`corosync_rw_tmpfs',`
+    gen_require(`
+        type corosync_tmpfs_t;
+    ')
+
+    rw_files_pattern($1, corosync_tmpfs_t, corosync_tmpfs_t)
+
+')
+
+######################################
+## <summary>
+##      All of the rules required to administrate 
+##      an corosync environment
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+## <param name="role">
+##      <summary>
+##      The role to be allowed to manage the corosyncd domain.
+##      </summary>
+## </param>
+## <rolecap/>
+#
+interface(`corosyncd_admin',`
+        gen_require(`
+                type corosync_t, corosync_var_lib_t, corosync_var_log_t;
+                type corosync_var_run_t, corosync_tmp_t, corosync_tmpfs_t;
+                type corosync_initrc_exec_t;
+        ')
+
+        allow $1 corosync_t:process { ptrace signal_perms };
+        ps_process_pattern($1, corosync_t)
+
+        init_labeled_script_domtrans($1, corosync_initrc_exec_t)
+        domain_system_change_exemption($1)
+        role_transition $2 corosync_initrc_exec_t system_r;
+        allow $2 system_r;
+
+        files_search_var_lib($1)
+        admin_pattern($1, corosync_var_lib_t)
+
+        logging_search_logs($1)
+        admin_pattern($1, corosync_var_log_t)
+
+        files_search_pids($1)
+        admin_pattern($1, corosync_var_run_t)
+
+        files_search_tmp($1)
+        admin_pattern($1, corosync_tmp_t)
+
+        admin_pattern($1, corosync_tmpfs_t)
+')
+
+

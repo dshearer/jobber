@@ -1,0 +1,118 @@
+
+## <summary>policy for cmirrord</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run cmirrord.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`cmirrord_domtrans',`
+	gen_require(`
+		type cmirrord_t, cmirrord_exec_t;
+	')
+
+	domtrans_pattern($1, cmirrord_exec_t, cmirrord_t)
+')
+
+########################################
+## <summary>
+##	Execute cmirrord server in the cmirrord domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`cmirrord_initrc_domtrans',`
+	gen_require(`
+		type cmirrord_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, cmirrord_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read cmirrord PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cmirrord_read_pid_files',`
+	gen_require(`
+		type cmirrord_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 cmirrord_var_run_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##      Read and write to cmirrord shared memory.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      The type of the process performing this action.
+##      </summary>
+## </param>
+#
+interface(`cmirrord_rw_shm',`
+        gen_require(`
+                type cmirrord_t;
+				type cmirrord_tmpfs_t;
+        ')
+
+        allow $1 cmirrord_t:shm { rw_shm_perms destroy };
+        allow $1 cmirrord_tmpfs_t:dir list_dir_perms;
+        rw_files_pattern($1, cmirrord_tmpfs_t, cmirrord_tmpfs_t)
+		delete_files_pattern($1, cmirrord_tmpfs_t, cmirrord_tmpfs_t)
+		read_lnk_files_pattern($1, cmirrord_tmpfs_t, cmirrord_tmpfs_t)
+        fs_search_tmpfs($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an cmirrord environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`cmirrord_admin',`
+	gen_require(`
+		type cmirrord_t;
+		type cmirrord_initrc_exec_t;
+                type cmirrord_var_run_t;
+	')
+
+	allow $1 cmirrord_t:process { ptrace signal_perms };
+	ps_process_pattern($1, cmirrord_t)
+
+	cmirrord_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 cmirrord_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, cmirrord_var_run_t)
+
+')

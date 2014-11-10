@@ -1,0 +1,64 @@
+## <summary>TOR, the onion router</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run TOR.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`tor_domtrans',`
+	gen_require(`
+		type tor_t, tor_exec_t;
+	')
+
+	domtrans_pattern($1, tor_exec_t, tor_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an tor environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the tor domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`tor_admin',`
+	gen_require(`
+		type tor_t, tor_var_log_t, tor_etc_t;
+		type tor_var_lib_t, tor_var_run_t;
+		type tor_initrc_exec_t;
+	')
+
+	allow $1 tor_t:process { ptrace signal_perms };
+	ps_process_pattern($1, tor_t)
+
+	init_labeled_script_domtrans($1, tor_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 tor_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, tor_etc_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, tor_var_lib_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, tor_var_log_t)
+
+	files_list_pids($1)
+	admin_pattern($1, tor_var_run_t)
+')

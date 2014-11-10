@@ -1,0 +1,127 @@
+
+## <summary>policy for wdmd</summary>
+
+
+########################################
+## <summary>
+##	Execute a domain transition to run wdmd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`wdmd_domtrans',`
+	gen_require(`
+		type wdmd_t, wdmd_exec_t;
+	')
+
+	domtrans_pattern($1, wdmd_exec_t, wdmd_t)
+')
+
+
+########################################
+## <summary>
+##	Execute wdmd server in the wdmd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`wdmd_initrc_domtrans',`
+	gen_require(`
+		type wdmd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, wdmd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an wdmd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`wdmd_admin',`
+	gen_require(`
+		type wdmd_t;
+		type wdmd_initrc_exec_t;
+	')
+
+	allow $1 wdmd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, wdmd_t)
+
+	wdmd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 wdmd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+')
+
+########################################
+## <summary>
+##      Connect to wdmd over an unix stream socket.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`wdmd_stream_connect',`
+        gen_require(`
+                type wdmd_t, wdmd_var_run_t;
+        ')
+
+        files_search_pids($1)
+        stream_connect_pattern($1, wdmd_var_run_t, wdmd_var_run_t, wdmd_t)
+')
+####################################
+## <summary>
+##  Allow the specified domain to read/write wdmd's tmpfs files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`wdmd_rw_tmpfs',`
+    gen_require(`
+        type wdmd_tmpfs_t;
+    ')
+
+    rw_files_pattern($1, wdmd_tmpfs_t, wdmd_tmpfs_t)
+')
+
+####################################
+## <summary>
+##  Allow the specified domain to read/write wdmd's tmpfs files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`wdmd_manage_tmpfs',`
+    gen_require(`
+        type wdmd_tmpfs_t;
+    ')
+
+    manage_files_pattern($1, wdmd_tmpfs_t, wdmd_tmpfs_t)
+')

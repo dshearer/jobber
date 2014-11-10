@@ -1,0 +1,307 @@
+## <summary>Network analysis utilities</summary>
+
+########################################
+## <summary>
+##	Execute network utilities in the netutils domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`netutils_domtrans',`
+	gen_require(`
+		type netutils_t, netutils_exec_t;
+	')
+
+	domtrans_pattern($1, netutils_exec_t, netutils_t)
+')
+
+########################################
+## <summary>
+##	Execute network utilities in the netutils domain, and
+##	allow the specified role the netutils domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the netutils domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`netutils_run',`
+	gen_require(`
+		type netutils_t;
+	')
+
+	netutils_domtrans($1)
+	allow $1 netutils_t:process { signal sigkill };
+	role $2 types netutils_t;
+')
+
+########################################
+## <summary>
+##	Execute network utilities in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`netutils_exec',`
+	gen_require(`
+		type netutils_exec_t;
+	')
+
+	can_exec($1, netutils_exec_t)
+')
+
+########################################
+## <summary>
+##	Send generic signals to network utilities.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`netutils_signal',`
+	gen_require(`
+		type netutils_t;
+	')
+
+	allow $1 netutils_t:process signal;
+')
+
+########################################
+## <summary>
+##	Execute ping in the ping domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`netutils_domtrans_ping',`
+	gen_require(`
+		type ping_t, ping_exec_t;
+	')
+
+	domtrans_pattern($1, ping_exec_t, ping_t)
+')
+
+########################################
+## <summary>
+##	Send a kill (SIGKILL) signal to ping.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`netutils_kill_ping',`
+	gen_require(`
+		type ping_t;
+	')
+
+	allow $1 ping_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Send generic signals to ping.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`netutils_signal_ping',`
+	gen_require(`
+		type ping_t;
+	')
+
+	allow $1 ping_t:process signal;
+')
+
+########################################
+## <summary>
+##	Execute ping in the ping domain, and
+##	allow the specified role the ping domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the ping domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`netutils_run_ping',`
+	gen_require(`
+		type ping_t;
+	')
+
+	netutils_domtrans_ping($1)
+	role $2 types ping_t;
+	allow $1 ping_t:process { signal sigkill };
+')
+
+########################################
+## <summary>
+##	Conditionally execute ping in the ping domain, and
+##	allow the specified role the ping domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the ping domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`netutils_run_ping_cond',`
+	gen_require(`
+		type ping_t;
+		bool user_ping;
+	')
+
+	role $2 types ping_t;
+
+	if ( user_ping ) {
+		netutils_domtrans_ping($1)
+		allow $1 ping_t:process { signal sigkill };
+	}
+')
+
+########################################
+## <summary>
+##	Execute ping in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`netutils_exec_ping',`
+	gen_require(`
+		type ping_exec_t;
+	')
+
+	can_exec($1, ping_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute traceroute in the traceroute domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`netutils_domtrans_traceroute',`
+	gen_require(`
+		type traceroute_t, traceroute_exec_t;
+	')
+
+	domtrans_pattern($1, traceroute_exec_t, traceroute_t)
+')
+
+########################################
+## <summary>
+##	Execute traceroute in the traceroute domain, and
+##	allow the specified role the traceroute domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the traceroute domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`netutils_run_traceroute',`
+	gen_require(`
+		type traceroute_t;
+	')
+
+	netutils_domtrans_traceroute($1)
+	role $2 types traceroute_t;
+	allow $1 traceroute_t:process { signal sigkill };
+')
+
+########################################
+## <summary>
+##	Conditionally execute traceroute in the traceroute domain, and
+##	allow the specified role the traceroute domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the traceroute domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`netutils_run_traceroute_cond',`
+	gen_require(`
+		type traceroute_t;
+		bool user_ping;
+	')
+
+	role $2 types traceroute_t;
+
+	if( user_ping ) {
+		netutils_domtrans_traceroute($1)
+		allow $1 traceroute_t:process { signal sigkill };
+	}
+')
+
+########################################
+## <summary>
+##	Execute traceroute in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`netutils_exec_traceroute',`
+	gen_require(`
+		type traceroute_exec_t;
+	')
+
+	can_exec($1, traceroute_exec_t)
+')
+

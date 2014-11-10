@@ -1,0 +1,76 @@
+## <summary>rhev polic module contains policies for rhev apps</summary>
+
+#####################################
+## <summary>
+##  Execute rhev-agentd in the rhev_agentd domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhev_domtrans_agentd',`
+    gen_require(`
+        type rhev_agentd_t, rhev_agentd_exec_t;
+    ')
+
+    domtrans_pattern($1, rhev_agentd_exec_t, rhev_agentd_t)
+')
+
+####################################
+## <summary>
+##  Read rhev-agentd PID files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhev_read_pid_files_agentd',`
+    gen_require(`
+        type rhev_agentd_var_run_t;
+    ')
+
+	files_search_pids($1)
+    read_files_pattern($1, rhev_agentd_var_run_t, rhev_agentd_var_run_t)
+')
+
+#####################################
+## <summary>
+##      Connect to rhev_agentd over a unix domain
+##      stream socket.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`rhev_stream_connect_agentd',`
+        gen_require(`
+                type rhev_agentd_var_run_t, rhev_agentd_t;
+        ')
+
+        files_search_pids($1)
+        stream_connect_pattern($1, rhev_agentd_var_run_t, rhev_agentd_var_run_t, rhev_agentd_t)
+')
+
+#######################################
+## <summary>
+##  Send sigchld to rhev-agentd
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+#
+interface(`rhev_sigchld_agentd',`
+    gen_require(`
+              type rhev_agentd_t;
+    ')
+
+    allow $1 rhev_agentd_t:process sigchld;
+')

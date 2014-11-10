@@ -1,0 +1,395 @@
+## <summary>Policy for Mozilla and related web browsers</summary>
+
+########################################
+## <summary>
+##	Role access for mozilla
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`mozilla_role',`
+	gen_require(`
+		type mozilla_t, mozilla_exec_t, mozilla_home_t;
+	')
+
+	role $1 types mozilla_t;
+
+	domain_auto_trans($2, mozilla_exec_t, mozilla_t)
+	# Unrestricted inheritance from the caller.
+	allow $2 mozilla_t:process { noatsecure siginh rlimitinh };
+	allow mozilla_t $2:fd use;
+	allow mozilla_t $2:process { sigchld signull };
+	allow mozilla_t $2:unix_stream_socket connectto;
+
+	# Allow the user domain to signal/ps.
+	ps_process_pattern($2, mozilla_t)
+	allow $2 mozilla_t:process signal_perms;
+
+	allow $2 mozilla_t:fd use;
+	allow $2 mozilla_t:shm { associate getattr };
+	allow $2 mozilla_t:shm { unix_read unix_write };
+	allow $2 mozilla_t:unix_stream_socket connectto;
+
+	# X access, Home files
+	manage_dirs_pattern($2, mozilla_home_t, mozilla_home_t)
+	manage_files_pattern($2, mozilla_home_t, mozilla_home_t)
+	manage_lnk_files_pattern($2, mozilla_home_t, mozilla_home_t)
+	relabel_dirs_pattern($2, mozilla_home_t, mozilla_home_t)
+	relabel_files_pattern($2, mozilla_home_t, mozilla_home_t)
+	relabel_lnk_files_pattern($2, mozilla_home_t, mozilla_home_t)
+	
+	mozilla_run_plugin(mozilla_t, $1)
+	mozilla_dbus_chat($2)
+
+	userdom_manage_tmp_role($1, mozilla_t)
+
+	optional_policy(`
+		nsplugin_role($1, mozilla_t)
+	')
+
+	optional_policy(`
+		pulseaudio_role($1, mozilla_t)
+	')
+')
+
+########################################
+## <summary>
+##	Read mozilla home directory content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mozilla_read_user_home_files',`
+	gen_require(`
+		type mozilla_home_t;
+	')
+
+	allow $1 mozilla_home_t:dir list_dir_perms;
+	allow $1 mozilla_home_t:file read_file_perms;
+	allow $1 mozilla_home_t:lnk_file read_lnk_file_perms;
+	userdom_search_user_home_dirs($1)
+')
+
+########################################
+## <summary>
+##	Write mozilla home directory content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mozilla_write_user_home_files',`
+	gen_require(`
+		type mozilla_home_t;
+	')
+
+	write_files_pattern($1, mozilla_home_t, mozilla_home_t)
+	userdom_search_user_home_dirs($1)
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to read/write mozilla home directory content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mozilla_dontaudit_rw_user_home_files',`
+	gen_require(`
+		type mozilla_home_t;
+	')
+
+	dontaudit $1 mozilla_home_t:file rw_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to write mozilla home directory content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mozilla_dontaudit_manage_user_home_files',`
+	gen_require(`
+		type mozilla_home_t;
+	')
+
+	dontaudit $1 mozilla_home_t:dir manage_dir_perms;
+	dontaudit $1 mozilla_home_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Run mozilla in the mozilla domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mozilla_domtrans',`
+	gen_require(`
+		type mozilla_t, mozilla_exec_t;
+	')
+
+	domtrans_pattern($1, mozilla_exec_t, mozilla_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	mozilla over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mozilla_dbus_chat',`
+	gen_require(`
+		type mozilla_t;
+		class dbus send_msg;
+	')
+
+	allow $1 mozilla_t:dbus send_msg;
+	allow mozilla_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Write mozilla home directory content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mozilla_execmod_user_home_files',`
+	gen_require(`
+		type mozilla_home_t;
+	')
+
+	allow $1 mozilla_home_t:file execmod;
+')
+
+########################################
+## <summary>
+##	Execute mozilla_exec_t 
+##	in the specified domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute a mozilla_exec_t
+##	in the specified domain.  
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`mozilla_exec_domtrans',`
+	gen_require(`
+		type mozilla_exec_t;
+	')
+
+	allow $2 mozilla_exec_t:file entrypoint;
+	domtrans_pattern($1, mozilla_exec_t, $2)
+')
+
+#######################################
+## <summary>
+##  Execute a domain transition to run mozilla_plugin.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`mozilla_domtrans_plugin',`
+    gen_require(`
+        type mozilla_plugin_t, mozilla_plugin_exec_t;
+        class dbus send_msg;
+    ')
+
+    domtrans_pattern($1, mozilla_plugin_exec_t, mozilla_plugin_t)
+    allow mozilla_plugin_t $1:process signull;
+    allow $1 mozilla_plugin_t:unix_stream_socket { connectto rw_socket_perms };
+    allow $1 mozilla_plugin_t:fd use;
+
+    allow mozilla_plugin_t $1:unix_stream_socket rw_socket_perms;
+    allow mozilla_plugin_t $1:shm { rw_shm_perms destroy };
+    allow mozilla_plugin_t $1:sem create_sem_perms;
+
+    ps_process_pattern($1, mozilla_plugin_t)
+    allow $1 mozilla_plugin_t:process { ptrace signal_perms };
+')
+
+#######################################
+## <summary>
+##  Execute mozilla_plugin in the mozilla_plugin domain, and
+##  allow the specified role the mozilla_plugin domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  The role to be allowed the mozilla_plugin domain.
+##  </summary>
+## </param>
+#
+interface(`mozilla_run_plugin',`
+    gen_require(`
+        type mozilla_plugin_t;
+    ')
+
+    mozilla_domtrans_plugin($1)
+    role $2 types mozilla_plugin_t;
+')
+
+######################################
+## <summary>
+##  Execute qemu unconfined programs in the role.
+## </summary>
+## <param name="role">
+##  <summary>
+##  The role to allow the mozilla_plugin domain.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`mozilla_role_plugin',`
+    gen_require(`
+        type mozilla_plugin_t;
+    ')
+
+    role $1 types mozilla_plugin_t;
+')
+
+#######################################
+## <summary>
+##  read/write mozilla per user tcp_socket
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`mozilla_rw_tcp_sockets',`
+    gen_require(`
+        type mozilla_t;
+    ')
+
+    allow $1 mozilla_t:tcp_socket rw_socket_perms;
+')
+
+######################################
+## <summary>
+##  Read mozilla_plugin tmpfs files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+#
+interface(`mozilla_plugin_read_tmpfs_files',`
+    gen_require(`
+        type mozilla_plugin_tmpfs_t;
+    ')
+
+    allow $1 mozilla_plugin_tmpfs_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##  Delete mozilla_plugin tmpfs files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+#
+interface(`mozilla_plugin_delete_tmpfs_files',`
+    gen_require(`
+        type mozilla_plugin_tmpfs_t;
+    ')
+
+    allow $1 mozilla_plugin_tmpfs_t:file delete_file_perms;
+')
+
+#######################################
+## <summary>
+##  Dontaudit read/write to a mozilla_plugin leaks
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain to not audit.
+##  </summary>
+## </param>
+#
+interface(`mozilla_plugin_dontaudit_leaks',`
+    gen_require(`
+        type mozilla_plugin_t;
+    ')
+
+    dontaudit $1 mozilla_plugin_t:unix_stream_socket { read write };
+')
+
+#######################################
+## <summary>
+##  Execute mozilla home directory content.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`mozilla_exec_user_home_files',`
+    gen_require(`
+        type mozilla_home_t;
+    ')
+
+    can_exec($1, mozilla_home_t)
+')
+

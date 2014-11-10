@@ -1,0 +1,224 @@
+## <summary>Internet News NNTP server</summary>
+
+########################################
+## <summary>
+##	Allow the specified domain to execute innd
+##	in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inn_exec',`
+	gen_require(`
+		type innd_exec_t;
+	')
+
+	can_exec($1, innd_exec_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to execute
+##	inn configuration files in /etc.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inn_exec_config',`
+	gen_require(`
+		type innd_etc_t;
+	')
+
+	can_exec($1, innd_etc_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the innd log.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inn_manage_log',`
+	gen_require(`
+		type innd_log_t;
+	')
+
+	logging_rw_generic_log_dirs($1)
+	manage_files_pattern($1, innd_log_t, innd_log_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the innd pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inn_manage_pid',`
+	gen_require(`
+		type innd_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, innd_var_run_t, innd_var_run_t)
+	manage_lnk_files_pattern($1, innd_var_run_t, innd_var_run_t)
+')
+
+########################################
+## <summary>
+##	Read innd configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+
+#
+interface(`inn_read_config',`
+	gen_require(`
+		type innd_etc_t;
+	')
+
+	allow $1 innd_etc_t:dir list_dir_perms;
+	allow $1 innd_etc_t:file read_file_perms;
+	allow $1 innd_etc_t:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##	Read innd news library files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inn_read_news_lib',`
+	gen_require(`
+		type innd_var_lib_t;
+	')
+
+	allow $1 innd_var_lib_t:dir list_dir_perms;
+	allow $1 innd_var_lib_t:file read_file_perms;
+	allow $1 innd_var_lib_t:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##	Read innd news library files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inn_read_news_spool',`
+	gen_require(`
+		type news_spool_t;
+	')
+
+	allow $1 news_spool_t:dir list_dir_perms;
+	allow $1 news_spool_t:file read_file_perms;
+	allow $1 news_spool_t:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##	Send to a innd unix dgram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inn_dgram_send',`
+	gen_require(`
+		type innd_t;
+	')
+
+	allow $1 innd_t:unix_dgram_socket sendto;
+')
+
+########################################
+## <summary>
+##	Execute inn in the inn domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inn_domtrans',`
+	gen_require(`
+		type innd_t, innd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, innd_exec_t, innd_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an inn environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the inn domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`inn_admin',`
+	gen_require(`
+		type innd_t, innd_etc_t, innd_log_t;
+		type news_spool_t, innd_var_lib_t;
+		type innd_var_run_t, innd_initrc_exec_t;
+	')
+
+	allow $1 innd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, innd_t)
+
+	init_labeled_script_domtrans($1, innd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 innd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_etc($1)
+	admin_pattern($1, innd_etc_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, innd_log_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, innd_var_lib_t)
+
+	files_list_pids($1)
+	admin_pattern($1, innd_var_run_t)
+
+	files_list_spool($1)
+	admin_pattern($1, news_spool_t)
+')

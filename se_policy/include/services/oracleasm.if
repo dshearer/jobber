@@ -1,0 +1,75 @@
+
+## <summary>policy for oracleasm</summary>
+
+########################################
+## <summary>
+##	Transition to oracleasm.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`oracleasm_domtrans',`
+	gen_require(`
+		type oracleasm_t, oracleasm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, oracleasm_exec_t, oracleasm_t)
+')
+
+
+########################################
+## <summary>
+##	Execute oracleasm server in the oracleasm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`oracleasm_initrc_domtrans',`
+	gen_require(`
+		type oracleasm_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, oracleasm_initrc_exec_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an oracleasm environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`oracleasm_admin',`
+	gen_require(`
+		type oracleasm_t;
+	type oracleasm_initrc_exec_t;
+	')
+
+	allow $1 oracleasm_t:process { ptrace signal_perms };
+	ps_process_pattern($1, oracleasm_t)
+
+	oracleasm_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 oracleasm_initrc_exec_t system_r;
+	allow $2 system_r;
+
+')
+

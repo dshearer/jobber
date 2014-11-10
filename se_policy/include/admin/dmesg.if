@@ -1,0 +1,40 @@
+## <summary>Policy for dmesg.</summary>
+
+########################################
+## <summary>
+##	Execute dmesg in the dmesg domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`dmesg_domtrans',`
+	gen_require(`
+		type dmesg_t, dmesg_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, dmesg_exec_t, dmesg_t)
+')
+
+########################################
+## <summary>
+##	Execute dmesg in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`dmesg_exec',`
+	gen_require(`
+		type dmesg_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, dmesg_exec_t)
+')

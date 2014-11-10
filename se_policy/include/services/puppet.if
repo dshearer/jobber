@@ -1,0 +1,204 @@
+## <summary>Puppet client daemon</summary>
+## <desc>
+##	<p>
+##	Puppet is a configuration management system written in Ruby.
+##	The client daemon is responsible for periodically requesting the
+##	desired system state from the server and ensuring the state of
+##	the client system matches.
+##	</p>
+## </desc>
+
+#######################################
+## <summary>
+##  Execute puppet_master in the puppet_master
+##  domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`puppet_domtrans_master',`
+    gen_require(`
+            type puppetmaster_t, puppetmaster_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    domtrans_pattern($1, puppetmaster_exec_t, puppetmaster_t)
+')
+
+################################################
+## <summary>
+##	Read / Write to Puppet temp files.  Puppet uses
+##	some system binaries (groupadd, etc) that run in
+##	a non-puppet domain and redirects output into temp
+##	files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`puppet_rw_tmp', `
+	gen_require(`
+		type puppet_tmp_t;
+	')
+
+	allow $1 puppet_tmp_t:file rw_inherited_file_perms;
+	files_search_tmp($1)
+')
+
+###################################
+## <summary>
+##  Allow the specified domain to read puppet's config files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`puppet_read_config',`
+    gen_require(`
+        type puppet_etc_t;
+    ')
+
+    logging_search_logs($1)
+    list_dirs_pattern($1, puppet_etc_t, puppet_etc_t)
+    read_files_pattern($1, puppet_etc_t, puppet_etc_t)
+')
+
+####################################
+## <summary>
+##  Allow the specified domain to read puppet's log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`puppet_read_log',`
+    gen_require(`
+        type puppet_log_t;
+    ')
+
+    logging_search_logs($1)
+    read_files_pattern($1, puppet_log_t, puppet_log_t)
+')
+
+#####################################
+## <summary>
+##  Allow the specified domain to create puppet's log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`puppet_create_log',`
+    gen_require(`
+        type puppet_log_t;
+    ')
+
+    logging_search_logs($1)
+    create_files_pattern($1, puppet_log_t, puppet_log_t)
+')
+
+####################################
+## <summary>
+##  Allow the specified domain to append puppet's log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`puppet_append_log',`
+    gen_require(`
+        type puppet_log_t;
+    ')
+
+    logging_search_logs($1)
+    append_files_pattern($1, puppet_log_t, puppet_log_t)
+')
+
+###############################################
+## <summary>
+##  Read Puppet lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`puppet_read_lib',`
+    gen_require(`
+        type puppet_var_lib_t;
+    ')
+
+    read_files_pattern($1, puppet_var_lib_t, puppet_var_lib_t)
+    files_search_var_lib($1)
+')
+
+##############################################
+## <summary>
+##  Manage Puppet lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`puppet_manage_lib',`
+    gen_require(`
+        type puppet_var_lib_t;
+    ')
+
+    manage_files_pattern($1, puppet_var_lib_t, puppet_var_lib_t)
+    files_search_var_lib($1)
+')
+
+#####################################
+## <summary>
+##  Allow the specified domain to search puppet's log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`puppet_search_log',`
+    gen_require(`
+        type puppet_log_t;
+    ')
+
+    logging_search_logs($1)
+    allow $1 puppet_log_t:dir search_dir_perms;
+')
+
+####################################
+## <summary>
+##  Allow the specified domain to search puppet's pid files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`puppet_search_pid',`
+    gen_require(`
+        type puppet_var_run_t;
+    ')
+
+    files_search_pids($1)
+    allow $1 puppet_var_run_t:dir search_dir_perms;
+')

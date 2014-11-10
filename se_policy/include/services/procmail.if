@@ -1,0 +1,98 @@
+## <summary>Procmail mail delivery agent</summary>
+
+########################################
+## <summary>
+##	Execute procmail with a domain transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`procmail_domtrans',`
+	gen_require(`
+		type procmail_exec_t, procmail_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, procmail_exec_t, procmail_t)
+')
+
+########################################
+## <summary>
+##	Execute procmail in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`procmail_exec',`
+	gen_require(`
+		type procmail_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	can_exec($1, procmail_exec_t)
+')
+
+########################################
+## <summary>
+##	Read procmail tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`procmail_read_tmp_files',`
+	gen_require(`
+		type procmail_tmp_t;
+	')
+
+	files_search_tmp($1)
+	allow $1 procmail_tmp_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read/write procmail tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`procmail_rw_tmp_files',`
+	gen_require(`
+		type procmail_tmp_t;
+	')
+
+	files_search_tmp($1)
+	rw_files_pattern($1, procmail_tmp_t, procmail_tmp_t)
+')
+
+########################################
+## <summary>
+##	Read procmail home directory content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`procmail_read_home_files',`
+	gen_require(`
+		type procmail_home_t;
+	')
+
+        userdom_search_user_home_dirs($1)
+	read_files_pattern($1, procmail_home_t, procmail_home_t)
+')

@@ -1,0 +1,98 @@
+## <summary>Policy for getty.</summary>
+
+########################################
+## <summary>
+##	Execute gettys in the getty domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`getty_domtrans',`
+	gen_require(`
+		type getty_t, getty_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, getty_exec_t, getty_t)
+')
+
+########################################
+## <summary>
+##	Inherit and use getty file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`getty_use_fds',`
+	gen_require(`
+		type getty_t;
+	')
+
+	allow $1 getty_t:fd use;
+')
+
+########################################
+## <summary>
+##	Allow process to read getty log file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`getty_read_log',`
+	gen_require(`
+		type getty_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 getty_log_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow process to read getty config file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`getty_read_config',`
+	gen_require(`
+		type getty_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 getty_etc_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow process to edit getty config file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`getty_rw_config',`
+	gen_require(`
+		type getty_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 getty_etc_t:file rw_file_perms;
+')

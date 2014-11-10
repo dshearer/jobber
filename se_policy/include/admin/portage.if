@@ -1,0 +1,283 @@
+## <summary>
+##	Portage Package Management System. The primary package management and
+##	distribution system for Gentoo.
+## </summary>
+
+########################################
+## <summary>
+##	Execute emerge in the portage domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`portage_domtrans',`
+	gen_require(`
+		type portage_t, portage_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+
+	# transition to portage
+	domtrans_pattern($1, portage_exec_t, portage_t)
+')
+
+########################################
+## <summary>
+##	Execute emerge in the portage domain, and
+##	allow the specified role the portage domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the portage domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`portage_run',`
+	gen_require(`
+		type portage_t, portage_fetch_t, portage_sandbox_t;
+	')
+
+	portage_domtrans($1)
+	role $2 types { portage_t portage_fetch_t portage_sandbox_t };
+')
+
+########################################
+## <summary>
+##	Template for portage sandbox.
+## </summary>
+## <desc>
+##	<p>
+##	Template for portage sandbox.  Portage
+##	does all compiling in the sandbox.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain Allowed Access
+##	</summary>
+## </param>
+#
+interface(`portage_compile_domain',`
+
+	gen_require(`
+		class dbus send_msg;
+		type portage_devpts_t, portage_log_t, portage_tmp_t;
+		type portage_tmpfs_t, portage_sandbox_t;
+	')
+
+	allow $1 self:capability { fowner fsetid mknod setgid setuid chown dac_override net_raw };
+	dontaudit $1 self:capability sys_chroot;
+	allow $1 self:process { setpgid setsched setrlimit signal_perms execmem };
+	allow $1 self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+	allow $1 self:fd use;
+	allow $1 self:fifo_file rw_fifo_file_perms;
+	allow $1 self:shm create_shm_perms;
+	allow $1 self:sem create_sem_perms;
+	allow $1 self:msgq create_msgq_perms;
+	allow $1 self:msg { send receive };
+	allow $1 self:unix_dgram_socket create_socket_perms;
+	allow $1 self:unix_stream_socket create_stream_socket_perms;
+	allow $1 self:unix_dgram_socket sendto;
+	allow $1 self:unix_stream_socket connectto;
+	# really shouldnt need this
+	allow $1 self:tcp_socket create_stream_socket_perms;
+	allow $1 self:udp_socket create_socket_perms;
+	# misc networking stuff (esp needed for compiling perl):
+	allow $1 self:rawip_socket { create ioctl };
+	# needed for merging dbus:
+	allow $1 self:netlink_selinux_socket { bind create read };
+	allow $1 self:dbus send_msg;
+
+	allow $1 portage_devpts_t:chr_file { rw_chr_file_perms setattr };
+	term_create_pty($1, portage_devpts_t)
+
+	# write compile logs
+	allow $1 portage_log_t:dir setattr;
+	allow $1 portage_log_t:file { write_file_perms setattr };
+
+	# run scripts out of the build directory
+	can_exec(portage_sandbox_t, portage_tmp_t)
+
+	manage_dirs_pattern($1, portage_tmp_t, portage_tmp_t)
+	manage_files_pattern($1, portage_tmp_t, portage_tmp_t)
+	manage_lnk_files_pattern($1, portage_tmp_t, portage_tmp_t)
+	manage_fifo_files_pattern($1, portage_tmp_t, portage_tmp_t)
+	manage_sock_files_pattern($1, portage_tmp_t, portage_tmp_t)
+	files_tmp_filetrans($1, portage_tmp_t, { dir file lnk_file sock_file fifo_file })
+	# SELinux-enabled programs running in the sandbox
+	allow $1 portage_tmp_t:file relabel_file_perms;
+
+	manage_files_pattern($1, portage_tmpfs_t, portage_tmpfs_t)
+	manage_lnk_files_pattern($1, portage_tmpfs_t, portage_tmpfs_t)
+	manage_fifo_files_pattern($1, portage_tmpfs_t, portage_tmpfs_t)
+	manage_sock_files_pattern($1, portage_tmpfs_t, portage_tmpfs_t)
+	fs_tmpfs_filetrans($1, portage_tmpfs_t, { dir file lnk_file sock_file fifo_file })
+
+	kernel_read_system_state($1)
+	kernel_read_network_state($1)
+	kernel_read_software_raid_state($1)
+	kernel_getattr_core_if($1)
+	kernel_getattr_message_if($1)
+	kernel_read_kernel_sysctls($1)
+
+	corecmd_exec_all_executables($1)
+
+	# really shouldnt need this but some packages test
+	# network access, such as during configure
+	# also distcc--need to reinvestigate confining distcc client
+	corenet_all_recvfrom_unlabeled($1)
+	corenet_all_recvfrom_netlabel($1)
+	corenet_tcp_sendrecv_generic_if($1)
+	corenet_udp_sendrecv_generic_if($1)
+	corenet_raw_sendrecv_generic_if($1)
+	corenet_tcp_sendrecv_generic_node($1)
+	corenet_udp_sendrecv_generic_node($1)
+	corenet_raw_sendrecv_generic_node($1)
+	corenet_tcp_sendrecv_all_ports($1)
+	corenet_udp_sendrecv_all_ports($1)
+	corenet_tcp_connect_all_reserved_ports($1)
+	corenet_tcp_connect_distccd_port($1)
+
+	dev_read_sysfs($1)
+	dev_read_rand($1)
+	dev_read_urand($1)
+
+	domain_use_interactive_fds($1)
+	domain_dontaudit_read_all_domains_state($1)
+	# SELinux-aware installs doing relabels in the sandbox
+	domain_obj_id_change_exemption($1)
+
+	files_exec_etc_files($1)
+	files_exec_usr_src_files($1)
+
+	fs_getattr_xattr_fs($1)
+	fs_list_noxattr_fs($1)
+	fs_read_noxattr_fs_files($1)
+	fs_read_noxattr_fs_symlinks($1)
+	fs_search_auto_mountpoints($1)
+
+	selinux_validate_context($1)
+	# needed for merging dbus:
+	selinux_compute_access_vector($1)
+
+	auth_read_all_dirs_except_shadow($1)
+	auth_read_all_files_except_shadow($1)
+	auth_read_all_symlinks_except_shadow($1)
+
+	libs_exec_lib_files($1)
+	# some config scripts use ldd
+	libs_exec_ld_so($1)
+	# this violates the idea of sandbox, but
+	# regular sandbox allows it
+	libs_domtrans_ldconfig($1)
+
+	logging_send_syslog_msg($1)
+
+	userdom_use_user_terminals($1)
+
+	# SELinux-enabled programs running in the sandbox
+	seutil_libselinux_linked($1)
+
+	ifdef(`TODO',`
+	# some gui ebuilds want to interact with X server, like xawtv
+	optional_policy(`
+		allow $1 xdm_xserver_tmp_t:dir { add_name remove_name write };
+		allow $1 xdm_xserver_tmp_t:sock_file { create getattr unlink write };
+	')
+	') dnl end TODO
+')
+
+########################################
+## <summary>
+##	Execute gcc-config in the gcc_config domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`portage_domtrans_gcc_config',`
+	gen_require(`
+		type gcc_config_t, gcc_config_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+
+	domtrans_pattern($1, gcc_config_exec_t, gcc_config_t)
+')
+
+########################################
+## <summary>
+##	Execute gcc-config in the gcc_config domain, and
+##	allow the specified role the gcc_config domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the gcc_config domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`portage_run_gcc_config',`
+	gen_require(`
+		type gcc_config_t;
+	')
+
+	portage_domtrans_gcc_config($1)
+	role $2 types gcc_config_t;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search the
+##	portage temporary directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`portage_dontaudit_search_tmp',`
+	gen_require(`
+		type portage_tmp_t;
+	')
+
+	dontaudit $1 portage_tmp_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write
+##	the portage temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`portage_dontaudit_rw_tmp_files',`
+	gen_require(`
+		type portage_tmp_t;
+	')
+
+	dontaudit $1 portage_tmp_t:file rw_file_perms;
+')

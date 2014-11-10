@@ -1,0 +1,105 @@
+## <summary>VMWare Workstation virtual machines</summary>
+
+########################################
+## <summary>
+##	Role access for vmware
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`vmware_role',`
+	gen_require(`
+		type vmware_t, vmware_exec_t;
+	')
+
+	role $1 types vmware_t;
+
+	# Transition from the user domain to the derived domain.
+	domtrans_pattern($2, vmware_exec_t, vmware_t)
+
+	# allow ps to show vmware and allow the user to kill it 
+	ps_process_pattern($2, vmware_t)
+	allow $2 vmware_t:process signal;
+')
+
+########################################
+## <summary>
+##	Read VMWare system configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vmware_read_system_config',`
+	gen_require(`
+		type vmware_sys_conf_t;
+	')
+
+	allow $1 vmware_sys_conf_t:file { getattr read };
+')
+
+########################################
+## <summary>
+##	Append to VMWare system configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vmware_append_system_config',`
+	gen_require(`
+		type vmware_sys_conf_t;
+	')
+
+	allow $1 vmware_sys_conf_t:file append;
+')
+
+########################################
+## <summary>
+##	Append to VMWare log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vmware_append_log',`
+	gen_require(`
+		type vmware_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, vmware_log_t, vmware_log_t)
+')
+
+########################################
+## <summary>
+##	Execute vmware host executables
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vmware_exec_host',`
+	gen_require(`
+		type vmware_host_exec_t;
+	')
+
+	can_exec($1, vmware_host_exec_t)
+')
+

@@ -1,0 +1,85 @@
+## <summary>Restricted (scp/sftp) only shell</summary>
+
+########################################
+## <summary>
+##	Role access for rssh
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`rssh_role',`
+	gen_require(`
+		type rssh_t;
+	')
+
+	role $1 types rssh_t;
+
+	# allow ps to show irc
+	ps_process_pattern($2, rssh_t)
+	allow $2 rssh_t:process signal;
+')
+
+########################################
+## <summary>
+##	Transition to all user rssh domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rssh_spec_domtrans',`
+	gen_require(`
+		type rssh_t, rssh_exec_t;
+	')
+
+	spec_domtrans_pattern($1, rssh_exec_t, rssh_t)
+')
+
+#######################################
+## <summary>
+##  Execute the rssh program
+##  in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rssh_exec',`
+    gen_require(`
+        type rssh_exec_t;
+    ')
+
+    can_exec($1, rssh_exec_t)
+')
+
+########################################
+## <summary>
+##	Read all users rssh read-only content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rssh_read_ro_content',`
+	gen_require(`
+		type rssh_ro_t;
+	')
+
+	allow $1 rssh_ro_t:dir list_dir_perms;
+	read_files_pattern($1, rssh_ro_t, rssh_ro_t)
+	read_lnk_files_pattern($1, rssh_ro_t, rssh_ro_t)
+')

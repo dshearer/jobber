@@ -1,0 +1,173 @@
+## <summary>Distributed checksum clearinghouse spam filtering</summary>
+
+########################################
+## <summary>
+##	Execute cdcc in the cdcc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dcc_domtrans_cdcc',`
+	gen_require(`
+		type cdcc_t, cdcc_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, cdcc_exec_t, cdcc_t)
+')
+
+########################################
+## <summary>
+##	Execute cdcc in the cdcc domain, and
+##	allow the specified role the cdcc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the cdcc domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`dcc_run_cdcc',`
+	gen_require(`
+		type cdcc_t;
+	')
+
+	dcc_domtrans_cdcc($1)
+	role $2 types cdcc_t;
+')
+
+########################################
+## <summary>
+##	Execute dcc_client in the dcc_client domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dcc_domtrans_client',`
+	gen_require(`
+		type dcc_client_t, dcc_client_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, dcc_client_exec_t, dcc_client_t)
+')
+
+########################################
+## <summary>
+##	Send a signal to the dcc_client.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dcc_signal_client',`
+	gen_require(`
+		type dcc_client_t;
+	')
+
+	allow $1 dcc_client_t:process signal;
+')
+
+########################################
+## <summary>
+##	Execute dcc_client in the dcc_client domain, and
+##	allow the specified role the dcc_client domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the dcc_client domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`dcc_run_client',`
+	gen_require(`
+		type dcc_client_t;
+	')
+
+	dcc_domtrans_client($1)
+	role $2 types dcc_client_t;
+')
+
+########################################
+## <summary>
+##	Execute dbclean in the dcc_dbclean domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dcc_domtrans_dbclean',`
+	gen_require(`
+		type dcc_dbclean_t, dcc_dbclean_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, dcc_dbclean_exec_t, dcc_dbclean_t)
+')
+
+########################################
+## <summary>
+##	Execute dbclean in the dcc_dbclean domain, and
+##	allow the specified role the dcc_dbclean domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the dcc_dbclean domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`dcc_run_dbclean',`
+	gen_require(`
+		type dcc_dbclean_t;
+	')
+
+	dcc_domtrans_dbclean($1)
+	role $2 types dcc_dbclean_t;
+')
+
+########################################
+## <summary>
+##	Connect to dccifd over a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dcc_stream_connect_dccifd',`
+	gen_require(`
+		type dcc_var_t, dccifd_var_run_t, dccifd_t;
+	')
+
+	files_search_var($1)
+	stream_connect_pattern($1, dcc_var_t, dccifd_var_run_t, dccifd_t)
+')

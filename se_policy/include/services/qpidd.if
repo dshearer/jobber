@@ -1,0 +1,234 @@
+
+## <summary>policy for qpidd</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run qpidd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`qpidd_domtrans',`
+	gen_require(`
+		type qpidd_t, qpidd_exec_t;
+	')
+
+	domtrans_pattern($1, qpidd_exec_t, qpidd_t)
+')
+
+
+########################################
+## <summary>
+##	Execute qpidd server in the qpidd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`qpidd_initrc_domtrans',`
+	gen_require(`
+		type qpidd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, qpidd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read qpidd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qpidd_read_pid_files',`
+	gen_require(`
+		type qpidd_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 qpidd_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage qpidd var_run files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qpidd_manage_var_run',`
+	gen_require(`
+		type qpidd_var_run_t;
+	')
+
+         manage_dirs_pattern($1, qpidd_var_run_t, qpidd_var_run_t)
+         manage_files_pattern($1, qpidd_var_run_t, qpidd_var_run_t)
+         manage_lnk_files_pattern($1, qpidd_var_run_t, qpidd_var_run_t)
+')
+
+
+########################################
+## <summary>
+##	Search qpidd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qpidd_search_lib',`
+	gen_require(`
+		type qpidd_var_lib_t;
+	')
+
+	allow $1 qpidd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read qpidd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qpidd_read_lib_files',`
+	gen_require(`
+		type qpidd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        read_files_pattern($1, qpidd_var_lib_t, qpidd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	qpidd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qpidd_manage_lib_files',`
+	gen_require(`
+		type qpidd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_files_pattern($1, qpidd_var_lib_t,  qpidd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage qpidd var_lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`qpidd_manage_var_lib',`
+	gen_require(`
+		type qpidd_var_lib_t;
+	')
+
+         manage_dirs_pattern($1, qpidd_var_lib_t, qpidd_var_lib_t)
+         manage_files_pattern($1, qpidd_var_lib_t, qpidd_var_lib_t)
+         manage_lnk_files_pattern($1, qpidd_var_lib_t, qpidd_var_lib_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an qpidd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`qpidd_admin',`
+	gen_require(`
+		type qpidd_t, qpidd_initrc_exec_t;
+	')
+
+	allow $1 qpidd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, qpidd_t)
+
+	# Allow qpidd_t to restart the apache service
+	qpidd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 qpidd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	qpidd_manage_var_run($1)
+
+	qpidd_manage_var_lib($1)
+
+')
+
+#####################################
+## <summary>
+##      Allow read and write access to qpidd semaphores.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`qpidd_rw_semaphores',`
+        gen_require(`
+                type qpidd_t;
+        ')
+
+        allow $1 qpidd_t:sem rw_sem_perms;
+')
+
+########################################
+## <summary>
+##      Read and write to qpidd shared memory.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      The type of the process performing this action.
+##      </summary>
+## </param>
+#
+interface(`qpidd_rw_shm',`
+        gen_require(`
+                type qpidd_t, qpidd_tmpfs_t;
+        ')
+
+        allow $1 qpidd_t:shm rw_shm_perms;
+
+	    fs_search_tmpfs($1)
+	    manage_files_pattern($1, qpidd_tmpfs_t, qpidd_tmpfs_t)
+')

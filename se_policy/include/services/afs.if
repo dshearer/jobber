@@ -1,0 +1,109 @@
+## <summary>Andrew Filesystem server</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run the
+##	afs client.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`afs_domtrans',`
+	gen_require(`
+		type afs_t, afs_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, afs_exec_t, afs_t)
+')
+
+########################################
+## <summary>
+##	Read and write afs client UDP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`afs_rw_udp_sockets',`
+	gen_require(`
+		type afs_t;
+	')
+
+	allow $1 afs_t:udp_socket { read write };
+')
+
+########################################
+## <summary>
+##	read/write afs cache files
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`afs_rw_cache',`
+	gen_require(`
+		type afs_cache_t;
+	')
+
+	files_search_var($1)
+	allow $1 afs_cache_t:file { read write };
+')
+
+########################################
+## <summary>
+##	Execute afs server in the afs domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`afs_initrc_domtrans',`
+	gen_require(`
+		type afs_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, afs_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an afs environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the afs domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`afs_admin',`
+	gen_require(`
+		type afs_t, afs_initrc_exec_t;
+	')
+
+	allow $1 afs_t:process { ptrace signal_perms };
+	ps_process_pattern($1, afs_t)
+
+	# Allow afs_admin to restart the afs service
+	afs_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 afs_initrc_exec_t system_r;
+	allow $2 system_r;
+
+')

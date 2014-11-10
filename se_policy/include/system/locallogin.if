@@ -1,0 +1,149 @@
+## <summary>Policy for local logins.</summary>
+
+########################################
+## <summary>
+##	Execute local logins in the local login domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`locallogin_domtrans',`
+	gen_require(`
+		type local_login_t;
+	')
+
+	auth_domtrans_login_program($1, local_login_t)
+
+	ifdef(`enable_mcs',`
+		auth_ranged_domtrans_login_program($1, local_login_t, s0 - mcs_systemhigh)
+	')
+')
+
+########################################
+## <summary>
+##	Allow processes to inherit local login file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`locallogin_use_fds',`
+	gen_require(`
+		type local_login_t;
+	')
+
+	allow $1 local_login_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to inherit local login file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`locallogin_dontaudit_use_fds',`
+	gen_require(`
+		type local_login_t;
+	')
+
+	dontaudit $1 local_login_t:fd use;
+')
+
+########################################
+## <summary>
+##	Send a null signal to local login processes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`locallogin_signull',`
+	gen_require(`
+		type local_login_t;
+	')
+
+	allow $1 local_login_t:process signull;
+')
+
+########################################
+## <summary>
+##	Search for key.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`locallogin_search_keys',`
+	gen_require(`
+		type local_login_t;
+	')
+
+	allow $1 local_login_t:key search;
+')
+
+########################################
+## <summary>
+##	Allow link to the local_login key ring.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`locallogin_link_keys',`
+	gen_require(`
+		type local_login_t;
+	')
+
+	allow $1 local_login_t:key link;
+')
+
+########################################
+## <summary>
+##	Execute local logins in the local login domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`locallogin_domtrans_sulogin',`
+	gen_require(`
+		type sulogin_exec_t, sulogin_t;
+	')
+
+	domtrans_pattern($1, sulogin_exec_t, sulogin_t)
+')
+
+######################################
+## <summary>
+##  Allow domain to gettatr local login home content
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`locallogin_getattr_home_content',`
+    gen_require(`
+        type local_login_home_t;
+    ')
+
+    getattr_files_pattern($1, local_login_home_t, local_login_home_t)
+')

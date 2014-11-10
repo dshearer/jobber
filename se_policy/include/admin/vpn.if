@@ -1,0 +1,139 @@
+## <summary>Virtual Private Networking client</summary>
+
+########################################
+## <summary>
+##	Execute VPN clients in the vpnc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_domtrans',`
+	gen_require(`
+		type vpnc_t, vpnc_exec_t;
+	')
+
+	domtrans_pattern($1, vpnc_exec_t, vpnc_t)
+')
+
+########################################
+## <summary>
+##	Execute VPN clients in the vpnc domain, and
+##	allow the specified role the vpnc domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the vpnc domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`vpn_run',`
+	gen_require(`
+		type vpnc_t;
+	')
+
+	vpn_domtrans($1)
+	role $2 types vpnc_t;
+	sysnet_run_ifconfig(vpnc_t, $2)
+')
+
+########################################
+## <summary>
+##	Send VPN clients the kill signal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_kill',`
+	gen_require(`
+		type vpnc_t;
+	')
+
+	allow $1 vpnc_t:process sigkill;
+')
+
+########################################
+## <summary>
+##	Send generic signals to VPN clients.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_signal',`
+	gen_require(`
+		type vpnc_t;
+	')
+
+	allow $1 vpnc_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send signull to VPN clients.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_signull',`
+	gen_require(`
+		type vpnc_t;
+	')
+
+	allow $1 vpnc_t:process signull;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	Vpnc over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_dbus_chat',`
+	gen_require(`
+		type vpnc_t;
+		class dbus send_msg;
+	')
+
+	allow $1 vpnc_t:dbus send_msg;
+	allow vpnc_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Relabelfrom from vpnc socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vpn_relabelfrom_tun_socket',`
+	gen_require(`
+		type vpnc_t;
+	')
+
+	allow $1 vpnc_t:tun_socket relabelfrom;
+')

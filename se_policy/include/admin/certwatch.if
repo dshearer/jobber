@@ -1,0 +1,78 @@
+## <summary>Digital Certificate Tracking</summary>
+
+########################################
+## <summary>
+##	Domain transition to certwatch.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`certwatch_domtrans',`
+	gen_require(`
+		type certwatch_exec_t, certwatch_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, certwatch_exec_t, certwatch_t)
+')
+
+########################################
+## <summary>
+##	Execute certwatch in the certwatch domain, and
+##	allow the specified role the certwatch domain,
+##	and use the caller's terminal. Has a sigchld
+##	backchannel.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the certwatch domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`certwatch_run',`
+	gen_require(`
+		type certwatch_t;
+	')
+
+	certwatch_domtrans($1)
+	role $2 types certwatch_t;
+')
+
+########################################
+## <summary>
+##	Execute certwatch in the certwatch domain, and
+##	allow the specified role the certwatch domain,
+##	and use the caller's terminal. Has a sigchld
+##	backchannel.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the certwatch domain.
+##	</summary>
+## </param>
+## <param name="terminal">
+##	<summary>
+##	The type of the terminal allow the certwatch domain to use.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`certwatach_run',`
+	refpolicywarn(`$0($*) has been deprecated, please use certwatch_run() instead.')
+	certwatch_run($*)
+')

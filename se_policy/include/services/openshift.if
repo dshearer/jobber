@@ -1,0 +1,714 @@
+
+## <summary> policy for openshift </summary>
+
+########################################
+## <summary>
+##	Execute openshift server in the openshift domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`openshift_initrc_domtrans',`
+	gen_require(`
+		type openshift_initrc_t;
+		type openshift_initrc_exec_t;
+	')
+
+	domtrans_pattern($1, openshift_initrc_exec_t, openshift_initrc_t)
+')
+
+########################################
+## <summary>
+##	Execute openshift server in the openshift domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`openshift_dontaudit_read_initrc',`
+	gen_require(`
+		type openshift_initrc_exec_t;
+	')
+    dontaudit $1 openshift_initrc_exec_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute openshift server in the openshift domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  Role access to this domain.
+##  </summary>
+## </param>
+#
+interface(`openshift_initrc_run',`
+   gen_require(`
+       type openshift_initrc_t;
+       type openshift_initrc_exec_t;
+   ')
+
+   openshift_initrc_domtrans($1)
+   role $2 types openshift_initrc_t;
+')
+
+#######################################
+## <summary>
+## Send a null signal to openshift init scripts.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`openshift_initrc_signull',`
+		gen_require(`
+			type openshift_initrc_t;
+		')
+
+		allow $1 openshift_initrc_t:process signull;
+')
+
+#######################################
+## <summary>
+##  Send a signal to openshift init scripts.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`openshift_initrc_signal',`
+    gen_require(`
+        type openshift_initrc_t;
+    ')
+
+    allow $1 openshift_initrc_t:process signal;
+')
+
+########################################
+## <summary>
+##	Search openshift cache directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_search_cache',`
+	gen_require(`
+		type openshift_cache_t;
+	')
+
+	allow $1 openshift_cache_t:dir search_dir_perms;
+	files_search_var($1)
+')
+
+########################################
+## <summary>
+##	Read openshift cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_read_cache_files',`
+	gen_require(`
+		type openshift_cache_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, openshift_cache_t, openshift_cache_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	openshift cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_manage_cache_files',`
+	gen_require(`
+		type openshift_cache_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, openshift_cache_t, openshift_cache_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	openshift cache dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_manage_cache_dirs',`
+	gen_require(`
+		type openshift_cache_t;
+	')
+
+	files_search_var($1)
+	manage_dirs_pattern($1, openshift_cache_t, openshift_cache_t)
+')
+
+
+########################################
+## <summary>
+##	Allow the specified domain to read openshift's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`openshift_read_log',`
+	gen_require(`
+		type openshift_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, openshift_log_t, openshift_log_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	openshift log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`openshift_append_log',`
+	gen_require(`
+		type openshift_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, openshift_log_t, openshift_log_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to manage openshift log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`openshift_manage_log',`
+	gen_require(`
+		type openshift_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, openshift_log_t, openshift_log_t)
+	manage_files_pattern($1, openshift_log_t, openshift_log_t)
+	manage_lnk_files_pattern($1, openshift_log_t, openshift_log_t)
+')
+
+#######################################
+## <summary>
+## Getattr openshift lib files.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`openshift_getattr_lib',`
+   gen_require(`
+       type openshift_var_lib_t;
+   ')
+
+    getattr_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+   files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Search openshift lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_search_lib',`
+	gen_require(`
+		type openshift_var_lib_t;
+	')
+
+    
+    search_dirs_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+    getattr_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read openshift lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_read_lib_files',`
+	gen_require(`
+		type openshift_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+    list_dirs_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+	read_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+    read_lnk_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read openshift lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_append_lib_files',`
+	gen_require(`
+		type openshift_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	append_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	openshift lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_manage_lib_files',`
+	gen_require(`
+		type openshift_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+    manage_lnk_files_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage openshift lib dirs files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_manage_lib_dirs',`
+	gen_require(`
+		type openshift_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, openshift_var_lib_t, openshift_var_lib_t)
+')
+
+########################################
+## <summary>
+## Manage openshift lib content.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`openshift_manage_content',`
+   gen_require(`
+       attribute openshift_file_type;
+   ')
+
+   files_search_var_lib($1)
+   manage_dirs_pattern($1, openshift_file_type, openshift_file_type)
+   manage_files_pattern($1, openshift_file_type, openshift_file_type)
+   manage_lnk_files_pattern($1, openshift_file_type, openshift_file_type)
+')
+
+#######################################
+## <summary>
+##     Create private objects in the
+##     mail lib directory.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+## <param name="private type">
+##     <summary>
+##     The type of the object to be created.
+##     </summary>
+## </param>
+## <param name="object">
+##     <summary>
+##     The object class of the object being created.
+##     </summary>
+## </param>
+## <param name="name" optional="true">
+##     <summary>
+##     The name of the object being created.
+##     </summary>
+## </param>
+#
+interface(`openshift_lib_filetrans',`
+       gen_require(`
+               type openshift_var_lib_t;
+       ')
+
+       files_search_var_lib($1)
+       filetrans_pattern($1, openshift_var_lib_t, $2, $3, $4)
+')
+
+########################################
+## <summary>
+##	Read openshift PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_read_pid_files',`
+	gen_require(`
+		type openshift_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 openshift_var_run_t:file read_file_perms;
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an openshift environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`openshift_admin',`
+	gen_require(`
+        attribute openshift_domain;
+		type openshift_initrc_exec_t;
+		type openshift_cache_t;
+		type openshift_log_t;
+		type openshift_var_lib_t;
+		type openshift_var_run_t;
+	')
+
+	allow $1 openshift_domain:process { ptrace signal_perms };
+	ps_process_pattern($1, openshift_domain)
+
+	openshift_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 openshift_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var($1)
+	admin_pattern($1, openshift_cache_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, openshift_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, openshift_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, openshift_var_run_t)
+
+')
+
+########################################
+## <summary>
+##	Make the specified type usable as a openshift domain.
+## </summary>
+## <param name="openshiftdomain_prefix">
+##  <summary>
+##  The prefix of the domain (e.g., openshift
+##  is the prefix for openshift_t).
+##  </summary>
+## </param>
+#
+template(`openshift_service_domain_template',`
+	gen_require(`
+		attribute openshift_domain;
+		attribute openshift_user_domain;
+	')
+
+	type $1_t;
+	typeattribute $1_t openshift_domain, openshift_user_domain;
+	domain_type($1_t)
+	role system_r types $1_t;
+	mcs_untrusted_proc($1_t)
+	domain_user_exemption_target($1_t)
+	auth_use_nsswitch($1_t)
+	domain_subj_id_change_exemption($1_t)
+	domain_obj_id_change_exemption($1_t)
+	domain_dyntrans_type($1_t)
+
+	kernel_read_system_state($1_t)
+
+	logging_send_syslog_msg($1_t)
+
+	type $1_app_t;
+	typeattribute $1_app_t openshift_domain;
+	domain_type($1_app_t)
+	role system_r types $1_app_t;
+	mcs_untrusted_proc($1_app_t)
+	domain_user_exemption_target($1_app_t)
+	domain_obj_id_change_exemption($1_app_t)
+	domain_dyntrans_type($1_app_t)
+    #auth_use_nsswitch($1_app_t)
+
+	kernel_read_system_state($1_app_t)
+
+	logging_send_syslog_msg($1_app_t)
+')
+
+########################################
+## <summary>
+##	Make the specified type usable as a openshift domain.
+## </summary>
+## <param name="type">
+##	<summary>
+##	Type to be used as a openshift domain type.
+##	</summary>
+## </param>
+#
+template(`openshift_net_type',`
+	gen_require(`
+		attribute openshift_net_domain;
+	')
+
+	typeattribute $1 openshift_net_domain;
+')
+
+########################################
+## <summary>
+##	Read and write inherited openshift files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_rw_inherited_content',`
+	gen_require(`
+		attribute openshift_file_type;
+	')
+
+	allow $1 openshift_file_type:file rw_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage openshift tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_manage_tmp_files',`
+	gen_require(`
+		type openshift_tmp_t;
+	')
+
+	manage_files_pattern($1, openshift_tmp_t, openshift_tmp_t)
+')
+
+########################################
+## <summary>
+##	Manage openshift tmp sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_manage_tmp_sockets',`
+	gen_require(`
+		type openshift_tmp_t;
+	')
+
+	manage_sock_files_pattern($1, openshift_tmp_t, openshift_tmp_t)
+')
+
+########################################
+## <summary>
+##	Mounton openshift tmp directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_mounton_tmp',`
+	gen_require(`
+		type openshift_tmp_t;
+	')
+
+	allow $1 openshift_tmp_t:dir mounton;
+')
+
+########################################
+## <summary>
+##	Dontaudit Read and write inherited script fifo files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_dontaudit_rw_inherited_fifo_files',`
+	gen_require(`
+		type openshift_initrc_t;
+	')
+
+	dontaudit $1 openshift_initrc_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow calling app to transition to an openshift domain
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`openshift_transition',`
+	gen_require(`
+		attribute openshift_user_domain;
+	')
+
+	allow $1 openshift_user_domain:process transition;
+	dontaudit $1 openshift_user_domain:process { noatsecure siginh rlimitinh };
+	allow openshift_user_domain $1:fd use;
+	allow openshift_user_domain $1:fifo_file rw_inherited_fifo_file_perms;
+	allow openshift_user_domain $1:process sigchld;
+	dontaudit $1 openshift_user_domain:socket_class_set { read write };
+')
+
+########################################
+## <summary>
+##	Allow calling app to transition to an openshift domain
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`openshift_dyntransition',`
+	gen_require(`
+		attribute openshift_domain;
+		attribute openshift_user_domain;
+	')
+
+	allow $1 openshift_user_domain:process dyntransition;
+	dontaudit openshift_user_domain $1:key view;
+	allow openshift_user_domain $1:unix_stream_socket { connectto rw_socket_perms };
+	allow openshift_user_domain $1:unix_dgram_socket rw_socket_perms;
+	allow $1 openshift_user_domain:process { rlimitinh signal };
+	dontaudit openshift_domain $1:tcp_socket { read write getattr setopt getopt shutdown };
+')
+
+########################################
+## <summary>
+##	Execute openshift in the openshift domain, and
+##	allow the specified role the openshift domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`openshift_run',`
+	gen_require(`
+		type openshift_initrc_exec_t;
+	')
+
+	openshift_initrc_domtrans($1)
+	role_transition $2 openshift_initrc_exec_t system_r;
+	openshift_transition($1)
+')

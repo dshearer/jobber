@@ -1,0 +1,186 @@
+## <summary>Fast incremental file transfer for synchronization</summary>
+
+########################################
+## <summary>
+##	Make rsync an entry point for
+##	the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The domain for which init scripts are an entrypoint.
+##	</summary>
+## </param>
+# cjp: added for portage
+interface(`rsync_entry_type',`
+	gen_require(`
+		type rsync_exec_t;
+	')
+
+	domain_entry_file($1, rsync_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute a rsync in a specified domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute a rsync in a specified domain.
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+## </desc>
+## <param name="source_domain">
+##	<summary>
+##	Domain to transition from.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	Domain to transition to.
+##	</summary>
+## </param>
+# cjp: added for portage
+interface(`rsync_entry_spec_domtrans',`
+	gen_require(`
+		type rsync_exec_t;
+	')
+
+	domain_trans($1, rsync_exec_t, $2)
+')
+
+########################################
+## <summary>
+##	Execute a rsync in a specified domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute a rsync in a specified domain.
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+## </desc>
+## <param name="source_domain">
+##	<summary>
+##	Domain to transition from.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	Domain to transition to.
+##	</summary>
+## </param>
+# cjp: added for portage
+interface(`rsync_entry_domtrans',`
+	gen_require(`
+		type rsync_exec_t;
+	')
+
+	domain_auto_trans($1, rsync_exec_t, $2)
+')
+
+########################################
+## <summary>
+##	Execute rsync in the caller domain domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rsync_exec',`
+	gen_require(`
+		type rsync_exec_t;
+	')
+
+	can_exec($1, rsync_exec_t)
+')
+
+########################################
+## <summary>
+##	Read rsync config files.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed.
+## </summary>
+## </param>
+#
+interface(`rsync_read_config',`
+	gen_require(`
+		type rsync_etc_t;
+	')
+
+	read_files_pattern($1, rsync_etc_t, rsync_etc_t)
+	files_search_etc($1)
+')
+
+#######################################
+## <summary>
+##  Write to rsync config files.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed.
+## </summary>
+## </param>
+#
+interface(`rsync_write_config',`
+    gen_require(`
+        type rsync_etc_t;
+    ')
+
+    write_files_pattern($1, rsync_etc_t, rsync_etc_t)
+    files_search_etc($1)
+')
+
+#######################################
+## <summary>
+##      Manage rsync config files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##      Domain allowed.
+## 	</summary>
+## </param>
+#
+interface(`rsync_manage_config',`
+       gen_require(`
+               type rsync_etc_t;
+       ')
+
+       manage_files_pattern($1, rsync_etc_t, rsync_etc_t)
+       files_search_etc($1)
+')
+
+#######################################
+## <summary>
+##  Create objects in the amavis spool directories
+##  with a private type.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="object_class">
+##  <summary>
+##  Class of the object being created.
+##  </summary>
+## </param>
+#
+interface(`rsync_filetrans_config',`
+    gen_require(`
+        type rsync_etc_t;
+    ')
+
+    files_etc_filetrans($1, rsync_etc_t, $2)
+')

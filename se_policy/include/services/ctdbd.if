@@ -1,0 +1,256 @@
+
+## <summary>policy for ctdbd</summary>
+
+########################################
+## <summary>
+##	Transition to ctdbd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ctdbd_domtrans',`
+	gen_require(`
+		type ctdbd_t, ctdbd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ctdbd_exec_t, ctdbd_t)
+')
+
+########################################
+## <summary>
+##	Execute ctdbd server in the ctdbd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ctdbd_initrc_domtrans',`
+	gen_require(`
+		type ctdbd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, ctdbd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read ctdbd's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ctdbd_read_log',`
+	gen_require(`
+		type ctdbd_log_t;
+	')
+
+	logging_search_logs($1)
+        read_files_pattern($1, ctdbd_log_t, ctdbd_log_t)
+')
+
+########################################
+## <summary>
+##	Append to ctdbd log files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed to transition.
+## 	</summary>
+## </param>
+#
+interface(`ctdbd_append_log',`
+	gen_require(`
+		type ctdbd_log_t;
+	')
+
+	logging_search_logs($1)
+        append_files_pattern($1, ctdbd_log_t, ctdbd_log_t)
+')
+
+########################################
+## <summary>
+##	Manage ctdbd log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`ctdbd_manage_log',`
+	gen_require(`
+		type ctdbd_log_t;
+	')
+
+	logging_search_logs($1)
+        manage_dirs_pattern($1, ctdbd_log_t, ctdbd_log_t)
+        manage_files_pattern($1, ctdbd_log_t, ctdbd_log_t)
+        manage_lnk_files_pattern($1, ctdbd_log_t, ctdbd_log_t)
+')
+
+########################################
+## <summary>
+##	Search ctdbd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ctdbd_search_lib',`
+	gen_require(`
+		type ctdbd_var_lib_t;
+	')
+
+	allow $1 ctdbd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read ctdbd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ctdbd_read_lib_files',`
+	gen_require(`
+		type ctdbd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        read_files_pattern($1, ctdbd_var_lib_t, ctdbd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage ctdbd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ctdbd_manage_lib_files',`
+	gen_require(`
+		type ctdbd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_files_pattern($1, ctdbd_var_lib_t, ctdbd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage ctdbd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ctdbd_manage_lib_dirs',`
+	gen_require(`
+		type ctdbd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_dirs_pattern($1, ctdbd_var_lib_t, ctdbd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read ctdbd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ctdbd_read_pid_files',`
+	gen_require(`
+		type ctdbd_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 ctdbd_var_run_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##  Connect to ctdbd over an unix stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ctdbd_stream_connect',`
+    gen_require(`
+        type ctdbd_t, ctdbd_var_run_t, ctdbd_tmp_t;
+    ')
+
+    files_search_pids($1)
+    stream_connect_pattern($1, ctdbd_var_run_t, ctdbd_var_run_t, ctdbd_t)
+	stream_connect_pattern($1, ctdbd_tmp_t, ctdbd_tmp_t, ctdbd_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an ctdbd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ctdbd_admin',`
+	gen_require(`
+		type ctdbd_t, ctdbd_initrc_exec_t;
+		type ctdbd_log_t, ctdbd_var_lib_t, ctdbd_var_run_t;
+	')
+
+	allow $1 ctdbd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ctdbd_t)
+
+	ctdbd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 ctdbd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, ctdbd_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, ctdbd_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, ctdbd_var_run_t)
+')
+

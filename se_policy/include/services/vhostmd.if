@@ -1,0 +1,225 @@
+## <summary>Virtual host metrics daemon</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run vhostmd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`vhostmd_domtrans',`
+	gen_require(`
+		type vhostmd_t, vhostmd_exec_t;
+	')
+
+	domtrans_pattern($1, vhostmd_exec_t, vhostmd_t)
+')
+
+########################################
+## <summary>
+##	Execute vhostmd server in the vhostmd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`vhostmd_initrc_domtrans',`
+	gen_require(`
+		type vhostmd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, vhostmd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to read, vhostmd tmpfs files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`vhostmd_read_tmpfs_files',`
+	gen_require(`
+		type vhostmd_tmpfs_t;
+	')
+
+	fs_search_tmpfs($1)
+	allow $1 vhostmd_tmpfs_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read,
+##	vhostmd tmpfs files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`vhostmd_dontaudit_read_tmpfs_files',`
+	gen_require(`
+		type vhostmd_tmpfs_t;
+	')
+
+	dontaudit $1 vhostmd_tmpfs_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##	Allow domain to read and write vhostmd tmpfs files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`vhostmd_rw_tmpfs_files',`
+	gen_require(`
+		type vhostmd_tmpfs_t;
+	')
+
+	fs_search_tmpfs($1)
+	rw_files_pattern($1, vhostmd_tmpfs_t, vhostmd_tmpfs_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete vhostmd tmpfs files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`vhostmd_manage_tmpfs_files',`
+	gen_require(`
+		type vhostmd_tmpfs_t;
+	')
+
+	fs_search_tmpfs($1)
+	manage_files_pattern($1, vhostmd_tmpfs_t, vhostmd_tmpfs_t)
+')
+
+########################################
+## <summary>
+##	Read vhostmd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vhostmd_read_pid_files',`
+	gen_require(`
+		type vhostmd_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 vhostmd_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage vhostmd var_run files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vhostmd_manage_pid_files',`
+	gen_require(`
+		type vhostmd_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, vhostmd_var_run_t, vhostmd_var_run_t)
+')
+
+########################################
+## <summary>
+##	Connect to vhostmd over an unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vhostmd_stream_connect',`
+	gen_require(`
+		type vhostmd_t, vhostmd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, vhostmd_var_run_t, vhostmd_var_run_t, vhostmd_t)
+')
+
+#######################################
+## <summary>
+##	Dontaudit read and write to vhostmd
+##	over an unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`vhostmd_dontaudit_rw_stream_connect',`
+	gen_require(`
+		type vhostmd_t;
+	')
+
+	dontaudit $1 vhostmd_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an vhostmd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`vhostmd_admin',`
+	gen_require(`
+		type vhostmd_t, vhostmd_initrc_exec_t;
+	')
+
+	allow $1 vhostmd_t:process { ptrace signal_perms getattr };
+	ps_process_pattern($1, vhostmd_t)
+
+    init_labeled_script_domtrans($1, vhostmd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 vhostmd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	vhostmd_manage_tmpfs_files($1)
+
+	vhostmd_manage_pid_files($1)
+
+')

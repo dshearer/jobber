@@ -1,0 +1,205 @@
+## <summary>Policy for GNU Privacy Guard and related programs.</summary>
+
+############################################################
+## <summary>
+##	Role access for gpg
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`gpg_role',`
+	gen_require(`
+		type gpg_t, gpg_exec_t;
+		type gpg_agent_t, gpg_agent_exec_t;
+		type gpg_agent_tmp_t;
+		type gpg_helper_t, gpg_pinentry_t;
+		type gpg_pinentry_tmp_t;
+	')
+
+	role $1 types { gpg_t gpg_agent_t gpg_helper_t gpg_pinentry_t };
+
+	# transition from the userdomain to the derived domain
+	domtrans_pattern($2, gpg_exec_t, gpg_t)
+
+	# allow ps to show gpg
+	ps_process_pattern($2, gpg_t)
+	allow $2 gpg_t:process { signull sigstop signal sigkill };
+
+	allow $2 gpg_agent_t:unix_stream_socket { rw_socket_perms connectto };
+
+	# communicate with the user 
+	allow gpg_helper_t $2:fd use;
+	allow gpg_helper_t $2:fifo_file write;
+
+	# allow ps to show gpg-agent
+	ps_process_pattern($2, gpg_agent_t)
+
+	# Allow the user shell to signal the gpg-agent program.
+	allow $2 gpg_agent_t:process { signal sigkill };
+
+	manage_dirs_pattern($2, gpg_agent_tmp_t, gpg_agent_tmp_t)
+	manage_files_pattern($2, gpg_agent_tmp_t, gpg_agent_tmp_t)
+	manage_sock_files_pattern($2, gpg_agent_tmp_t, gpg_agent_tmp_t)
+	files_tmp_filetrans(gpg_agent_t, gpg_agent_tmp_t, { file sock_file dir })
+
+	# Transition from the user domain to the agent domain.
+	domtrans_pattern($2, gpg_agent_exec_t, gpg_agent_t)
+
+	manage_sock_files_pattern($2, gpg_pinentry_tmp_t, gpg_pinentry_tmp_t)
+	relabel_sock_files_pattern($2, gpg_pinentry_tmp_t, gpg_pinentry_tmp_t)
+
+	optional_policy(`
+		gpg_pinentry_dbus_chat($2)
+	')
+
+	ifdef(`hide_broken_symptoms',`
+		#Leaked File Descriptors
+		dontaudit gpg_t $2:socket_class_set { getattr read write };
+		dontaudit gpg_t $2:fifo_file rw_fifo_file_perms;
+		dontaudit gpg_agent_t $2:socket_class_set { getattr read write };
+		dontaudit gpg_agent_t $2:fifo_file rw_fifo_file_perms;
+	')
+')
+
+########################################
+## <summary>
+##	Transition to a user gpg domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gpg_domtrans',`
+	gen_require(`
+		type gpg_t, gpg_exec_t;
+	')
+
+	domtrans_pattern($1, gpg_exec_t, gpg_t)
+')
+
+######################################
+## <summary>
+##  Transition to a gpg web domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`gpg_domtrans_web',`
+    gen_require(`
+        type gpg_web_t, gpg_exec_t;
+    ')
+
+    domtrans_pattern($1, gpg_exec_t, gpg_web_t)
+')
+
+######################################
+## <summary>
+##  Make gpg an entrypoint for
+##  the specified domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The domain for which cifs_t is an entrypoint.
+##  </summary>
+## </param>
+#
+interface(`gpg_entry_type',`
+    gen_require(`
+        type gpg_exec_t;
+    ')
+
+    domain_entry_file($1, gpg_exec_t)
+')
+
+########################################
+## <summary>
+##	Send generic signals to user gpg processes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gpg_signal',`
+	gen_require(`
+		type gpg_t;
+	')
+
+	allow $1 gpg_t:process signal;
+')
+
+########################################
+## <summary>
+##	Read and write GPG named pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gpg_agent_rw_named_pipes',`
+	# Just wants read/write could this be a leak?
+	gen_require(`
+		type gpg_agent_t;
+	')
+
+	allow $1 gpg_agent_t:fifo_file rw_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Send messages to and from GPG
+##	Pinentry over DBUS.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gpg_pinentry_dbus_chat',`
+	gen_require(`
+		type gpg_pinentry_t;
+		class dbus send_msg;
+	')
+
+	allow $1 gpg_pinentry_t:dbus send_msg;
+	allow gpg_pinentry_t $1:dbus send_msg;
+')
+
+
+########################################
+## <summary>
+##	List Gnu Privacy Guard user 
+##	content dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gpg_list_user_content_dirs',`
+	gen_require(`
+		type gpg_secret_t;
+	')
+
+	list_dirs_pattern($1, gpg_secret_t, gpg_secret_t)
+	userdom_search_user_home_dirs($1)
+')
+

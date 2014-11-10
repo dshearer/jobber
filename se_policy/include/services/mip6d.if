@@ -1,0 +1,21 @@
+
+## <summary>Mobile IPv6 and NEMO Basic Support implementation</summary>
+
+########################################
+## <summary>
+##	Execute TEMPLATE in the mip6d domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`mip6d_domtrans',`
+	gen_require(`
+		type mip6d_t, mip6d_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, mip6d_exec_t, mip6d_t)
+')

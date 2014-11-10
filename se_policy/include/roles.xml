@@ -1,0 +1,978 @@
+<summary>Policy modules for user roles.</summary>
+<module name="auditadm" filename="policy/modules/roles/auditadm.if">
+<summary>Audit administrator role</summary>
+<interface name="auditadm_role_change" lineno="14">
+<summary>
+Change to the audit administrator role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="auditadm_role_change_to" lineno="44">
+<summary>
+Change from the audit administrator role.
+</summary>
+<desc>
+<p>
+Change from the audit administrator role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="dbadm" filename="policy/modules/roles/dbadm.if">
+<summary>Database administrator role</summary>
+<interface name="dbadm_role_change" lineno="14">
+<summary>
+Change to the database administrator role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="dbadm_role_change_to" lineno="44">
+<summary>
+Change from the database administrator role.
+</summary>
+<desc>
+<p>
+Change from the web administrator role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="guest" filename="policy/modules/roles/guest.if">
+<summary>Least privledge terminal user</summary>
+<interface name="guest_role_change" lineno="14">
+<summary>
+Change to the guest role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="guest_role_change_to" lineno="44">
+<summary>
+Change from the guest role.
+</summary>
+<desc>
+<p>
+Change from the guest role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="logadm" filename="policy/modules/roles/logadm.if">
+<summary>Log administrator role</summary>
+<interface name="logadm_role_change" lineno="14">
+<summary>
+Change to the log administrator role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="logadm_role_change_to" lineno="44">
+<summary>
+Change from the log administrator role.
+</summary>
+<desc>
+<p>
+Change from the log administrator role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="secadm" filename="policy/modules/roles/secadm.if">
+<summary>Security administrator role</summary>
+<interface name="secadm_role_change" lineno="14">
+<summary>
+Change to the security administrator role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="secadm_role_change_to_template" lineno="44">
+<summary>
+Change from the security administrator role.
+</summary>
+<desc>
+<p>
+Change from the security administrator role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="staff" filename="policy/modules/roles/staff.if">
+<summary>Administrator's unprivileged user</summary>
+<interface name="staff_role_change" lineno="14">
+<summary>
+Change to the staff role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="staff_role_change_to" lineno="44">
+<summary>
+Change from the staff role.
+</summary>
+<desc>
+<p>
+Change from the staff role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="sysadm" filename="policy/modules/roles/sysadm.if">
+<summary>General system administration role</summary>
+<interface name="sysadm_role_change" lineno="14">
+<summary>
+Change to the system administrator role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="sysadm_role_change_to" lineno="44">
+<summary>
+Change from the system administrator role.
+</summary>
+<desc>
+<p>
+Change from the system administrator role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="sysadm_shell_domtrans" lineno="62">
+<summary>
+Execute a shell in the sysadm domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="sysadm_bin_spec_domtrans" lineno="83">
+<summary>
+Execute a generic bin program in the sysadm domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="sysadm_entry_spec_domtrans" lineno="106">
+<summary>
+Execute all entrypoint files in the sysadm domain. This
+is an explicit transition, requiring the
+caller to use setexeccon().
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="sysadm_entry_spec_domtrans_to" lineno="141">
+<summary>
+Allow sysadm to execute all entrypoint files in
+a specified domain.  This is an explicit transition,
+requiring the caller to use setexeccon().
+</summary>
+<desc>
+<p>
+Allow sysadm to execute all entrypoint files in
+a specified domain.  This is an explicit transition,
+requiring the caller to use setexeccon().
+</p>
+<p>
+This is a interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="sysadm_bin_spec_domtrans_to" lineno="175">
+<summary>
+Allow sysadm to execute a generic bin program in
+a specified domain.  This is an explicit transition,
+requiring the caller to use setexeccon().
+</summary>
+<desc>
+<p>
+Allow sysadm to execute a generic bin program in
+a specified domain.
+</p>
+<p>
+This is a interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="domain">
+<summary>
+Domain to execute in.
+</summary>
+</param>
+</interface>
+<interface name="sysadm_sigchld" lineno="196">
+<summary>
+Send a SIGCHLD signal to sysadm users.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="sysadm_use_fds" lineno="214">
+<summary>
+Inherit and use sysadm file descriptors
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="sysadm_rw_pipes" lineno="232">
+<summary>
+Read and write sysadm user unnamed pipes.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<tunable name="allow_ptrace" dftval="false">
+<desc>
+<p>
+Allow sysadm to debug or ptrace all processes.
+</p>
+</desc>
+</tunable>
+</module>
+<module name="sysadm_secadm" filename="policy/modules/roles/sysadm_secadm.if">
+<summary>No Interfaces</summary>
+</module>
+<module name="unconfineduser" filename="policy/modules/roles/unconfineduser.if">
+<summary>Unconfiend user role</summary>
+<interface name="unconfined_role_change_to" lineno="25">
+<summary>
+Change from the unconfineduser role.
+</summary>
+<desc>
+<p>
+Change from the unconfineduser role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="unconfined_domtrans" lineno="43">
+<summary>
+Transition to the unconfined domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_run" lineno="66">
+<summary>
+Execute specified programs in the unconfined domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to allow the unconfined domain.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_shell_domtrans" lineno="85">
+<summary>
+Transition to the unconfined domain by executing a shell.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_domtrans_to" lineno="119">
+<summary>
+Allow unconfined to execute the specified program in
+the specified domain.
+</summary>
+<desc>
+<p>
+Allow unconfined to execute the specified program in
+the specified domain.
+</p>
+<p>
+This is a interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="domain">
+<summary>
+Domain to execute in.
+</summary>
+</param>
+<param name="entry_file">
+<summary>
+Domain entry point file.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_run_to" lineno="156">
+<summary>
+Allow unconfined to execute the specified program in
+the specified domain.  Allow the specified domain the
+unconfined role and use of unconfined user terminals.
+</summary>
+<desc>
+<p>
+Allow unconfined to execute the specified program in
+the specified domain.  Allow the specified domain the
+unconfined role and use of unconfined user terminals.
+</p>
+<p>
+This is a interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="domain">
+<summary>
+Domain to execute in.
+</summary>
+</param>
+<param name="entry_file">
+<summary>
+Domain entry point file.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_use_fds" lineno="177">
+<summary>
+Inherit file descriptors from the unconfined domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_sigchld" lineno="195">
+<summary>
+Send a SIGCHLD signal to the unconfined domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_signull" lineno="213">
+<summary>
+Send a SIGNULL signal to the unconfined domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_execmem_signull" lineno="231">
+<summary>
+Send a SIGNULL signal to the unconfined execmem domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_execmem_signal" lineno="249">
+<summary>
+Send a signal to the unconfined execmem domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_signal" lineno="267">
+<summary>
+Send generic signals to the unconfined domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_read_pipes" lineno="285">
+<summary>
+Read unconfined domain unnamed pipes.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_dontaudit_read_pipes" lineno="303">
+<summary>
+Do not audit attempts to read unconfined domain unnamed pipes.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_rw_pipes" lineno="321">
+<summary>
+Read and write unconfined domain unnamed pipes.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_dontaudit_rw_pipes" lineno="340">
+<summary>
+Do not audit attempts to read and write
+unconfined domain unnamed pipes.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_dontaudit_netlink_route_socket" lineno="359">
+<summary>
+Do not audit attempts to read and write
+unconfined domain netlink_route_socket.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_dontaudit_rw_stream" lineno="378">
+<summary>
+Do not audit attempts to read and write
+unconfined domain stream.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_stream_connect" lineno="397">
+<summary>
+Connect to the unconfined domain using
+a unix domain stream socket.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_dontaudit_rw_tcp_sockets" lineno="426">
+<summary>
+Do not audit attempts to read or write
+unconfined domain tcp sockets.
+</summary>
+<desc>
+<p>
+Do not audit attempts to read or write
+unconfined domain tcp sockets.
+</p>
+<p>
+This interface was added due to a broken
+symptom in ldconfig.
+</p>
+</desc>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_dontaudit_rw_packet_sockets" lineno="455">
+<summary>
+Do not audit attempts to read or write
+unconfined domain packet sockets.
+</summary>
+<desc>
+<p>
+Do not audit attempts to read or write
+unconfined domain packet sockets.
+</p>
+<p>
+This interface was added due to a broken
+symptom.
+</p>
+</desc>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_create_keys" lineno="473">
+<summary>
+Create keys for the unconfined domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_dbus_send" lineno="491">
+<summary>
+Send messages to the unconfined domain over dbus.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_dbus_chat" lineno="511">
+<summary>
+Send and receive messages from
+unconfined_t over dbus.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_dbus_connect" lineno="532">
+<summary>
+Connect to the the unconfined DBUS
+for service (acquire_svc).
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_dbus_stream_connect" lineno="551">
+<summary>
+Connect to the the unconfined DBUS
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_ptrace" lineno="569">
+<summary>
+Allow ptrace of unconfined domain
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_rw_shm" lineno="587">
+<summary>
+Read and write to unconfined shared memory.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_execmem_rw_shm" lineno="605">
+<summary>
+Read and write to unconfined execmem shared memory.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_execmem_domtrans" lineno="623">
+<summary>
+Transition to the unconfined_execmem domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_execmem_exec" lineno="642">
+<summary>
+execute the execmem applications
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_set_rlimitnh" lineno="661">
+<summary>
+Allow apps to set rlimits on userdomain
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_getpgid" lineno="679">
+<summary>
+Get the process group of unconfined.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="unconfined_role_change" lineno="698">
+<summary>
+Change to the unconfined role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="unconfined_attach_tun_iface" lineno="716">
+<summary>
+Allow domain to attach to TUN devices created by unconfined_t users.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<tunable name="allow_unconfined_nsplugin_transition" dftval="false">
+<desc>
+<p>
+Transition to confined nsplugin domains from unconfined user
+</p>
+</desc>
+</tunable>
+<tunable name="unconfined_login" dftval="true">
+<desc>
+<p>
+Allow a user to login as an unconfined domain
+</p>
+</desc>
+</tunable>
+<tunable name="unconfined_mmap_zero_ignore" dftval="false">
+<desc>
+<p>
+Ignore unconfined mmap_zero errors
+</p>
+</desc>
+</tunable>
+<tunable name="unconfined_mozilla_plugin_transition" dftval="false">
+<desc>
+<p>
+Allow unconfined users to transition to the Mozilla plugin domain when running xulrunner plugin-container.
+</p>
+</desc>
+</tunable>
+</module>
+<module name="unprivuser" filename="policy/modules/roles/unprivuser.if">
+<summary>Generic unprivileged user</summary>
+<interface name="unprivuser_role_change" lineno="14">
+<summary>
+Change to the generic user role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="unprivuser_role_change_to" lineno="44">
+<summary>
+Change from the generic user role.
+</summary>
+<desc>
+<p>
+Change from the generic user role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="webadm" filename="policy/modules/roles/webadm.if">
+<summary>Web administrator role</summary>
+<interface name="webadm_role_change" lineno="14">
+<summary>
+Change to the web administrator role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="webadm_role_change_to" lineno="44">
+<summary>
+Change from the web administrator role.
+</summary>
+<desc>
+<p>
+Change from the web administrator role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<tunable name="webadm_manage_user_files" dftval="false">
+<desc>
+<p>
+Allow webadm to manage files in users home directories
+</p>
+</desc>
+</tunable>
+<tunable name="webadm_read_user_files" dftval="false">
+<desc>
+<p>
+Allow webadm to read files in users home directories
+</p>
+</desc>
+</tunable>
+</module>
+<module name="xguest" filename="policy/modules/roles/xguest.if">
+<summary>Least priviledged X user</summary>
+<interface name="xguest_role_change" lineno="14">
+<summary>
+Change to the xguest role.
+</summary>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="xguest_role_change_to" lineno="44">
+<summary>
+Change from the xguest role.
+</summary>
+<desc>
+<p>
+Change from the xguest role to
+the specified role.
+</p>
+<p>
+This is an interface to support third party modules
+and its use is not allowed in upstream reference
+policy.
+</p>
+</desc>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<tunable name="xguest_mount_media" dftval="true">
+<desc>
+<p>
+Allow xguest users to mount removable media
+</p>
+</desc>
+</tunable>
+<tunable name="xguest_connect_network" dftval="true">
+<desc>
+<p>
+Allow xguest to configure Network Manager and connect to apache ports
+</p>
+</desc>
+</tunable>
+<tunable name="xguest_use_bluetooth" dftval="true">
+<desc>
+<p>
+Allow xguest to use blue tooth devices
+</p>
+</desc>
+</tunable>
+</module>

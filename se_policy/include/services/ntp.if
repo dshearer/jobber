@@ -1,0 +1,165 @@
+## <summary>Network time protocol daemon</summary>
+
+########################################
+## <summary>
+##	NTP stub interface.  No access allowed.
+## </summary>
+## <param name="domain" unused="true">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ntp_stub',`
+	gen_require(`
+		type ntpd_t;
+	')
+')
+
+########################################
+## <summary>
+##	Execute ntp server in the ntpd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ntp_domtrans',`
+	gen_require(`
+		type ntpd_t, ntpd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ntpd_exec_t, ntpd_t)
+')
+
+########################################
+## <summary>
+##	Execute ntp in the ntp domain, and
+##	allow the specified role the ntp domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ntp_run',`
+	gen_require(`
+		type ntpd_t;
+	')
+
+	ntp_domtrans($1)
+	role $2 types ntpd_t;
+')
+
+########################################
+## <summary>
+##	Execute ntp server in the ntpd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ntp_domtrans_ntpdate',`
+	gen_require(`
+		type ntpd_t, ntpdate_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ntpdate_exec_t, ntpd_t)
+')
+
+########################################
+## <summary>
+##	Execute ntp server in the ntpd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ntp_initrc_domtrans',`
+	gen_require(`
+		type ntpd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, ntpd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read and write ntpd shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ntp_rw_shm',`
+	gen_require(`
+		type ntpd_t, ntpd_tmpfs_t;
+	')
+
+	allow $1 ntpd_t:shm rw_shm_perms;
+	list_dirs_pattern($1, ntpd_tmpfs_t, ntpd_tmpfs_t)
+	rw_files_pattern($1, ntpd_tmpfs_t, ntpd_tmpfs_t)
+	read_lnk_files_pattern($1, ntpd_tmpfs_t, ntpd_tmpfs_t)
+	fs_search_tmpfs($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an ntp environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the ntp domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ntp_admin',`
+	gen_require(`
+		type ntpd_t, ntpd_tmp_t, ntpd_log_t;
+		type ntpd_key_t, ntpd_var_run_t;
+		type ntpd_initrc_exec_t;
+	')
+
+	allow $1 ntpd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ntpd_t)
+
+	init_labeled_script_domtrans($1, ntpd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 ntpd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	admin_pattern($1, ntpd_key_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, ntpd_log_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, ntpd_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, ntpd_var_run_t)
+')

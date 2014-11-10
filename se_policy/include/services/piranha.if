@@ -1,0 +1,186 @@
+
+## <summary>policy for piranha</summary>
+
+#######################################
+## <summary>
+##  Creates types and rules for a basic
+##  cluster init daemon domain.
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+template(`piranha_domain_template',`
+
+    gen_require(`
+        attribute piranha_domain;        
+    ')
+
+	##############################
+	#   
+	#  piranha_$1_t declarations
+	#            
+
+	type piranha_$1_t, piranha_domain;
+	type piranha_$1_exec_t;
+	init_daemon_domain(piranha_$1_t, piranha_$1_exec_t)
+
+    type piranha_$1_initrc_exec_t;
+    init_script_file(piranha_$1_initrc_exec_t)
+
+    # tmpfs files
+    type piranha_$1_tmpfs_t, piranha_tmpfs;
+    files_tmpfs_file(piranha_$1_tmpfs_t)
+
+	# pid files
+    type piranha_$1_var_run_t;
+    files_pid_file(piranha_$1_var_run_t)
+
+	##############################
+	#   
+	#  piranha_$1_t local policy
+	#            
+
+    manage_dirs_pattern(piranha_$1_t, piranha_$1_tmpfs_t, piranha_$1_tmpfs_t)
+    manage_files_pattern(piranha_$1_t, piranha_$1_tmpfs_t, piranha_$1_tmpfs_t)
+    fs_tmpfs_filetrans(piranha_$1_t, piranha_$1_tmpfs_t, { dir file })
+
+    manage_files_pattern(piranha_$1_t, piranha_$1_var_run_t, piranha_$1_var_run_t)
+	manage_dirs_pattern(piranha_$1_t, piranha_$1_var_run_t, piranha_$1_var_run_t)
+    files_pid_filetrans(piranha_$1_t, piranha_$1_var_run_t, { dir file })
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run fos.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`piranha_domtrans_fos',`
+	gen_require(`
+		type piranha_fos_t, piranha_fos_exec_t;
+	')
+
+	domtrans_pattern($1, piranha_fos_exec_t, piranha_fos_t)
+')
+
+#######################################
+## <summary>
+##  Execute a domain transition to run lvsd.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`piranha_domtrans_lvs',`
+    gen_require(`
+        type piranha_lvs_t, piranha_lvs_exec_t;
+    ')
+
+    domtrans_pattern($1, piranha_lvs_exec_t, piranha_lvs_t)
+')
+
+#######################################
+## <summary>
+##  Execute a domain transition to run pulse.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`piranha_domtrans_pulse',`
+    gen_require(`
+        type piranha_pulse_t, piranha_pulse_exec_t;
+    ')
+
+    domtrans_pattern($1, piranha_pulse_exec_t, piranha_pulse_t)
+')
+
+#######################################
+## <summary>
+##  Execute pulse server in the pulse domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The type of the process performing this action.
+##  </summary>
+## </param>
+#
+interface(`piranha_pulse_initrc_domtrans',`
+    gen_require(`
+        type piranha_pulse_initrc_exec_t;
+    ')
+
+    init_labeled_script_domtrans($1, piranha_pulse_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read piranha's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`piranha_read_log',`
+	gen_require(`
+		type piranha_log_t;
+	')
+
+	logging_search_logs($1)
+    read_files_pattern($1, piranha_log_t, piranha_log_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	piranha log files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed to transition.
+## 	</summary>
+## </param>
+#
+interface(`piranha_append_log',`
+	gen_require(`
+		type piranha_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, piranha_log_t, piranha_log_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to manage piranha log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`piranha_manage_log',`
+	gen_require(`
+		type piranha_log_t;
+	')
+
+	logging_search_logs($1)
+    manage_dirs_pattern($1, piranha_log_t, piranha_log_t)
+    manage_files_pattern($1, piranha_log_t, piranha_log_t)
+    manage_lnk_files_pattern($1, piranha_log_t, piranha_log_t)
+')

@@ -1,0 +1,146 @@
+
+## <summary>policy for glusterd</summary>
+
+
+########################################
+## <summary>
+##	Transition to glusterd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`glusterd_domtrans',`
+	gen_require(`
+		type glusterd_t, glusterd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, glusterd_exec_t, glusterd_t)
+')
+
+
+########################################
+## <summary>
+##	Execute glusterd server in the glusterd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glusterd_initrc_domtrans',`
+	gen_require(`
+		type glusterd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, glusterd_initrc_exec_t)
+')
+
+
+########################################
+## <summary>
+##	Read glusterd's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`glusterd_read_log',`
+	gen_require(`
+		type glusterd_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, glusterd_log_t, glusterd_log_t)
+')
+
+########################################
+## <summary>
+##	Append to glusterd log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glusterd_append_log',`
+	gen_require(`
+		type glusterd_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, glusterd_log_t, glusterd_log_t)
+')
+
+########################################
+## <summary>
+##	Manage glusterd log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`glusterd_manage_log',`
+	gen_require(`
+		type glusterd_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, glusterd_log_t, glusterd_log_t)
+	manage_files_pattern($1, glusterd_log_t, glusterd_log_t)
+	manage_lnk_files_pattern($1, glusterd_log_t, glusterd_log_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an glusterd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`glusterd_admin',`
+	gen_require(`
+		type glusterd_t;
+		type glusterd_initrc_exec_t;
+		type glusterd_log_t;
+		type glusterd_tmp_t;
+		type glusterd_conf_t; 
+	')
+
+	allow $1 glusterd_t:process { signal_perms };
+	ps_process_pattern($1, glusterd_t)
+
+	glusterd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 glusterd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_search_logs($1)
+	admin_pattern($1, glusterd_log_t)
+
+	admin_pattern($1, glusterd_tmp_t)
+
+	admin_pattern($1, glusterd_conf_t)
+
+')
+

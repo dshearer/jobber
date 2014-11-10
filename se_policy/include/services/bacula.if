@@ -1,0 +1,98 @@
+## <summary>Cross platform network backup.</summary>
+
+########################################
+## <summary>
+##	Execute bacula admin bacula
+##	admin domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`bacula_domtrans_admin',`
+	gen_require(`
+		type bacula_admin_t, bacula_admin_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, bacula_admin_exec_t, bacula_admin_t)
+')
+
+########################################
+## <summary>
+##	Execute user interfaces in the
+##	bacula admin domain, and allow the
+##	specified role the bacula admin domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`bacula_run_admin',`
+	gen_require(`
+		type bacula_admin_t;
+	')
+
+	bacula_domtrans_admin($1)
+    role $2 types bacula_admin_t;
+')
+
+########################################
+## <summary>
+##	All of the rules required to
+##	administrate an bacula environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`bacula_admin',`
+	gen_require(`
+		type bacula_t, bacula_etc_t, bacula_log_t;
+		type bacula_spool_t, bacula_var_lib_t;
+		type bacula_var_run_t, bacula_initrc_exec_t;
+	')
+
+	allow $1 bacula_t:process { ptrace signal_perms };
+	ps_process_pattern($1, bacula_t)
+
+	init_labeled_script_domtrans($1, bacula_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 bacula_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, bacula_etc_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, bacula_log_t)
+
+	files_search_var($1)
+	admin_pattern($1, bacula_spool_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, bacula_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, bacula_var_run_t)
+
+	bacula_run_admin($1, $2)
+')

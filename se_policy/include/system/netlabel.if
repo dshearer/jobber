@@ -1,0 +1,46 @@
+## <summary>NetLabel/CIPSO labeled networking management</summary>
+
+########################################
+## <summary>
+##	Execute netlabel_mgmt in the netlabel_mgmt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`netlabel_domtrans_mgmt',`
+	gen_require(`
+		type netlabel_mgmt_t, netlabel_mgmt_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, netlabel_mgmt_exec_t, netlabel_mgmt_t)
+')
+
+########################################
+## <summary>
+##	Execute netlabel_mgmt in the netlabel_mgmt domain, and
+##	allow the specified role the netlabel_mgmt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the netlabel_mgmt domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`netlabel_run_mgmt',`
+	gen_require(`
+		type netlabel_mgmt_t;
+	')
+
+	netlabel_domtrans_mgmt($1)
+	role $2 types netlabel_mgmt_t;
+')

@@ -1,0 +1,80 @@
+## <summary>policy for hypervkvp</summary>
+
+########################################
+## <summary>
+##	Execute hypervkvpd in the hypervkvp domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`hypervkvp_domtrans',`
+	gen_require(`
+		type hypervkvp_t, hypervkvp_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, hypervkvp_exec_t, hypervkvp_t)
+')
+
+########################################
+## <summary>
+##	Search hypervkvp lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hypervkvp_search_lib',`
+	gen_require(`
+		type hypervkvp_var_lib_t;
+	')
+
+	allow $1 hypervkvp_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read hypervkvp lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hypervkvp_read_lib_files',`
+	gen_require(`
+		type hypervkvp_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	allow $1 hypervkvp_var_lib_t:dir list_dir_perms;
+	read_files_pattern($1, hypervkvp_var_lib_t, hypervkvp_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	hypervkvp lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hypervkvp_manage_lib_files',`
+	gen_require(`
+		type hypervkvp_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, hypervkvp_var_lib_t, hypervkvp_var_lib_t)
+')
+

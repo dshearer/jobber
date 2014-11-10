@@ -1,0 +1,21 @@
+## <summary>Red Hat utility to change /etc/fstab.</summary>
+
+########################################
+## <summary>
+##	Execute updfstab in the updfstab domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`updfstab_domtrans',`
+	gen_require(`
+		type updfstab_t, updfstab_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, updfstab_exec_t, updfstab_t)
+')

@@ -1,0 +1,156 @@
+## <summary>PCMCIA card management services</summary>
+
+########################################
+## <summary>
+##	PCMCIA stub interface.  No access allowed.
+## </summary>
+## <param name="domain" unused="true">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pcmcia_stub',`
+	gen_require(`
+		type cardmgr_t;
+	')
+')
+
+########################################
+## <summary>
+##	Execute cardmgr in the cardmgr domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`pcmcia_domtrans_cardmgr',`
+	gen_require(`
+		type cardmgr_t, cardmgr_exec_t;
+	')
+
+	domtrans_pattern($1, cardmgr_exec_t, cardmgr_t)
+')
+
+########################################
+## <summary>
+##	Inherit and use file descriptors from cardmgr.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pcmcia_use_cardmgr_fds',`
+	gen_require(`
+		type cardmgr_t;
+	')
+
+	allow $1 cardmgr_t:fd use;
+')
+
+########################################
+## <summary>
+##	Execute cardctl in the cardmgr domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`pcmcia_domtrans_cardctl',`
+	gen_require(`
+		type cardmgr_t, cardctl_exec_t;
+	')
+
+	domtrans_pattern($1, cardctl_exec_t, cardmgr_t)
+')
+
+########################################
+## <summary>
+##	Execute cardmgr in the cardctl domain, and
+##	allow the specified role the cardmgr domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the cardmgr domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`pcmcia_run_cardctl',`
+	gen_require(`
+		type cardmgr_t;
+	')
+
+	pcmcia_domtrans_cardctl($1)
+	role $2 types cardmgr_t;
+')
+
+########################################
+## <summary>
+##	Read cardmgr pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pcmcia_read_pid',`
+	gen_require(`
+		type cardmgr_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, cardmgr_var_run_t, cardmgr_var_run_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	cardmgr pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pcmcia_manage_pid',`
+	gen_require(`
+		type cardmgr_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, cardmgr_var_run_t, cardmgr_var_run_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	cardmgr runtime character nodes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pcmcia_manage_pid_chr_files',`
+	gen_require(`
+		type cardmgr_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_chr_files_pattern($1, cardmgr_var_run_t, cardmgr_var_run_t)
+')

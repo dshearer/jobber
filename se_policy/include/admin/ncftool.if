@@ -1,0 +1,78 @@
+
+## <summary>policy for ncftool</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run ncftool.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ncftool_domtrans',`
+	gen_require(`
+		type ncftool_t, ncftool_exec_t;
+	')
+
+	domtrans_pattern($1, ncftool_exec_t, ncftool_t)
+')
+
+########################################
+## <summary>
+##	Execute ncftool in the ncftool domain, and
+##	allow the specified role the ncftool domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the ncftool domain.
+##	</summary>
+## </param>
+#
+interface(`ncftool_run',`
+	gen_require(`
+		type ncftool_t;
+	')
+
+	ncftool_domtrans($1)
+	role $2 types ncftool_t;
+
+	optional_policy(`
+		brctl_run(ncftool_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Role access for ncftool
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`ncftool_role',`
+	gen_require(`
+              type ncftool_t;
+	')
+
+	role $1 types ncftool_t;
+
+	ncftool_domtrans($2)
+
+	ps_process_pattern($2, ncftool_t)
+	allow $2 ncftool_t:process signal;
+')
+

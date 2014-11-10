@@ -1,0 +1,323 @@
+
+## <summary>policy for sandbox</summary>
+
+########################################
+## <summary>
+##	Execute sandbox in the sandbox domain, and
+##	allow the specified role the sandbox domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the sandbox domain.
+##	</summary>
+## </param>
+#
+interface(`sandbox_transition',`
+	gen_require(`
+		type sandbox_xserver_t;
+		type sandbox_file_t;
+		attribute sandbox_domain;
+		attribute sandbox_x_domain;
+		attribute sandbox_tmpfs_type;
+	')
+
+	allow $1 sandbox_domain:process transition;
+	dontaudit $1 sandbox_domain:process { noatsecure siginh rlimitinh };
+	role $2 types sandbox_domain;
+	allow sandbox_domain $1:process { sigchld signull };
+	allow sandbox_domain $1:fifo_file rw_inherited_fifo_file_perms;
+
+	allow $1 sandbox_x_domain:process { signal_perms transition };
+	dontaudit $1 sandbox_x_domain:process { noatsecure siginh rlimitinh };
+	allow sandbox_x_domain $1:process { sigchld signull };
+	dontaudit sandbox_domain $1:process signal;
+	role $2 types sandbox_x_domain;
+	role $2 types sandbox_xserver_t;
+	allow $1 sandbox_xserver_t:process signal_perms;
+	dontaudit sandbox_xserver_t $1:fifo_file rw_inherited_fifo_file_perms;
+	dontaudit sandbox_xserver_t $1:tcp_socket rw_socket_perms;
+	dontaudit sandbox_xserver_t $1:udp_socket rw_socket_perms;
+	allow sandbox_xserver_t $1:unix_stream_socket { connectto rw_socket_perms };
+	allow sandbox_x_domain sandbox_x_domain:process signal;
+	# Dontaudit leaked file descriptors
+	dontaudit sandbox_x_domain $1:fifo_file { read write };
+	dontaudit sandbox_x_domain $1:tcp_socket rw_socket_perms;
+	dontaudit sandbox_x_domain $1:udp_socket rw_socket_perms;
+	dontaudit sandbox_x_domain $1:unix_stream_socket { read write };
+	dontaudit sandbox_x_domain $1:process { signal sigkill };
+	
+	allow $1 sandbox_tmpfs_type:file manage_file_perms;
+	dontaudit $1 sandbox_tmpfs_type:file manage_file_perms;
+
+	can_exec($1, sandbox_file_t)
+	allow $1 sandbox_file_t:filesystem getattr;
+	manage_files_pattern($1, sandbox_file_t, sandbox_file_t);
+	manage_dirs_pattern($1, sandbox_file_t, sandbox_file_t);
+	manage_sock_files_pattern($1, sandbox_file_t, sandbox_file_t);
+	manage_fifo_files_pattern($1, sandbox_file_t, sandbox_file_t);
+	manage_lnk_files_pattern($1, sandbox_file_t, sandbox_file_t);
+	relabel_dirs_pattern($1, sandbox_file_t, sandbox_file_t)
+	relabel_files_pattern($1, sandbox_file_t, sandbox_file_t)
+	relabel_lnk_files_pattern($1, sandbox_file_t, sandbox_file_t)
+	relabel_fifo_files_pattern($1, sandbox_file_t, sandbox_file_t)
+	relabel_sock_files_pattern($1, sandbox_file_t, sandbox_file_t)
+')
+
+########################################
+## <summary>
+##	Creates types and rules for a basic
+##	sandbox process domain.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
+## </param>
+#
+template(`sandbox_domain_template',`
+
+	gen_require(`
+		attribute sandbox_domain;
+		type sandbox_file_t;
+		attribute sandbox_type;
+	')
+	type $1_t, sandbox_domain, sandbox_type;
+
+	application_type($1_t)
+
+	mls_rangetrans_target($1_t)
+	mcs_untrusted_proc($1_t)
+')
+
+########################################
+## <summary>
+##	Creates types and rules for a basic
+##	sandbox process domain.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
+## </param>
+#
+template(`sandbox_x_domain_template',`
+	gen_require(`
+		type xserver_exec_t, sandbox_devpts_t;
+		type sandbox_xserver_t;
+		type sandbox_exec_t;
+		attribute sandbox_domain, sandbox_x_domain;
+		attribute sandbox_tmpfs_type;
+		attribute sandbox_type;
+	')
+
+	type $1_t, sandbox_x_domain, sandbox_type;
+	application_type($1_t)
+	mcs_untrusted_proc($1_t)
+
+	# window manager
+	miscfiles_setattr_fonts_cache_dirs($1_t)
+	allow $1_t self:capability setuid;
+
+	type $1_client_t, sandbox_x_domain;
+	application_type($1_client_t)
+	mcs_untrusted_proc($1_t)
+
+	type $1_client_tmpfs_t, sandbox_tmpfs_type;
+	files_tmpfs_file($1_client_tmpfs_t)
+
+	manage_files_pattern($1_client_t, $1_client_tmpfs_t, $1_client_tmpfs_t)
+	manage_files_pattern($1_t, $1_client_tmpfs_t, $1_client_tmpfs_t)
+	fs_tmpfs_filetrans($1_client_t, $1_client_tmpfs_t, file )
+	fs_tmpfs_filetrans($1_t, $1_client_tmpfs_t, file )
+	# Pulseaudio tmpfs files with different MCS labels
+	dontaudit $1_client_t $1_client_tmpfs_t:file { read write };
+	dontaudit $1_t $1_client_tmpfs_t:file { read write };
+	allow sandbox_xserver_t $1_client_tmpfs_t:file { read write };
+
+	domtrans_pattern($1_t, xserver_exec_t, sandbox_xserver_t)
+	allow $1_t sandbox_xserver_t:process signal_perms;
+
+	domtrans_pattern($1_t, sandbox_exec_t, $1_client_t)
+	domain_entry_file($1_client_t,  sandbox_exec_t)
+
+	# Random tmpfs_t that gets created when you run X. 
+	fs_rw_tmpfs_files($1_t)
+
+	ps_process_pattern(sandbox_xserver_t, $1_client_t)
+	ps_process_pattern(sandbox_xserver_t, $1_t)
+	allow sandbox_xserver_t $1_client_t:shm rw_shm_perms;
+	allow sandbox_xserver_t $1_t:shm rw_shm_perms;
+	allow $1_client_t $1_t:unix_stream_socket connectto;
+	allow $1_t $1_client_t:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	allow domain to read, 
+##	write sandbox_xserver tmp files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`sandbox_rw_xserver_tmpfs_files',`
+	gen_require(`
+		type sandbox_xserver_tmpfs_t;
+	')
+
+	allow $1 sandbox_xserver_tmpfs_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	allow domain to read
+##	sandbox tmpfs files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`sandbox_read_tmpfs_files',`
+	gen_require(`
+		attribute sandbox_tmpfs_type;
+	')
+
+	allow $1 sandbox_tmpfs_type:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	allow domain to manage
+##	sandbox tmpfs files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`sandbox_manage_tmpfs_files',`
+	gen_require(`
+		attribute sandbox_tmpfs_type;
+	')
+
+	allow $1 sandbox_tmpfs_type:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete sandbox files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`sandbox_delete_files',`
+	gen_require(`
+		type sandbox_file_t;
+	')
+
+	delete_files_pattern($1, sandbox_file_t, sandbox_file_t)
+')
+
+########################################
+## <summary>
+##	Delete sandbox sock files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`sandbox_delete_sock_files',`
+	gen_require(`
+		type sandbox_file_t;
+	')
+
+	delete_sock_files_pattern($1, sandbox_file_t, sandbox_file_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to  set the attributes
+##	of the sandbox directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`sandbox_setattr_dirs',`
+	gen_require(`
+		type sandbox_file_t;
+	')
+
+	allow $1 sandbox_file_t:dir setattr;
+')
+
+########################################
+## <summary>
+##	allow domain to delete sandbox files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`sandbox_delete_dirs',`
+	gen_require(`
+		type sandbox_file_t;
+	')
+
+	delete_dirs_pattern($1, sandbox_file_t, sandbox_file_t)
+')
+
+########################################
+## <summary>
+##	allow domain to list sandbox dirs
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`sandbox_list',`
+	gen_require(`
+		type sandbox_file_t;
+	')
+
+	allow $1 sandbox_file_t:dir list_dir_perms;
+')
+
+#######################################
+## <summary>
+##  Read and write a sandbox domain pty.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`sandbox_use_ptys',`
+    gen_require(`
+        type sandbox_devpts_t;
+    ')
+
+    allow $1 sandbox_devpts_t:chr_file rw_inherited_term_perms;
+')

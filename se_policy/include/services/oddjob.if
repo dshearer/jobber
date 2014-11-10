@@ -1,0 +1,187 @@
+## <summary>
+##	Oddjob provides a mechanism by which unprivileged applications can
+##	request that specified privileged operations be performed on their
+##	behalf.
+## </summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run oddjob.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`oddjob_domtrans',`
+	gen_require(`
+		type oddjob_t, oddjob_exec_t;
+	')
+
+	domtrans_pattern($1, oddjob_exec_t, oddjob_t)
+')
+
+######################################
+## <summary>
+##      Do not audit attempts to read and write 
+##      oddjob fifo file.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain to not audit.
+##      </summary>
+## </param>
+#
+interface(`oddjob_dontaudit_rw_fifo_file',`
+        gen_require(`
+                type oddjob_t;
+        ')
+
+        dontaudit $1 oddjob_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Make the specified program domain accessable
+##	from the oddjob.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process to transition to.
+##	</summary>
+## </param>
+## <param name="entrypoint">
+##	<summary>
+##	The type of the file used as an entrypoint to this domain.
+##	</summary>
+## </param>
+#
+interface(`oddjob_system_entry',`
+	gen_require(`
+		type oddjob_t;
+	')
+
+	domtrans_pattern(oddjob_t, $2, $1)
+	domain_user_exemption_target($1)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	oddjob over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`oddjob_dbus_chat',`
+	gen_require(`
+		type oddjob_t;
+		class dbus send_msg;
+	')
+
+	allow $1 oddjob_t:dbus send_msg;
+	allow oddjob_t $1:dbus send_msg;
+')
+
+#####################################
+## <summary>
+##      Send a SIGCHLD signal to oddjob.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`oddjob_sigchld',`
+        gen_require(`
+                type oddjob_t;
+        ')
+
+        allow $1 oddjob_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run oddjob_mkhomedir.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`oddjob_domtrans_mkhomedir',`
+	gen_require(`
+		type oddjob_mkhomedir_t, oddjob_mkhomedir_exec_t;
+	')
+
+	domtrans_pattern($1, oddjob_mkhomedir_exec_t, oddjob_mkhomedir_t)
+')
+
+########################################
+## <summary>
+##	Execute the oddjob_mkhomedir program in the oddjob_mkhomedir domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`oddjob_run_mkhomedir',`
+	gen_require(`
+		type oddjob_mkhomedir_t;
+	')
+
+	oddjob_domtrans_mkhomedir($1)
+	role $2 types oddjob_mkhomedir_t;
+')
+
+########################################
+## <summary>
+##     Create a domain which can be started by init,
+##     with a range transition.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Type to be used as a domain.
+##     </summary>
+## </param>
+## <param name="entry_point">
+##     <summary>
+##     Type of the program to be used as an entry point to this domain.
+##     </summary>
+## </param>
+## <param name="range">
+##     <summary>
+##     Range for the domain.
+##     </summary>
+## </param>
+#
+interface(`oddjob_ranged_domain',`
+       gen_require(`
+               type oddjob_t;
+       ')
+
+       oddjob_system_entry($1, $2)
+
+       ifdef(`enable_mcs',`
+               range_transition oddjob_t $2:process $3;
+       ')
+
+       ifdef(`enable_mls',`
+               range_transition oddjob_t $2:process $3;
+               mls_rangetrans_target($1)
+       ')
+')

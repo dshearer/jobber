@@ -1,0 +1,31 @@
+## <summary>Remote-mail retrieval and forwarding utility</summary>
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an fetchmail environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`fetchmail_admin',`
+	gen_require(`
+		type fetchmail_t, fetchmail_etc_t, fetchmail_uidl_cache_t;
+		type fetchmail_var_run_t;
+	')
+
+	allow $1 fetchmail_t:process { ptrace signal_perms };
+	ps_process_pattern($1, fetchmail_t)
+
+	files_list_etc($1)
+	admin_pattern($1, fetchmail_etc_t)
+
+	admin_pattern($1, fetchmail_uidl_cache_t)
+
+	files_list_pids($1)
+	admin_pattern($1, fetchmail_var_run_t)
+')

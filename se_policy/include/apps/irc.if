@@ -1,0 +1,68 @@
+## <summary>IRC client policy</summary>
+
+########################################
+## <summary>
+##	Role access for IRC
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`irc_role',`
+	gen_require(`
+		type irc_t, irc_exec_t;
+		type irssi_t, irssi_exec_t, irssi_home_t;
+	')
+
+	########################################
+	#
+	# Irc shared declarations.
+	#
+
+	role $1 types irc_t;
+
+	########################################
+	#
+	# Irssi shared declarations.
+	#
+
+	role $1 types irssi_t;
+
+	########################################
+	#
+	# Irc shared policy.
+	#
+
+	# Transition from the user domain to the derived domain.
+	domtrans_pattern($2, irc_exec_t, irc_t)
+
+	# allow ps to show irc
+	ps_process_pattern($2, irc_t)
+	allow $2 irc_t:process signal;
+
+	########################################
+	#
+	# Irssi shared policy.
+	#
+
+	domtrans_pattern($2, irssi_exec_t, irssi_t)
+
+	allow $2 irssi_t:process { ptrace signal_perms };
+	ps_process_pattern($2, irssi_t)
+
+	manage_dirs_pattern($2, irssi_home_t, irssi_home_t)
+	manage_files_pattern($2, irssi_home_t, irssi_home_t)
+	manage_lnk_files_pattern($2, irssi_home_t, irssi_home_t)
+
+	relabel_dirs_pattern($2, irssi_home_t, irssi_home_t)
+	relabel_files_pattern($2, irssi_home_t, irssi_home_t)
+	relabel_lnk_files_pattern($2, irssi_home_t, irssi_home_t)
+')
+

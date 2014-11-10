@@ -1,0 +1,52 @@
+## <summary>openstack-nova</summary>
+
+#######################################
+## <summary>
+##  Manage nova lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`nova_manage_lib_files',`
+    gen_require(`
+            type nova_var_lib_t;
+                ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, nova_var_lib_t, nova_var_lib_t)
+')
+
+#######################################
+## <summary>
+##  Creates types and rules for a basic
+##  openstack-nova systemd daemon domain.
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+template(`nova_domain_template',`
+	gen_require(`
+		attribute nova_domain;
+	')
+
+	type nova_$1_t, nova_domain;
+	type nova_$1_exec_t;
+	init_daemon_domain(nova_$1_t, nova_$1_exec_t)
+
+	type nova_$1_initrc_exec_t;
+	init_script_file(nova_$1_initrc_exec_t)
+
+	type nova_$1_tmp_t;
+	files_tmp_file(nova_$1_tmp_t)
+
+	manage_dirs_pattern(nova_$1_t, nova_$1_tmp_t, nova_$1_tmp_t)
+	manage_files_pattern(nova_$1_t, nova_$1_tmp_t, nova_$1_tmp_t)
+	files_tmp_filetrans(nova_$1_t, nova_$1_tmp_t, { file dir })
+	can_exec(nova_$1_t, nova_$1_tmp_t)
+')

@@ -1,0 +1,754 @@
+## <summary>RHCS - Red Hat Cluster Suite</summary>
+
+#######################################
+## <summary>
+##	Creates types and rules for a basic
+##	rhcs init daemon domain.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
+## </param>
+#
+template(`rhcs_domain_template',`
+	gen_require(`
+		attribute cluster_domain;
+		attribute cluster_tmpfs;
+		attribute cluster_pid;
+        attribute cluster_log;
+	')
+
+	##############################
+	#
+	# Declarations
+	#
+
+	type $1_t, cluster_domain;
+	type $1_exec_t;
+	init_daemon_domain($1_t, $1_exec_t)
+
+	type $1_tmpfs_t, cluster_tmpfs;
+	files_tmpfs_file($1_tmpfs_t)
+
+	type $1_var_log_t, cluster_log;
+	logging_log_file($1_var_log_t)
+
+	type $1_var_run_t, cluster_pid;
+	files_pid_file($1_var_run_t)
+
+	##############################
+	#
+	# Local policy
+	#
+
+	manage_dirs_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
+	manage_files_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
+	fs_tmpfs_filetrans($1_t, $1_tmpfs_t, { dir file })
+
+	manage_files_pattern($1_t, $1_var_log_t, $1_var_log_t)
+	manage_sock_files_pattern($1_t, $1_var_log_t, $1_var_log_t)
+	logging_log_filetrans($1_t, $1_var_log_t, { file sock_file })
+
+	manage_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
+    manage_dirs_pattern($1_t, $1_var_run_t, $1_var_run_t)
+	manage_fifo_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
+	manage_sock_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
+	files_pid_filetrans($1_t, $1_var_run_t, { file sock_file fifo_file })
+
+    auth_use_nsswitch($1_t)
+
+    logging_send_syslog_msg($1_t)
+')
+
+######################################
+## <summary>
+##	Execute a domain transition to run dlm_controld.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rhcs_domtrans_dlm_controld',`
+	gen_require(`
+	type dlm_controld_t, dlm_controld_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, dlm_controld_exec_t, dlm_controld_t)
+')
+
+#####################################
+## <summary>
+##	Connect to dlm_controld over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_stream_connect_dlm_controld',`
+	gen_require(`
+		type dlm_controld_t, dlm_controld_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, dlm_controld_var_run_t, dlm_controld_var_run_t, dlm_controld_t)
+')
+
+#####################################
+## <summary>
+##	Allow read and write access to dlm_controld semaphores.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_rw_dlm_controld_semaphores',`
+	gen_require(`
+		type dlm_controld_t, dlm_controld_tmpfs_t;
+	')
+
+	allow $1 dlm_controld_t:sem { rw_sem_perms destroy };
+
+	fs_search_tmpfs($1)
+	manage_files_pattern($1, dlm_controld_tmpfs_t, dlm_controld_tmpfs_t)
+')
+
+######################################
+## <summary>
+##	Execute a domain transition to run fenced.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_domtrans_fenced',`
+	gen_require(`
+		type fenced_t, fenced_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, fenced_exec_t, fenced_t)
+')
+
+####################################
+## <summary>
+##  Allow a domain to getattr on fenced executable.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`rhcs_getattr_fenced',`
+    gen_require(`
+        type fenced_t, fenced_exec_t;
+    ')
+
+    allow $1 fenced_exec_t:file getattr;
+')
+
+######################################
+## <summary>
+##	Allow read and write access to fenced semaphores.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_rw_fenced_semaphores',`
+	gen_require(`
+		type fenced_t, fenced_tmpfs_t;
+	')
+
+	allow $1 fenced_t:sem { rw_sem_perms destroy };
+
+	fs_search_tmpfs($1)
+	manage_files_pattern($1, fenced_tmpfs_t, fenced_tmpfs_t)
+')
+
+######################################
+## <summary>
+##	Connect to fenced over an unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_stream_connect_fenced',`
+	gen_require(`
+		type fenced_var_run_t, fenced_t;
+	')
+
+	allow $1 fenced_t:unix_stream_socket connectto;
+	allow $1 fenced_var_run_t:sock_file { getattr write };
+	files_search_pids($1)
+')
+
+#####################################
+## <summary>
+##	Execute a domain transition to run gfs_controld.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_domtrans_gfs_controld',`
+	gen_require(`
+	type gfs_controld_t, gfs_controld_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, gfs_controld_exec_t, gfs_controld_t)
+')
+
+####################################
+## <summary>
+##	Allow read and write access to gfs_controld semaphores.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_rw_gfs_controld_semaphores',`
+	gen_require(`
+		type gfs_controld_t, gfs_controld_tmpfs_t;
+	')
+
+	allow $1 gfs_controld_t:sem { rw_sem_perms destroy };
+
+	fs_search_tmpfs($1)
+	manage_files_pattern($1, gfs_controld_tmpfs_t, gfs_controld_tmpfs_t)
+')
+
+########################################
+## <summary>
+##	Read and write to gfs_controld_t shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_rw_gfs_controld_shm',`
+	gen_require(`
+		type gfs_controld_t, gfs_controld_tmpfs_t;
+	')
+
+	allow $1 gfs_controld_t:shm { rw_shm_perms destroy };
+
+	fs_search_tmpfs($1)
+	manage_files_pattern($1, gfs_controld_tmpfs_t, gfs_controld_tmpfs_t)
+')
+
+#####################################
+## <summary>
+##	Connect to gfs_controld_t over an unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_stream_connect_gfs_controld',`
+	gen_require(`
+		type gfs_controld_t, gfs_controld_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, gfs_controld_var_run_t, gfs_controld_var_run_t, gfs_controld_t)
+')
+
+######################################
+## <summary>
+##	Execute a domain transition to run groupd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`rhcs_domtrans_groupd',`
+	gen_require(`
+		type groupd_t, groupd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, groupd_exec_t, groupd_t)
+')
+
+#####################################
+## <summary>
+##	Connect to groupd over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_stream_connect_groupd',`
+	gen_require(`
+		type groupd_t, groupd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, groupd_var_run_t, groupd_var_run_t, groupd_t)
+')
+
+#####################################
+## <summary>
+##	Allow read and write access to groupd semaphores.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_rw_groupd_semaphores',`
+	gen_require(`
+		type groupd_t, groupd_tmpfs_t;
+	')
+
+	allow $1 groupd_t:sem { rw_sem_perms destroy };
+
+	fs_search_tmpfs($1)
+	manage_files_pattern($1, groupd_tmpfs_t, groupd_tmpfs_t)
+')
+
+########################################
+## <summary>
+##	Read and write to group shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_rw_groupd_shm',`
+	gen_require(`
+		type groupd_t, groupd_tmpfs_t;
+	')
+
+	allow $1 groupd_t:shm { rw_shm_perms destroy };
+
+	fs_search_tmpfs($1)
+	manage_files_pattern($1, groupd_tmpfs_t, groupd_tmpfs_t)
+')
+
+########################################
+## <summary>
+##	Read and write to cluster domains shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_rw_cluster_shm',`
+	gen_require(`
+		attribute cluster_domain;
+		attribute cluster_tmpfs;
+	')
+
+	allow $1 cluster_domain:shm { rw_shm_perms destroy };
+
+	fs_search_tmpfs($1)
+	manage_files_pattern($1, cluster_tmpfs, cluster_tmpfs)
+	manage_lnk_files_pattern($1, cluster_tmpfs, cluster_tmpfs)
+')
+
+
+
+####################################
+## <summary>
+##      Read and write access to cluster domains semaphores.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`rhcs_rw_cluster_semaphores',`
+        gen_require(`
+                attribute cluster_domain;
+        ')
+
+        allow $1 cluster_domain:sem { rw_sem_perms destroy };
+')
+
+#####################################
+## <summary>
+##	Connect to cluster domains over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_stream_connect_cluster',`
+	gen_require(`
+		attribute cluster_domain;
+		attribute cluster_pid;
+	')
+
+    files_search_pids($1)
+    stream_connect_pattern($1, cluster_pid, cluster_pid, cluster_domain)
+')
+
+#####################################
+## <summary>
+##	Connect to cluster domains over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_stream_connect_cluster_to',`
+	gen_require(`
+		attribute cluster_domain;
+		attribute cluster_pid;
+	')
+
+    files_search_pids($1)
+    stream_connect_pattern($1, cluster_pid, cluster_pid, $2)
+')
+
+######################################
+## <summary>
+##	Execute a domain transition to run qdiskd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_domtrans_qdiskd',`
+	gen_require(`
+		type qdiskd_t, qdiskd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, qdiskd_exec_t, qdiskd_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to read qdiskd tmpfs files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rhcs_read_qdiskd_tmpfs_files',`
+	gen_require(`
+		type qdiskd_tmpfs_t;
+	')
+
+	allow $1 qdiskd_tmpfs_t:file read_file_perms;
+')
+
+######################################
+## <summary>
+##  Execute a domain transition to run cluster administrative domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`rhcs_domtrans_cluster',`
+    gen_require(`
+        type cluster_t, cluster_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    domtrans_pattern($1, cluster_exec_t, cluster_t)
+')
+
+#######################################
+## <summary>
+##  Execute cluster init scripts in
+##  the init script domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`rhcs_initrc_domtrans_cluster',`
+    gen_require(`
+        type cluster_initrc_exec_t;
+    ')
+
+    init_labeled_script_domtrans($1, cluster_initrc_exec_t)
+')
+
+#####################################
+## <summary>
+##  Execute cluster in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_exec_cluster',`
+    gen_require(`
+        type cluster_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    can_exec($1, cluster_exec_t)
+')
+
+######################################
+## <summary>
+##  Read cluster log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_read_log_cluster',`
+    gen_require(`
+        type cluster_var_log_t;
+    ')
+
+    logging_search_logs($1)
+    list_dirs_pattern($1, cluster_var_log_t, cluster_var_log_t)
+    read_files_pattern($1, cluster_var_log_t, cluster_var_log_t)
+')
+
+######################################
+## <summary>
+##  Setattr cluster log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_setattr_log_cluster',`
+    gen_require(`
+        type cluster_var_log_t;
+    ')
+
+    setattr_files_pattern($1, cluster_var_log_t, cluster_var_log_t)
+')
+
+#####################################
+## <summary>
+##  Allow the specified domain to read/write inherited cluster's tmpf files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_rw_inherited_cluster_tmp_files',`
+    gen_require(`
+        type cluster_tmp_t;
+    ')
+
+    allow $1 cluster_tmp_t:file rw_inherited_file_perms;
+')
+
+#####################################
+## <summary>
+##  Allow manage cluster tmp files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_manage_cluster_tmp_files',`
+    gen_require(`
+        type cluster_tmp_t;
+    ')
+
+    files_search_tmp($1)
+    manage_files_pattern($1, cluster_tmp_t, cluster_tmp_t)
+')
+
+#####################################
+## <summary>
+##  Allow the specified domain to read/write cluster's tmpfs files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_rw_cluster_tmpfs',`
+    gen_require(`
+        type cluster_tmpfs_t;
+    ')
+
+    rw_files_pattern($1, cluster_tmpfs_t, cluster_tmpfs_t)
+')
+
+#####################################
+## <summary>
+##  Allow manage cluster tmpfs files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_manage_cluster_tmpfs_files',`
+    gen_require(`
+        type cluster_tmpfs_t;
+    ')
+
+    fs_search_tmpfs($1)
+    manage_files_pattern($1, cluster_tmpfs_t, cluster_tmpfs_t)
+')
+
+#####################################
+## <summary>
+##  Allow manage cluster pid files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_manage_cluster_pid_files',`
+       gen_require(`
+               type cluster_var_run_t;
+       ')
+
+       files_search_pids($1)
+       manage_files_pattern($1, cluster_var_run_t, cluster_var_run_t)
+')
+
+#####################################
+## <summary>
+##  Allow read cluster pid files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_read_cluster_pid_files',`
+       gen_require(`
+               type cluster_var_run_t;
+       ')
+
+       files_search_pids($1)
+       read_files_pattern($1, cluster_var_run_t, cluster_var_run_t)
+')
+
+#######################################
+## <summary>
+##      Allow domain to read cluster lib files
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`rhcs_read_cluster_lib_files',`
+    gen_require(`
+        type cluster_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    read_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
+')
+
+####################################
+## <summary>
+##  Allow domain to manage cluster lib files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_manage_cluster_lib_files',`
+    gen_require(`
+        type cluster_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    manage_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
+')
+
+###################################
+## <summary>
+##  Allow domain to relabel cluster lib files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rhcs_relabel_cluster_lib_files',`
+    gen_require(`
+        type cluster_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    relabelto_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
+    relabelfrom_files_pattern($1, cluster_var_lib_t, cluster_var_lib_t)
+')
+

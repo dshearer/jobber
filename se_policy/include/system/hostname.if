@@ -1,0 +1,65 @@
+## <summary>Policy for changing the system host name.</summary>
+
+########################################
+## <summary>
+##	Execute hostname in the hostname domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hostname_domtrans',`
+	gen_require(`
+		type hostname_t, hostname_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, hostname_exec_t, hostname_t)
+')
+
+########################################
+## <summary>
+##	Execute hostname in the hostname domain, and
+##	allow the specified role the hostname domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the hostname domain.
+##	</summary>
+## </param>
+#
+interface(`hostname_run',`
+	gen_require(`
+		type hostname_t;
+	')
+
+	hostname_domtrans($1)
+	role $2 types hostname_t;
+')
+
+########################################
+## <summary>
+##	Execute hostname in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+## 	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`hostname_exec',`
+	gen_require(`
+		type hostname_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, hostname_exec_t)
+')

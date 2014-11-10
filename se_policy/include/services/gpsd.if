@@ -1,0 +1,66 @@
+## <summary>gpsd monitor daemon</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run gpsd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`gpsd_domtrans',`
+	gen_require(`
+		type gpsd_t, gpsd_exec_t;
+	')
+
+	domtrans_pattern($1, gpsd_exec_t, gpsd_t)
+')
+
+########################################
+## <summary>
+##	Execute gpsd in the gpsd domain, and
+##	allow the specified role the gpsd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the gpsd domain.
+##	</summary>
+## </param>
+#
+interface(`gpsd_run',`
+	gen_require(`
+		type gpsd_t;
+	')
+
+	gpsd_domtrans($1)
+	role $2 types gpsd_t;
+')
+
+########################################
+## <summary>
+##	Read and write gpsd shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`gpsd_rw_shm',`
+	gen_require(`
+		type gpsd_t, gpsd_tmpfs_t;
+	')
+
+	allow $1 gpsd_t:shm rw_shm_perms;
+	allow $1 gpsd_tmpfs_t:dir list_dir_perms;
+	rw_files_pattern($1, gpsd_tmpfs_t, gpsd_tmpfs_t)
+	read_lnk_files_pattern($1, gpsd_tmpfs_t, gpsd_tmpfs_t)
+	fs_search_tmpfs($1)
+')

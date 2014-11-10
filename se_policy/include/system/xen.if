@@ -1,0 +1,239 @@
+## <summary>Xen hypervisor</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run xend.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed to transition.
+## 	</summary>
+## </param>
+#
+interface(`xen_domtrans',`
+	gen_require(`
+		type xend_t, xend_exec_t;
+	')
+
+	domtrans_pattern($1, xend_exec_t, xend_t)
+')
+
+########################################
+## <summary>
+##	Inherit and use xen file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`xen_use_fds',`
+	gen_require(`
+		type xend_t;
+	')
+
+	allow $1 xend_t:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to inherit
+##	xen file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`xen_dontaudit_use_fds',`
+	gen_require(`
+		type xend_t;
+	')
+
+	dontaudit $1 xend_t:fd use;
+')
+
+########################################
+## <summary>
+##	Read xend image files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed access.
+## 	</summary>
+## </param>
+#
+interface(`xen_read_image_files',`
+	gen_require(`
+		type xen_image_t, xend_var_lib_t;
+	')
+
+	files_list_var_lib($1)
+
+	list_dirs_pattern($1, xend_var_lib_t, xend_var_lib_t)
+	read_files_pattern($1, { xend_var_lib_t xen_image_t }, xen_image_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read/write
+##	xend image files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed to transition.
+## 	</summary>
+## </param>
+#
+interface(`xen_rw_image_files',`
+	gen_require(`
+		type xen_image_t, xend_var_lib_t;
+	')
+
+	files_list_var_lib($1)
+	allow $1 xend_var_lib_t:dir search_dir_perms;
+	rw_files_pattern($1, xen_image_t, xen_image_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	xend log files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed to transition.
+## 	</summary>
+## </param>
+#
+interface(`xen_append_log',`
+	gen_require(`
+		type xend_var_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, xend_var_log_t, xend_var_log_t)
+	dontaudit $1 xend_var_log_t:file write;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the
+##	xend log files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed access.
+## 	</summary>
+## </param>
+#
+interface(`xen_manage_log',`
+	gen_require(`
+		type xend_var_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, xend_var_log_t, xend_var_log_t)
+	manage_files_pattern($1, xend_var_log_t, xend_var_log_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write
+##	Xen unix domain stream sockets.  These
+##	are leaked file descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`xen_dontaudit_rw_unix_stream_sockets',`
+	gen_require(`
+		type xend_t;
+	')
+
+	dontaudit $1 xend_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	Connect to xenstored over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xen_stream_connect_xenstore',`
+	gen_require(`
+		type xenstored_t, xenstored_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, xenstored_var_run_t, xenstored_var_run_t, xenstored_t)
+')
+
+########################################
+## <summary>
+##	Connect to xend over an unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xen_stream_connect',`
+	gen_require(`
+		type xend_t, xend_var_run_t, xend_var_lib_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, xend_var_run_t, xend_var_run_t, xend_t)
+
+	files_search_var_lib($1)
+	stream_connect_pattern($1, xend_var_lib_t, xend_var_lib_t, xend_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run xm.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`xen_domtrans_xm',`
+	gen_require(`
+		type xm_t, xm_exec_t;
+		attribute xm_transition_domain;
+	')
+	typeattribute $1 xm_transition_domain;
+	domtrans_pattern($1, xm_exec_t, xm_t)
+')
+
+########################################
+## <summary>
+##	Connect to xm over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`xen_stream_connect_xm',`
+	gen_require(`
+		type xm_t, xenstored_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, xenstored_var_run_t, xenstored_var_run_t, xm_t)
+')

@@ -1,0 +1,50 @@
+## <summary>Generic unprivileged user</summary>
+
+########################################
+## <summary>
+##	Change to the generic user role.
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`unprivuser_role_change',`
+	gen_require(`
+		role user_r;
+	')
+
+	allow $1 user_r;
+')
+
+########################################
+## <summary>
+##	Change from the generic user role.
+## </summary>
+## <desc>
+##	<p>
+##	Change from the generic user role to
+##	the specified role.
+##	</p>
+##	<p>
+##	This is an interface to support third party modules
+##	and its use is not allowed in upstream reference
+##	policy.
+##	</p>
+## </desc>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`unprivuser_role_change_to',`
+	gen_require(`
+		role user_r;
+	')
+
+	allow user_r $1;
+')

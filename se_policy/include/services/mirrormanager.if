@@ -1,0 +1,252 @@
+
+## <summary>policy for mirrormanager</summary>
+
+########################################
+## <summary>
+##	Execute mirrormanager in the mirrormanager domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`mirrormanager_domtrans',`
+	gen_require(`
+		type mirrormanager_t, mirrormanager_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, mirrormanager_exec_t, mirrormanager_t)
+')
+
+########################################
+## <summary>
+##	Read mirrormanager's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mirrormanager_read_log',`
+	gen_require(`
+		type mirrormanager_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, mirrormanager_log_t, mirrormanager_log_t)
+')
+
+########################################
+## <summary>
+##	Append to mirrormanager log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mirrormanager_append_log',`
+	gen_require(`
+		type mirrormanager_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, mirrormanager_log_t, mirrormanager_log_t)
+')
+
+########################################
+## <summary>
+##	Manage mirrormanager log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mirrormanager_manage_log',`
+	gen_require(`
+		type mirrormanager_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, mirrormanager_log_t, mirrormanager_log_t)
+	manage_files_pattern($1, mirrormanager_log_t, mirrormanager_log_t)
+	manage_lnk_files_pattern($1, mirrormanager_log_t, mirrormanager_log_t)
+')
+
+########################################
+## <summary>
+##	Search mirrormanager lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mirrormanager_search_lib',`
+	gen_require(`
+		type mirrormanager_var_lib_t;
+	')
+
+	allow $1 mirrormanager_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read mirrormanager lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mirrormanager_read_lib_files',`
+	gen_require(`
+		type mirrormanager_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+    list_dirs_pattern($1, mirrormanager_var_lib_t, mirrormanager_var_lib_t)
+	read_files_pattern($1, mirrormanager_var_lib_t, mirrormanager_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage mirrormanager lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mirrormanager_manage_lib_files',`
+	gen_require(`
+		type mirrormanager_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, mirrormanager_var_lib_t, mirrormanager_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage mirrormanager lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mirrormanager_manage_lib_dirs',`
+	gen_require(`
+		type mirrormanager_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, mirrormanager_var_lib_t, mirrormanager_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read mirrormanager PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mirrormanager_read_pid_files',`
+	gen_require(`
+		type mirrormanager_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, mirrormanager_var_run_t, mirrormanager_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage mirrormanager PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mirrormanager_manage_pid_files',`
+	gen_require(`
+		type mirrormanager_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, mirrormanager_var_run_t, mirrormanager_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage mirrormanager PID sock files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mirrormanager_manage_pid_sock_files',`
+	gen_require(`
+		type mirrormanager_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_sock_files_pattern($1, mirrormanager_var_run_t, mirrormanager_var_run_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an mirrormanager environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mirrormanager_admin',`
+	gen_require(`
+		type mirrormanager_t;
+		type mirrormanager_log_t;
+		type mirrormanager_var_lib_t;
+		type mirrormanager_var_run_t;
+	')
+
+	allow $1 mirrormanager_t:process { signal_perms };
+	ps_process_pattern($1, mirrormanager_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, mirrormanager_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, mirrormanager_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, mirrormanager_var_run_t)
+
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')

@@ -1,0 +1,152 @@
+## <summary>bcfg2-server daemon which serves configurations to clients based on the data in its repository</summary>
+
+########################################
+## <summary>
+##	Execute bcfg2 in the bcfg2 domain..
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`bcfg2_domtrans',`
+	gen_require(`
+		type bcfg2_t, bcfg2_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, bcfg2_exec_t, bcfg2_t)
+')
+
+########################################
+## <summary>
+##	Execute bcfg2 server in the bcfg2 domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bcfg2_initrc_domtrans',`
+	gen_require(`
+		type bcfg2_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, bcfg2_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Search bcfg2 lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bcfg2_search_lib',`
+	gen_require(`
+		type bcfg2_var_lib_t;
+	')
+
+	allow $1 bcfg2_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read bcfg2 lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bcfg2_read_lib_files',`
+	gen_require(`
+		type bcfg2_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, bcfg2_var_lib_t, bcfg2_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage bcfg2 lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bcfg2_manage_lib_files',`
+	gen_require(`
+		type bcfg2_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, bcfg2_var_lib_t, bcfg2_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage bcfg2 lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bcfg2_manage_lib_dirs',`
+	gen_require(`
+		type bcfg2_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, bcfg2_var_lib_t, bcfg2_var_lib_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an bcfg2 environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`bcfg2_admin',`
+	gen_require(`
+		type bcfg2_t;
+		type bcfg2_initrc_exec_t;
+		type bcfg2_var_lib_t;
+	type bcfg2_unit_file_t;
+	')
+
+	allow $1 bcfg2_t:process { ptrace signal_perms };
+	ps_process_pattern($1, bcfg2_t)
+
+	bcfg2_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 bcfg2_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var_lib($1)
+	admin_pattern($1, bcfg2_var_lib_t)
+
+')

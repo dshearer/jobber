@@ -1,0 +1,486 @@
+
+## <summary>policy for nsplugin</summary>
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	nsplugin rw files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_manage_rw_files',`
+	gen_require(`
+		type nsplugin_rw_t;
+	')
+
+	allow $1 nsplugin_rw_t:file manage_file_perms;
+	allow $1 nsplugin_rw_t:dir rw_dir_perms;
+')
+
+########################################
+## <summary>
+##	Manage nsplugin rw files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_manage_rw',`
+	gen_require(`
+		type nsplugin_rw_t;
+	')
+
+         manage_dirs_pattern($1, nsplugin_rw_t, nsplugin_rw_t)
+         manage_files_pattern($1, nsplugin_rw_t, nsplugin_rw_t)
+         manage_lnk_files_pattern($1, nsplugin_rw_t, nsplugin_rw_t)
+')
+
+#######################################
+## <summary>
+##	The per role template for the nsplugin module.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a derived domains which are used
+##	for nsplugin web browser.
+##	</p>
+##	<p>
+##	This template is invoked automatically for each user, and
+##	generally does not need to be invoked directly
+##	by policy writers.
+##	</p>
+## </desc>
+## <param name="user_role">
+##  <summary>
+##  The role associated with the user domain.
+##  </summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_role_notrans',`
+	gen_require(`
+		type nsplugin_rw_t;
+		type nsplugin_home_t;
+		type nsplugin_exec_t;
+		type nsplugin_config_exec_t;
+		type nsplugin_t;
+		type nsplugin_config_t;
+		class x_drawable all_x_drawable_perms;
+		class x_resource all_x_resource_perms;
+		class dbus send_msg;
+	')
+
+	role $1 types nsplugin_t;
+	role $1 types nsplugin_config_t;
+
+	allow nsplugin_t $2:process signull;
+	allow nsplugin_t $2:dbus send_msg;
+	allow $2 nsplugin_t:dbus send_msg;
+
+	list_dirs_pattern($2, nsplugin_rw_t, nsplugin_rw_t)
+	read_files_pattern($2, nsplugin_rw_t, nsplugin_rw_t)
+	read_lnk_files_pattern($2, nsplugin_rw_t, nsplugin_rw_t)
+	can_exec($2, nsplugin_rw_t)
+
+	#Leaked File Descriptors
+ifdef(`hide_broken_symptoms', `
+	dontaudit nsplugin_t $2:socket_class_set { read write };
+	dontaudit nsplugin_t $2:fifo_file rw_inherited_fifo_file_perms;
+	dontaudit nsplugin_config_t $2:socket_class_set { read write };
+	dontaudit nsplugin_config_t $2:fifo_file rw_inherited_fifo_file_perms;
+')
+	allow nsplugin_t $2:unix_stream_socket connectto;
+	dontaudit nsplugin_t $2:process ptrace;
+	allow nsplugin_t $2:sem rw_sem_perms;
+	allow nsplugin_t $2:shm rw_shm_perms;
+	dontaudit nsplugin_t $2:shm destroy;
+	allow $2 nsplugin_t:sem rw_sem_perms;
+
+	allow $2 nsplugin_t:process { getattr ptrace signal_perms };
+	allow $2 nsplugin_t:unix_stream_socket connectto;
+
+	allow $2 nsplugin_config_t:process { getattr ptrace signal_perms };
+
+	# Connect to pulseaudit server
+	stream_connect_pattern(nsplugin_t, user_home_t, user_home_t, $2)
+	gnome_stream_connect(nsplugin_t, $2)
+
+	userdom_use_user_terminals(nsplugin_t)
+	userdom_use_user_terminals(nsplugin_config_t)
+	userdom_dontaudit_setattr_user_home_content_files(nsplugin_t)
+	userdom_manage_tmpfs_role($1, nsplugin_t)
+
+	optional_policy(`
+		pulseaudio_role($1, nsplugin_t)
+	')
+')
+
+#######################################
+## <summary>
+##	Role access for nsplugin
+## </summary>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_role',`
+	gen_require(`
+		type nsplugin_exec_t;
+		type nsplugin_config_exec_t;
+		type nsplugin_t;
+		type nsplugin_config_t;
+	')
+
+	nsplugin_role_notrans($1, $2)
+
+	domtrans_pattern($2, nsplugin_exec_t, nsplugin_t)
+	domtrans_pattern($2, nsplugin_config_exec_t, nsplugin_config_t)
+
+')
+
+#######################################
+## <summary>
+##	The per role template for the nsplugin module.
+## </summary>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_domtrans',`
+	gen_require(`
+		type nsplugin_exec_t;
+		type nsplugin_t;
+	')
+
+	domtrans_pattern($1, nsplugin_exec_t, nsplugin_t)
+	allow $1 nsplugin_t:unix_stream_socket connectto;
+	allow nsplugin_t $1:process signal;
+')
+#######################################
+## <summary>
+##	The per role template for the nsplugin module.
+## </summary>
+## <param name="user_domain">
+##	<summary>
+##	The type of the user domain.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_domtrans_config',`
+	gen_require(`
+		type nsplugin_config_exec_t;
+		type nsplugin_config_t;
+	')
+
+	domtrans_pattern($1, nsplugin_config_exec_t, nsplugin_config_t)
+')
+
+########################################
+## <summary>
+##	Search nsplugin rw directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_search_rw_dir',`
+	gen_require(`
+		type nsplugin_rw_t;
+	')
+
+	allow $1 nsplugin_rw_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read nsplugin rw files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_read_rw_files',`
+	gen_require(`
+		type nsplugin_rw_t;
+	')
+
+	list_dirs_pattern($1, nsplugin_rw_t, nsplugin_rw_t)
+	read_files_pattern($1, nsplugin_rw_t, nsplugin_rw_t)
+	read_lnk_files_pattern($1, nsplugin_rw_t, nsplugin_rw_t)
+')
+
+########################################
+## <summary>
+##	Read nsplugin home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_read_home',`
+	gen_require(`
+		type nsplugin_home_t;
+	')
+
+	list_dirs_pattern($1, nsplugin_home_t, nsplugin_home_t)
+	read_files_pattern($1, nsplugin_home_t, nsplugin_home_t)
+	read_lnk_files_pattern($1, nsplugin_home_t, nsplugin_home_t)
+')
+
+########################################
+## <summary>
+##	Exec nsplugin rw files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_rw_exec',`
+	gen_require(`
+		type nsplugin_rw_t;
+	')
+
+	can_exec($1, nsplugin_rw_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	nsplugin home files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_manage_home_files',`
+	gen_require(`
+		type nsplugin_home_t;
+	')
+
+	manage_files_pattern($1, nsplugin_home_t, nsplugin_home_t)
+')
+
+#######################################
+## <summary>
+##  manage nnsplugin home dirs.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`nsplugin_manage_home_dirs',`
+    gen_require(`
+        type nsplugin_home_t;
+    ')
+
+    manage_dirs_pattern($1, nsplugin_home_t, nsplugin_home_t)
+')
+
+########################################
+## <summary>
+##	Allow attempts to read and write to
+##	nsplugin named pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_rw_pipes',`
+	gen_require(`
+		type nsplugin_home_t;
+	')
+
+	allow $1 nsplugin_home_t:fifo_file rw_fifo_file_perms; 
+')
+
+########################################
+## <summary>
+##	Read and write to nsplugin shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_rw_shm',`
+	gen_require(`
+		type nsplugin_t;
+	')
+
+	allow $1 nsplugin_t:shm rw_shm_perms;
+')
+
+#####################################
+## <summary>
+##      Allow read and write access to nsplugin semaphores.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`nsplugin_rw_semaphores',`
+        gen_require(`
+                type nsplugin_t;
+        ')
+
+        allow $1 nsplugin_t:sem rw_sem_perms;
+')
+
+########################################
+## <summary>
+##	Execute nsplugin_exec_t 
+##	in the specified domain.
+## </summary>
+## <desc>
+##	<p>
+##	Execute a nsplugin_exec_t
+##	in the specified domain.  
+##	</p>
+##	<p>
+##	No interprocess communication (signals, pipes,
+##	etc.) is provided by this interface since
+##	the domains are not owned by this module.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+interface(`nsplugin_exec_domtrans',`
+	gen_require(`
+		type nsplugin_exec_t;
+	')
+
+	allow $2 nsplugin_exec_t:file entrypoint;
+	domtrans_pattern($1, nsplugin_exec_t, $2)
+')
+
+#######################################
+## <summary>
+##  Create objects in a user home directory
+##  with an automatic type transition to
+##  the nsplugin home file type.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="object_class">
+##  <summary>
+##  The class of the object to be created.
+##  </summary>
+## </param>
+#
+interface(`nsplugin_user_home_dir_filetrans',`
+    gen_require(`
+        type nsplugin_home_t;
+    ')
+
+    userdom_user_home_dir_filetrans($1, nsplugin_home_t, $2)
+')
+
+######################################
+## <summary>
+##  Create objects in a user home directory
+##  with an automatic type transition to
+##  the nsplugin home file type.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="object_class">
+##  <summary>
+##  The class of the object to be created.
+##  </summary>
+## </param>
+#
+interface(`nsplugin_user_home_filetrans',`
+    gen_require(`
+        type nsplugin_home_t;
+    ')
+
+    userdom_user_home_content_filetrans($1, nsplugin_home_t, $2)
+')
+
+#######################################
+## <summary>
+##  Send signull signal to nsplugin
+##  processes.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`nsplugin_signull',`
+    gen_require(`
+        type nsplugin_t;
+    ')
+
+    allow $1 nsplugin_t:process signull;
+')
+
+#######################################
+## <summary>
+##  Send generic signals to user nsplugin processes.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`nsplugin_signal',`
+    gen_require(`
+        type nsplugin_t;
+    ')
+
+    allow $1 nsplugin_t:process signal;
+')

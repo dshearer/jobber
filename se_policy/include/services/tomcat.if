@@ -1,0 +1,364 @@
+
+## <summary>policy for tomcat</summary>
+
+######################################
+## <summary>
+##      Creates types and rules for a basic
+##      tomcat daemon domain.
+## </summary>
+## <param name="prefix">
+##      <summary>
+##      Prefix for the domain.
+##      </summary>
+## </param>
+#
+template(`tomcat_domain_template',`
+        gen_require(`
+                attribute tomcat_domain;
+        ')
+
+	type $1_t, tomcat_domain;
+	type $1_exec_t;
+	init_daemon_domain($1_t, $1_exec_t)
+
+	type $1_cache_t;
+	files_type($1_cache_t)
+
+	type $1_log_t;
+	logging_log_file($1_log_t)
+
+	type $1_var_lib_t;
+	files_type($1_var_lib_t)
+
+	type $1_var_run_t;
+	files_pid_file($1_var_run_t)
+
+	type $1_tmp_t;
+	files_tmp_file($1_tmp_t)
+
+	##################################
+	#
+	# Local policy
+	#
+
+	manage_dirs_pattern($1_t, $1_cache_t, $1_cache_t)
+	manage_files_pattern($1_t, $1_cache_t, $1_cache_t)
+	manage_lnk_files_pattern($1_t, $1_cache_t, $1_cache_t)
+	files_var_filetrans($1_t, $1_cache_t, { dir file })
+
+	manage_dirs_pattern($1_t, $1_log_t, $1_log_t)
+	manage_files_pattern($1_t, $1_log_t, $1_log_t)
+	manage_lnk_files_pattern($1_t, $1_log_t, $1_log_t)
+	logging_log_filetrans($1_t, $1_log_t, { dir file })
+
+	manage_dirs_pattern($1_t, $1_var_lib_t, $1_var_lib_t)
+	manage_files_pattern($1_t, $1_var_lib_t, $1_var_lib_t)
+	manage_lnk_files_pattern($1_t, $1_var_lib_t, $1_var_lib_t)
+	files_var_lib_filetrans($1_t, $1_var_lib_t, { dir file lnk_file })
+
+	manage_dirs_pattern($1_t, $1_var_run_t, $1_var_run_t)
+	manage_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
+	manage_lnk_files_pattern($1_t, $1_var_run_t, $1_var_run_t)
+	files_pid_filetrans($1_t, $1_var_run_t, { dir file lnk_file })
+
+	manage_dirs_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	manage_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	manage_fifo_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	files_tmp_filetrans($1_t, $1_tmp_t, { file fifo_file dir })
+
+	can_exec($1_t, $1_exec_t)
+
+	kernel_read_system_state($1_t)
+
+	logging_send_syslog_msg($1_t)
+')
+
+########################################
+## <summary>
+##	Transition to tomcat.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`tomcat_domtrans',`
+	gen_require(`
+		type tomcat_t, tomcat_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, tomcat_exec_t, tomcat_t)
+')
+
+########################################
+## <summary>
+##	Search tomcat cache directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_search_cache',`
+	gen_require(`
+		type tomcat_cache_t;
+	')
+
+	allow $1 tomcat_cache_t:dir search_dir_perms;
+	files_search_var($1)
+')
+
+########################################
+## <summary>
+##	Read tomcat cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_read_cache_files',`
+	gen_require(`
+		type tomcat_cache_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, tomcat_cache_t, tomcat_cache_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	tomcat cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_manage_cache_files',`
+	gen_require(`
+		type tomcat_cache_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, tomcat_cache_t, tomcat_cache_t)
+')
+
+########################################
+## <summary>
+##	Manage tomcat cache dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_manage_cache_dirs',`
+	gen_require(`
+		type tomcat_cache_t;
+	')
+
+	files_search_var($1)
+	manage_dirs_pattern($1, tomcat_cache_t, tomcat_cache_t)
+')
+
+########################################
+## <summary>
+##	Read tomcat's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`tomcat_read_log',`
+	gen_require(`
+		type tomcat_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, tomcat_log_t, tomcat_log_t)
+')
+
+########################################
+## <summary>
+##	Append to tomcat log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_append_log',`
+	gen_require(`
+		type tomcat_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, tomcat_log_t, tomcat_log_t)
+')
+
+########################################
+## <summary>
+##	Manage tomcat log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_manage_log',`
+	gen_require(`
+		type tomcat_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, tomcat_log_t, tomcat_log_t)
+	manage_files_pattern($1, tomcat_log_t, tomcat_log_t)
+	manage_lnk_files_pattern($1, tomcat_log_t, tomcat_log_t)
+')
+
+########################################
+## <summary>
+##	Search tomcat lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_search_lib',`
+	gen_require(`
+		type tomcat_var_lib_t;
+	')
+
+	allow $1 tomcat_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read tomcat lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_read_lib_files',`
+	gen_require(`
+		type tomcat_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, tomcat_var_lib_t, tomcat_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage tomcat lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_manage_lib_files',`
+	gen_require(`
+		type tomcat_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, tomcat_var_lib_t, tomcat_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage tomcat lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_manage_lib_dirs',`
+	gen_require(`
+		type tomcat_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, tomcat_var_lib_t, tomcat_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read tomcat PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tomcat_read_pid_files',`
+	gen_require(`
+		type tomcat_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 tomcat_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an tomcat environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`tomcat_admin',`
+	gen_require(`
+		type tomcat_t;
+		type tomcat_cache_t;
+		type tomcat_log_t;
+		type tomcat_var_lib_t;
+		type tomcat_var_run_t;
+	type tomcat_unit_file_t;
+	')
+
+	allow $1 tomcat_t:process { ptrace signal_perms };
+	ps_process_pattern($1, tomcat_t)
+
+	files_search_var($1)
+	admin_pattern($1, tomcat_cache_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, tomcat_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, tomcat_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, tomcat_var_run_t)
+
+')

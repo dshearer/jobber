@@ -1,0 +1,194 @@
+## <summary>Distributed infrastructure monitoring</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run zabbix.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`zabbix_domtrans',`
+	gen_require(`
+		type zabbix_t, zabbix_exec_t;
+	')
+
+	domtrans_pattern($1, zabbix_exec_t, zabbix_t)
+')
+
+#######################################
+## <summary>
+##  Allow connectivity to the zabbix server
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`zabbix_tcp_connect',`
+    gen_require(`
+        type zabbix_t;
+    ')
+
+    corenet_sendrecv_zabbix_agent_client_packets($1)
+    corenet_tcp_connect_zabbix_port($1)
+    corenet_tcp_recvfrom_labeled($1, zabbix_t)
+    corenet_tcp_sendrecv_zabbix_port($1)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read zabbix's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`zabbix_read_log',`
+	gen_require(`
+		type zabbix_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, zabbix_log_t, zabbix_log_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	zabbix log files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed access.
+## 	</summary>
+## </param>
+#
+interface(`zabbix_append_log',`
+	gen_require(`
+		type zabbix_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, zabbix_log_t, zabbix_log_t)
+')
+
+########################################
+## <summary>
+##	Read zabbix PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`zabbix_read_pid_files',`
+	gen_require(`
+		type zabbix_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 zabbix_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read zabbix's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`zabbix_read_inherited_tmp_files',`
+	gen_require(`
+		type zabbix_tmp_t;
+	')
+
+    allow $1 zabbix_tmp_t:file read_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Read zabbix PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`zabbix_rw_tcp_socket',`
+	gen_require(`
+		type zabbix_t;
+	')
+    allow $1 zabbix_t:tcp_socket { read write };
+')
+
+#######################################
+## <summary>
+##  Allow connectivity to a zabbix agent
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`zabbix_agent_tcp_connect',`
+    gen_require(`
+            type zabbix_t, zabbix_agent_t;
+                ')
+
+        corenet_sendrecv_zabbix_agent_client_packets($1)
+        corenet_tcp_connect_zabbix_agent_port($1)
+        corenet_tcp_recvfrom_labeled($1, zabbix_t)
+        corenet_tcp_sendrecv_zabbix_agent_port($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an zabbix environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the zabbix domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`zabbix_admin',`
+	gen_require(`
+		type zabbix_t, zabbix_log_t, zabbix_var_run_t;
+		type zabbix_initrc_exec_t;
+	')
+
+	allow $1 zabbix_t:process { ptrace signal_perms };
+	ps_process_pattern($1, zabbix_t)
+
+	init_labeled_script_domtrans($1, zabbix_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 zabbix_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_list_logs($1)
+	admin_pattern($1, zabbix_log_t)
+
+	files_list_pids($1)
+	admin_pattern($1, zabbix_var_run_t)
+')

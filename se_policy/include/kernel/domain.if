@@ -1,0 +1,1565 @@
+## <summary>Core policy for domains.</summary>
+## <required val="true">
+##	Contains the concept of a domain.
+## </required>
+
+########################################
+## <summary>
+##	Make the specified type usable as a basic domain.
+## </summary>
+## <desc>
+##	<p>
+##	Make the specified type usable as a basic domain.
+##	</p>
+##	<p>
+##	This is primarily used for kernel threads;
+##	generally the domain_type() interface is
+##	more appropriate for userland processes.
+##	</p>
+## </desc>
+## <param name="type">
+##	<summary>
+##	Type to be used as a basic domain type.
+##	</summary>
+## </param>
+#
+interface(`domain_base_type',`
+	gen_require(`
+		attribute domain;
+	')
+
+	typeattribute $1 domain;
+')
+
+########################################
+## <summary>
+##	Make the specified type usable as a domain.
+## </summary>
+## <desc>
+##	<p>
+##	Make the specified type usable as a domain.  This,
+##	or an interface that calls this interface, must be
+##	used on all types that are used as domains.
+##	</p>
+##	<p>
+##	Related interfaces:
+##	</p>
+##	<ul>
+##		<li>application_domain()</li>
+##		<li>init_daemon_domain()</li>
+##		<li>init_domaion()</li>
+##		<li>init_ranged_daemon_domain()</li>
+##		<li>init_ranged_domain()</li>
+##		<li>init_ranged_system_domain()</li>
+##		<li>init_script_domain()</li>
+##		<li>init_system_domain()</li>
+##	</ul>
+##	<p>
+##	Example:
+##	</p>
+##	<p>
+##	type mydomain_t;
+##	domain_type(mydomain_t)
+##	type myfile_t;
+##	files_type(myfile_t)
+##	allow mydomain_t myfile_t:file read_file_perms;
+##	</p>
+## </desc>
+## <param name="type">
+##	<summary>
+##	Type to be used as a domain type.
+##	</summary>
+## </param>
+## <infoflow type="none"/>
+#
+interface(`domain_type',`
+	# start with basic domain
+	domain_base_type($1)
+
+	ifdef(`distro_redhat',`
+		optional_policy(`
+			unconfined_use_fds($1)
+		')
+	')
+
+	# send init a sigchld and signull
+	optional_policy(`
+		init_sigchld($1)
+		init_signull($1)
+	')
+
+	# these seem questionable:
+
+	optional_policy(`
+		rpm_use_fds($1)
+		rpm_read_pipes($1)
+	')
+
+	optional_policy(`
+		selinux_dontaudit_getattr_fs($1)
+		selinux_dontaudit_read_fs($1)
+	')
+
+	optional_policy(`
+		seutil_dontaudit_read_config($1)
+	')
+')
+
+########################################
+## <summary>
+##	Make the specified type usable as
+##	an entry point for the domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to be entered.
+##	</summary>
+## </param>
+## <param name="type">
+##	<summary>
+##	Type of program used for entering
+##	the domain.
+##	</summary>
+## </param>
+#
+interface(`domain_entry_file',`
+	gen_require(`
+		attribute entry_type;
+	')
+
+	allow $1 $2:file entrypoint;
+	allow $1 $2:file { mmap_file_perms ioctl lock };
+
+	typeattribute $2 entry_type;
+
+	corecmd_executable_file($2)
+')
+
+########################################
+## <summary>
+##	Make the file descriptors of the specified
+##	domain for interactive use (widely inheritable)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_interactive_fd',`
+	gen_require(`
+		attribute privfd;
+	')
+
+	typeattribute $1 privfd;
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to perform
+##	dynamic transitions.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to perform
+##	dynamic transitions.
+##	</p>
+##	<p>
+##	This violates process tranquility, and it
+##	is strongly suggested that this not be used.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dyntrans_type',`
+	gen_require(`
+		attribute set_curr_context;
+	')
+
+	typeattribute $1 set_curr_context;
+')
+
+########################################
+## <summary>
+##	Makes caller and execption to the constraint
+##	preventing changing to the system user
+##	identity and system role.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_system_change_exemption',`
+	gen_require(`
+		attribute can_system_change;
+	')
+
+	typeattribute $1 can_system_change;
+')
+
+########################################
+## <summary>
+##	Makes caller an exception to the constraint preventing
+##	changing of user identity.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type to make an exception to the constraint.
+##	</summary>
+## </param>
+#
+interface(`domain_subj_id_change_exemption',`
+	gen_require(`
+		attribute can_change_process_identity;
+	')
+
+	typeattribute $1 can_change_process_identity;
+')
+
+########################################
+## <summary>
+##	Makes caller an exception to the constraint preventing
+##	changing of role.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type to make an exception to the constraint.
+##	</summary>
+## </param>
+#
+interface(`domain_role_change_exemption',`
+	gen_require(`
+		attribute can_change_process_role;
+	')
+
+	typeattribute $1 can_change_process_role;
+')
+
+########################################
+## <summary>
+##	Makes caller an exception to the constraint preventing
+##	changing the user identity in object contexts.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type to make an exception to the constraint.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_obj_id_change_exemption',`
+	gen_require(`
+		attribute can_change_object_identity;
+	')
+
+	typeattribute $1 can_change_object_identity;
+')
+
+########################################
+## <summary>
+##	Make the specified domain the target of
+##	the user domain exception of the
+##	SELinux role and identity change
+##	constraints.
+## </summary>
+## <desc>
+##	<p>
+##	Make the specified domain the target of
+##	the user domain exception of the
+##	SELinux role and identity change
+##	constraints.
+##	</p>
+##	<p>
+##	This interface is needed to decouple
+##	the user domains from the base module.
+##	It should not be used other than on
+##	user domains.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain target for user exemption.
+##	</summary>
+## </param>
+#
+interface(`domain_user_exemption_target',`
+	gen_require(`
+		attribute process_user_target;
+	')
+
+	typeattribute $1 process_user_target;
+')
+
+########################################
+## <summary>
+##	Make the specified domain the source of
+##	the cron domain exception of the
+##	SELinux role and identity change
+##	constraints.
+## </summary>
+## <desc>
+##	<p>
+##	Make the specified domain the source of
+##	the cron domain exception of the
+##	SELinux role and identity change
+##	constraints.
+##	</p>
+##	<p>
+##	This interface is needed to decouple
+##	the cron domains from the base module.
+##	It should not be used other than on
+##	cron domains.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain target for user exemption.
+##	</summary>
+## </param>
+#
+interface(`domain_cron_exemption_source',`
+	gen_require(`
+		attribute cron_source_domain;
+	')
+
+	typeattribute $1 cron_source_domain;
+')
+
+########################################
+## <summary>
+##	Make the specified domain the target of
+##	the cron domain exception of the
+##	SELinux role and identity change
+##	constraints.
+## </summary>
+## <desc>
+##	<p>
+##	Make the specified domain the target of
+##	the cron domain exception of the
+##	SELinux role and identity change
+##	constraints.
+##	</p>
+##	<p>
+##	This interface is needed to decouple
+##	the cron domains from the base module.
+##	It should not be used other than on
+##	user cron jobs.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain target for user exemption.
+##	</summary>
+## </param>
+#
+interface(`domain_cron_exemption_target',`
+	gen_require(`
+		attribute cron_job_domain;
+	')
+
+	typeattribute $1 cron_job_domain;
+')
+
+########################################
+## <summary>
+##	Inherit and use file descriptors from
+##	domains with interactive programs.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to inherit and use file
+##	descriptors from domains with interactive programs. 
+##	This does not allow access to the objects being referenced
+##	by the file descriptors.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <infoflow type="read" weight="1"/>
+#
+interface(`domain_use_interactive_fds',`
+	gen_require(`
+		attribute privfd;
+	')
+
+	allow $1 privfd:fd use;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to inherit file
+##	descriptors from domains with interactive
+##	programs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_use_interactive_fds',`
+	gen_require(`
+		attribute privfd;
+	')
+
+	dontaudit $1 privfd:fd use;
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to domains whose file
+##	discriptors are widely inheritable.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: this was added because of newrole
+interface(`domain_sigchld_interactive_fds',`
+	gen_require(`
+		attribute privfd;
+	')
+
+	allow $1 privfd:process sigchld;
+')
+
+########################################
+## <summary>
+##	Set the nice level of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_setpriority_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process setsched;
+')
+
+########################################
+## <summary>
+##	Send general signals to all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_signal_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process signal;
+')
+
+########################################
+## <summary>
+##	Send a null signal to all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_signull_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process signull;
+')
+
+#######################################
+## <summary>
+##  Send a null signal to all domains.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_dontaudit_signull_all_domains',`
+    gen_require(`
+        attribute domain;
+    ')
+
+    dontaudit $1 domain:process signull;
+')
+
+
+########################################
+## <summary>
+##	Send a stop signal to all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_sigstop_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process sigstop;
+')
+
+########################################
+## <summary>
+##	Send a child terminated signal to all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_sigchld_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send a kill signal to all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_kill_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process sigkill;
+	allow $1 self:capability kill;
+')
+
+########################################
+## <summary>
+##	Search the process state directory (/proc/pid) of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_search_all_domains_state',`
+	gen_require(`
+		attribute domain;
+	')
+
+	kernel_search_proc($1)
+	allow $1 domain:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search the process
+##	state directory (/proc/pid) of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_search_all_domains_state',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read the process state (/proc/pid) of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_read_all_domains_state',`
+	gen_require(`
+		attribute domain;
+	')
+
+	kernel_search_proc($1)
+	allow $1 domain:dir list_dir_perms;
+	read_files_pattern($1, domain, domain)
+	read_lnk_files_pattern($1, domain, domain)
+')
+
+########################################
+## <summary>
+##	Get the attributes of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_getattr_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process getattr;
+')
+
+########################################
+## <summary>
+##	Dontaudit geting the attributes of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:process getattr;
+')
+
+########################################
+## <summary>
+##	Read the process state (/proc/pid) of all confined domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_read_confined_domains_state',`
+	gen_require(`
+		attribute domain, unconfined_domain_type;
+	')
+
+	kernel_search_proc($1)
+	allow $1 { domain -unconfined_domain_type }:dir list_dir_perms;
+	read_files_pattern($1, { domain -unconfined_domain_type }, { domain -unconfined_domain_type })
+	read_lnk_files_pattern($1, { domain -unconfined_domain_type }, { domain -unconfined_domain_type })
+
+	dontaudit $1 unconfined_domain_type:dir search_dir_perms;
+	dontaudit $1 unconfined_domain_type:file read_file_perms;
+	dontaudit $1 unconfined_domain_type:lnk_file read_lnk_file_perms;
+')
+
+########################################
+## <summary>
+##	Get the attributes of all confined domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_getattr_confined_domains',`
+	gen_require(`
+		attribute domain, unconfined_domain_type;
+	')
+
+	allow $1 { domain -unconfined_domain_type }:process getattr;
+')
+
+########################################
+## <summary>
+##	Ptrace all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_ptrace_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process ptrace;
+	allow domain $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to ptrace all domains.
+## </summary>
+## <desc>
+##	<p>
+##	Do not audit attempts to ptrace all domains.
+##	</p>
+##	<p>
+##	Generally this needs to be suppressed because procps tries to access
+##	/proc/pid/environ and this now triggers a ptrace check in recent kernels
+##	(2.4 and 2.6).
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_ptrace_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:process ptrace;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to ptrace confined domains.
+## </summary>
+## <desc>
+##	<p>
+##	Do not audit attempts to ptrace confined domains.
+##	</p>
+##	<p>
+##	Generally this needs to be suppressed because procps tries to access
+##	/proc/pid/environ and this now triggers a ptrace check in recent kernels
+##	(2.4 and 2.6).
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_ptrace_confined_domains',`
+	gen_require(`
+		attribute domain, unconfined_domain_type;
+	')
+
+	dontaudit $1 { domain -unconfined_domain_type }:process ptrace;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read the process
+##	state (/proc/pid) of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_read_all_domains_state',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:dir list_dir_perms;
+	dontaudit $1 domain:lnk_file read_lnk_file_perms;
+	dontaudit $1 domain:file read_file_perms;
+
+	# cjp: these should be removed:
+	dontaudit $1 domain:sock_file read_sock_file_perms;
+	dontaudit $1 domain:fifo_file read_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read the process state
+##	directories of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_list_all_domains_state',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Get the session ID of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_getsession_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process getsession;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the
+##	session ID of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getsession_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:process getsession;
+')
+
+########################################
+## <summary>
+##	Get the process group ID of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_getpgid_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process getpgid;
+')
+
+########################################
+## <summary>
+##	Get the scheduler information of all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_getsched_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:process getsched;
+')
+
+########################################
+## <summary>
+##	Get the attributes of all domains
+##	sockets, for all socket types.
+## </summary>
+## <desc>
+##	<p>
+##	Get the attributes of all domains
+##	sockets, for all socket types.
+##	</p>
+##	<p>
+##	This is commonly used for domains
+##	that can use lsof on all domains.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_getattr_all_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:socket_class_set getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of all domains sockets, for all socket types.
+## </summary>
+## <desc>
+##	<p>
+##	Do not audit attempts to get the attributes
+##	of all domains sockets, for all socket types.
+##	</p>
+##	<p>
+##	This interface was added for PCMCIA cardmgr
+##	and is probably excessive.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:socket_class_set getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of all domains TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_tcp_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:tcp_socket getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of all domains UDP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_udp_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:udp_socket getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read or write
+##	all domains UDP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_rw_all_udp_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:udp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get attribues of
+##	all domains IPSEC key management sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_key_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:key_socket getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get attribues of
+##	all domains packet sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_packet_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:packet_socket getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get attribues of
+##	all domains raw sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_raw_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:rawip_socket getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read or write
+##	all domains key sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_rw_all_key_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:key_socket { read write };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read or write
+##	all domains key sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_rw_pipes',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:fifo_file { read write setattr };
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of all domains unix datagram sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_dgram_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:unix_dgram_socket getattr;
+')
+
+########################################
+## <summary>
+##	Get the attributes
+##	of all domains unix datagram sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_getattr_all_stream_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:unix_stream_socket getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of all domains unix datagram sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_stream_sockets',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:unix_stream_socket getattr;
+')
+
+#######################################
+## <summary>
+##  Do not audit attempts to get the attributes
+##  of all domains unix datagram sockets.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_netlink_sockets',`
+    gen_require(`
+        attribute domain;
+    ')
+
+    dontaudit $1 domain:netlink_socket_class_set getattr;
+')
+
+######################################
+## <summary>
+##  Do not audit attempts to get the attributes
+##  of all domains unix datagram sockets.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_netlink_kobject_uevent_sockets',`
+    gen_require(`
+        attribute domain;
+    ')
+
+    dontaudit $1 domain:netlink_kobject_uevent_socket getattr;
+')
+
+########################################
+## <summary>
+##	Get the attributes of all domains
+##	unnamed pipes.
+## </summary>
+## <desc>
+##	<p>
+##	Get the attributes of all domains
+##	unnamed pipes.
+##	</p>
+##	<p>
+##	This is commonly used for domains
+##	that can use lsof on all domains.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_getattr_all_pipes',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:fifo_file getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the attributes
+##	of all domains unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_getattr_all_pipes',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:fifo_file getattr;
+')
+
+########################################
+## <summary>
+##	Allow specified type to set context of all
+##	domains IPSEC associations.
+## </summary>
+## <param name="type">
+##	<summary>
+##	Type of subject to be allowed this.
+##	</summary>
+## </param>
+#
+interface(`domain_ipsec_setcontext_all_domains',`
+	gen_require(`
+		attribute domain;
+	')
+
+	allow $1 domain:association setcontext;
+')
+
+########################################
+## <summary>
+##	Get the attributes of entry point
+##	files for all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_getattr_all_entry_files',`
+	gen_require(`
+		attribute entry_type;
+	')
+
+	allow $1 entry_type:lnk_file read_lnk_file_perms;
+	allow $1 entry_type:file getattr;
+')
+
+########################################
+## <summary>
+##	Read the entry point files for all domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_read_all_entry_files',`
+	gen_require(`
+		attribute entry_type;
+	')
+
+	allow $1 entry_type:lnk_file read_lnk_file_perms;
+	allow $1 entry_type:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute the entry point files for all
+##	domains in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`domain_exec_all_entry_files',`
+	gen_require(`
+		attribute entry_type;
+	')
+
+	can_exec($1, entry_type)
+')
+
+########################################
+## <summary>
+##	dontaudit checking for execute on all entry point files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_exec_all_entry_files',`
+	gen_require(`
+		attribute entry_type;
+	')
+
+	dontaudit $1 entry_type:file exec_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete all
+##	entrypoint files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`domain_manage_all_entry_files',`
+	gen_require(`
+		attribute entry_type;
+	')
+
+	allow $1 entry_type:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Relabel to and from all entry point
+##	file types.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`domain_relabel_all_entry_files',`
+	gen_require(`
+		attribute entry_type;
+	')
+
+	allow $1 entry_type:file relabel_file_perms;
+')
+
+########################################
+## <summary>
+##	Mmap all entry point files as executable.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`domain_mmap_all_entry_files',`
+	gen_require(`
+		attribute entry_type;
+	')
+
+	allow $1 entry_type:file mmap_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute an entry_type in the specified domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="target_domain">
+##	<summary>
+##	The type of the new process.
+##	</summary>
+## </param>
+#
+# cjp: added for userhelper
+interface(`domain_entry_file_spec_domtrans',`
+	gen_require(`
+		attribute entry_type;
+	')
+
+	domain_transition_pattern($1, entry_type, $2)
+')
+
+########################################
+## <summary>
+##	Ability to mmap a low area of the address space,
+##	as configured by /proc/sys/kernel/mmap_min_addr.
+##	Preventing such mappings helps protect against
+##	exploiting null deref bugs in the kernel.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to mmap low memory.
+##	</summary>
+## </param>
+#
+interface(`domain_mmap_low_type',`
+	gen_require(`
+		attribute mmap_low_domain_type;
+	')
+
+	typeattribute $1 mmap_low_domain_type;
+')
+
+########################################
+## <summary>
+##	Ability to mmap a low area of the address space,
+##      as configured by /proc/sys/kernel/mmap_min_addr.
+##      Preventing such mappings helps protect against
+##      exploiting null deref bugs in the kernel.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to mmap low memory.
+##	</summary>
+## </param>
+#
+interface(`domain_mmap_low',`
+
+	allow $1 self:memprotect mmap_zero;
+')
+
+########################################
+## <summary>
+##	Allow specified type to receive labeled
+##	networking packets from all domains, over
+##	all protocols (TCP, UDP, etc)
+## </summary>
+## <param name="type">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_all_recvfrom_all_domains',`
+	gen_require(`
+		attribute domain;
+ 	')
+
+	corenet_all_recvfrom_labeled($1, domain)
+')
+
+########################################
+## <summary>
+##	Send generic signals to the unconfined domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_unconfined_signal',`
+	gen_require(`
+		attribute unconfined_domain_type;
+	')
+
+	allow $1 unconfined_domain_type:process signal;
+')
+
+########################################
+## <summary>
+##	Unconfined access to domains.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_unconfined',`
+	gen_require(`
+		attribute set_curr_context;
+		attribute can_change_object_identity;
+		attribute unconfined_domain_type;
+		attribute process_uncond_exempt;
+	')
+
+	typeattribute $1 unconfined_domain_type;
+
+	# pass constraints
+	typeattribute $1 can_change_object_identity;
+	typeattribute $1 set_curr_context;
+	typeattribute $1 process_uncond_exempt;
+
+	mcs_file_read_all($1)
+	mcs_file_write_all($1)
+	mcs_killall($1)
+	mcs_ptrace_all($1)
+	mcs_socket_write_all_levels($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read or write
+##	all leaked sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`domain_dontaudit_leaks',`
+	gen_require(`
+		attribute domain;
+	')
+
+	dontaudit $1 domain:socket_class_set { read write };
+')

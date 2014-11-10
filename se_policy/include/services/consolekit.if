@@ -1,0 +1,134 @@
+## <summary>Framework for facilitating multiple user sessions on desktops.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run consolekit.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`consolekit_domtrans',`
+	gen_require(`
+		type consolekit_t, consolekit_exec_t;
+	')
+
+	domtrans_pattern($1, consolekit_exec_t, consolekit_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	consolekit over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_dbus_chat',`
+	gen_require(`
+		type consolekit_t;
+		class dbus send_msg;
+	')
+
+	allow $1 consolekit_t:dbus send_msg;
+	allow consolekit_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Read consolekit log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_read_log',`
+	gen_require(`
+		type consolekit_log_t;
+	')
+
+	read_files_pattern($1, consolekit_log_t, consolekit_log_t)
+	logging_search_logs($1)
+')
+
+#######################################
+## <summary>
+## Dontaudit attempts to read consolekit log files.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain to not audit.
+## </summary>
+## </param>
+#
+interface(`consolekit_dontaudit_read_log',`
+	gen_require(`
+		type consolekit_log_t;
+	')
+
+	dontaudit $1 consolekit_log_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage consolekit log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_manage_log',`
+	gen_require(`
+		type consolekit_log_t;
+	')
+
+	manage_files_pattern($1, consolekit_log_t, consolekit_log_t)
+	files_search_pids($1)
+')
+
+########################################
+## <summary>
+##	Read consolekit PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_read_pid_files',`
+	gen_require(`
+		type consolekit_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, consolekit_var_run_t, consolekit_var_run_t)
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to connect to consolekit
+##  over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`consolekit_dontaudit_stream_connect',`
+	gen_require(`
+		type consolekit_t;
+	')
+
+	dontaudit $1 consolekit_t:unix_stream_socket connectto;
+')

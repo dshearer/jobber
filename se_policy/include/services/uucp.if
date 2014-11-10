@@ -1,0 +1,120 @@
+## <summary>Unix to Unix Copy</summary>
+
+#######################################
+## <summary>
+## Execute the uucico program in the
+## uucpd_t domain.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`uucp_domtrans',`
+	gen_require(`
+		type uucpd_t, uucpd_exec_t;
+	')
+
+	domtrans_pattern($1, uucpd_exec_t, uucpd_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	to uucp log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`uucp_append_log',`
+	gen_require(`
+		type uucpd_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 uucpd_log_t:dir list_dir_perms;
+	append_files_pattern($1, uucpd_log_t, uucpd_log_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete uucp spool files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`uucp_manage_spool',`
+	gen_require(`
+		type uucpd_spool_t;
+	')
+
+	files_search_spool($1)
+	manage_dirs_pattern($1, uucpd_spool_t, uucpd_spool_t)
+	manage_files_pattern($1, uucpd_spool_t, uucpd_spool_t)
+	manage_lnk_files_pattern($1, uucpd_spool_t, uucpd_spool_t)
+')
+
+########################################
+## <summary>
+##	Execute the master uux program in the
+##	uux_t domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`uucp_domtrans_uux',`
+	gen_require(`
+		type uux_t, uux_exec_t;
+	')
+
+	domtrans_pattern($1, uux_exec_t, uux_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an uucp environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`uucp_admin',`
+	gen_require(`
+		type uucpd_t, uucpd_tmp_t, uucpd_log_t;
+		type uucpd_spool_t, uucpd_ro_t, uucpd_rw_t;
+		type uucpd_var_run_t;
+	')
+
+	allow $1 uucpd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, uucpd_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, uucpd_log_t)
+
+	files_list_spool($1)
+	admin_pattern($1, uucpd_spool_t)
+
+	admin_pattern($1, uucpd_ro_t)
+
+	admin_pattern($1, uucpd_rw_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, uucpd_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, uucpd_var_run_t)
+')

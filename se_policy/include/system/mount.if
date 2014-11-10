@@ -1,0 +1,340 @@
+## <summary>Policy for mount.</summary>
+
+########################################
+## <summary>
+##	Execute mount in the mount domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mount_domtrans',`
+	gen_require(`
+		type mount_t, mount_exec_t;
+	')
+
+	domtrans_pattern($1, mount_exec_t, mount_t)
+	mount_domtrans_fusermount($1)
+
+ifdef(`hide_broken_symptoms', `
+	dontaudit mount_t $1:unix_stream_socket { read write };
+	dontaudit mount_t $1:tcp_socket  { read write };
+	dontaudit mount_t $1:udp_socket { read write };
+')
+
+')
+
+########################################
+## <summary>
+##	Execute mount in the mount domain, and
+##	allow the specified role the mount domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the mount domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mount_run',`
+	gen_require(`
+		type mount_t;
+	')
+
+	mount_domtrans($1)
+	role $2 types mount_t;
+
+	optional_policy(`
+		fstools_run(mount_t, $2)
+	')
+
+	# Needed for mount crypt https://bugzilla.redhat.com/show_bug.cgi?id=418711
+	optional_policy(`
+		lvm_run(mount_t, $2)
+	')
+
+	optional_policy(`
+		modutils_run_insmod(mount_t, $2)
+	')
+
+	optional_policy(`
+		rpc_run_rpcd(mount_t, $2)
+	')
+
+	optional_policy(`
+		samba_run_smbmount(mount_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Execute fusermount in the mount domain, and
+##	allow the specified role the mount domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the mount domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mount_run_fusermount',`
+	gen_require(`
+		type mount_t;
+	')
+
+	mount_domtrans_fusermount($1)
+	role $2 types mount_t;
+
+	fstools_run(mount_t, $2)
+')
+
+########################################
+## <summary>
+##	Execute mount in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mount_exec',`
+	gen_require(`
+		type mount_exec_t;
+	')
+
+	# cjp: this should be removed:
+	allow $1 mount_exec_t:dir list_dir_perms;
+
+	allow $1 mount_exec_t:lnk_file read_lnk_file_perms;
+	can_exec($1, mount_exec_t)
+')
+
+########################################
+## <summary>
+##	Send a generic signal to mount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_signal',`
+	gen_require(`
+		type mount_t;
+		type unconfined_mount_t;
+	')
+
+	allow $1 mount_t:process signal;
+	allow $1 unconfined_mount_t:process signal;
+')
+
+########################################
+## <summary>
+##	Use file descriptors for mount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mount_use_fds',`
+	gen_require(`
+		type mount_t;
+	')
+
+	allow $1 mount_t:fd use; 
+')
+
+########################################
+## <summary>
+##	Allow the mount domain to send nfs requests for mounting
+##	network drives
+## </summary>
+## <desc>
+##	<p>
+##	Allow the mount domain to send nfs requests for mounting
+##	network drives
+##	</p>
+##	<p>
+##	This interface has been deprecated as these rules were
+##	a side effect of leaked mount file descriptors.  This
+##	interface has no effect.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_send_nfs_client_request',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Execute mount in the unconfined mount domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mount_domtrans_unconfined',`
+	gen_require(`
+		type unconfined_mount_t, mount_exec_t;
+	')
+
+	domtrans_pattern($1, mount_exec_t, unconfined_mount_t)
+')
+
+########################################
+## <summary>
+##	Execute mount in the unconfined mount domain, and
+##	allow the specified role the unconfined mount domain,
+##	and use the caller's terminal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the unconfined mount domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mount_run_unconfined',`
+	gen_require(`
+		type unconfined_mount_t;
+	')
+
+	mount_domtrans_unconfined($1)
+	role $2 types unconfined_mount_t;
+
+	optional_policy(`
+		rpc_run_rpcd(unconfined_mount_t, $2)
+	')
+
+	optional_policy(`
+		samba_run_smbmount(unconfined_mount_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Execute fusermount in the mount domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mount_domtrans_fusermount',`
+	gen_require(`
+		type mount_t, fusermount_exec_t;
+	')
+
+	domtrans_pattern($1, fusermount_exec_t, mount_t)
+')
+
+########################################
+## <summary>
+##	Execute fusermount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mount_exec_fusermount',`
+	gen_require(`
+		type fusermount_exec_t;
+	')
+
+	can_exec($1, fusermount_exec_t)
+')
+
+########################################
+## <summary>
+##	dontaudit Execute fusermount.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`mount_dontaudit_exec_fusermount',`
+	gen_require(`
+		type fusermount_exec_t;
+	')
+
+	dontaudit $1 fusermount_exec_t:file exec_file_perms;
+')
+
+######################################
+## <summary>
+##  Execute a domain transition to run showmount.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`mount_domtrans_showmount',`
+    gen_require(`
+        type showmount_t, showmount_exec_t;
+    ')
+
+    domtrans_pattern($1, showmount_exec_t, showmount_t)
+')
+
+######################################
+## <summary>
+##  Execute showmount in the showmount domain, and
+##  allow the specified role the showmount domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  The role to be allowed the showmount domain.
+##  </summary>
+## </param>
+#
+interface(`mount_run_showmount',`
+    gen_require(`
+        type showmount_t;
+    ')
+
+    mount_domtrans_showmount($1)
+    role $2 types showmount_t;
+')

@@ -1,0 +1,295 @@
+
+## <summary>policy for daemon for playing music</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run mpd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`mpd_domtrans',`
+	gen_require(`
+		type mpd_t, mpd_exec_t;
+	')
+
+	domtrans_pattern($1, mpd_exec_t, mpd_t)
+')
+
+
+########################################
+## <summary>
+##	Execute mpd server in the mpd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mpd_initrc_domtrans',`
+	gen_require(`
+		type mpd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, mpd_initrc_exec_t)
+')
+
+#######################################
+## <summary>
+##      Read mpd data files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`mpd_read_data_files',`
+        gen_require(`
+                type mpd_data_t;
+        ')
+
+		mpd_search_lib($1)
+        read_files_pattern($1, mpd_data_t, mpd_data_t)
+')
+
+#######################################
+## <summary>
+##      Read mpd tmpfs files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`mpd_read_tmpfs_files',`
+        gen_require(`
+                type mpd_tmpfs_t;
+        ')
+
+		fs_search_tmpfs($1)
+        read_files_pattern($1, mpd_tmpfs_t, mpd_tmpfs_t)
+')
+
+###################################
+## <summary>
+##      Manage mpd tmpfs files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      The type of the process performing this action.
+##      </summary>
+## </param>
+#
+interface(`mpd_manage_tmpfs_files',`
+        gen_require(`
+                type mpd_tmpfs_t;
+        ')
+
+	fs_search_tmpfs($1)
+	manage_files_pattern($1, mpd_tmpfs_t, mpd_tmpfs_t)
+	manage_lnk_files_pattern($1, mpd_tmpfs_t, mpd_tmpfs_t)
+')
+
+######################################
+## <summary>
+##      Manage mpd data files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`mpd_manage_data_files',`
+        gen_require(`
+                type mpd_data_t;
+        ')
+
+        files_search_var_lib($1)
+        mpd_search_lib($1)
+        manage_files_pattern($1, mpd_data_t, mpd_data_t)
+')
+
+########################################
+## <summary>
+##	Search mpd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mpd_search_lib',`
+	gen_require(`
+		type mpd_var_lib_t;
+	')
+
+	allow $1 mpd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read mpd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mpd_read_lib_files',`
+	gen_require(`
+		type mpd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        read_files_pattern($1, mpd_var_lib_t, mpd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	mpd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mpd_manage_lib_files',`
+	gen_require(`
+		type mpd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_files_pattern($1, mpd_var_lib_t, mpd_var_lib_t)
+')
+
+#######################################
+## <summary>
+##      Create an object in the root directory, with a private
+##      type using a type transition.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+## <param name="private type">
+##      <summary>
+##      The type of the object to be created.
+##      </summary>
+## </param>
+## <param name="object">
+##      <summary>
+##      The object class of the object being created.
+##      </summary>
+## </param>
+#
+interface(`mpd_var_lib_filetrans',`
+    gen_require(`
+        type mpd_var_lib_t;
+    ')
+
+    filetrans_pattern($1, mpd_var_lib_t, $2, $3)
+')
+
+########################################
+## <summary>
+##	Manage mpd lib dirs files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`mpd_manage_lib_dirs',`
+	gen_require(`
+		type mpd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+        manage_dirs_pattern($1, mpd_var_lib_t, mpd_var_lib_t)
+')
+
+#######################################
+## <summary>
+##  Send and receive messages from
+##  mpd over dbus.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`mpd_dbus_chat',`
+    gen_require(`
+        type mpd_t;
+        class dbus send_msg;
+    ')
+
+    allow $1 mpd_t:dbus send_msg;
+    allow mpd_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an mpd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`mpd_admin',`
+	gen_require(`
+		type mpd_t;
+		type mpd_initrc_exec_t;
+		type mpd_data_t;
+		type mpd_etc_t;
+		type mpd_log_t;
+		type mpd_tmpfs_t;
+        type mpd_var_lib_t;
+	')
+
+	allow $1 mpd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, mpd_t)
+
+	mpd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 mpd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	admin_pattern($1, mpd_etc_t)
+	files_search_etc($1)
+
+	files_search_var_lib($1)
+	admin_pattern($1, mpd_var_lib_t)
+	
+	mpd_search_lib($1)
+	admin_pattern($1, mpd_data_t)
+
+	admin_pattern($1, mpd_log_t)
+
+	fs_search_tmpfs($1)
+	admin_pattern($1, mpd_tmpfs_t)
+')

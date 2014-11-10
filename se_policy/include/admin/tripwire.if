@@ -1,0 +1,190 @@
+## <summary>Tripwire file integrity checker.</summary>
+## <desc>
+##	<p>
+##	Tripwire file integrity checker.
+##	</p>
+##	<p>
+##	NOTE: Tripwire creates temp file in its current working directory.
+##	This policy does not allow write access to home directories, so
+##	users will need to either cd to a directory where they have write
+##	permission, or set the TEMPDIRECTORY variable in the tripwire config
+##	file.  The latter is preferable, as then the file_type_auto_trans
+##	rules will kick in and label the files as private to tripwire.
+##	</p>
+## </desc>
+
+########################################
+## <summary>
+##	Execute tripwire in the tripwire domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tripwire_domtrans_tripwire',`
+	gen_require(`
+		type tripwire_t, tripwire_exec_t;
+	')
+
+	domtrans_pattern($1, tripwire_exec_t, tripwire_t)
+')
+
+########################################
+## <summary>
+##	Execute tripwire in the tripwire domain, and
+##	allow the specified role the tripwire domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the tripwire domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`tripwire_run_tripwire',`
+	gen_require(`
+		type tripwire_t;
+	')
+
+	tripwire_domtrans_tripwire($1)
+	role $2 types tripwire_t;
+')
+
+########################################
+## <summary>
+##	Execute twadmin in the twadmin domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tripwire_domtrans_twadmin',`
+	gen_require(`
+		type twadmin_t, twadmin_exec_t;
+	')
+
+	domtrans_pattern($1, twadmin_exec_t, twadmin_t)
+')
+
+########################################
+## <summary>
+##	Execute twadmin in the twadmin domain, and
+##	allow the specified role the twadmin domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the twadmin domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`tripwire_run_twadmin',`
+	gen_require(`
+		type twadmin_t;
+	')
+
+	tripwire_domtrans_twadmin($1)
+	role $2 types twadmin_t;
+')
+
+########################################
+## <summary>
+##	Execute twprint in the twprint domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tripwire_domtrans_twprint',`
+	gen_require(`
+		type twprint_t, twprint_exec_t;
+	')
+
+	domtrans_pattern($1, twprint_exec_t, twprint_t)
+')
+
+########################################
+## <summary>
+##	Execute twprint in the twprint domain, and
+##	allow the specified role the twprint domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the twprint domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`tripwire_run_twprint',`
+	gen_require(`
+		type twprint_t;
+	')
+
+	tripwire_domtrans_twprint($1)
+	role $2 types twprint_t;
+')
+
+########################################
+## <summary>
+##	Execute siggen in the siggen domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`tripwire_domtrans_siggen',`
+	gen_require(`
+		type siggen_t, siggen_exec_t;
+	')
+
+	domtrans_pattern($1, siggen_exec_t, siggen_t)
+')
+
+########################################
+## <summary>
+##	Execute siggen in the siggen domain, and
+##	allow the specified role the siggen domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the siggen domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`tripwire_run_siggen',`
+	gen_require(`
+		type siggen_t;
+	')
+
+	tripwire_domtrans_siggen($1)
+	role $2 types siggen_t;
+')

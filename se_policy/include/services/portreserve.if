@@ -1,0 +1,121 @@
+## <summary>Reserve well-known ports in the RPC port range.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run portreserve.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`portreserve_domtrans',`
+	gen_require(`
+		type portreserve_t, portreserve_exec_t;
+	')
+
+	domtrans_pattern($1, portreserve_exec_t, portreserve_t)
+')
+
+########################################
+## <summary>
+##	Execute portreserve in the portreserve domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`portreserve_initrc_domtrans', `
+	gen_require(`
+		type portreserve_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, portreserve_initrc_exec_t)
+')
+
+#######################################
+## <summary>
+##	Allow the specified domain to read
+##	portreserve etcuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+##
+#
+interface(`portreserve_read_config',`
+	gen_require(`
+		type portreserve_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 portreserve_etc_t:dir list_dir_perms;
+	read_files_pattern($1, portreserve_etc_t, portreserve_etc_t)
+	read_lnk_files_pattern($1, portreserve_etc_t, portreserve_etc_t)
+')
+
+#######################################
+## <summary>
+##	Allow the specified domain to manage
+##	portreserve etcuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+##
+#
+interface(`portreserve_manage_config',`
+	gen_require(`
+		type portreserve_etc_t;
+	')
+
+	files_search_etc($1)
+	manage_dirs_pattern($1, portreserve_etc_t, portreserve_etc_t)
+	manage_files_pattern($1, portreserve_etc_t, portreserve_etc_t)
+	read_lnk_files_pattern($1, portreserve_etc_t, portreserve_etc_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an portreserve environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+#
+interface(`portreserve_admin', `
+	gen_require(`
+		type portreserve_t, portreserve_etc_t;
+		type portreserve_initrc_exec_t, portreserve_var_run_t;
+	')
+
+	allow $1 portreserve_t:process { ptrace signal_perms };
+	ps_process_pattern($1, portreserve_t)
+	
+	portreserve_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 portreserve_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, portreserve_etc_t)
+
+	files_search_pids($1)
+	admin_pattern($1, portreserve_var_run_t)
+')

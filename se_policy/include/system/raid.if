@@ -1,0 +1,67 @@
+## <summary>RAID array management tools</summary>
+
+########################################
+## <summary>
+##	Execute software raid tools in the mdadm domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`raid_domtrans_mdadm',`
+	gen_require(`
+		type mdadm_t, mdadm_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, mdadm_exec_t, mdadm_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the mdadm pid files.
+## </summary>
+## <desc>
+##	<p>
+##	Create, read, write, and delete the mdadm pid files.
+##	</p>
+##	<p>
+##	Added for use in the init module.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`raid_manage_mdadm_pid',`
+	gen_require(`
+		type mdadm_var_run_t;
+	')
+
+	# FIXME: maybe should have a type_transition.  not
+	# clear what this is doing, from the original
+	# mdadm policy
+	allow $1 mdadm_var_run_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##	Read mdadm map file.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`raid_read_mdadm_map',`
+	gen_require(`
+		type mdadm_map_t;
+	')
+    allow $1 mdadm_map_t:file read_file_perms;
+')
+

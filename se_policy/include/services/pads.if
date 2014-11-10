@@ -1,0 +1,47 @@
+## <summary>Passive Asset Detection System</summary>
+## <desc>
+##	<p>
+##	PADS is a libpcap based detection engine used to
+##	passively detect network assets.  It is designed to
+##	complement IDS technology by providing context to IDS
+##	alerts.
+##	</p>
+## </desc>
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an pads environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`pads_admin', `
+	gen_require(`
+		type pads_t, pads_config_t;
+		type pads_var_run_t, pads_initrc_exec_t;
+	')
+
+	allow $1 pads_t:process { ptrace signal_perms };
+	ps_process_pattern($1, pads_t)
+
+	init_labeled_script_domtrans($1, pads_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 pads_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_pids($1)
+	admin_pattern($1, pads_var_run_t)
+
+	files_search_etc($1)
+	admin_pattern($1, pads_config_t)
+')

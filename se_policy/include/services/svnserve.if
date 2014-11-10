@@ -1,0 +1,87 @@
+
+## <summary>policy for svnserve</summary>
+
+
+########################################
+## <summary>
+##	Transition to svnserve.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`svnserve_domtrans',`
+	gen_require(`
+		type svnserve_t, svnserve_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, svnserve_exec_t, svnserve_t)
+')
+
+
+########################################
+## <summary>
+##	Execute svnserve server in the svnserve domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`svnserve_initrc_domtrans',`
+	gen_require(`
+		type svnserve_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, svnserve_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Read svnserve PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`svnserve_read_pid_files',`
+	gen_require(`
+		type svnserve_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 svnserve_var_run_t:file read_file_perms;
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an svnserve environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`svnserve_admin',`
+	gen_require(`
+		type svnserve_t;
+		type svnserve_var_run_t;
+		type svnserve_unit_file_t;
+	')
+
+	allow $1 svnserve_t:process { ptrace signal_perms };
+	ps_process_pattern($1, svnserve_t)
+
+	files_search_pids($1)
+	admin_pattern($1, svnserve_var_run_t)
+')
+

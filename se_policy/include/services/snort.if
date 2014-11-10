@@ -1,0 +1,60 @@
+## <summary>Snort network intrusion detection system</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run snort.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed to transition.
+## 	</summary>
+## </param>
+#
+interface(`snort_domtrans',`
+	gen_require(`
+		type snort_t, snort_exec_t;
+	')
+
+	domtrans_pattern($1, snort_exec_t, snort_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an snort environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the snort domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`snort_admin',`
+	gen_require(`
+		type snort_t, snort_var_run_t, snort_log_t;
+		type snort_etc_t, snort_initrc_exec_t;
+	')
+
+	allow $1 snort_t:process { ptrace signal_perms };
+	ps_process_pattern($1, snort_t)
+
+	init_labeled_script_domtrans($1, snort_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 snort_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	admin_pattern($1, snort_etc_t)
+	files_search_etc($1)
+
+	admin_pattern($1, snort_log_t)
+	logging_search_logs($1)
+
+	admin_pattern($1, snort_var_run_t)
+	files_search_pids($1)
+')

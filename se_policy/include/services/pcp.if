@@ -1,0 +1,130 @@
+## <summary>The  pcp  command summarizes the status of a Performance Co-Pilot (PCP) installation</summary>
+
+######################################
+## <summary>
+##  Creates types and rules for a basic
+##  pcp daemon domain.
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+template(`pcp_domain_template',`
+    gen_require(`
+        attribute pcp_domain;
+    ')
+
+    type pcp_$1_t, pcp_domain;
+    type pcp_$1_exec_t;
+    init_daemon_domain(pcp_$1_t, pcp_$1_exec_t)
+
+    type pcp_$1_initrc_exec_t;
+    init_script_file(pcp_$1_initrc_exec_t)
+
+')
+
+######################################
+## <summary>
+##  Allow domain to read pcp lib files
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+interface(`pcp_read_lib_files',`
+    gen_require(`
+        type pcp_var_lib_t;
+    ')
+    libs_search_lib($1)
+    read_files_pattern($1,pcp_var_lib_t,pcp_var_lib_t)
+')
+
+########################################
+## <summary>
+##  All of the rules required to administrate
+##  an pcp environment
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`pcp_admin',`
+    gen_require(`
+        type pcp_pmcd_t;
+        type pcp_pmlogger_t;
+        type pcp_pmproxy_t;
+        type pcp_pmwebd_t;
+        type pcp_pmie_t;
+        type pcp_pmmgr_t;
+        type pcp_var_run_t;
+    ')
+
+    allow $1 pcp_pmcd_t:process signal_perms;
+    ps_process_pattern($1, pcp_pmcd_t)
+
+    allow $1 pcp_pmlogger_t:process signal_perms;
+    ps_process_pattern($1, pcp_pmlogger_t)
+
+    allow $1 pcp_pmproxy_t:process signal_perms;
+    ps_process_pattern($1, pcp_pmproxy_t)
+
+    allow $1 pcp_pmwebd_t:process signal_perms;
+    ps_process_pattern($1, pcp_pmwebd_t)
+
+    allow $1 pcp_pmie_t:process signal_perms;
+    ps_process_pattern($1, pcp_pmie_t)
+
+    allow $1 pcp_pmmgr_t:process signal_perms;
+    ps_process_pattern($1, pcp_pmmgr_t)
+
+    files_search_pids($1)
+    admin_pattern($1, pcp_var_run_t)
+')
+
+########################################
+## <summary>
+##  Allow the specified domain to execute pcp_pmie
+##  in the caller domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`pcp_pmie_exec',`
+    gen_require(`
+        type pcp_pmie_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    can_exec($1, pcp_pmie_exec_t)
+')
+
+########################################
+## <summary>
+##  Allow the specified domain to execute pcp_pmlogger
+##  in the caller domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`pcp_pmlogger_exec',`
+    gen_require(`
+        type pcp_pmlogger_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    can_exec($1, pcp_pmlogger_exec_t)
+')
+

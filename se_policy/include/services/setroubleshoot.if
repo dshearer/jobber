@@ -1,0 +1,153 @@
+## <summary>SELinux troubleshooting service</summary>
+
+########################################
+## <summary>
+##	Connect to setroubleshootd over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`setroubleshoot_stream_connect',`
+	gen_require(`
+		type setroubleshootd_t, setroubleshoot_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, setroubleshoot_var_run_t, setroubleshoot_var_run_t, setroubleshootd_t)
+	allow $1 setroubleshoot_var_run_t:sock_file read;
+')
+
+########################################
+## <summary>
+##	Dontaudit attempts to connect to setroubleshootd
+##	over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`setroubleshoot_dontaudit_stream_connect',`
+	gen_require(`
+		type setroubleshootd_t, setroubleshoot_var_run_t;
+	')
+
+	dontaudit $1 setroubleshoot_var_run_t:sock_file rw_sock_file_perms;
+	dontaudit $1 setroubleshootd_t:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	setroubleshoot over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`setroubleshoot_dbus_chat',`
+	gen_require(`
+		type setroubleshootd_t;
+		class dbus send_msg;
+	')
+
+	allow $1 setroubleshootd_t:dbus send_msg;
+	allow setroubleshootd_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	dontaudit send and receive messages from
+##	setroubleshoot over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`setroubleshoot_dontaudit_dbus_chat',`
+	gen_require(`
+		type setroubleshootd_t;
+		class dbus send_msg;
+	')
+
+	dontaudit $1 setroubleshootd_t:dbus send_msg;
+	dontaudit setroubleshootd_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	setroubleshoot over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`setroubleshoot_dbus_chat_fixit',`
+	gen_require(`
+		type setroubleshoot_fixit_t;
+		class dbus send_msg;
+	')
+
+	allow $1 setroubleshoot_fixit_t:dbus send_msg;
+	allow setroubleshoot_fixit_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Dontaudit read/write to a setroubleshoot leaked sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`setroubleshoot_fixit_dontaudit_leaks',`
+	gen_require(`
+		type setroubleshoot_fixit_t;
+	')
+
+	dontaudit $1 setroubleshoot_fixit_t:unix_dgram_socket { read write };
+	dontaudit $1 setroubleshoot_fixit_t:unix_stream_socket { read write };
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an setroubleshoot environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`setroubleshoot_admin',`
+	gen_require(`
+		type setroubleshootd_t, setroubleshoot_var_log_t;
+		type setroubleshoot_var_lib_t, setroubleshoot_var_run_t;
+	')
+
+	allow $1 setroubleshootd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, setroubleshootd_t)
+		
+	logging_list_logs($1)
+	admin_pattern($1, setroubleshoot_var_log_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, setroubleshoot_var_lib_t)
+
+	files_list_pids($1)
+	admin_pattern($1, setroubleshoot_var_run_t)
+')

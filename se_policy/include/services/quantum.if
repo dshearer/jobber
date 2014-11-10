@@ -1,0 +1,241 @@
+## <summary>Quantum is a virtual network service for Openstack</summary>
+
+########################################
+## <summary>
+##	Transition to neutron.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`neutron_domtrans',`
+	gen_require(`
+		type neutron_t, neutron_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, neutron_exec_t, neutron_t)
+')
+
+########################################
+## <summary>
+##	Read neutron's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`neutron_read_log',`
+	gen_require(`
+		type neutron_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, neutron_log_t, neutron_log_t)
+')
+
+########################################
+## <summary>
+##	Append to neutron log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`neutron_append_log',`
+	gen_require(`
+		type neutron_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, neutron_log_t, neutron_log_t)
+')
+
+########################################
+## <summary>
+##	Manage neutron log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`neutron_manage_log',`
+	gen_require(`
+		type neutron_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, neutron_log_t, neutron_log_t)
+	manage_files_pattern($1, neutron_log_t, neutron_log_t)
+	manage_lnk_files_pattern($1, neutron_log_t, neutron_log_t)
+')
+
+########################################
+## <summary>
+##	Search neutron lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`neutron_search_lib',`
+	gen_require(`
+		type neutron_var_lib_t;
+	')
+
+	allow $1 neutron_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read neutron lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`neutron_read_lib_files',`
+	gen_require(`
+		type neutron_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, neutron_var_lib_t, neutron_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage neutron lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`neutron_manage_lib_files',`
+	gen_require(`
+		type neutron_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, neutron_var_lib_t, neutron_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage neutron lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`neutron_manage_lib_dirs',`
+	gen_require(`
+		type neutron_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, neutron_var_lib_t, neutron_var_lib_t)
+')
+
+########################################
+## <summary>
+## Read and write neutron fifo files.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`neutron_rw_fifo_file',`
+    gen_require(`
+        type neutron_t;
+    ')
+
+    allow $1 neutron_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+########################################
+## <summary>
+## Allow domain to send sigchld to neutron process.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`neutron_sigchld',`
+    gen_require(`
+        type neutron_t;
+    ')
+
+    allow $1 neutron_t:process sigchld;
+')
+
+#####################################
+## <summary>
+##     Connect to neutron over a unix domain
+##     stream socket.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`neutron_stream_connect',`
+       gen_require(`
+               type neutron_t;
+               type neutron_var_lib_t;
+       ')
+
+       files_search_pids($1)
+       stream_connect_pattern($1, neutron_var_lib_t, neutron_var_lib_t, neutron_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an neutron environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`neutron_admin',`
+	gen_require(`
+		type neutron_t;
+		type neutron_log_t;
+		type neutron_var_lib_t;
+	')
+
+	allow $1 neutron_t:process { ptrace signal_perms };
+	ps_process_pattern($1, neutron_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, neutron_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, neutron_var_lib_t)
+')

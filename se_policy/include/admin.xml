@@ -1,0 +1,3102 @@
+<summary>
+	Policy modules for administrative functions, such as package management.
+</summary>
+<module name="accountsd" filename="policy/modules/admin/accountsd.if">
+<summary>policy for accountsd</summary>
+<interface name="accountsd_domtrans" lineno="13">
+<summary>
+Execute a domain transition to run accountsd.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="accountsd_search_lib" lineno="31">
+<summary>
+Search accountsd lib directories.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="accountsd_read_lib_files" lineno="50">
+<summary>
+Read accountsd lib files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="accountsd_manage_lib_files" lineno="70">
+<summary>
+Create, read, write, and delete
+accountsd lib files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="accountsd_manage_var_lib" lineno="89">
+<summary>
+Manage accountsd var_lib files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="accountsd_dbus_chat" lineno="110">
+<summary>
+Send and receive messages from
+accountsd over dbus.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="accountsd_dontaudit_rw_fifo_file" lineno="131">
+<summary>
+Do not audit attempts to read and write Accounts Daemon
+fifo file.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="accountsd_admin" lineno="150">
+<summary>
+All of the rules required to administrate
+an accountsd environment
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="acct" filename="policy/modules/admin/acct.if">
+<summary>Berkeley process accounting</summary>
+<interface name="acct_domtrans" lineno="13">
+<summary>
+Transition to the accounting management domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="acct_exec" lineno="32">
+<summary>
+Execute accounting management tools in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="acct_exec_data" lineno="53">
+<summary>
+Execute accounting management data in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="acct_manage_data" lineno="72">
+<summary>
+Create, read, write, and delete process accounting data.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+</module>
+<module name="alsa" filename="policy/modules/admin/alsa.if">
+<summary>Ainit ALSA configuration tool</summary>
+<interface name="alsa_domtrans" lineno="13">
+<summary>
+Domain transition to alsa
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="alsa_rw_semaphores" lineno="31">
+<summary>
+Allow read and write access to alsa semaphores.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="alsa_rw_shared_mem" lineno="49">
+<summary>
+Allow read and write access to alsa shared memory.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="alsa_read_rw_config" lineno="67">
+<summary>
+Read alsa writable config files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="alsa_manage_rw_config" lineno="87">
+<summary>
+Manage alsa writable config files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="alsa_read_lib" lineno="107">
+<summary>
+Read alsa lib files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="amanda" filename="policy/modules/admin/amanda.if">
+<summary>Automated backup program.</summary>
+<interface name="amanda_domtrans_recover" lineno="13">
+<summary>
+Execute amrecover in the amanda_recover domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="amanda_run_recover" lineno="38">
+<summary>
+Execute amrecover in the amanda_recover domain, and
+allow the specified role the amanda_recover domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the amanda_recover domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="amanda_search_lib" lineno="57">
+<summary>
+Search amanda library directories.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="amanda_append_lib_files" lineno="76">
+<summary>
+Allow append amanda lib files.
+</summary>
+<param name="domain">
+<summary>
+Domain to allow
+</summary>
+</param>
+</interface>
+<interface name="amanda_dontaudit_read_dumpdates" lineno="94">
+<summary>
+Do not audit attempts to read /etc/dumpdates.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="amanda_rw_dumpdates_files" lineno="112">
+<summary>
+Allow read/writing /etc/dumpdates.
+</summary>
+<param name="domain">
+<summary>
+Domain to allow
+</summary>
+</param>
+</interface>
+<interface name="amanda_manage_lib" lineno="130">
+<summary>
+Search amanda library directories.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="amanda_append_log_files" lineno="149">
+<summary>
+Allow read/writing amanda logs
+</summary>
+<param name="domain">
+<summary>
+Domain to allow
+</summary>
+</param>
+</interface>
+<interface name="amanda_search_var_lib" lineno="167">
+<summary>
+Search amanda var library directories.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+</module>
+<module name="amtu" filename="policy/modules/admin/amtu.if">
+<summary>Abstract Machine Test Utility</summary>
+<interface name="amtu_domtrans" lineno="13">
+<summary>
+Execute amtu in the amtu domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="amtu_run" lineno="38">
+<summary>
+Execute amtu in the amtu domain, and
+allow the specified role the amtu domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the amtu domain.
+</summary>
+</param>
+</interface>
+</module>
+<module name="anaconda" filename="policy/modules/admin/anaconda.if">
+<summary>Policy for the Anaconda installer.</summary>
+<interface name="anaconda_exec_preupgrade" lineno="13">
+<summary>
+Execute preupgrade in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="anaconda_domtrans_preupgrade" lineno="32">
+<summary>
+Execute a domain transition to run preupgrade.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="anaconda_read_lib_files_preupgrade" lineno="51">
+<summary>
+Read preupgrade lib files
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="anaconda_manage_lib_files_preupgrade" lineno="71">
+<summary>
+Manage preupgrade lib files
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="apt" filename="policy/modules/admin/apt.if">
+<summary>APT advanced package tool.</summary>
+<interface name="apt_domtrans" lineno="13">
+<summary>
+Execute apt programs in the apt domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="apt_run" lineno="39">
+<summary>
+Execute apt programs in the apt domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to allow the apt domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="apt_use_fds" lineno="59">
+<summary>
+Inherit and use file descriptors from apt.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="apt_dontaudit_use_fds" lineno="79">
+<summary>
+Do not audit attempts to use file descriptors from apt.
+</summary>
+<param name="domain">
+<summary>
+The type of the process attempting performing this action
+which should not be audited.
+</summary>
+</param>
+</interface>
+<interface name="apt_read_pipes" lineno="97">
+<summary>
+Read from an unnamed apt pipe.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="apt_rw_pipes" lineno="116">
+<summary>
+Read and write an unnamed apt pipe.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="apt_use_ptys" lineno="135">
+<summary>
+Read from and write to apt ptys.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="apt_read_cache" lineno="153">
+<summary>
+Read the apt package cache.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="apt_read_db" lineno="174">
+<summary>
+Read the apt package database.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="apt_manage_db" lineno="195">
+<summary>
+Create, read, write, and delete the apt package database.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="apt_dontaudit_manage_db" lineno="218">
+<summary>
+Do not audit attempts to create, read,
+write, and delete the apt package database.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+</module>
+<module name="backup" filename="policy/modules/admin/backup.if">
+<summary>System backup scripts</summary>
+<interface name="backup_domtrans" lineno="13">
+<summary>
+Execute backup in the backup domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="backup_run" lineno="38">
+<summary>
+Execute backup in the backup domain, and
+allow the specified role the backup domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the backup domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="bootloader" filename="policy/modules/admin/bootloader.if">
+<summary>Policy for the kernel modules, kernel image, and bootloader.</summary>
+<interface name="bootloader_domtrans" lineno="13">
+<summary>
+Execute bootloader in the bootloader domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="bootloader_exec" lineno="31">
+<summary>
+Execute bootloader in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="bootloader_run" lineno="56">
+<summary>
+Execute bootloader interactively and do
+a domain transition to the bootloader domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the bootloader domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="bootloader_read_config" lineno="81">
+<summary>
+Read the bootloader configuration file.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="bootloader_rw_config" lineno="102">
+<summary>
+Read and write the bootloader
+configuration file.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="bootloader_manage_config" lineno="121">
+<summary>
+Manage the bootloader
+configuration file.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="bootloader_rw_tmp_files" lineno="140">
+<summary>
+Read and write the bootloader
+temporary data in /tmp.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="bootloader_create_runtime_file" lineno="160">
+<summary>
+Read and write the bootloader
+temporary data in /tmp.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+</module>
+<module name="brctl" filename="policy/modules/admin/brctl.if">
+<summary>Utilities for configuring the linux ethernet bridge</summary>
+<interface name="brctl_domtrans" lineno="13">
+<summary>
+Execute a domain transition to run brctl.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="brctl_exec" lineno="31">
+<summary>
+Execute a domain transition to run brctl.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="brctl_run" lineno="55">
+<summary>
+Execute brctl in the brctl domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+<param name="role">
+<summary>
+Role allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="certwatch" filename="policy/modules/admin/certwatch.if">
+<summary>Digital Certificate Tracking</summary>
+<interface name="certwatch_domtrans" lineno="13">
+<summary>
+Domain transition to certwatch.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="certwatch_run" lineno="42">
+<summary>
+Execute certwatch in the certwatch domain, and
+allow the specified role the certwatch domain,
+and use the caller's terminal. Has a sigchld
+backchannel.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the certwatch domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="certwatach_run" lineno="75">
+<summary>
+Execute certwatch in the certwatch domain, and
+allow the specified role the certwatch domain,
+and use the caller's terminal. Has a sigchld
+backchannel.  (Deprecated)
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the certwatch domain.
+</summary>
+</param>
+<param name="terminal">
+<summary>
+The type of the terminal allow the certwatch domain to use.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="consoletype" filename="policy/modules/admin/consoletype.if">
+<summary>
+Determine of the console connected to the controlling terminal.
+</summary>
+<interface name="consoletype_domtrans" lineno="15">
+<summary>
+Execute consoletype in the consoletype domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="consoletype_run" lineno="43">
+<summary>
+Execute consoletype in the consoletype domain, and
+allow the specified role the consoletype domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the consoletype domain.
+</summary>
+</param>
+</interface>
+<interface name="consoletype_exec" lineno="63">
+<summary>
+Execute consoletype in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="ddcprobe" filename="policy/modules/admin/ddcprobe.if">
+<summary>ddcprobe retrieves monitor and graphics card information</summary>
+<interface name="ddcprobe_domtrans" lineno="13">
+<summary>
+Execute ddcprobe in the ddcprobe domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="ddcprobe_run" lineno="38">
+<summary>
+Execute ddcprobe in the ddcprobe domain, and
+allow the specified role the ddcprobe domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+Role to be authenticated for ddcprobe domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="dmesg" filename="policy/modules/admin/dmesg.if">
+<summary>Policy for dmesg.</summary>
+<interface name="dmesg_domtrans" lineno="13">
+<summary>
+Execute dmesg in the dmesg domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="dmesg_exec" lineno="33">
+<summary>
+Execute dmesg in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="dmidecode" filename="policy/modules/admin/dmidecode.if">
+<summary>Decode DMI data for x86/ia64 bioses.</summary>
+<interface name="dmidecode_domtrans" lineno="13">
+<summary>
+Execute dmidecode in the dmidecode domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="dmidecode_run" lineno="43">
+<summary>
+Execute dmidecode in the dmidecode domain, and
+allow the specified role the dmidecode domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the dmidecode domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="dmidecode_exec" lineno="62">
+<summary>
+Execute dmidecode in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="dpkg" filename="policy/modules/admin/dpkg.if">
+<summary>Policy for the Debian package manager.</summary>
+<interface name="dpkg_domtrans" lineno="15">
+<summary>
+Execute dpkg programs in the dpkg domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="dpkg_domtrans_script" lineno="35">
+<summary>
+Execute dpkg_script programs in the dpkg_script domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="dpkg_run" lineno="63">
+<summary>
+Execute dpkg programs in the dpkg domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to allow the dpkg domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="dpkg_use_fds" lineno="84">
+<summary>
+Inherit and use file descriptors from dpkg.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="dpkg_read_pipes" lineno="102">
+<summary>
+Read from an unnamed dpkg pipe.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="dpkg_rw_pipes" lineno="120">
+<summary>
+Read and write an unnamed dpkg pipe.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="dpkg_use_script_fds" lineno="138">
+<summary>
+Inherit and use file descriptors from dpkg scripts.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="dpkg_read_db" lineno="156">
+<summary>
+Read the dpkg package database.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="dpkg_manage_db" lineno="177">
+<summary>
+Create, read, write, and delete the dpkg package database.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="dpkg_dontaudit_manage_db" lineno="198">
+<summary>
+Do not audit attempts to create, read,
+write, and delete the dpkg package database.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="dpkg_lock_db" lineno="218">
+<summary>
+Lock the dpkg package database.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+</module>
+<module name="firstboot" filename="policy/modules/admin/firstboot.if">
+<summary>
+Final system configuration run during the first boot
+after installation of Red Hat/Fedora systems.
+</summary>
+<interface name="firstboot_domtrans" lineno="16">
+<summary>
+Execute firstboot in the firstboot domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="firstboot_run" lineno="40">
+<summary>
+Execute firstboot in the firstboot domain, and
+allow the specified role the firstboot domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the firstboot domain.
+</summary>
+</param>
+</interface>
+<interface name="firstboot_use_fds" lineno="59">
+<summary>
+Inherit and use a file descriptor from firstboot.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="firstboot_dontaudit_use_fds" lineno="78">
+<summary>
+Do not audit attempts to inherit a
+file descriptor from firstboot.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="firstboot_write_pipes" lineno="96">
+<summary>
+Write to a firstboot unnamed pipe.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="firstboot_rw_pipes" lineno="114">
+<summary>
+Read and Write to a firstboot unnamed pipe.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="firstboot_dontaudit_rw_pipes" lineno="132">
+<summary>
+Do not audit attemps to read and write to a firstboot unnamed pipe.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="firstboot_dontaudit_rw_stream_sockets" lineno="151">
+<summary>
+Do not audit attemps to read and write to a firstboot
+unix domain stream socket.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="firstboot_dontaudit_leaks" lineno="169">
+<summary>
+dontaudit read and write an leaked file descriptors
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+</module>
+<module name="kismet" filename="policy/modules/admin/kismet.if">
+<summary>Kismet is an 802.11 layer2 wireless network detector, sniffer, and intrusion detection system.</summary>
+<interface name="kismet_domtrans" lineno="13">
+<summary>
+Execute a domain transition to run kismet.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="kismet_run" lineno="38">
+<summary>
+Execute kismet in the kismet domain, and
+allow the specified role the kismet domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the kismet domain.
+</summary>
+</param>
+</interface>
+<interface name="kismet_read_pid_files" lineno="57">
+<summary>
+Read kismet PID files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="kismet_manage_pid_files" lineno="76">
+<summary>
+Manage kismet var_run files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="kismet_search_lib" lineno="95">
+<summary>
+Search kismet lib directories.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="kismet_read_lib_files" lineno="114">
+<summary>
+Read kismet lib files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="kismet_manage_lib_files" lineno="135">
+<summary>
+Create, read, write, and delete
+kismet lib files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="kismet_manage_lib" lineno="154">
+<summary>
+Manage kismet var_lib files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="kismet_read_log" lineno="175">
+<summary>
+Allow the specified domain to read kismet's log files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="kismet_append_log" lineno="195">
+<summary>
+Allow the specified domain to append
+kismet log files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="kismet_manage_log" lineno="214">
+<summary>
+Allow domain to manage kismet log files
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="kismet_admin" lineno="236">
+<summary>
+All of the rules required to administrate an kismet environment
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="kudzu" filename="policy/modules/admin/kudzu.if">
+<summary>Hardware detection and configuration tools</summary>
+<interface name="kudzu_domtrans" lineno="13">
+<summary>
+Execute kudzu in the kudzu domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="kudzu_run" lineno="38">
+<summary>
+Execute kudzu in the kudzu domain, and
+allow the specified role the kudzu domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the kudzu domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="kudzu_getattr_exec_files" lineno="58">
+<summary>
+Get attributes of kudzu executable.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+</module>
+<module name="logrotate" filename="policy/modules/admin/logrotate.if">
+<summary>Rotate and archive system logs</summary>
+<interface name="logrotate_domtrans" lineno="13">
+<summary>
+Execute logrotate in the logrotate domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="logrotate_run" lineno="38">
+<summary>
+Execute logrotate in the logrotate domain, and
+allow the specified role the logrotate domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the logrotate domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="logrotate_exec" lineno="57">
+<summary>
+Execute logrotate in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="logrotate_use_fds" lineno="75">
+<summary>
+Inherit and use logrotate file descriptors.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="logrotate_dontaudit_use_fds" lineno="93">
+<summary>
+Do not audit attempts to inherit logrotate file descriptors.
+</summary>
+<param name="domain">
+<summary>
+The type of the process to not audit.
+</summary>
+</param>
+</interface>
+<interface name="logrotate_read_tmp_files" lineno="111">
+<summary>
+Read a logrotate temporary files.
+</summary>
+<param name="domain">
+<summary>
+The type of the process to not audit.
+</summary>
+</param>
+</interface>
+<tunable name="logrotate_use_nfs" dftval="false">
+<desc>
+<p>
+Allow logrotate to manage nfs files
+</p>
+</desc>
+</tunable>
+</module>
+<module name="logwatch" filename="policy/modules/admin/logwatch.if">
+<summary>System log analyzer and reporter</summary>
+<interface name="logwatch_read_tmp_files" lineno="13">
+<summary>
+Read logwatch temporary files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="logwatch_search_cache_dir" lineno="32">
+<summary>
+Search logwatch cache directory.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="mcelog" filename="policy/modules/admin/mcelog.if">
+<summary>policy for mcelog</summary>
+<interface name="mcelog_domtrans" lineno="13">
+<summary>
+Execute a domain transition to run mcelog.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="mcelog_read_log" lineno="31">
+<summary>
+Read mcelog logs.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<tunable name="mcelog_foreground" dftval="false">
+<desc>
+<p>
+Determine whether mcelog can use all
+the user ttys.
+</p>
+</desc>
+</tunable>
+</module>
+<module name="mrtg" filename="policy/modules/admin/mrtg.if">
+<summary>Network traffic graphing</summary>
+<interface name="mrtg_append_create_logs" lineno="13">
+<summary>
+Create and append mrtg logs.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="ncftool" filename="policy/modules/admin/ncftool.if">
+<summary>policy for ncftool</summary>
+<interface name="ncftool_domtrans" lineno="13">
+<summary>
+Execute a domain transition to run ncftool.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="ncftool_run" lineno="37">
+<summary>
+Execute ncftool in the ncftool domain, and
+allow the specified role the ncftool domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the ncftool domain.
+</summary>
+</param>
+</interface>
+<interface name="ncftool_role" lineno="65">
+<summary>
+Role access for ncftool
+</summary>
+<param name="role">
+<summary>
+Role allowed access
+</summary>
+</param>
+<param name="domain">
+<summary>
+User domain for the role
+</summary>
+</param>
+</interface>
+<tunable name="ncftool_read_user_content" dftval="false">
+<desc>
+<p>
+Allow ncftool to read user content.
+</p>
+</desc>
+</tunable>
+</module>
+<module name="netutils" filename="policy/modules/admin/netutils.if">
+<summary>Network analysis utilities</summary>
+<interface name="netutils_domtrans" lineno="13">
+<summary>
+Execute network utilities in the netutils domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="netutils_run" lineno="38">
+<summary>
+Execute network utilities in the netutils domain, and
+allow the specified role the netutils domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the netutils domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="netutils_exec" lineno="58">
+<summary>
+Execute network utilities in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="netutils_signal" lineno="76">
+<summary>
+Send generic signals to network utilities.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="netutils_domtrans_ping" lineno="94">
+<summary>
+Execute ping in the ping domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="netutils_kill_ping" lineno="112">
+<summary>
+Send a kill (SIGKILL) signal to ping.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="netutils_signal_ping" lineno="130">
+<summary>
+Send generic signals to ping.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="netutils_run_ping" lineno="155">
+<summary>
+Execute ping in the ping domain, and
+allow the specified role the ping domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the ping domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="netutils_run_ping_cond" lineno="182">
+<summary>
+Conditionally execute ping in the ping domain, and
+allow the specified role the ping domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the ping domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="netutils_exec_ping" lineno="206">
+<summary>
+Execute ping in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="netutils_domtrans_traceroute" lineno="224">
+<summary>
+Execute traceroute in the traceroute domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="netutils_run_traceroute" lineno="249">
+<summary>
+Execute traceroute in the traceroute domain, and
+allow the specified role the traceroute domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the traceroute domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="netutils_run_traceroute_cond" lineno="276">
+<summary>
+Conditionally execute traceroute in the traceroute domain, and
+allow the specified role the traceroute domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the traceroute domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="netutils_exec_traceroute" lineno="300">
+<summary>
+Execute traceroute in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<tunable name="user_ping" dftval="false">
+<desc>
+<p>
+Control users use of ping and traceroute
+</p>
+</desc>
+</tunable>
+</module>
+<module name="permissivedomains" filename="policy/modules/admin/permissivedomains.if">
+<summary>No Interfaces</summary>
+</module>
+<module name="portage" filename="policy/modules/admin/portage.if">
+<summary>
+Portage Package Management System. The primary package management and
+distribution system for Gentoo.
+</summary>
+<interface name="portage_domtrans" lineno="16">
+<summary>
+Execute emerge in the portage domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="portage_run" lineno="45">
+<summary>
+Execute emerge in the portage domain, and
+allow the specified role the portage domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to allow the portage domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="portage_compile_domain" lineno="70">
+<summary>
+Template for portage sandbox.
+</summary>
+<desc>
+<p>
+Template for portage sandbox.  Portage
+does all compiling in the sandbox.
+</p>
+</desc>
+<param name="domain">
+<summary>
+Domain Allowed Access
+</summary>
+</param>
+</interface>
+<interface name="portage_domtrans_gcc_config" lineno="210">
+<summary>
+Execute gcc-config in the gcc_config domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="portage_run_gcc_config" lineno="238">
+<summary>
+Execute gcc-config in the gcc_config domain, and
+allow the specified role the gcc_config domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to allow the gcc_config domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="portage_dontaudit_search_tmp" lineno="258">
+<summary>
+Do not audit attempts to search the
+portage temporary directories.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="portage_dontaudit_rw_tmp_files" lineno="277">
+<summary>
+Do not audit attempts to read and write
+the portage temporary files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="prelink" filename="policy/modules/admin/prelink.if">
+<summary>Prelink ELF shared library mappings.</summary>
+<interface name="prelink_transition_domain_attribute" lineno="13">
+<summary>
+Execute the prelink program in the prelink domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="prelink_domtrans_mask" lineno="31">
+<summary>
+Execute the prelink program in the prelink domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="prelink_role_access_mask" lineno="58">
+<summary>
+Execute the prelink program in the prelink domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="prelink_domtrans" lineno="75">
+<summary>
+Execute the prelink program in the prelink domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="prelink_exec" lineno="101">
+<summary>
+Execute the prelink program in the current domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="prelink_exec_getattr" lineno="120">
+<summary>
+Getattr the prelink program in the current domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="prelink_run" lineno="144">
+<summary>
+Execute the prelink program in the prelink domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to allow the prelink domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="prelink_object_file" lineno="164">
+<summary>
+Make the specified file type prelinkable.
+</summary>
+<param name="file_type">
+<summary>
+File type to be prelinked.
+</summary>
+</param>
+</interface>
+<interface name="prelink_read_cache" lineno="182">
+<summary>
+Read the prelink cache.
+</summary>
+<param name="file_type">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="prelink_delete_cache" lineno="201">
+<summary>
+Delete the prelink cache.
+</summary>
+<param name="file_type">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="prelink_manage_log" lineno="221">
+<summary>
+Create, read, write, and delete
+prelink log files.
+</summary>
+<param name="file_type">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="prelink_manage_lib" lineno="241">
+<summary>
+Create, read, write, and delete
+prelink var_lib files.
+</summary>
+<param name="file_type">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="prelink_relabel_lib" lineno="260">
+<summary>
+Relabel from files in the /boot directory.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="quota" filename="policy/modules/admin/quota.if">
+<summary>File system quota management</summary>
+<interface name="quota_domtrans" lineno="13">
+<summary>
+Execute quota management tools in the quota domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="quota_run" lineno="38">
+<summary>
+Execute quota management tools in the quota domain, and
+allow the specified role the quota domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the quota domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="quota_dontaudit_getattr_db" lineno="58">
+<summary>
+Do not audit attempts to get the attributes
+of filesystem quota data files.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="quota_read_db" lineno="76">
+<summary>
+Alow to read of filesystem quota data files.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="quota_manage_flags" lineno="95">
+<summary>
+Create, read, write, and delete quota
+flag files.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+</module>
+<module name="readahead" filename="policy/modules/admin/readahead.if">
+<summary>Readahead, read files into page cache for improved performance</summary>
+</module>
+<module name="rpm" filename="policy/modules/admin/rpm.if">
+<summary>Policy for the RPM package manager.</summary>
+<interface name="rpm_domtrans" lineno="13">
+<summary>
+Execute rpm programs in the rpm domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_domtrans_debuginfo" lineno="37">
+<summary>
+Execute debuginfo_install programs in the rpm domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_domtrans_script" lineno="58">
+<summary>
+Execute rpm_script programs in the rpm_script domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_run" lineno="86">
+<summary>
+Execute RPM programs in the RPM domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to allow the RPM domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="rpm_exec" lineno="114">
+<summary>
+Execute the rpm client in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_use_fds" lineno="133">
+<summary>
+Inherit and use file descriptors from RPM.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_read_pipes" lineno="151">
+<summary>
+Read from an unnamed RPM pipe.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_rw_pipes" lineno="169">
+<summary>
+Read and write an unnamed RPM pipe.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_dontaudit_leaks" lineno="187">
+<summary>
+dontaudit read and write an leaked file descriptors
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_dbus_chat" lineno="223">
+<summary>
+Send and receive messages from
+rpm over dbus.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_dontaudit_dbus_chat" lineno="244">
+<summary>
+dontaudit attempts to Send and receive messages from
+rpm over dbus.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_script_dbus_chat" lineno="265">
+<summary>
+Send and receive messages from
+rpm_script over dbus.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_append_log" lineno="286">
+<summary>
+Allow the specified domain to append
+to rpm log files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_manage_log" lineno="305">
+<summary>
+Create, read, write, and delete the RPM log.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_search_log" lineno="324">
+<summary>
+Search RPM log directory.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_use_script_fds" lineno="342">
+<summary>
+Inherit and use file descriptors from RPM scripts.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_manage_script_tmp_files" lineno="361">
+<summary>
+Create, read, write, and delete RPM
+script temporary files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_append_tmp" lineno="383">
+<summary>
+Allow the specified domain to append
+to rpm tmp files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_manage_tmp_files" lineno="403">
+<summary>
+Create, read, write, and delete RPM
+temporary files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_read_script_tmp_files" lineno="425">
+<summary>
+read, RPM
+script temporary files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_read_db" lineno="444">
+<summary>
+Read the RPM package database.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_delete_db" lineno="466">
+<summary>
+Delete the RPM package database.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_manage_db" lineno="484">
+<summary>
+Create, read, write, and delete the RPM package database.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_dontaudit_read_db" lineno="504">
+<summary>
+Do not audit attempts to create, read,the RPM package database.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="rpm_read_cache" lineno="524">
+<summary>
+Read the RPM cache.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_manage_cache" lineno="545">
+<summary>
+Create, read, write, and delete the RPM package database.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="rpm_dontaudit_manage_db" lineno="567">
+<summary>
+Do not audit attempts to create, read,
+write, and delete the RPM package database.
+</summary>
+<param name="domain">
+<summary>
+Domain to not audit.
+</summary>
+</param>
+</interface>
+<interface name="rpm_dontaudit_search_db" lineno="587">
+<summary>
+Dontaudit search the RPM package database.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_read_pid_files" lineno="605">
+<summary>
+Read rpm pid files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_manage_pid_files" lineno="623">
+<summary>
+Create, read, write, and delete rpm pid files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_pid_filetrans" lineno="641">
+<summary>
+Create files in /var/run with the rpm pid file type.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_transition_script" lineno="659">
+<summary>
+Allow application to transition to rpm_script domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_signull" lineno="684">
+<summary>
+Send a null signal to rpm.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="rpm_inherited_fifo" lineno="702">
+<summary>
+Send a null signal to rpm.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="sectoolm" filename="policy/modules/admin/sectoolm.if">
+<summary>Sectool security audit tool</summary>
+</module>
+<module name="shorewall" filename="policy/modules/admin/shorewall.if">
+<summary>Shoreline Firewall high-level tool for configuring netfilter</summary>
+<interface name="shorewall_domtrans" lineno="13">
+<summary>
+Execute a domain transition to run shorewall.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="shorewall_domtrans_lib" lineno="31">
+<summary>
+Execute a domain transition to run shorewall.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="shorewall_read_config" lineno="49">
+<summary>
+Read shorewall etc configuration files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="shorewall_read_lib_files" lineno="68">
+<summary>
+Read shorewall /var/lib files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="shorewall_rw_lib_files" lineno="88">
+<summary>
+Read and write shorewall /var/lib files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="shorewall_read_tmp_files" lineno="108">
+<summary>
+Read shorewall tmp files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="shorewall_admin" lineno="134">
+<summary>
+All of the rules required to administrate
+an shorewall environment
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed to manage the syslog domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="shutdown" filename="policy/modules/admin/shutdown.if">
+<summary>policy for shutdown</summary>
+<interface name="shutdown_domtrans" lineno="13">
+<summary>
+Execute a domain transition to run shutdown.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="shutdown_run" lineno="43">
+<summary>
+Execute shutdown in the shutdown domain, and
+allow the specified role the shutdown domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the shutdown domain.
+</summary>
+</param>
+</interface>
+<interface name="shutdown_role" lineno="67">
+<summary>
+Role access for shutdown
+</summary>
+<param name="role">
+<summary>
+Role allowed access
+</summary>
+</param>
+<param name="domain">
+<summary>
+User domain for the role
+</summary>
+</param>
+</interface>
+<interface name="shutdown_send_sigchld" lineno="90">
+<summary>
+Recieve sigchld from shutdown
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access
+</summary>
+</param>
+</interface>
+<interface name="shutdown_dbus_chat" lineno="109">
+<summary>
+Send and receive messages from
+shutdown over dbus.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="shutdown_getattr_exec_files" lineno="129">
+<summary>
+Get attributes of shutdown executable.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="smoltclient" filename="policy/modules/admin/smoltclient.if">
+<summary>The Fedora hardware profiler client</summary>
+</module>
+<module name="su" filename="policy/modules/admin/su.if">
+<summary>Run shells with substitute user and group</summary>
+<template name="su_restricted_domain_template" lineno="31">
+<summary>
+Restricted su domain template.
+</summary>
+<desc>
+<p>
+This template creates a derived domain which is allowed
+to change the linux user id, to run shells as a different
+user.
+</p>
+</desc>
+<param name="userdomain_prefix">
+<summary>
+The prefix of the user domain (e.g., user
+is the prefix for user_t).
+</summary>
+</param>
+<param name="user_domain">
+<summary>
+The type of the user domain.
+</summary>
+</param>
+<param name="user_role">
+<summary>
+The role associated with the user domain.
+</summary>
+</param>
+</template>
+<template name="su_role_template" lineno="165">
+<summary>
+The role template for the su module.
+</summary>
+<param name="role_prefix">
+<summary>
+The prefix of the user role (e.g., user
+is the prefix for user_r).
+</summary>
+</param>
+<param name="user_role">
+<summary>
+The role associated with the user domain.
+</summary>
+</param>
+<param name="user_domain">
+<summary>
+The type of the user domain.
+</summary>
+</param>
+</template>
+<interface name="su_exec" lineno="332">
+<summary>
+Execute su in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="sudo" filename="policy/modules/admin/sudo.if">
+<summary>Execute a command with a substitute user</summary>
+<template name="sudo_role_template" lineno="31">
+<summary>
+The role template for the sudo module.
+</summary>
+<desc>
+<p>
+This template creates a derived domain which is allowed
+to change the linux user id, to run commands as a different
+user.
+</p>
+</desc>
+<param name="role_prefix">
+<summary>
+The prefix of the user role (e.g., user
+is the prefix for user_r).
+</summary>
+</param>
+<param name="user_role">
+<summary>
+The user role.
+</summary>
+</param>
+<param name="user_domain">
+<summary>
+The user domain associated with the role.
+</summary>
+</param>
+</template>
+<interface name="sudo_sigchld" lineno="186">
+<summary>
+Send a SIGCHLD signal to the sudo domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="sudo_exec" lineno="205">
+<summary>
+Allow execute sudo in called domain.
+This interfaces is added for nova-stack policy.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>
+<module name="sxid" filename="policy/modules/admin/sxid.if">
+<summary>SUID/SGID program monitoring</summary>
+<interface name="sxid_read_log" lineno="15">
+<summary>
+Allow the specified domain to read
+sxid log files.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="tmpreaper" filename="policy/modules/admin/tmpreaper.if">
+<summary>Manage temporary directory sizes and file ages</summary>
+<interface name="tmpreaper_exec" lineno="13">
+<summary>
+Execute tmpreaper in the caller domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+</module>
+<module name="tripwire" filename="policy/modules/admin/tripwire.if">
+<summary>Tripwire file integrity checker.</summary>
+<desc>
+<p>
+Tripwire file integrity checker.
+</p>
+<p>
+NOTE: Tripwire creates temp file in its current working directory.
+This policy does not allow write access to home directories, so
+users will need to either cd to a directory where they have write
+permission, or set the TEMPDIRECTORY variable in the tripwire config
+file.  The latter is preferable, as then the file_type_auto_trans
+rules will kick in and label the files as private to tripwire.
+</p>
+</desc>
+<interface name="tripwire_domtrans_tripwire" lineno="26">
+<summary>
+Execute tripwire in the tripwire domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="tripwire_run_tripwire" lineno="51">
+<summary>
+Execute tripwire in the tripwire domain, and
+allow the specified role the tripwire domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the tripwire domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="tripwire_domtrans_twadmin" lineno="70">
+<summary>
+Execute twadmin in the twadmin domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="tripwire_run_twadmin" lineno="95">
+<summary>
+Execute twadmin in the twadmin domain, and
+allow the specified role the twadmin domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the twadmin domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="tripwire_domtrans_twprint" lineno="114">
+<summary>
+Execute twprint in the twprint domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="tripwire_run_twprint" lineno="139">
+<summary>
+Execute twprint in the twprint domain, and
+allow the specified role the twprint domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the twprint domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="tripwire_domtrans_siggen" lineno="158">
+<summary>
+Execute siggen in the siggen domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="tripwire_run_siggen" lineno="183">
+<summary>
+Execute siggen in the siggen domain, and
+allow the specified role the siggen domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the siggen domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="tzdata" filename="policy/modules/admin/tzdata.if">
+<summary>Time zone updater</summary>
+<interface name="tzdata_domtrans" lineno="13">
+<summary>
+Execute a domain transition to run tzdata.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed to transition.
+</summary>
+</param>
+</interface>
+<interface name="tzdata_run" lineno="37">
+<summary>
+Execute the tzdata program in the tzdata domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to allow the tzdata domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="updfstab" filename="policy/modules/admin/updfstab.if">
+<summary>Red Hat utility to change /etc/fstab.</summary>
+<interface name="updfstab_domtrans" lineno="13">
+<summary>
+Execute updfstab in the updfstab domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+</module>
+<module name="usbmodules" filename="policy/modules/admin/usbmodules.if">
+<summary>List kernel modules of USB devices</summary>
+<interface name="usbmodules_domtrans" lineno="13">
+<summary>
+Execute usbmodules in the usbmodules domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="usbmodules_run" lineno="39">
+<summary>
+Execute usbmodules in the usbmodules domain, and
+allow the specified role the usbmodules domain,
+and use the caller's terminal.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the usbmodules domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+</module>
+<module name="usermanage" filename="policy/modules/admin/usermanage.if">
+<summary>Policy for managing user accounts.</summary>
+<interface name="usermanage_domtrans_chfn" lineno="13">
+<summary>
+Execute chfn in the chfn domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_run_chfn" lineno="43">
+<summary>
+Execute chfn in the chfn domain, and
+allow the specified role the chfn domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the chfn domain.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_domtrans_groupadd" lineno="62">
+<summary>
+Execute groupadd in the groupadd domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_access_check_groupadd" lineno="86">
+<summary>
+Check access to the groupadd executable.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_run_groupadd" lineno="114">
+<summary>
+Execute groupadd in the groupadd domain, and
+allow the specified role the groupadd domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the groupadd domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="usermanage_domtrans_passwd" lineno="137">
+<summary>
+Execute passwd in the passwd domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_kill_passwd" lineno="161">
+<summary>
+Send sigkills to passwd.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_run_passwd" lineno="185">
+<summary>
+Execute passwd in the passwd domain, and
+allow the specified role the passwd domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the passwd domain.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_access_check_passwd" lineno="205">
+<summary>
+Check access to the passwd executable
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_domtrans_admin_passwd" lineno="225">
+<summary>
+Execute password admin functions in
+the admin passwd domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_run_admin_passwd" lineno="253">
+<summary>
+Execute passwd admin functions in the admin
+passwd domain, and allow the specified role
+the admin passwd domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the admin passwd domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="usermanage_dontaudit_use_useradd_fds" lineno="276">
+<summary>
+Dontaudit attempts to use useradd fds
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_domtrans_useradd" lineno="294">
+<summary>
+Execute useradd in the useradd domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_run_useradd" lineno="324">
+<summary>
+Execute useradd in the useradd domain, and
+allow the specified role the useradd domain.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the useradd domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="usermanage_access_check_useradd" lineno="352">
+<summary>
+Check access to the useradd executable.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="usermanage_read_crack_db" lineno="372">
+<summary>
+Read the crack database.
+</summary>
+<param name="domain">
+<summary>
+The type of the process performing this action.
+</summary>
+</param>
+</interface>
+</module>
+<module name="vbetool" filename="policy/modules/admin/vbetool.if">
+<summary>run real-mode video BIOS code to alter hardware state</summary>
+<interface name="vbetool_domtrans" lineno="13">
+<summary>
+Execute vbetool application in the vbetool domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="vbetool_run" lineno="38">
+<summary>
+Execute vbetool in the vbetool domain, and
+allow the specified role the vbetool domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the vbetool domain.
+</summary>
+</param>
+</interface>
+<tunable name="vbetool_mmap_zero_ignore" dftval="false">
+<desc>
+<p>
+Ignore vbetool mmap_zero errors.
+</p>
+</desc>
+</tunable>
+</module>
+<module name="vpn" filename="policy/modules/admin/vpn.if">
+<summary>Virtual Private Networking client</summary>
+<interface name="vpn_domtrans" lineno="13">
+<summary>
+Execute VPN clients in the vpnc domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="vpn_run" lineno="38">
+<summary>
+Execute VPN clients in the vpnc domain, and
+allow the specified role the vpnc domain.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+<param name="role">
+<summary>
+The role to be allowed the vpnc domain.
+</summary>
+</param>
+<rolecap/>
+</interface>
+<interface name="vpn_kill" lineno="58">
+<summary>
+Send VPN clients the kill signal.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="vpn_signal" lineno="76">
+<summary>
+Send generic signals to VPN clients.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="vpn_signull" lineno="94">
+<summary>
+Send signull to VPN clients.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="vpn_dbus_chat" lineno="113">
+<summary>
+Send and receive messages from
+Vpnc over dbus.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+<interface name="vpn_relabelfrom_tun_socket" lineno="133">
+<summary>
+Relabelfrom from vpnc socket.
+</summary>
+<param name="domain">
+<summary>
+Domain allowed access.
+</summary>
+</param>
+</interface>
+</module>

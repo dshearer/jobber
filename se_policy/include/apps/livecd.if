@@ -1,0 +1,127 @@
+
+## <summary>policy for livecd</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run livecd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`livecd_domtrans',`
+	gen_require(`
+		type livecd_t;
+                type livecd_exec_t;
+	')
+
+	domtrans_pattern($1, livecd_exec_t, livecd_t)
+')
+
+########################################
+## <summary>
+##	Execute livecd in the livecd domain, and
+##	allow the specified role the livecd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the livecd domain.
+##	</summary>
+## </param>
+#
+interface(`livecd_run',`
+	gen_require(`
+		type livecd_t;
+	')
+
+	livecd_domtrans($1)
+	role $2 types livecd_t;
+	
+	seutil_run_setfiles_mac(livecd_t, $2)
+
+	optional_policy(`
+		mount_run(livecd_t, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Dontaudit read/write to a livecd leaks
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`livecd_dontaudit_leaks',`
+	gen_require(`
+		type livecd_t;
+	')
+
+	dontaudit $1 livecd_t:unix_dgram_socket { read write };
+')
+
+########################################
+## <summary>
+##	Read livecd temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`livecd_read_tmp_files',`
+	gen_require(`
+		type livecd_tmp_t;
+	')
+
+	files_search_tmp($1)
+	read_files_pattern($1, livecd_tmp_t, livecd_tmp_t)
+')
+
+########################################
+## <summary>
+##	Read and write livecd temporary files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`livecd_rw_tmp_files',`
+	gen_require(`
+		type livecd_tmp_t;
+	')
+
+	files_search_tmp($1)
+	allow $1 livecd_tmp_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow read and write access to livecd semaphores.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`livecd_rw_semaphores',`
+	gen_require(`
+		type livecd_t;
+	')
+
+	allow $1 livecd_t:sem { unix_read unix_write associate read write };
+')
+

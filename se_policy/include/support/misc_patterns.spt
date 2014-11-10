@@ -1,0 +1,59 @@
+#
+# Specified domain transition patterns
+#
+define(`domain_transition_pattern',`
+	allow $1 $2:file { getattr open read execute };
+	allow $1 $3:process transition;
+	dontaudit $1 $3:process { noatsecure siginh rlimitinh };
+')
+
+# compatibility:
+define(`domain_trans',`domain_transition_pattern($*)')
+
+define(`spec_domtrans_pattern',`
+	allow $1 self:process setexec;
+	domain_transition_pattern($1,$2,$3)
+
+	allow $3 $1:fd use;
+	allow $3 $1:fifo_file rw_inherited_fifo_file_perms;
+	allow $3 $1:process sigchld;
+')
+
+#
+# Automatic domain transition patterns
+#
+define(`domain_auto_transition_pattern',`
+	domain_transition_pattern($1,$2,$3)
+	type_transition $1 $2:process $3;
+')
+
+# compatibility:
+define(`domain_auto_trans',`domain_auto_transition_pattern($*)')
+
+define(`domtrans_pattern',`
+	domain_auto_transition_pattern($1,$2,$3)
+
+	allow $3 $1:fd use;
+	allow $3 $1:fifo_file rw_inherited_fifo_file_perms;
+	allow $3 $1:process sigchld;
+
+	ifdef(`hide_broken_symptoms', `
+	        dontaudit $3 $1:socket_class_set { read write };
+	')
+')
+
+#
+# Other process permissions
+#
+define(`send_audit_msgs_pattern',`
+	refpolicywarn(`$0($*) has been deprecated, please use logging_send_audit_msgs($1) instead.')
+	allow $1 self:capability audit_write;
+	allow $1 self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+')
+
+define(`ps_process_pattern',`
+	allow $1 $2:dir list_dir_perms;
+	allow $1 $2:file read_file_perms;
+	allow $1 $2:lnk_file read_lnk_file_perms;
+	allow $1 $2:process getattr;
+')

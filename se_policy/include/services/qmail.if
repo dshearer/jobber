@@ -1,0 +1,207 @@
+## <summary>Qmail Mail Server</summary>
+
+########################################
+## <summary>
+##	Template for qmail parent/sub-domain pairs
+## </summary>
+## <param name="child_prefix">
+##	<summary>
+##	The prefix of the child domain
+##	</summary>
+## </param>
+## <param name="parent_domain">
+##	<summary>
+##	The name of the parent domain.
+##	</summary>
+## </param>
+#
+template(`qmail_child_domain_template',`
+	type $1_t;
+	domain_type($1_t)
+	type $1_exec_t;
+	domain_entry_file($1_t, $1_exec_t)
+	domain_auto_trans($2, $1_exec_t, $1_t)
+	role system_r types $1_t;
+
+	allow $1_t self:process signal_perms;
+
+	allow $1_t $2:fd use;
+	allow $1_t $2:fifo_file rw_file_perms;
+	allow $1_t $2:process sigchld;
+
+	allow $1_t qmail_etc_t:dir list_dir_perms;
+	allow $1_t qmail_etc_t:file read_file_perms;
+	allow $1_t qmail_etc_t:lnk_file read_lnk_file_perms;
+
+	allow $1_t qmail_start_t:fd use;
+
+	kernel_list_proc($2)
+	kernel_read_proc_symlinks($2)
+
+	corecmd_search_bin($1_t)
+
+	files_search_var($1_t)
+
+	fs_getattr_xattr_fs($1_t)
+
+	miscfiles_read_localization($1_t)
+')
+
+########################################
+## <summary>
+##	Transition to qmail_inject_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`qmail_domtrans_inject',`
+	gen_require(`
+		type qmail_inject_t, qmail_inject_exec_t;
+	')
+
+	domtrans_pattern($1, qmail_inject_exec_t, qmail_inject_t)
+
+	ifdef(`distro_debian',`
+		files_search_usr($1)
+		corecmd_search_bin($1)
+	',`
+		files_search_var($1)
+		corecmd_search_bin($1)
+	')
+')
+
+########################################
+## <summary>
+##	Transition to qmail_queue_t
+## </summary>
+## <param name="domain">
+##	<summary>
+##		Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`qmail_domtrans_queue',`
+	gen_require(`
+		type qmail_queue_t, qmail_queue_exec_t;
+	')
+
+	domtrans_pattern($1, qmail_queue_exec_t, qmail_queue_t)
+
+	ifdef(`distro_debian',`
+		files_search_usr($1)
+		corecmd_search_bin($1)
+	',`
+		files_search_var($1)
+		corecmd_search_bin($1)
+	')
+')
+
+########################################
+## <summary>
+##	Read qmail configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`qmail_read_config',`
+	gen_require(`
+		type qmail_etc_t;
+	')
+
+	allow $1 qmail_etc_t:dir list_dir_perms;
+	allow $1 qmail_etc_t:file read_file_perms;
+	allow $1 qmail_etc_t:lnk_file read_lnk_file_perms;
+	files_search_var($1)
+
+	ifdef(`distro_debian',`
+		# handle /etc/qmail
+		files_search_etc($1)
+	')
+')
+
+########################################
+## <summary>
+##	Define the specified domain as a qmail-smtp service. 
+##	Needed by antivirus/antispam filters.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="entrypoint">
+##	<summary>
+##	The type associated with the process program.
+##	</summary>
+## </param>
+#
+interface(`qmail_smtpd_service_domain',`
+	gen_require(`
+		type qmail_smtpd_t;
+	')
+
+	domtrans_pattern(qmail_smtpd_t, $2, $1)
+')
+
+########################################
+## <summary>
+##      Create, read, write, and delete qmail
+##      spool directories.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`qmail_manage_spool_dirs',`
+        gen_require(`
+                type qmail_spool_t;
+        ')
+
+        manage_dirs_pattern($1, qmail_spool_t, qmail_spool_t)
+')
+
+########################################
+## <summary>
+##      Create, read, write, and delete qmail
+##      spool files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`qmail_manage_spool_files',`
+        gen_require(`
+                type qmail_spool_t;
+        ')
+
+        manage_files_pattern($1, qmail_spool_t, qmail_spool_t)
+')
+
+########################################
+## <summary>
+##      Read and write to qmail spool pipes.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain to not audit.
+##      </summary>
+## </param>
+#
+interface(`qmail_rw_spool_pipes',`
+        gen_require(`
+                type qmail_spool_t;
+        ')
+
+        allow $1 qmail_spool_t:fifo_file rw_fifo_file_perms;
+')

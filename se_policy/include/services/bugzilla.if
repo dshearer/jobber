@@ -1,0 +1,39 @@
+## <summary>Bugzilla server</summary>
+
+########################################
+## <summary>
+##	Allow the specified domain to search 
+##	bugzilla directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bugzilla_search_dirs',`
+	gen_require(`
+		type httpd_bugzilla_content_t;
+	')
+
+	allow $1 httpd_bugzilla_content_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write 
+##	bugzilla script unix domain stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`bugzilla_dontaudit_rw_script_stream_sockets',`
+	gen_require(`
+		type httpd_bugzilla_script_t;
+	')
+
+	dontaudit $1 httpd_bugzilla_script_t:unix_stream_socket { read write };
+')

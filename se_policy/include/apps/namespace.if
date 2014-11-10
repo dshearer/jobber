@@ -1,0 +1,48 @@
+
+## <summary>policy for namespace</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run namespace_init.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`namespace_init_domtrans',`
+	gen_require(`
+		type namespace_init_t, namespace_init_exec_t;
+	')
+
+	domtrans_pattern($1, namespace_init_exec_t, namespace_init_t)
+')
+
+
+########################################
+## <summary>
+##	Execute namespace_init in the namespace_init domain, and
+##	allow the specified role the namespace_init domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the namespace_init domain.
+##	</summary>
+## </param>
+#
+interface(`namespace_init_run',`
+	gen_require(`
+		type namespace_init_t;
+	')
+
+	namespace_init_domtrans($1)
+	role $2 types namespace_init_t;
+	
+	seutil_run_setfiles(namespace_init_t, $2)
+')

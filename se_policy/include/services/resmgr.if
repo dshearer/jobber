@@ -1,0 +1,21 @@
+## <summary>Resource management daemon</summary>
+
+########################################
+## <summary>
+##	Connect to resmgrd over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`resmgr_stream_connect',`
+	gen_require(`
+		type resmgrd_var_run_t, resmgrd_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, resmgrd_var_run_t, resmgrd_var_run_t, resmgrd_t)
+')

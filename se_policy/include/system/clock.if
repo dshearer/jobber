@@ -1,0 +1,100 @@
+## <summary>Policy for reading and setting the hardware clock.</summary>
+
+########################################
+## <summary>
+##	Execute hwclock in the clock domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`clock_domtrans',`
+	gen_require(`
+		type hwclock_t, hwclock_exec_t;
+	')
+
+	domtrans_pattern($1, hwclock_exec_t, hwclock_t)
+')
+
+########################################
+## <summary>
+##	Execute hwclock in the clock domain, and
+##	allow the specified role the hwclock domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the clock domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`clock_run',`
+	gen_require(`
+		type hwclock_t;
+	')
+
+	clock_domtrans($1)
+	role $2 types hwclock_t;
+')
+
+########################################
+## <summary>
+## 	Execute hwclock in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+## 	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`clock_exec',`
+	gen_require(`
+		type hwclock_exec_t;
+	')
+
+	can_exec($1, hwclock_exec_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write clock drift adjustments.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`clock_dontaudit_write_adjtime',`
+	gen_require(`
+		type adjtime_t;
+	')
+
+	dontaudit $1 adjtime_t:file write;
+')
+
+########################################
+## <summary>
+##	Read and write clock drift adjustments.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`clock_rw_adjtime',`
+	gen_require(`
+		type adjtime_t;
+	')
+
+	allow $1 adjtime_t:file rw_file_perms;
+	files_list_etc($1)
+')

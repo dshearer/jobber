@@ -1,0 +1,667 @@
+## <summary>
+##	Policy for kernel security interface, in particular, selinuxfs.
+## </summary>
+## <required val="true">
+##	Contains the policy for the kernel SELinux security interface.
+## </required>
+
+########################################
+## <summary>
+##	Make the specified type used for labeling SELinux Booleans.
+##	This interface is only usable in the base module.
+## </summary>
+## <desc>
+##	<p>
+##	Make the specified type used for labeling SELinux Booleans.
+##	</p>
+##	<p>
+##	This makes use of genfscon statements, which are only
+##	available in the base module.  Thus any module which calls this
+##	interface must be included in the base module.
+##	</p>
+## </desc>
+## <param name="type">
+##	<summary>
+##	Type used for labeling a Boolean.
+##	</summary>
+## </param>
+## <param name="boolean">
+##	<summary>
+##	Name of the Boolean.
+##	</summary>
+## </param>
+#
+interface(`selinux_labeled_boolean',`
+	gen_require(`
+		attribute boolean_type;
+	')
+
+	typeattribute $1 boolean_type;
+
+	# because of this statement, any module which
+	# calls this interface must be in the base module:
+#	genfscon selinuxfs /booleans/$2 gen_context(system_u:object_r:$1,s0)
+')
+
+########################################
+## <summary>
+##	Get the mountpoint of the selinuxfs filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`selinux_get_fs_mount',`
+	gen_require(`
+		type security_t;
+	')
+
+	# starting in libselinux 2.0.5, init_selinuxmnt() will
+	# attempt to short circuit by checking if SELINUXMNT
+	# (/selinux) is already a selinuxfs
+	allow $1 security_t:filesystem getattr;
+
+	# read /proc/filesystems to see if selinuxfs is supported
+	# then read /proc/self/mount to see where selinuxfs is mounted
+	kernel_read_system_state($1)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the mountpoint
+##	of the selinuxfs filesystem.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`selinux_dontaudit_get_fs_mount',`
+	gen_require(`
+		type security_t;
+	')
+
+	# starting in libselinux 2.0.5, init_selinuxmnt() will
+	# attempt to short circuit by checking if SELINUXMNT
+	# (/selinux) is already a selinuxfs
+	dontaudit $1 security_t:filesystem getattr;
+
+	# read /proc/filesystems to see if selinuxfs is supported
+	# then read /proc/self/mount to see where selinuxfs is mounted
+	kernel_dontaudit_read_system_state($1)
+')
+
+########################################
+## <summary>
+##	Get the attributes of the selinuxfs filesystem
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`selinux_getattr_fs',`
+	gen_require(`
+		type security_t;
+	')
+
+	allow $1 security_t:filesystem getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the
+##	attributes of the selinuxfs filesystem
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`selinux_dontaudit_getattr_fs',`
+	gen_require(`
+		type security_t;
+	')
+
+	dontaudit $1 security_t:filesystem getattr;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the
+##	attributes of the selinuxfs directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`selinux_dontaudit_getattr_dir',`
+	gen_require(`
+		type security_t;
+	')
+
+	dontaudit $1 security_t:dir getattr;
+')
+
+########################################
+## <summary>
+##	Search selinuxfs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`selinux_search_fs',`
+	gen_require(`
+		type security_t;
+	')
+
+	allow $1 security_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to search selinuxfs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`selinux_dontaudit_search_fs',`
+	gen_require(`
+		type security_t;
+	')
+
+	dontaudit $1 security_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read
+##	generic selinuxfs entries
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`selinux_dontaudit_read_fs',`
+	gen_require(`
+		type security_t;
+	')
+
+	selinux_dontaudit_getattr_fs($1)
+	dontaudit $1 security_t:dir search_dir_perms;
+	dontaudit $1 security_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Allows the caller to get the mode of policy enforcement
+##	(enforcing or permissive mode).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type to allow to get the enforcing mode.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`selinux_get_enforce_mode',`
+	gen_require(`
+		type security_t;
+	')
+
+	selinux_get_fs_mount($1)
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Allow caller to set the mode of policy enforcement
+##	(enforcing or permissive mode).
+## </summary>
+## <desc>
+##	<p>
+##	Allow caller to set the mode of policy enforcement
+##	(enforcing or permissive mode).
+##	</p>
+##	<p>
+##	Since this is a security event, this action is
+##	always audited.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	The process type to allow to set the enforcement mode.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`selinux_set_enforce_mode',`
+	gen_require(`
+		type security_t;
+		attribute can_setenforce;
+		bool secure_mode_policyload;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file rw_file_perms;
+	typeattribute $1 can_setenforce;
+
+	if(!secure_mode_policyload) {
+		allow $1 security_t:security setenforce;
+
+		ifdef(`distro_rhel4',`
+			# needed for systems without audit support
+			auditallow $1 security_t:security setenforce;
+		')
+	}
+')
+
+########################################
+## <summary>
+##	Allow caller to load the policy into the kernel.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type that will load the policy.
+##	</summary>
+## </param>
+#
+interface(`selinux_load_policy',`
+	gen_require(`
+		type security_t;
+		attribute can_load_policy;
+		bool secure_mode_policyload;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file rw_file_perms;
+	typeattribute $1 can_load_policy;
+
+	if(!secure_mode_policyload) {
+		allow $1 security_t:security load_policy;
+
+		ifdef(`distro_rhel4',`
+			# needed for systems without audit support
+			auditallow $1 security_t:security load_policy;
+		')
+	}
+')
+
+#######################################
+## <summary>
+##  Allow caller to read the policy from the kernel.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`selinux_read_policy',`
+    gen_require(`
+        type security_t;
+    ')
+
+    allow $1 security_t:dir list_dir_perms;
+    allow $1 security_t:file read_file_perms;
+    allow $1 security_t:security read_policy;
+')
+
+########################################
+## <summary>
+##	Allow caller to set the state of Booleans to
+##	enable or disable conditional portions of the policy.  (Deprecated)
+## </summary>
+## <desc>
+##	<p>
+##	Allow caller to set the state of Booleans to
+##	enable or disable conditional portions of the policy.
+##	</p>
+##	<p>
+##	Since this is a security event, this action is
+##	always audited.
+##	</p>
+##	<p>
+##	This interface has been deprecated.  Please use
+##	selinux_set_generic_booleans() or selinux_set_all_booleans()
+##	instead.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	The process type allowed to set the Boolean.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`selinux_set_boolean',`
+	refpolicywarn(`$0($*) has been deprecated, use selinux_set_generic_booleans() instead.')
+	selinux_set_generic_booleans($1)
+')
+
+########################################
+## <summary>
+##	Allow caller to set the state of generic Booleans to
+##	enable or disable conditional portions of the policy.
+## </summary>
+## <desc>
+##	<p>
+##	Allow caller to set the state of generic Booleans to
+##	enable or disable conditional portions of the policy.
+##	</p>
+##	<p>
+##	Since this is a security event, this action is
+##	always audited.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	The process type allowed to set the Boolean.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`selinux_set_generic_booleans',`
+	gen_require(`
+		type security_t;
+		bool secure_mode_policyload;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file rw_file_perms;
+
+	if(!secure_mode_policyload) {
+		allow $1 security_t:security setbool;
+
+		ifdef(`distro_rhel4',`
+			# needed for systems without audit support
+			auditallow $1 security_t:security setbool;
+		')
+	}
+')
+
+########################################
+## <summary>
+##	Allow caller to set the state of all Booleans to
+##	enable or disable conditional portions of the policy.
+## </summary>
+## <desc>
+##	<p>
+##	Allow caller to set the state of all Booleans to
+##	enable or disable conditional portions of the policy.
+##	</p>
+##	<p>
+##	Since this is a security event, this action is
+##	always audited.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	The process type allowed to set the Boolean.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`selinux_set_all_booleans',`
+	gen_require(`
+		type security_t;
+		attribute boolean_type;
+		bool secure_mode_policyload;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 boolean_type:dir list_dir_perms;
+	allow $1 boolean_type:file rw_file_perms;
+
+	if(!secure_mode_policyload) {
+		allow $1 security_t:security setbool;
+
+		ifdef(`distro_rhel4',`
+			# needed for systems without audit support
+			auditallow $1 security_t:security setbool;
+		')
+	}
+')
+
+########################################
+## <summary>
+##	Allow caller to set SELinux access vector cache parameters.
+## </summary>
+## <desc>
+##	<p>
+##	Allow caller to set SELinux access vector cache parameters.
+##	The allows the domain to set performance related parameters
+##	of the AVC, such as cache threshold.
+##	</p>
+##	<p>
+##	Since this is a security event, this action is
+##	always audited.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	The process type to allow to set security parameters.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`selinux_set_parameters',`
+	gen_require(`
+		type security_t;
+		attribute can_setsecparam;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file rw_file_perms;
+	allow $1 security_t:security setsecparam;
+	auditallow $1 security_t:security setsecparam;
+	typeattribute $1 can_setsecparam;
+')
+
+########################################
+## <summary>
+##	Allows caller to validate security contexts.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type permitted to validate contexts.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`selinux_validate_context',`
+	gen_require(`
+		type security_t;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file rw_file_perms;
+	allow $1 security_t:security check_context;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to validate security contexts.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`selinux_dontaudit_validate_context',`
+	gen_require(`
+		type security_t;
+	')
+
+	dontaudit $1 security_t:dir list_dir_perms;
+	dontaudit $1 security_t:file rw_file_perms;
+	dontaudit $1 security_t:security check_context;
+')
+
+########################################
+## <summary>
+##	Allows caller to compute an access vector.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type allowed to compute an access vector.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`selinux_compute_access_vector',`
+	gen_require(`
+		type security_t;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file rw_file_perms;
+	allow $1 security_t:security compute_av;
+')
+
+########################################
+## <summary>
+##	Calculate the default type for object creation.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`selinux_compute_create_context',`
+	gen_require(`
+		type security_t;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file rw_file_perms;
+	allow $1 security_t:security compute_create;
+')
+
+########################################
+## <summary>
+##	Allows caller to compute polyinstatntiated
+##	directory members.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`selinux_compute_member',`
+	gen_require(`
+		type security_t;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file rw_file_perms;
+	allow $1 security_t:security compute_member;
+')
+
+########################################
+## <summary>
+##	Calculate the context for relabeling objects.
+## </summary>
+## <desc>
+##	<p>
+##	Calculate the context for relabeling objects.
+##	This is determined by using the type_change
+##	rules in the policy, and is generally used
+##	for determining the context for relabeling
+##	a terminal when a user logs in.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`selinux_compute_relabel_context',`
+	gen_require(`
+		type security_t;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file rw_file_perms;
+	allow $1 security_t:security compute_relabel;
+')
+
+########################################
+## <summary>
+##	Allows caller to compute possible contexts for a user.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The process type allowed to compute user contexts.
+##	</summary>
+## </param>
+#
+interface(`selinux_compute_user_contexts',`
+	gen_require(`
+		type security_t;
+	')
+
+	allow $1 security_t:dir list_dir_perms;
+	allow $1 security_t:file rw_file_perms;
+	allow $1 security_t:security compute_user;
+')
+
+########################################
+## <summary>
+##	Unconfined access to the SELinux kernel security server.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`selinux_unconfined',`
+	gen_require(`
+		attribute selinux_unconfined_type;
+	')
+
+	typeattribute $1 selinux_unconfined_type;
+')
+
+########################################
+## <summary>
+##	Generate a file context for a boolean type
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`selinux_genbool',`
+	gen_require(`
+		attribute boolean_type;
+	')
+
+	type $1, boolean_type;
+	fs_type($1)
+	mls_trusted_object($1)
+')

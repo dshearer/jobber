@@ -1,0 +1,21 @@
+## <summary>WS-Management Server</summary>
+
+########################################
+## <summary>
+##	Execute openwsman in the openwsman domin.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`openwsman_domtrans',`
+	gen_require(`
+		type openwsman_t, openwsman_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, openwsman_exec_t, openwsman_t)
+')
+

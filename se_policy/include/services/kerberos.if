@@ -1,0 +1,438 @@
+## <summary>MIT Kerberos admin and KDC</summary>
+## <desc>
+##	<p>
+##	This policy supports:
+##	</p>
+##	<p>
+##	Servers:
+##	<ul>
+##		<li>kadmind</li>
+##		<li>krb5kdc</li>
+##	</ul>
+##	</p>
+##	<p>
+##	Clients:
+##	<ul>
+##		<li>kinit</li>
+##		<li>kdestroy</li>
+##		<li>klist</li>
+##		<li>ksu (incomplete)</li>
+##	</ul>
+##	</p>
+## </desc>
+
+########################################
+## <summary>
+##	Execute kadmind in the current domain
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`kerberos_exec_kadmind',`
+	gen_require(`
+		type kadmind_exec_t;
+	')
+
+	can_exec($1, kadmind_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run kpropd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`kerberos_domtrans_kpropd',`
+	gen_require(`
+		type kpropd_t, kpropd_exec_t;
+	')
+
+	domtrans_pattern($1, kpropd_exec_t, kpropd_t)
+')
+
+########################################
+## <summary>
+##	Use kerberos services
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kerberos_use',`
+	gen_require(`
+		type krb5_conf_t, krb5kdc_conf_t;
+		type krb5_host_rcache_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, krb5_conf_t, krb5_conf_t)
+	dontaudit $1 krb5_conf_t:file write;
+	dontaudit $1 krb5kdc_conf_t:dir list_dir_perms;
+	dontaudit $1 krb5kdc_conf_t:file rw_file_perms;
+
+	#kerberos libraries are attempting to set the correct file context
+	dontaudit $1 self:process setfscreate;
+	selinux_dontaudit_validate_context($1)
+	seutil_dontaudit_read_file_contexts($1)
+
+	optional_policy(`
+		sssd_read_public_files($1)
+	')
+
+	tunable_policy(`allow_kerberos',`
+		allow $1 self:tcp_socket create_socket_perms;
+		allow $1 self:udp_socket create_socket_perms;
+
+		corenet_all_recvfrom_unlabeled($1)
+		corenet_all_recvfrom_netlabel($1)
+		corenet_tcp_sendrecv_generic_if($1)
+		corenet_udp_sendrecv_generic_if($1)
+		corenet_tcp_sendrecv_generic_node($1)
+		corenet_udp_sendrecv_generic_node($1)
+		corenet_tcp_sendrecv_kerberos_port($1)
+		corenet_udp_sendrecv_kerberos_port($1)
+		corenet_tcp_bind_generic_node($1)
+		corenet_udp_bind_generic_node($1)
+		corenet_tcp_connect_kerberos_port($1)
+		corenet_tcp_connect_ocsp_port($1)
+		corenet_sendrecv_kerberos_client_packets($1)
+		corenet_sendrecv_ocsp_client_packets($1)
+
+		allow $1 krb5_host_rcache_t:file getattr_file_perms;
+	')
+
+	optional_policy(`
+		tunable_policy(`allow_kerberos',`
+			pcscd_stream_connect($1)
+		')
+	')
+')
+
+########################################
+## <summary>
+##	Read the kerberos configuration file (/etc/krb5.conf).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kerberos_read_config',`
+	gen_require(`
+		type krb5_conf_t, krb5_home_t;
+	')
+
+	files_search_etc($1)
+	allow $1 krb5_conf_t:file read_file_perms;
+	allow $1 krb5_home_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write the kerberos
+##	configuration file (/etc/krb5.conf).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`kerberos_dontaudit_write_config',`
+	gen_require(`
+		type krb5_conf_t;
+	')
+
+	dontaudit $1 krb5_conf_t:file write;
+')
+
+########################################
+## <summary>
+##	Read and write the kerberos configuration file (/etc/krb5.conf).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kerberos_rw_config',`
+	gen_require(`
+		type krb5_conf_t;
+	')
+
+	files_search_etc($1)
+	allow $1 krb5_conf_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Read the kerberos key table.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kerberos_read_keytab',`
+	gen_require(`
+		type krb5_keytab_t;
+	')
+
+	files_search_etc($1)
+	allow $1 krb5_keytab_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read/Write the kerberos key table.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kerberos_rw_keytab',`
+	gen_require(`
+		type krb5_keytab_t;
+	')
+
+	files_search_etc($1)
+	allow $1 krb5_keytab_t:file rw_file_perms;
+')
+
+#######################################
+## <summary>
+##  Create keytab file in /etc
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`kerberos_etc_filetrans_keytab',`
+    gen_require(`
+        type krb5_keytab_t;
+    ')
+
+    allow $1 krb5_keytab_t:file manage_file_perms;
+    files_etc_filetrans($1, krb5_keytab_t, file)
+')
+
+########################################
+## <summary>
+##	Create a derived type for kerberos keytab
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	The prefix to be used for deriving type names.
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+template(`kerberos_keytab_template',`
+	type $1_keytab_t;
+	files_type($1_keytab_t)
+
+ 	allow $2 $1_keytab_t:file read_file_perms;
+
+	kerberos_read_keytab($2)
+	kerberos_use($2)
+')
+
+########################################
+## <summary>
+##	Read the kerberos kdc configuration file (/etc/krb5kdc.conf).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kerberos_read_kdc_config',`
+	gen_require(`
+		type krb5kdc_conf_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, krb5kdc_conf_t, krb5kdc_conf_t)
+')
+
+########################################
+## <summary>
+##	Read the kerberos kdc configuration file (/etc/krb5kdc.conf).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kerberos_manage_host_rcache',`
+	gen_require(`
+		type krb5_host_rcache_t;
+	')
+
+	# creates files as system_u no matter what the selinux user
+	# cjp: should be in the below tunable but typeattribute
+	# does not work in conditionals
+	domain_obj_id_change_exemption($1)
+
+	tunable_policy(`allow_kerberos',`
+		allow $1 self:process setfscreate;
+
+		selinux_validate_context($1)
+
+		seutil_read_file_contexts($1)
+
+		files_rw_generic_tmp_dir($1)
+		manage_files_pattern($1, krb5_host_rcache_t, krb5_host_rcache_t)
+		files_search_tmp($1)
+	')
+')
+
+########################################
+## <summary>
+##	Connect to krb524 service
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`kerberos_connect_524',`
+	tunable_policy(`allow_kerberos',`
+		allow $1 self:udp_socket create_socket_perms;
+
+		corenet_all_recvfrom_unlabeled($1)
+		corenet_udp_sendrecv_generic_if($1)
+		corenet_udp_sendrecv_generic_node($1)
+		corenet_udp_sendrecv_kerberos_master_port($1)
+		corenet_sendrecv_kerberos_master_client_packets($1)
+	')
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an kerberos environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the kerberos domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`kerberos_admin',`
+	gen_require(`
+		type kadmind_t, krb5kdc_t, kerberos_initrc_exec_t;
+		type kadmind_log_t, kadmind_tmp_t, kadmind_var_run_t;
+		type krb5_conf_t, krb5_keytab_t, krb5kdc_conf_t;
+		type krb5kdc_principal_t, krb5kdc_tmp_t;
+		type krb5kdc_var_run_t, krb5_host_rcache_t;
+		type kpropd_t;
+	')
+
+	allow $1 kadmind_t:process { ptrace signal_perms };
+	ps_process_pattern($1, kadmind_t)
+
+	allow $1 krb5kdc_t:process { ptrace signal_perms };
+	ps_process_pattern($1, krb5kdc_t)
+
+	allow $1 kpropd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, kpropd_t)
+
+	init_labeled_script_domtrans($1, kerberos_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 kerberos_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_list_logs($1)
+	admin_pattern($1, kadmind_log_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, kadmind_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, kadmind_var_run_t)
+
+	admin_pattern($1, krb5_conf_t)
+
+	admin_pattern($1, krb5_host_rcache_t)
+
+	admin_pattern($1, krb5_keytab_t)
+
+	admin_pattern($1, krb5kdc_principal_t)
+
+	admin_pattern($1, krb5kdc_tmp_t)
+
+	admin_pattern($1, krb5kdc_var_run_t)
+')
+
+#######################################
+## <summary>
+##     Type transition files created in /tmp
+##     to the krb5_host_rcache type.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`mta_tmp_filetrans_host_rcache',`
+       gen_require(`
+               type krb5_host_rcache_t;
+       ')
+
+       files_tmp_filetrans($1, krb5_host_rcache_t, file)
+')
+
+########################################
+## <summary>
+##     read kerberos homedir content (.k5login)
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+template(`kerberos_read_home_content',`
+       gen_require(`
+               type krb5_home_t;
+       ')
+
+       userdom_search_user_home_dirs($1)
+       read_files_pattern($1, krb5_home_t, krb5_home_t)
+')

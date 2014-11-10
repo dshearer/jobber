@@ -1,0 +1,137 @@
+## <summary>Pyzor is a distributed, collaborative spam detection and filtering network.</summary>
+
+########################################
+## <summary>
+##	Role access for pyzor
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`pyzor_role',`
+	gen_require(`
+		type pyzor_t, pyzor_exec_t;
+		type pyzor_home_t, pyzor_var_lib_t, pyzor_tmp_t;
+	')
+
+	role $1 types pyzor_t;
+
+	# Transition from the user domain to the derived domain.
+	domtrans_pattern($2, pyzor_exec_t, pyzor_t)
+
+	# allow ps to show pyzor and allow the user to kill it 
+	ps_process_pattern($2, pyzor_t)
+	allow $2 pyzor_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send generic signals to pyzor
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pyzor_signal',`
+	gen_require(`
+		type pyzor_t;
+	')
+
+	allow $1 pyzor_t:process signal;
+')
+
+########################################
+## <summary>
+##	Execute pyzor with a domain transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pyzor_domtrans',`
+	gen_require(`
+		type pyzor_exec_t, pyzor_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, pyzor_exec_t, pyzor_t)
+')
+
+########################################
+## <summary>
+##	Execute pyzor in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pyzor_exec',`
+	gen_require(`
+		type pyzor_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	can_exec($1, pyzor_exec_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an pyzor environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the pyzor domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`pyzor_admin',`
+	gen_require(`
+		type pyzord_t, pyzor_tmp_t, pyzord_log_t;
+		type pyzor_etc_t, pyzor_var_lib_t;
+		type pyzord_initrc_exec_t;
+	')
+
+	allow $1 pyzord_t:process { ptrace signal_perms };
+	ps_process_pattern($1, pyzord_t)
+	        
+	init_labeled_script_domtrans($1, pyzord_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 pyzord_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_tmp($1)
+	admin_pattern($1, pyzor_tmp_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, pyzord_log_t)
+
+	files_list_etc($1)
+	admin_pattern($1, pyzor_etc_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, pyzor_var_lib_t)
+')
+
+

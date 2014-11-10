@@ -1,0 +1,201 @@
+
+## <summary>policy for keystone</summary>
+
+########################################
+## <summary>
+##	Transition to keystone.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`keystone_domtrans',`
+	gen_require(`
+		type keystone_t, keystone_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, keystone_exec_t, keystone_t)
+')
+########################################
+## <summary>
+##	Read keystone's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`keystone_read_log',`
+	gen_require(`
+		type keystone_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, keystone_log_t, keystone_log_t)
+')
+
+########################################
+## <summary>
+##	Append to keystone log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`keystone_append_log',`
+	gen_require(`
+		type keystone_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, keystone_log_t, keystone_log_t)
+')
+
+########################################
+## <summary>
+##	Manage keystone log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`keystone_manage_log',`
+	gen_require(`
+		type keystone_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, keystone_log_t, keystone_log_t)
+	manage_files_pattern($1, keystone_log_t, keystone_log_t)
+	manage_lnk_files_pattern($1, keystone_log_t, keystone_log_t)
+')
+
+########################################
+## <summary>
+##	Search keystone lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`keystone_search_lib',`
+	gen_require(`
+		type keystone_var_lib_t;
+	')
+
+	allow $1 keystone_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read keystone lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`keystone_read_lib_files',`
+	gen_require(`
+		type keystone_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, keystone_var_lib_t, keystone_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage keystone lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`keystone_manage_lib_files',`
+	gen_require(`
+		type keystone_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, keystone_var_lib_t, keystone_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage keystone lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`keystone_manage_lib_dirs',`
+	gen_require(`
+		type keystone_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, keystone_var_lib_t, keystone_var_lib_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an keystone environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`keystone_admin',`
+	gen_require(`
+		type keystone_t;
+		type keystone_log_t;
+		type keystone_var_lib_t;
+		type keystone_var_run_t;
+		type keystone_initrc_exec_t;
+	')
+
+    init_labeled_script_domtrans($1, keystone_initrc_exec_t)
+    domain_system_change_exemption($1)
+    role_transition $2 keystone_initrc_exec_t system_r;
+    allow $2 system_r;
+
+	allow $1 keystone_t:process { ptrace signal_perms };
+	ps_process_pattern($1, keystone_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, keystone_log_t)
+
+	files_list_pids($1)
+    admin_pattern($1, keystone_var_run_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, keystone_var_lib_t)
+
+')

@@ -1,0 +1,975 @@
+## <summary>Libvirt virtualization API</summary>
+
+########################################
+## <summary>
+##	Creates types and rules for a basic
+##	qemu process domain.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	Prefix for the domain.
+##	</summary>
+## </param>
+#
+template(`virt_domain_template',`
+	gen_require(`
+		type virtd_t;
+		attribute virt_image_type;
+		attribute virt_domain;
+		attribute virt_ptynode;
+	')
+
+	type $1_t, virt_domain;
+	domain_type($1_t)
+	domain_user_exemption_target($1_t)
+	mls_rangetrans_target($1_t)
+	mcs_untrusted_proc($1_t)
+	role system_r types $1_t;
+
+	type $1_devpts_t, virt_ptynode;
+	term_pty($1_devpts_t)
+
+	type $1_tmp_t;
+	files_tmp_file($1_tmp_t)
+
+	type $1_tmpfs_t;
+	files_tmpfs_file($1_tmpfs_t)
+
+	type $1_image_t, virt_image_type;
+	files_type($1_image_t)
+	dev_node($1_image_t)
+	dev_associate_sysfs($1_image_t)
+
+	allow $1_t $1_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms };
+	term_create_pty($1_t, $1_devpts_t)
+
+	manage_dirs_pattern($1_t, $1_image_t, $1_image_t)
+	manage_files_pattern($1_t, $1_image_t, $1_image_t)
+	manage_fifo_files_pattern($1_t, $1_image_t, $1_image_t)
+	read_lnk_files_pattern($1_t, $1_image_t, $1_image_t)
+	rw_chr_files_pattern($1_t, $1_image_t, $1_image_t)
+	rw_blk_files_pattern($1_t, $1_image_t, $1_image_t)
+
+	manage_dirs_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	manage_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	manage_lnk_files_pattern($1_t, $1_tmp_t, $1_tmp_t)
+	files_tmp_filetrans($1_t, $1_tmp_t, { file dir })
+
+	manage_dirs_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
+	manage_files_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
+	manage_lnk_files_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
+	fs_tmpfs_filetrans($1_t, $1_tmpfs_t, { dir file lnk_file })
+
+	optional_policy(`
+		xserver_rw_shm($1_t)
+	')
+')
+
+########################################
+## <summary>
+##	Make the specified type usable as a virt image
+## </summary>
+## <param name="type">
+##	<summary>
+##	Type to be used as a virtual image
+##	</summary>
+## </param>
+#
+interface(`virt_image',`
+	gen_require(`
+		attribute virt_image_type;
+	')
+
+	typeattribute $1 virt_image_type;
+	files_type($1)
+
+	# virt images can be assigned to blk devices
+	dev_node($1)
+')
+
+######################################
+## <summary>
+##  Getattr on virt executable.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`virt_getattr_exec',`
+    gen_require(`
+        type virtd_exec_t;
+    ')
+
+    allow $1 virtd_exec_t:file getattr;
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run virt.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`virt_domtrans',`
+	gen_require(`
+		type virtd_t, virtd_exec_t;
+	')
+
+	domtrans_pattern($1, virtd_exec_t, virtd_t)
+')
+
+#######################################
+## <summary>
+##  Execute a domain transition to run virt.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+## <param name="role">
+## <summary>
+##  Role allowed to access.
+## </summary>
+## </param>
+#
+interface(`virt_run',`
+    gen_require(`
+        type virtd_t;
+		type qemu_t;
+    ')
+
+    virt_domtrans($1)
+
+    role $2 types virtd_t;
+	role $2 types qemu_t;
+
+')
+
+#######################################
+## <summary>
+##  Transition to virt_bridgehelper.
+## </summary>
+## <param name="domain">
+## <summary>
+##  Domain allowed to transition.
+## </summary>
+## </param>
+interface(`virt_domtrans_bridgehelper',`
+    gen_require(`
+        type virt_bridgehelper_t, virt_bridgehelper_exec_t;
+    ')
+
+    domtrans_pattern($1, virt_bridgehelper_exec_t, virt_bridgehelper_t)
+')
+
+#######################################
+## <summary>
+##	Connect to virt over an unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_stream_connect',`
+	gen_require(`
+		type virtd_t, virt_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, virt_var_run_t, virt_var_run_t, virtd_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to attach to virt TUN devices
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_attach_tun_iface',`
+	gen_require(`
+		type virtd_t;
+	')
+
+	allow $1 virtd_t:tun_socket relabelfrom;
+	allow $1 self:tun_socket relabelto;
+')
+
+########################################
+## <summary>
+##	Read virt config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_read_config',`
+	gen_require(`
+		type virt_etc_t;
+		type virt_etc_rw_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, virt_etc_t, virt_etc_t)
+	read_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
+	read_lnk_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
+')
+
+########################################
+## <summary>
+##	manage virt config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_config',`
+	gen_require(`
+		type virt_etc_t;
+		type virt_etc_rw_t;
+	')
+
+	files_search_etc($1)
+	manage_files_pattern($1, virt_etc_t, virt_etc_t)
+	manage_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
+	manage_lnk_files_pattern($1, virt_etc_rw_t, virt_etc_rw_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to search virt image files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`virt_search_content',`
+	gen_require(`
+		type virt_content_t;
+	')
+
+	virt_search_lib($1)
+	allow $1 virt_content_t:dir list_dir_perms;
+	list_dirs_pattern($1, virt_content_t, virt_content_t)
+')
+
+#######################################
+## <summary>
+##  Allow domain to search virt image direcories
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`virt_search_images',`
+    gen_require(`
+            attribute virt_image_type;
+    ')
+
+    virt_search_lib($1)
+    allow $1 virt_image_type:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Allow domain to manage virt image files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`virt_read_content',`
+	gen_require(`
+		type virt_content_t;
+	')
+
+	virt_search_lib($1)
+	allow $1 virt_content_t:dir list_dir_perms;
+	list_dirs_pattern($1, virt_content_t, virt_content_t)
+	read_files_pattern($1, virt_content_t, virt_content_t)
+	read_lnk_files_pattern($1, virt_content_t, virt_content_t)
+	read_blk_files_pattern($1, virt_content_t, virt_content_t)
+
+	tunable_policy(`virt_use_nfs',`
+		fs_list_nfs($1)
+		fs_read_nfs_files($1)
+		fs_read_nfs_symlinks($1)
+	')
+
+	tunable_policy(`virt_use_samba',`
+		fs_list_cifs($1)
+		fs_read_cifs_files($1)
+		fs_read_cifs_symlinks($1)
+	')
+')
+
+#######################################
+## <summary>
+## Allow domain to write virt image files
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain to not audit.
+## </summary>
+## </param>
+#
+interface(`virt_write_content',`
+	gen_require(`
+		type virt_content_t;
+	')
+
+	allow $1 virt_content_t:file write_file_perms;
+')
+
+########################################
+## <summary>
+##	Read virt PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_read_pid_files',`
+	gen_require(`
+		type virt_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, virt_var_run_t, virt_var_run_t)
+')
+
+########################################
+## <summary>
+##	Read virt PID lnk files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_read_pid_symlinks',`
+	gen_require(`
+		type virt_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_lnk_files_pattern($1, virt_var_run_t, virt_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage virt pid files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_pid_files',`
+	gen_require(`
+		type virt_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, virt_var_run_t, virt_var_run_t)
+')
+
+########################################
+## <summary>
+##	Search virt lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_search_lib',`
+	gen_require(`
+		type virt_var_lib_t;
+	')
+
+	allow $1 virt_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read virt lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_read_lib_files',`
+	gen_require(`
+		type virt_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, virt_var_lib_t, virt_var_lib_t)
+	read_lnk_files_pattern($1, virt_var_lib_t, virt_var_lib_t)
+')
+
+#######################################
+## <summary>
+## Dontaudit inherited read virt lib files.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain to not audit.
+## </summary>
+## </param>
+#
+interface(`virt_dontaudit_read_lib_files',`
+	gen_require(`
+		type virt_var_lib_t;
+	')
+
+	dontaudit $1 virt_var_lib_t:file read_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	virt lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_lib_files',`
+	gen_require(`
+		type virt_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, virt_var_lib_t, virt_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to read virt's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`virt_read_log',`
+	gen_require(`
+		type virt_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, virt_log_t, virt_log_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to append
+##	virt log files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed to transition.
+## 	</summary>
+## </param>
+#
+interface(`virt_append_log',`
+	gen_require(`
+		type virt_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, virt_log_t, virt_log_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to manage virt log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_log',`
+	gen_require(`
+		type virt_log_t;
+	')
+
+	manage_dirs_pattern($1, virt_log_t, virt_log_t)
+	manage_files_pattern($1, virt_log_t, virt_log_t)
+	manage_lnk_files_pattern($1, virt_log_t, virt_log_t)
+')
+
+#######################################
+## <summary>
+## Allow domain to read virt blk image files
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`virt_read_blk_images',`
+	gen_require(`
+		attribute virt_image_type;
+	')
+
+	read_blk_files_pattern($1, virt_image_type, virt_image_type)
+')
+
+########################################
+## <summary>
+##	Allow domain to read virt image files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`virt_getattr_images',`
+	gen_require(`
+		type virt_var_lib_t;
+		attribute virt_image_type;
+	')
+
+	virt_search_lib($1)
+    getattr_files_pattern($1, virt_image_type, virt_image_type)
+')
+
+########################################
+## <summary>
+##	Allow domain to read virt image files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`virt_read_images',`
+	gen_require(`
+		type virt_var_lib_t;
+		attribute virt_image_type;
+	')
+
+	virt_search_lib($1)
+	allow $1 virt_image_type:dir list_dir_perms;
+	list_dirs_pattern($1, virt_image_type, virt_image_type)
+	read_files_pattern($1, virt_image_type, virt_image_type)
+	read_lnk_files_pattern($1, virt_image_type, virt_image_type)
+	read_blk_files_pattern($1, virt_image_type, virt_image_type)
+	read_chr_files_pattern($1, virt_image_type, virt_image_type)
+
+	tunable_policy(`virt_use_nfs',`
+		fs_list_nfs($1)
+		fs_read_nfs_files($1)
+		fs_read_nfs_symlinks($1)
+	')
+
+	tunable_policy(`virt_use_samba',`
+		fs_list_cifs($1)
+		fs_read_cifs_files($1)
+		fs_read_cifs_symlinks($1)
+	')
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	svirt cache files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_cache',`
+	gen_require(`
+		type virt_cache_t;
+	')
+
+	files_search_var($1)
+	manage_dirs_pattern($1, virt_cache_t, virt_cache_t)
+	manage_files_pattern($1, virt_cache_t, virt_cache_t)
+	manage_lnk_files_pattern($1, virt_cache_t, virt_cache_t)
+')
+
+########################################
+## <summary>
+##	Allow domain to manage virt image files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_images',`
+	gen_require(`
+		type virt_var_lib_t;
+		attribute virt_image_type;
+	')
+
+	virt_search_lib($1)
+	allow $1 virt_image_type:dir list_dir_perms;
+	manage_dirs_pattern($1, virt_image_type, virt_image_type)
+	manage_files_pattern($1, virt_image_type, virt_image_type)
+	read_lnk_files_pattern($1, virt_image_type, virt_image_type)
+	rw_blk_files_pattern($1, virt_image_type, virt_image_type)
+	rw_chr_files_pattern($1, virt_image_type, virt_image_type)
+
+	tunable_policy(`virt_use_nfs',`
+		fs_manage_nfs_dirs($1)
+		fs_manage_nfs_files($1)
+		fs_read_nfs_symlinks($1)
+	')
+
+	tunable_policy(`virt_use_samba',`
+		fs_manage_cifs_files($1)
+		fs_manage_cifs_files($1)
+		fs_read_cifs_symlinks($1)
+	')
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an virt environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`virt_admin',`
+	gen_require(`
+		type virtd_t, virtd_initrc_exec_t;
+		attribute virt_domain;
+	')
+
+	allow $1 virtd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, virtd_t)
+
+	init_labeled_script_domtrans($1, virtd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 virtd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	virt_manage_pid_files($1)
+
+	virt_manage_lib_files($1)
+
+	virt_manage_log($1)
+
+	virt_manage_images($1)
+
+    allow $1 virt_domain:process { ptrace signal_perms };
+
+')
+
+########################################
+## <summary>
+##	Execute qemu in the svirt domain, and
+##	allow the specified role the svirt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the svirt domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`virt_transition_svirt',`
+	gen_require(`
+		type svirt_t;
+        attribute virt_domain;
+	')
+
+	allow $1 svirt_t:process transition;
+	role $2 types svirt_t;
+
+    allow $1 virt_domain:process { sigkill sigstop signull signal };
+
+	optional_policy(`
+		ptchown_run(svirt_t, $2)
+	')
+')
+
+#######################################
+## <summary>
+## Do not audit attempts to write virt daemon unnamed pipes.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`virt_dontaudit_write_pipes',`
+	gen_require(`
+		type virtd_t;
+	')
+	dontaudit $1 virtd_t:fifo_file write;
+')
+
+#######################################
+## <summary>
+##	Send a sigkill to virtual machines
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_kill_svirt',`
+	gen_require(`
+		attribute virt_domain;
+	')
+
+	allow $1 virt_domain:process sigkill;
+')
+
+######################################
+## <summary>
+##  Send a sigkill to virtd daemon
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`virt_kill',`
+    gen_require(`
+        type virtd_t;
+    ')
+
+    allow $1 virtd_t:process sigkill;
+')
+
+#######################################
+## <summary>
+##	Send a signal to virtual machines
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_signal_svirt',`
+	gen_require(`
+		attribute virt_domain;
+	')
+
+	allow $1 virt_domain:process signal;
+')
+
+######################################
+## <summary>
+##  allow domain to read
+##  virt tmpf files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+#
+interface(`virt_read_tmp_files',`
+    gen_require(`
+        type virt_tmp_t;
+    ')
+
+	read_files_pattern($1, virt_tmp_t, virt_tmp_t)
+	read_lnk_files_pattern($1, virt_tmp_t, virt_tmp_t)
+')
+
+#####################################
+## <summary>
+##  dontaudit domain to write
+##  virt tmp files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+#
+interface(`virt_dontaudit_write_tmp_files',`
+    gen_require(`
+        type virt_tmp_t;
+    ')
+
+    dontaudit $1 virt_tmp_t:file write;
+')
+
+####################################
+## <summary>
+##  Allow domain to write
+##  virt tmp sock files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access
+##  </summary>
+## </param>
+#
+interface(`virt_write_tmp_sock',`
+    gen_require(`
+        type virt_tmp_t;
+    ')
+
+	write_sock_files_pattern($1, virt_tmp_t, virt_tmp_t)
+')
+
+#######################################
+## <summary>
+##	Execute Sandbox Files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_exec_sandbox_files',`
+	gen_require(`
+		type svirt_sandbox_file_t;
+	')
+
+	can_exec($1, svirt_sandbox_file_t)
+')
+
+#######################################
+## <summary>
+##	Manage Sandbox Files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_manage_sandbox_files',`
+	gen_require(`
+		type svirt_sandbox_file_t;
+	')
+
+	manage_dirs_pattern($1, svirt_sandbox_file_t, svirt_sandbox_file_t)
+	manage_files_pattern($1, svirt_sandbox_file_t, svirt_sandbox_file_t)
+	manage_fifo_files_pattern($1, svirt_sandbox_file_t, svirt_sandbox_file_t)
+	manage_chr_files_pattern($1, svirt_sandbox_file_t, svirt_sandbox_file_t)
+	manage_lnk_files_pattern($1, svirt_sandbox_file_t, svirt_sandbox_file_t)
+')
+
+#######################################
+## <summary>
+##	Relabel Sandbox File systems
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_relabel_sandbox_filesystem',`
+	gen_require(`
+		type svirt_sandbox_file_t;
+	')
+
+	allow $1 svirt_sandbox_file_t:filesystem { relabelfrom relabelto };
+')
+
+#######################################
+## <summary>
+##	Mounton Sandbox Files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_mounton_sandbox_file',`
+	gen_require(`
+		type svirt_sandbox_file_t;
+	')
+
+	allow $1 svirt_sandbox_file_t:dir_file_class_set mounton;
+')
+
+#######################################
+## <summary>
+##	Connect to virt over a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`virt_stream_connect_sandbox',`
+	gen_require(`
+		attribute svirt_sandbox_domain;
+		type svirt_sandbox_file_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, svirt_sandbox_file_t, svirt_sandbox_file_t, svirt_sandbox_domain)
+	ps_process_pattern(svirt_sandbox_domain, $1)
+')
+
+

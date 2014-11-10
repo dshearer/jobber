@@ -1,0 +1,1121 @@
+## <summary>Policy for the kernel message logger and system logging daemon.</summary>
+
+########################################
+## <summary>
+##	Make the specified type usable for log files
+##	in a filesystem.
+## </summary>
+## <desc>
+##	<p>
+##	Make the specified type usable for log files in a filesystem.
+##	This will also make the type usable for files, making 
+##	calls to files_type() redundant.  Failure to use this interface
+##	for a log file type may result in problems with log
+##	rotation, log analysis, and log monitoring programs.
+##	</p>
+##	<p>
+##	Related interfaces:
+##	</p>
+##	<ul>
+##		<li>logging_log_filetrans()</li>
+##	</ul>
+##	<p>
+##	Example usage with a domain that can create
+##	and append to a private log file stored in the
+##	general directories (e.g., /var/log):
+##	</p>
+##	<p>
+##	type mylogfile_t;
+##	logging_log_file(mylogfile_t)
+##	allow mydomain_t mylogfile_t:file { create_file_perms append_file_perms };
+##	logging_log_filetrans(mydomain_t, mylogfile_t, file)
+##	</p>
+## </desc>
+## <param name="type">
+##	<summary>
+##	Type to be used for files.
+##	</summary>
+## </param>
+## <infoflow type="none"/>
+#
+interface(`logging_log_file',`
+	gen_require(`
+		attribute logfile;
+	')
+
+	files_type($1)
+	files_associate_tmp($1)
+	fs_associate_tmpfs($1)
+	typeattribute $1 logfile;
+')
+
+#######################################
+## <summary>
+##	Send audit messages.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_send_audit_msgs',`
+	allow $1 self:capability audit_write;
+	allow $1 self:netlink_audit_socket { r_netlink_socket_perms nlmsg_relay };
+')
+
+#######################################
+## <summary>
+##	dontaudit attempts to send audit messages.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_dontaudit_send_audit_msgs',`
+	dontaudit $1 self:capability audit_write;
+	dontaudit $1 self:netlink_audit_socket { r_netlink_socket_perms nlmsg_relay };
+')
+
+########################################
+## <summary>
+##	Set login uid
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_set_loginuid',`
+	allow $1 self:capability audit_control;
+	allow $1 self:netlink_audit_socket { r_netlink_socket_perms nlmsg_relay };
+')
+
+########################################
+## <summary>
+##	Set tty auditing
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_set_tty_audit',`
+	allow $1 self:netlink_audit_socket { r_netlink_socket_perms nlmsg_tty_audit };
+')
+
+########################################
+## <summary>
+##	Set up audit
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_set_audit_parameters',`
+	allow $1 self:capability { audit_write audit_control };
+	allow $1 self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
+')
+
+########################################
+## <summary>
+##	Read the audit log.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_read_audit_log',`
+	gen_require(`
+		type auditd_log_t;
+	')
+
+	files_search_var($1)
+	read_files_pattern($1, auditd_log_t, auditd_log_t)
+	allow $1 auditd_log_t:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Execute auditctl in the auditctl domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_domtrans_auditctl',`
+	gen_require(`
+		type auditctl_t, auditctl_exec_t;
+	')
+
+	domtrans_pattern($1, auditctl_exec_t, auditctl_t)
+')
+
+########################################
+## <summary>
+##	Execute auditctl in the auditctl domain, and
+##	allow the specified role the auditctl domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the auditctl domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_run_auditctl',`
+	gen_require(`
+		type auditctl_t;
+	')
+
+	logging_domtrans_auditctl($1)
+	role $2 types auditctl_t;
+')
+
+########################################
+## <summary>
+##	Execute auditd in the auditd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_domtrans_auditd',`
+	gen_require(`
+		type auditd_t, auditd_exec_t;
+	')
+
+	domtrans_pattern($1, auditd_exec_t, auditd_t)
+')
+
+########################################
+## <summary>
+##	Execute auditd in the auditd domain, and
+##	allow the specified role the auditd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the auditd domain.
+##	</summary>
+## </param>
+#
+interface(`logging_run_auditd',`
+	gen_require(`
+		type auditd_t;
+	')
+
+	logging_domtrans_auditd($1)
+	role $2 types auditd_t;
+')
+
+########################################
+## <summary>
+##	Connect to auditdstored over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_stream_connect_auditd',`
+	refpolicywarn(`$0($*) has been deprecated, logging_stream_connect_dispatcher() should be used instead.')
+	logging_stream_connect_dispatcher($1)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run the audit dispatcher.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`logging_domtrans_dispatcher',`
+	gen_require(`
+		type audisp_t, audisp_exec_t;
+	')
+
+	domtrans_pattern($1, audisp_exec_t, audisp_t)
+')
+
+########################################
+## <summary>
+##	Signal the audit dispatcher.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`logging_signal_dispatcher',`
+	gen_require(`
+		type audisp_t;
+	')
+
+	allow $1 audisp_t:process signal;
+')
+
+########################################
+## <summary>
+##	Create a domain for processes
+##	which can be started by the system audit dispatcher
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Type to be used as a domain.
+##	</summary>
+## </param>
+## <param name="entry_point">
+##	<summary>
+##	Type of the program to be used as an entry point to this domain.
+##	</summary>
+## </param>
+#
+interface(`logging_dispatcher_domain',`
+	gen_require(`
+		type audisp_t;
+		role system_r;
+	')
+
+	domain_type($1)
+	domain_entry_file($1, $2)
+
+	role system_r types $1;
+
+	domtrans_pattern(audisp_t, $2, $1)
+	allow audisp_t $1:process { sigkill sigstop signull signal };
+
+	allow audisp_t $2:file getattr;
+	allow $1 audisp_t:unix_stream_socket rw_socket_perms;
+')
+
+########################################
+## <summary>
+##	Connect to the audit dispatcher over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_stream_connect_dispatcher',`
+	gen_require(`
+		type audisp_t, audisp_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, audisp_var_run_t, audisp_var_run_t, audisp_t)
+')
+
+########################################
+## <summary>
+##	Manage the auditd configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_manage_audit_config',`
+	gen_require(`
+		type auditd_etc_t;
+	')
+
+	files_search_etc($1)
+	manage_files_pattern($1, auditd_etc_t, auditd_etc_t)
+')
+
+########################################
+## <summary>
+##	Manage the audit log.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_manage_audit_log',`
+	gen_require(`
+		type auditd_log_t;
+	')
+
+	files_search_var($1)
+	manage_dirs_pattern($1, auditd_log_t, auditd_log_t)
+	manage_files_pattern($1, auditd_log_t, auditd_log_t)
+')
+
+########################################
+## <summary>
+##	Execute klogd in the klog domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_domtrans_klog',`
+	gen_require(`
+		type klogd_t, klogd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, klogd_exec_t, klogd_t)
+')
+
+########################################
+## <summary>
+##	Check if syslogd is executable.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_check_exec_syslog',`
+	gen_require(`
+		type syslogd_exec_t;
+	')
+
+	corecmd_list_bin($1)
+	corecmd_read_bin_symlinks($1)
+	allow $1 syslogd_exec_t:file execute;
+')
+
+########################################
+## <summary>
+##	Execute syslogd in the syslog domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_domtrans_syslog',`
+	gen_require(`
+		type syslogd_t, syslogd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, syslogd_exec_t, syslogd_t)
+')
+
+########################################
+## <summary>
+##	Create an object in the log directory, with a private type.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to create an object
+##	in the general system log directories (e.g., /var/log)
+##	with a private type.  Typically this is used for creating
+##	private log files in /var/log with the private type instead
+##	of the general system log type. To accomplish this goal,
+##	either the program must be SELinux-aware, or use this interface.
+##	</p>
+##	<p>
+##	Related interfaces:
+##	</p>
+##	<ul>
+##		<li>logging_log_file()</li>
+##	</ul>
+##	<p>
+##	Example usage with a domain that can create
+##	and append to a private log file stored in the
+##	general directories (e.g., /var/log):
+##	</p>
+##	<p>
+##	type mylogfile_t;
+##	logging_log_file(mylogfile_t)
+##	allow mydomain_t mylogfile_t:file { create_file_perms append_file_perms };
+##	logging_log_filetrans(mydomain_t, mylogfile_t, file)
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="private type">
+##	<summary>
+##	The type of the object to be created.
+##	</summary>
+## </param>
+## <param name="object">
+##	<summary>
+##	The object class of the object being created.
+##	</summary>
+## </param>
+## <infoflow type="write" weight="10"/>
+#
+interface(`logging_log_filetrans',`
+	gen_require(`
+		type var_log_t;
+	')
+
+	files_search_var($1)
+	filetrans_pattern($1, var_log_t, $2, $3)
+')
+
+########################################
+## <summary>
+##	Send system log messages.
+## </summary>
+## <desc>
+##	<p>
+##	Allow the specified domain to connect to the
+##	system log service (syslog), to send messages be added to
+##	the system logs. Typically this is used by services
+##	that do not have their own log file in /var/log.
+##	</p>
+##	<p>
+##	This does not allow messages to be sent to
+##	the auditing system.
+##	</p>
+##	<p>
+##	Programs which use the libc function syslog() will
+##	require this access.
+##	</p>
+##	<p>
+##	Related interfaces:
+##	</p>
+##	<ul>
+##		<li>logging_send_audit_msgs()</li>
+##	</ul>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_send_syslog_msg',`
+	gen_require(`
+		type syslogd_t, devlog_t;
+	')
+
+	allow $1 devlog_t:lnk_file read_lnk_file_perms;
+	allow $1 devlog_t:sock_file write_sock_file_perms;
+
+	# the type of socket depends on the syslog daemon
+	allow $1 syslogd_t:unix_dgram_socket sendto;
+	allow $1 syslogd_t:unix_stream_socket connectto;
+	allow $1 self:unix_dgram_socket create_socket_perms;
+	allow $1 self:unix_stream_socket create_socket_perms;
+
+	# If syslog is down, the glibc syslog() function
+	# will write to the console.
+	term_write_console($1)
+	term_dontaudit_read_console($1)
+')
+
+########################################
+## <summary>
+##	Connect to the syslog control unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_stream_connect_syslog',`
+	gen_require(`
+		type syslogd_t, syslogd_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, syslogd_var_run_t, syslogd_var_run_t, syslogd_t)
+')
+
+########################################
+## <summary>
+##	Read the auditd configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_read_audit_config',`
+	gen_require(`
+		type auditd_etc_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, auditd_etc_t, auditd_etc_t)
+	allow $1 auditd_etc_t:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	dontaudit search of auditd configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_dontaudit_search_audit_config',`
+	gen_require(`
+		type auditd_etc_t;
+	')
+
+	dontaudit $1 auditd_etc_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read syslog configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_read_syslog_config',`
+	gen_require(`
+		type syslog_conf_t;
+	')
+
+	allow $1 syslog_conf_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Allows the domain to open a file in the
+##	log directory, but does not allow the listing
+##	of the contents of the log directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_search_logs',`
+	gen_require(`
+		type var_log_t;
+	')
+
+	files_search_var($1)
+	allow $1 var_log_t:dir search_dir_perms;
+')
+
+#######################################
+## <summary>
+##	Do not audit attempts to search the var log directory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain not to audit.
+##	</summary>
+## </param>
+#
+interface(`logging_dontaudit_search_logs',`
+	gen_require(`
+		type var_log_t;
+	')
+
+	dontaudit $1 var_log_t:dir search_dir_perms;
+')
+
+#######################################
+## <summary>
+##	List the contents of the generic log directory (/var/log).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_list_logs',`
+	gen_require(`
+		type var_log_t;
+	')
+
+	files_search_var($1)
+	allow $1 var_log_t:dir list_dir_perms;
+')
+
+#######################################
+## <summary>
+##	Read and write the generic log directory (/var/log).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_rw_generic_log_dirs',`
+	gen_require(`
+		type var_log_t;
+	')
+
+	files_search_var($1)
+	allow $1 var_log_t:dir rw_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to get the atttributes
+##	of any log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_dontaudit_getattr_all_logs',`
+	gen_require(`
+		attribute logfile;
+	')
+
+	dontaudit $1 logfile:file getattr;
+')
+
+########################################
+## <summary>
+##	Append to all log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_append_all_logs',`
+	gen_require(`
+		attribute logfile;
+		type var_log_t;
+	')
+
+	files_search_var($1)
+	append_files_pattern($1, logfile, logfile)
+')
+
+########################################
+## <summary>
+##	Append to all log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_inherit_append_all_logs',`
+	gen_require(`
+		attribute logfile;
+	')
+
+	allow $1 logfile:file { getattr append ioctl lock };
+')
+
+########################################
+## <summary>
+##	Read all log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_read_all_logs',`
+	gen_require(`
+		attribute logfile;
+	')
+
+	files_search_var($1)
+	allow $1 logfile:dir list_dir_perms;
+	read_files_pattern($1, logfile, logfile)
+')
+
+#######################################
+## <summary>
+##  dontaudit Read all log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_dontaudit_read_all_logs',`
+    gen_require(`
+        attribute logfile;
+    ')
+
+	dontaudit $1 logfile:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##  dontaudit Read all log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_dontaudit_rw_inherited_all_logs',`
+    gen_require(`
+        attribute logfile;
+    ')
+
+	dontaudit $1 logfile:file rw_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute all log files in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: not sure why this is needed.  This was added
+# because of logrotate.
+interface(`logging_exec_all_logs',`
+	gen_require(`
+		attribute logfile;
+	')
+
+	files_search_var($1)
+	allow $1 logfile:dir list_dir_perms;
+	can_exec($1, logfile)
+')
+
+########################################
+## <summary>
+##	read/write to all log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_rw_all_logs',`
+	gen_require(`
+		attribute logfile;
+	')
+
+	files_search_var($1)
+	rw_files_pattern($1, logfile, logfile)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete all log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_manage_all_logs',`
+	gen_require(`
+		attribute logfile;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, logfile, logfile)
+	manage_lnk_files_pattern($1, logfile, logfile)
+')
+
+########################################
+## <summary>
+##	Read generic log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_read_generic_logs',`
+	gen_require(`
+		type var_log_t;
+	')
+
+	files_search_var($1)
+	allow $1 var_log_t:dir list_dir_perms;
+	read_files_pattern($1, var_log_t, var_log_t)
+')
+
+########################################
+## <summary>
+##	Write generic log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_write_generic_logs',`
+	gen_require(`
+		type var_log_t;
+	')
+
+	files_search_var($1)
+	allow $1 var_log_t:dir list_dir_perms;
+	write_files_pattern($1, var_log_t, var_log_t)
+')
+
+########################################
+## <summary>
+##     Dontaudit read/Write inherited generic log files.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain to not audit.
+##     </summary>
+## </param>
+#
+interface(`logging_dontaudit_rw_inherited_generic_logs',`
+       gen_require(`
+               type var_log_t;
+       ')
+
+       dontaudit $1 var_log_t:file rw_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Dontaudit Write generic log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_dontaudit_write_generic_logs',`
+	gen_require(`
+		type var_log_t;
+	')
+
+	dontaudit $1 var_log_t:file write;
+')
+
+########################################
+## <summary>
+##	Read and write generic log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`logging_rw_generic_logs',`
+	gen_require(`
+		type var_log_t;
+	')
+
+	files_search_var($1)
+	allow $1 var_log_t:dir list_dir_perms;
+	rw_files_pattern($1, var_log_t, var_log_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete
+##	generic log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_manage_generic_logs',`
+	gen_require(`
+		type var_log_t;
+	')
+
+	files_search_var($1)
+	manage_files_pattern($1, var_log_t, var_log_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	the audit environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	User role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_admin_audit',`
+	gen_require(`
+		type auditd_t, auditd_etc_t, auditd_log_t;
+		type auditd_var_run_t;
+		type auditd_initrc_exec_t;
+	')
+
+	allow $1 auditd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, auditd_t)
+
+	manage_dirs_pattern($1, auditd_etc_t, auditd_etc_t)
+	manage_files_pattern($1, auditd_etc_t, auditd_etc_t)
+
+	manage_dirs_pattern($1, auditd_log_t, auditd_log_t)
+	manage_files_pattern($1, auditd_log_t, auditd_log_t)
+
+	manage_dirs_pattern($1, auditd_var_run_t, auditd_var_run_t)
+	manage_files_pattern($1, auditd_var_run_t, auditd_var_run_t)
+
+	logging_run_auditctl($1, $2)
+
+	init_labeled_script_domtrans($1, auditd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 auditd_initrc_exec_t system_r;
+	allow $2 system_r;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	the syslog environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	User role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_admin_syslog',`
+	gen_require(`
+		type syslogd_t, klogd_t, syslog_conf_t;
+		type syslogd_tmp_t, syslogd_var_lib_t;
+		type syslogd_var_run_t, klogd_var_run_t;
+		type klogd_tmp_t, var_log_t;
+		type syslogd_initrc_exec_t;
+	')
+
+	allow $1 syslogd_t:process { ptrace signal_perms };
+	allow $1 klogd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, syslogd_t)
+	ps_process_pattern($1, klogd_t)
+
+	manage_dirs_pattern($1, klogd_var_run_t, klogd_var_run_t)
+	manage_files_pattern($1, klogd_var_run_t, klogd_var_run_t)
+
+	manage_dirs_pattern($1, klogd_tmp_t, klogd_tmp_t)
+	manage_files_pattern($1, klogd_tmp_t, klogd_tmp_t)
+
+	manage_dirs_pattern($1, syslogd_tmp_t, syslogd_tmp_t)
+	manage_files_pattern($1, syslogd_tmp_t, syslogd_tmp_t)
+
+	manage_dirs_pattern($1, syslog_conf_t, syslog_conf_t)
+	manage_files_pattern($1, syslog_conf_t, syslog_conf_t)
+	files_etc_filetrans($1, syslog_conf_t, file)
+
+	manage_dirs_pattern($1, syslogd_var_lib_t, syslogd_var_lib_t)
+	manage_files_pattern($1, syslogd_var_lib_t, syslogd_var_lib_t)
+
+	manage_dirs_pattern($1, syslogd_var_run_t, syslogd_var_run_t)
+	manage_files_pattern($1, syslogd_var_run_t, syslogd_var_run_t)
+
+	logging_manage_all_logs($1)
+	allow $1 logfile:dir relabel_dir_perms;
+	allow $1 logfile:file relabel_file_perms;
+
+	init_labeled_script_domtrans($1, syslogd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 syslogd_initrc_exec_t system_r;
+	allow $2 system_r;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	the logging environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	User role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_admin',`
+	logging_admin_audit($1, $2)
+	logging_admin_syslog($1, $2)
+')

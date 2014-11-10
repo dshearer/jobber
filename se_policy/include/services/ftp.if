@@ -1,0 +1,227 @@
+## <summary>File transfer protocol service</summary>
+
+#####################################
+## <summary>
+##      Execute a domain transition to run ftpd.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`ftp_domtrans',`
+        gen_require(`
+                type ftpd_t, ftpd_exec_t;
+        ')
+
+        corecmd_search_bin($1)
+        domtrans_pattern($1,ftpd_exec_t, ftpd_t)
+
+')
+
+######################################
+## <summary>
+##  Execute ftpd server in the ftpd domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The type of the process performing this action.
+##  </summary>
+## </param>
+#
+interface(`ftp_initrc_domtrans',`
+    gen_require(`
+        type ftpd_initrc_exec_t;
+    ')
+
+    init_labeled_script_domtrans($1, ftpd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Use ftp by connecting over TCP.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ftp_tcp_connect',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Read ftpd etc files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ftp_read_config',`
+	gen_require(`
+		type ftpd_etc_t;
+	')
+
+	files_search_etc($1)
+	allow $1 ftpd_etc_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute FTP daemon entry point programs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ftp_check_exec',`
+	gen_require(`
+		type ftpd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	allow $1 ftpd_exec_t:file { getattr execute };
+')
+
+########################################
+## <summary>
+##	Read FTP transfer logs
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ftp_read_log',`
+	gen_require(`
+		type xferlog_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 xferlog_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Execute the ftpdctl program in the ftpdctl domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ftp_domtrans_ftpdctl',`
+	gen_require(`
+		type ftpdctl_t, ftpdctl_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ftpdctl_exec_t, ftpdctl_t)
+')
+
+########################################
+## <summary>
+##	Execute the ftpdctl program in the ftpdctl domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the ftpdctl domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ftp_run_ftpdctl',`
+	gen_require(`
+		type ftpdctl_t;
+	')
+
+	ftp_domtrans_ftpdctl($1)
+	role $2 types ftpdctl_t;
+')
+
+#######################################
+## <summary>
+##  Allow domain dyntransition to chroot_user_t domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ftp_dyntransition_sftpd',`
+    gen_require(`
+        type chroot_user_t;
+    ')
+
+	allow $1 chroot_user_t:process dyntransition;
+	allow chroot_user_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an ftp environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the ftp domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ftp_admin',`
+	gen_require(`
+		type ftpd_t, ftpdctl_t, ftpd_tmp_t;
+		type ftpd_etc_t, ftpd_lock_t;
+		type ftpd_var_run_t, xferlog_t;
+		type ftpd_initrc_exec_t;
+	')
+
+	allow $1 ftpd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, ftpd_t)
+
+	init_labeled_script_domtrans($1, ftpd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 ftpd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	ps_process_pattern($1, ftpdctl_t)
+	ftp_run_ftpdctl($1, $2)
+
+	miscfiles_manage_public_files($1)
+
+	files_list_tmp($1)
+	admin_pattern($1, ftpd_tmp_t)
+
+	files_list_etc($1)
+	admin_pattern($1, ftpd_etc_t)
+
+	files_list_var($1)
+	admin_pattern($1, ftpd_lock_t)
+
+	files_list_pids($1)
+	admin_pattern($1, ftpd_var_run_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, xferlog_t)
+')

@@ -1,0 +1,136 @@
+
+## <summary>policy for shutdown</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run shutdown.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`shutdown_domtrans',`
+	gen_require(`
+		type shutdown_t, shutdown_exec_t;
+	')
+
+	domtrans_pattern($1, shutdown_exec_t, shutdown_t)
+
+	ifdef(`hide_broken_symptoms', `
+		dontaudit shutdown_t $1:socket_class_set { read write };
+		dontaudit shutdown_t $1:fifo_file rw_inherited_fifo_file_perms;
+	')
+')
+
+
+########################################
+## <summary>
+##	Execute shutdown in the shutdown domain, and
+##	allow the specified role the shutdown domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the shutdown domain.
+##	</summary>
+## </param>
+#
+interface(`shutdown_run',`
+	gen_require(`
+		type shutdown_t;
+	')
+
+	shutdown_domtrans($1)
+	role $2 types shutdown_t;
+')
+
+########################################
+## <summary>
+##	Role access for shutdown
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`shutdown_role',`
+	gen_require(`
+              type shutdown_t;
+	')
+
+	role $1 types shutdown_t;
+
+	shutdown_domtrans($2)
+
+	ps_process_pattern($2, shutdown_t)
+	allow $2 shutdown_t:process signal;
+')
+
+########################################
+## <summary>
+##	Recieve sigchld from shutdown
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+#
+interface(`shutdown_send_sigchld',`
+	gen_require(`
+              type shutdown_t;
+	')
+
+	allow shutdown_t $1:process signal;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	shutdown over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`shutdown_dbus_chat',`
+	gen_require(`
+		type shutdown_t;
+		class dbus send_msg;
+	')
+
+	allow $1 shutdown_t:dbus send_msg;
+	allow shutdown_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Get attributes of shutdown executable.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`shutdown_getattr_exec_files',`
+	gen_require(`
+		type shutdown_exec_t;
+	')
+
+	allow $1 shutdown_exec_t:file getattr;
+')

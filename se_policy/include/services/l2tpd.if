@@ -1,0 +1,174 @@
+## <summary>Layer 2 Tunneling Protocol daemons.</summary>
+
+########################################
+## <summary>
+##	Transition to l2tpd.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`l2tpd_domtrans',`
+	gen_require(`
+		type l2tpd_t, l2tpd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, l2tpd_exec_t, l2tpd_t)
+')
+
+########################################
+## <summary>
+##	Execute l2tpd server in the l2tpd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`l2tpd_initrc_domtrans',`
+	gen_require(`
+		type l2tpd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, l2tpd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Send to l2tpd via a unix dgram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`l2tpd_dgram_send',`
+	gen_require(`
+		type l2tpd_t, l2tpd_tmp_t, l2tpd_var_run_t;
+	')
+
+	files_search_tmp($1)
+	dgram_send_pattern($1, { l2tpd_tmp_t l2tpd_var_run_t }, { l2tpd_tmp_t l2tpd_var_run_t }, l2tpd_t)
+')
+
+########################################
+## <summary>
+##	Read and write l2tpd sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`l2tpd_rw_socket',`
+	gen_require(`
+		type l2tpd_t;
+	')
+
+	allow $1 l2tpd_t:socket rw_socket_perms;
+')
+
+########################################
+## <summary>
+##	Read l2tpd PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`l2tpd_read_pid_files',`
+	gen_require(`
+		type l2tpd_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 l2tpd_var_run_t:file read_file_perms;
+')
+
+#####################################
+## <summary>
+##	Connect to l2tpd over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`l2tpd_stream_connect',`
+	gen_require(`
+		type l2tpd_t, l2tpd_var_run_t, l2tpd_tmp_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, l2tpd_tmp_t, l2tpd_tmp_t, l2tpd_t)
+	stream_connect_pattern($1, l2tpd_var_run_t, l2tpd_var_run_t, l2tpd_t)
+')
+
+########################################
+## <summary>
+##	Read and write l2tpd unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`l2tpd_rw_pipes',`
+	gen_require(`
+		type l2tpd_t;
+	')
+
+	allow $1 l2tpd_t:fifo_file rw_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an l2tpd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`l2tpd_admin',`
+	gen_require(`
+		type l2tpd_t, l2tpd_initrc_exec_t, l2tpd_var_run_t;
+		type l2tp_etc_t, l2tpd_tmp_t;
+	')
+
+	allow $1 l2tpd_t:process signal_perms;
+	ps_process_pattern($1, l2tpd_t)
+
+	l2tpd_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 l2tpd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_etc($1)
+	admin_pattern($1, l2tp_etc_t)
+
+	files_search_pids($1)
+	admin_pattern($1, l2tpd_var_run_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, l2tpd_tmp_t)
+')

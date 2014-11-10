@@ -1,0 +1,46 @@
+## <summary>Open AntiVirus scannerdaemon and signature update</summary>
+
+########################################
+## <summary>
+##	Execute oav_update in the oav_update domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`oav_domtrans_update',`
+	gen_require(`
+		type oav_update_t, oav_update_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, oav_update_exec_t, oav_update_t)
+')
+
+########################################
+## <summary>
+##	Execute oav_update in the oav_update domain, and
+##	allow the specified role the oav_update domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the oav_update domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`oav_run_update',`
+	gen_require(`
+		type oav_update_t;
+	')
+
+	oav_domtrans_update($1)
+	role $2 types oav_update_t;
+')

@@ -1,0 +1,212 @@
+## <summary>Munin network-wide load graphing (formerly LRRD)</summary>
+
+########################################
+## <summary>
+##	Connect to munin over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`munin_stream_connect',`
+	gen_require(`
+		type munin_var_run_t, munin_t;
+	')
+
+	stream_connect_pattern($1, munin_var_run_t, munin_var_run_t, munin_t)
+	files_search_pids($1)
+')
+
+#######################################
+## <summary>
+##	Read munin configuration files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`munin_read_config',`
+	gen_require(`
+		type munin_etc_t;
+	')
+
+	allow $1 munin_etc_t:dir list_dir_perms;
+	allow $1 munin_etc_t:file read_file_perms;
+	allow $1 munin_etc_t:lnk_file { getattr read };
+	files_search_etc($1)
+')
+
+######################################
+## <summary>
+##  dontaudit read and write an leaked file descriptors
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The type of the process performing this action.
+##  </summary>
+## </param>
+#
+interface(`munin_dontaudit_leaks',`
+    gen_require(`
+        type munin_t;
+    ')
+
+    dontaudit $1 munin_t:tcp_socket { read write };
+')
+
+#######################################
+## <summary>
+##	Append to the munin log.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`munin_append_log',`
+	gen_require(`
+		type munin_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 munin_log_t:dir list_dir_perms;
+	append_files_pattern($1, munin_log_t, munin_log_t)
+')
+
+#######################################
+## <summary>
+##	Search munin library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`munin_search_lib',`
+	gen_require(`
+		type munin_var_lib_t;
+	')
+
+	allow $1 munin_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+#######################################
+## <summary>
+##	Do not audit attempts to search
+##	munin library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`munin_dontaudit_search_lib',`
+	gen_require(`
+		type munin_var_lib_t;
+	')
+
+	dontaudit $1 munin_var_lib_t:dir search_dir_perms;
+')
+
+######################################
+## <summary>
+##  Create a set of derived types for various
+##  munin plugins,
+## </summary>
+## <param name="plugins_group_name">
+##  <summary>
+##  The name to be used for deriving type names.
+##  </summary>
+## </param>
+#
+template(`munin_plugin_template',`
+
+	gen_require(`
+		type munin_t, munin_exec_t;
+		type munin_etc_t;
+        attribute munin_plugin_domain;
+	')
+
+	type munin_$1_plugin_t, munin_plugin_domain;
+	type munin_$1_plugin_exec_t;
+	application_domain(munin_$1_plugin_t, munin_$1_plugin_exec_t)
+	role system_r types munin_$1_plugin_t;
+
+	type munin_$1_plugin_tmp_t;
+	files_tmp_file(munin_$1_plugin_tmp_t)
+
+	allow munin_t munin_$1_plugin_t:process signal;
+
+	allow munin_$1_plugin_t self:fifo_file rw_fifo_file_perms;
+
+	manage_files_pattern(munin_$1_plugin_t, munin_$1_plugin_tmp_t, munin_$1_plugin_tmp_t)
+	manage_dirs_pattern(munin_$1_plugin_t, munin_$1_plugin_tmp_t, munin_$1_plugin_tmp_t)
+	files_tmp_filetrans(munin_$1_plugin_t, munin_$1_plugin_tmp_t, { dir file })
+
+	# automatic transition rules from munin domain
+	# to specific munin plugin domain
+	domtrans_pattern(munin_t, munin_$1_plugin_exec_t, munin_$1_plugin_t)
+	allow munin_t munin_$1_plugin_t:process signal_perms;
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an munin environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the munin domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`munin_admin',`
+	gen_require(`
+		type munin_t, munin_etc_t, munin_tmp_t;
+		type munin_log_t, munin_var_lib_t, munin_var_run_t;
+		type httpd_munin_content_t;
+		type munin_initrc_exec_t;
+	')
+
+	allow $1 munin_t:process { ptrace signal_perms };
+	ps_process_pattern($1, munin_t)
+
+	init_labeled_script_domtrans($1, munin_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 munin_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_list_tmp($1)
+	admin_pattern($1, munin_tmp_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, munin_log_t)
+
+	files_list_etc($1)
+	admin_pattern($1, munin_etc_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, munin_var_lib_t)
+
+	files_list_pids($1)
+	admin_pattern($1, munin_var_run_t)
+
+	admin_pattern($1, httpd_munin_content_t)
+')

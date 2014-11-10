@@ -1,0 +1,290 @@
+## <summary>SELinux policy for antivirus programs - amavis, clamd, freshclam and clamscan</summary>
+
+######################################
+## <summary>
+##  Creates types and rules for a basic
+##  antivirus domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain type.
+##  </summary>
+## </param>
+#
+interface(`antivirus_domain_template',`
+        gen_require(`
+                attribute antivirus_domain;
+        ')
+
+        typeattribute $1 antivirus_domain;
+')
+
+#######################################
+## <summary>
+##  Execute a domain transition to run antivirus program.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+#
+interface(`antivirus_domtrans',`
+    gen_require(`
+        type antivirus_t, antivirus_exec_t;
+    ')
+
+    domtrans_pattern($1, antivirus_exec_t, antivirus_t)
+')
+
+#######################################
+## <summary>
+##  Execute antivirus program without a transition.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`antivirus_exec',`
+    gen_require(`
+        type antivirus_exec_t;
+    ')
+
+    can_exec($1, antivirus_exec_t)
+')
+
+#######################################
+## <summary>
+##  Connect to run antivirus program.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`antivirus_stream_connect',`
+    gen_require(`
+        type antivirus_t, antivirus_db_t, antivirus_var_run_t;
+    ')
+
+    files_search_pids($1)
+    stream_connect_pattern($1, antivirus_var_run_t, antivirus_var_run_t, antivirus_t)
+	stream_connect_pattern($1, antivirus_db_t, antivirus_db_t, antivirus_t)
+')
+
+#######################################
+## <summary>
+##  Allow the specified domain to append
+##  to antivirus log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`antivirus_append_log',`
+    gen_require(`
+        type antivirus_log_t;
+    ')
+
+    logging_search_logs($1)
+    allow $1 antivirus_log_t:dir list_dir_perms;
+    append_files_pattern($1, antivirus_log_t, antivirus_log_t)
+')
+
+#######################################
+## <summary>
+##  Read antivirus configuration files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`antivirus_read_config',`
+    gen_require(`
+        type antivirus_conf_t;
+    ')
+
+    files_search_etc($1)
+    allow $1 antivirus_conf_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##  Search antivirus db content directories.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`antivirus_search_db',`
+    gen_require(`
+        type antivirus_db_t;
+    ')
+
+    files_search_var_lib($1)
+	files_search_spool($1)
+    allow $1 antivirus_db_t:dir search_dir_perms;
+')
+
+######################################
+## <summary>
+##  Read antivirus db content directories.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`antivirus_read_db',`
+    gen_require(`
+        type antivirus_db_t;
+    ')
+
+    files_search_var_lib($1)
+    files_search_spool($1)
+	read_files_pattern($1, antivirus_db_t, antivirus_db_t)
+	read_lnk_files_pattern($1, antivirus_db_t, antivirus_db_t)
+')
+
+#####################################
+## <summary>
+##  Read and write antivirus db content directories.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`antivirus_rw_db',`
+    gen_require(`
+        type antivirus_db_t;
+    ')
+
+    files_search_var_lib($1)
+    files_search_spool($1)
+    write_files_pattern($1, antivirus_db_t, antivirus_db_t)
+')
+
+####################################
+## <summary>
+##  Manage antivirus db content directories.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`antivirus_manage_db',`
+    gen_require(`
+        type antivirus_db_t;
+    ')
+
+    files_search_var_lib($1)
+    files_search_spool($1)
+    manage_files_pattern($1, antivirus_db_t, antivirus_db_t)
+	manage_dirs_pattern($1, antivirus_db_t, antivirus_db_t)
+')
+
+#######################################
+## <summary>
+##  Manage antivirus pid content.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`antivirus_manage_pid',`
+    gen_require(`
+        type antivirus_var_run_t;
+    ')
+
+    manage_dirs_pattern($1, antivirus_var_run_t, antivirus_var_run_t)
+    manage_files_pattern($1, antivirus_var_run_t, antivirus_var_run_t)
+')
+
+######################################
+## <summary>
+##      Read antivirus state files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`antivirus_read_state_clamd',`
+        gen_require(`
+                type antivirus_t;
+        ')
+
+        kernel_search_proc($1)
+        ps_process_pattern($1, antivirus_t)
+')
+
+#######################################
+## <summary>
+##  All of the rules required to administrate
+##  an antivirus programs environment
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  The role to be allowed to manage the clamav domain.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`antivirus_admin',`
+    gen_require(`
+		attribute antivirus_domain;
+        type antivirus_t, antivirus_conf_t, antivirus_tmp_t;
+        type antivirus_log_t, antivirus_db_t, antivirus_var_run_t;
+        type antivirus_initrc_exec_t;
+    ')
+
+	allow $1 antivirus_t:process signal_perms;
+    ps_process_pattern($1, antivirus_t)
+
+    init_labeled_script_domtrans($1, antivirus_initrc_exec_t)
+    domain_system_change_exemption($1)
+    role_transition $2 antivirus_initrc_exec_t system_r;
+    allow $2 system_r;
+
+    files_list_etc($1)
+    admin_pattern($1, antivirus_conf_t)
+
+    files_list_var_lib($1)
+	admin_pattern($1, antivirus_db_t)
+
+    logging_list_logs($1)
+    admin_pattern($1, antivirus_log_t)
+
+    files_list_pids($1)
+    admin_pattern($1, antivirus_var_run_t)
+
+    files_list_tmp($1)
+    admin_pattern($1, antivirus_tmp_t)
+
+    optional_policy(`
+        systemd_passwd_agent_exec($1)
+        systemd_read_fifo_file_passwd_run($1)
+    ')
+')

@@ -1,0 +1,226 @@
+## <summary>APT advanced package tool.</summary>
+
+########################################
+## <summary>
+##	Execute apt programs in the apt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`apt_domtrans',`
+	gen_require(`
+		type apt_t, apt_exec_t;
+	')
+
+	files_search_usr($1)
+	corecmd_search_bin($1)
+	domtrans_pattern($1, apt_exec_t, apt_t)
+')
+
+########################################
+## <summary>
+##	Execute apt programs in the apt domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the apt domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`apt_run',`
+	gen_require(`
+		type apt_t;
+	')
+
+	apt_domtrans($1)
+	role $2 types apt_t;
+	# TODO: likely have to add dpkg_run here.
+')
+
+########################################
+## <summary>
+##	Inherit and use file descriptors from apt.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`apt_use_fds',`
+	gen_require(`
+		type apt_t;
+	')
+
+	allow $1 apt_t:fd use;
+	# TODO: enforce dpkg_use_fd?
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to use file descriptors from apt.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process attempting performing this action
+##	which should not be audited.
+##	</summary>
+## </param>
+#
+interface(`apt_dontaudit_use_fds',`
+	gen_require(`
+		type apt_t;
+	')
+
+	dontaudit $1 apt_t:fd use;
+')
+
+########################################
+## <summary>
+##	Read from an unnamed apt pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`apt_read_pipes',`
+	gen_require(`
+		type apt_t;
+	')
+
+	allow $1 apt_t:fifo_file read_fifo_file_perms;
+	# TODO: enforce dpkg_read_pipes?
+')
+
+########################################
+## <summary>
+##	Read and write an unnamed apt pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`apt_rw_pipes',`
+	gen_require(`
+		type apt_t;
+	')
+
+	allow $1 apt_t:fifo_file rw_file_perms;
+	# TODO: enforce dpkg_rw_pipes?
+')
+
+########################################
+## <summary>
+##	Read from and write to apt ptys.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`apt_use_ptys',`
+	gen_require(`
+		type apt_devpts_t;
+	')
+
+	allow $1 apt_devpts_t:chr_file rw_term_perms;
+')
+
+########################################
+## <summary>
+##	Read the apt package cache.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`apt_read_cache',`
+	gen_require(`
+		type apt_var_cache_t;
+	')
+
+	files_search_var($1)
+	allow $1 apt_var_cache_t:dir list_dir_perms;
+	dontaudit $1 apt_var_cache_t:dir write;
+	allow $1 apt_var_cache_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Read the apt package database.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`apt_read_db',`
+	gen_require(`
+		type apt_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	allow $1 apt_var_lib_t:dir list_dir_perms;
+	read_files_pattern($1, apt_var_lib_t, apt_var_lib_t)
+	read_lnk_files_pattern($1, apt_var_lib_t, apt_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the apt package database.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`apt_manage_db',`
+	gen_require(`
+		type apt_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, apt_var_lib_t, apt_var_lib_t)
+	# cjp: shouldnt this be manage_lnk_files?
+	rw_lnk_files_pattern($1, apt_var_lib_t, apt_var_lib_t)
+	delete_lnk_files_pattern($1, apt_var_lib_t, apt_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to create, read, 
+##	write, and delete the apt package database.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`apt_dontaudit_manage_db',`
+	gen_require(`
+		type apt_var_lib_t;
+	')
+
+	dontaudit $1 apt_var_lib_t:dir rw_dir_perms;
+	dontaudit $1 apt_var_lib_t:file manage_file_perms;
+	dontaudit $1 apt_var_lib_t:lnk_file manage_lnk_file_perms;
+')

@@ -1,0 +1,282 @@
+## <summary>Pulseaudio network sound server.</summary>
+
+########################################
+## <summary>
+##	Role access for pulseaudio
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`pulseaudio_role',`
+	gen_require(`
+		type pulseaudio_t, pulseaudio_exec_t;
+		class dbus { acquire_svc send_msg };
+	')
+
+	role $1 types pulseaudio_t;
+
+	# Transition from the user domain to the derived domain.
+	domtrans_pattern($2, pulseaudio_exec_t, pulseaudio_t)
+
+	ps_process_pattern($2, pulseaudio_t)
+
+	allow pulseaudio_t $2:process { signal signull };
+	allow $2 pulseaudio_t:process { signal signull sigkill };
+	ps_process_pattern(pulseaudio_t, $2)
+
+	allow pulseaudio_t $2:unix_stream_socket connectto;
+	allow $2 pulseaudio_t:unix_stream_socket connectto;
+
+	userdom_manage_home_role($1, pulseaudio_t)
+	userdom_manage_tmp_role($1, pulseaudio_t)
+	userdom_manage_tmpfs_role($1, pulseaudio_t)
+
+	allow $2 pulseaudio_t:dbus send_msg;
+	allow pulseaudio_t $2:dbus { acquire_svc send_msg };
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run pulseaudio.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`pulseaudio_domtrans',`
+	gen_require(`
+		type pulseaudio_t, pulseaudio_exec_t;
+	')
+
+	domtrans_pattern($1, pulseaudio_exec_t, pulseaudio_t)
+')
+
+########################################
+## <summary>
+##	Execute pulseaudio in the pulseaudio domain, and
+##	allow the specified role the pulseaudio domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the pulseaudio domain.
+##	</summary>
+## </param>
+#
+interface(`pulseaudio_run',`
+	gen_require(`
+		type pulseaudio_t;
+	')
+
+	pulseaudio_domtrans($1)
+	role $2 types pulseaudio_t;
+')
+
+########################################
+## <summary>
+##	Execute a pulseaudio in the current domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`pulseaudio_exec',`
+	gen_require(`
+		type pulseaudio_exec_t;
+	')
+
+	can_exec($1, pulseaudio_exec_t)
+')
+
+########################################
+## <summary>
+##	dontaudit attempts to execute a pulseaudio in the current domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`pulseaudio_dontaudit_exec',`
+	gen_require(`
+		type pulseaudio_exec_t;
+	')
+
+	dontaudit $1 pulseaudio_exec_t:file execute;
+')
+
+#####################################
+## <summary>
+##	Connect to pulseaudio over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pulseaudio_stream_connect',`
+	gen_require(`
+		type pulseaudio_t, pulseaudio_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 pulseaudio_t:process signull;
+	allow pulseaudio_t $1:process signull;
+	stream_connect_pattern($1, pulseaudio_var_run_t, pulseaudio_var_run_t, pulseaudio_t)
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	pulseaudio over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pulseaudio_dbus_chat',`
+	gen_require(`
+		type pulseaudio_t;
+		class dbus send_msg;
+	')
+
+	allow $1 pulseaudio_t:dbus send_msg;
+	allow pulseaudio_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Set the attributes of the pulseaudio homedir.
+## </summary>
+## <param name="user_domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pulseaudio_setattr_home_dir',`
+	gen_require(`
+		type pulseaudio_home_t;
+	')
+
+	allow $1 pulseaudio_home_t:dir setattr;
+')
+
+########################################
+## <summary>
+##	Read pulseaudio homedir files.
+## </summary>
+## <param name="user_domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pulseaudio_read_home_files',`
+	gen_require(`
+		type pulseaudio_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	read_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
+')
+
+########################################
+## <summary>
+##	Read and write Pulse Audio files.
+## </summary>
+## <param name="user_domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pulseaudio_rw_home_files',`
+	gen_require(`
+		type pulseaudio_home_t;
+	')
+
+	rw_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
+	userdom_search_user_home_dirs($1)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete pulseaudio
+##	home directory files.
+## </summary>
+## <param name="user_domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pulseaudio_manage_home_files',`
+	gen_require(`
+		type pulseaudio_home_t;
+	')
+
+	userdom_search_user_home_dirs($1)
+	manage_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
+	read_lnk_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
+')
+
+########################################
+## <summary>
+##	Send signull signal to pulseaudio 
+##	processes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`pulseaudio_signull',`
+	gen_require(`
+		type pulseaudio_t;
+	')
+
+	allow $1 pulseaudio_t:process signull;
+')
+
+#######################################
+## <summary>
+##  Create, read, write, and delete pulseaudio
+##  home directory symlinks.
+## </summary>
+## <param name="user_domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`pulseaudio_manage_home_symlinks',`
+    gen_require(`
+        type pulseaudio_home_t;
+    ')
+
+    userdom_search_user_home_dirs($1)
+    manage_lnk_files_pattern($1, pulseaudio_home_t, pulseaudio_home_t)
+')

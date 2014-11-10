@@ -1,0 +1,1025 @@
+## <summary>Secure shell client and server policy.</summary>
+
+#######################################
+## <summary>
+##	Basic SSH client template.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a derived domains which are used
+##	for ssh client sessions.  A derived
+##	type is also created to protect the user ssh keys.
+##	</p>
+##	<p>
+##	This template was added for NX.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The prefix of the domain (e.g., user
+##	is the prefix for user_t).
+##	</summary>
+## </param>
+## <param name="user_domain">
+##	<summary>
+##	The type of the domain.
+##	</summary>
+## </param>
+## <param name="user_role">
+##	<summary>
+##	The role associated with the user domain.
+##	</summary>
+## </param>
+#
+template(`ssh_basic_client_template',`
+
+	gen_require(`
+		attribute ssh_server;
+		type ssh_exec_t, sshd_key_t, sshd_tmp_t;
+		type ssh_home_t;
+	')
+
+	##############################
+	#
+	# Declarations
+	#
+
+	type $1_ssh_t;
+	application_domain($1_ssh_t, ssh_exec_t)
+	role $3 types $1_ssh_t;
+
+	##############################
+	#
+	# Client local policy
+	#
+
+	allow $1_ssh_t self:capability { setuid setgid dac_override dac_read_search };
+	allow $1_ssh_t self:process ~{ ptrace setcurrent setexec setfscreate setrlimit execmem execstack execheap };
+	allow $1_ssh_t self:fd use;
+	allow $1_ssh_t self:fifo_file rw_fifo_file_perms;
+	allow $1_ssh_t self:unix_dgram_socket { create_socket_perms sendto };
+	allow $1_ssh_t self:unix_stream_socket { create_stream_socket_perms connectto };
+	allow $1_ssh_t self:shm create_shm_perms;
+	allow $1_ssh_t self:sem create_sem_perms;
+	allow $1_ssh_t self:msgq create_msgq_perms;
+	allow $1_ssh_t self:msg { send receive };
+	allow $1_ssh_t self:tcp_socket create_stream_socket_perms;
+
+	# for rsync
+	allow $1_ssh_t $2:unix_stream_socket rw_socket_perms;
+	allow $1_ssh_t $2:unix_stream_socket connectto;
+
+	# Read the ssh key file.
+	allow $1_ssh_t sshd_key_t:file read_file_perms;
+
+	# Access the ssh temporary files.
+	allow $1_ssh_t sshd_tmp_t:dir manage_dir_perms;
+	allow $1_ssh_t sshd_tmp_t:file manage_file_perms;
+	files_tmp_filetrans($1_ssh_t, sshd_tmp_t, { file dir })
+
+	# Transition from the domain to the derived domain.
+	domtrans_pattern($2, ssh_exec_t, $1_ssh_t)
+
+	# inheriting stream sockets is needed for "ssh host command" as no pty
+	# is allocated
+	# cjp: should probably fix target to be an attribute for ssh servers
+	# or "regular" (not special like sshd_extern_t) servers
+	allow $2 ssh_server:unix_stream_socket rw_stream_socket_perms;
+
+	# allow ps to show ssh
+	ps_process_pattern($2, $1_ssh_t)
+
+	# user can manage the keys and config
+	manage_files_pattern($2, ssh_home_t, ssh_home_t)
+	manage_lnk_files_pattern($2, ssh_home_t, ssh_home_t)
+	manage_sock_files_pattern($2, ssh_home_t, ssh_home_t)
+
+	# ssh client can manage the keys and config
+	manage_files_pattern($1_ssh_t, ssh_home_t, ssh_home_t)
+	read_lnk_files_pattern($1_ssh_t, ssh_home_t, ssh_home_t)
+
+	# ssh servers can read the user keys and config
+	allow ssh_server ssh_home_t:dir list_dir_perms;
+	read_files_pattern(ssh_server, ssh_home_t, ssh_home_t)
+	read_lnk_files_pattern(ssh_server, ssh_home_t, ssh_home_t)
+
+	kernel_read_kernel_sysctls($1_ssh_t)
+	kernel_read_system_state($1_ssh_t)
+
+	corenet_all_recvfrom_unlabeled($1_ssh_t)
+	corenet_all_recvfrom_netlabel($1_ssh_t)
+	corenet_tcp_sendrecv_generic_if($1_ssh_t)
+	corenet_tcp_sendrecv_generic_node($1_ssh_t)
+	corenet_tcp_sendrecv_all_ports($1_ssh_t)
+	corenet_tcp_connect_ssh_port($1_ssh_t)
+	corenet_sendrecv_ssh_client_packets($1_ssh_t)
+	corenet_tcp_bind_generic_node($1_ssh_t)
+	corenet_tcp_bind_all_unreserved_ports($1_ssh_t)
+
+	dev_read_rand($1_ssh_t)
+	dev_read_urand($1_ssh_t)
+
+	fs_getattr_all_fs($1_ssh_t)
+	fs_search_auto_mountpoints($1_ssh_t)
+
+	# run helper programs - needed eg for x11-ssh-askpass
+	corecmd_exec_shell($1_ssh_t)
+	corecmd_exec_bin($1_ssh_t)
+
+	domain_use_interactive_fds($1_ssh_t)
+
+	files_list_home($1_ssh_t)
+	files_read_usr_files($1_ssh_t)
+	files_read_etc_runtime_files($1_ssh_t)
+	files_read_etc_files($1_ssh_t)
+	files_read_var_files($1_ssh_t)
+
+	auth_use_nsswitch($1_ssh_t)
+
+	logging_send_syslog_msg($1_ssh_t)
+	logging_read_generic_logs($1_ssh_t)
+
+	miscfiles_read_localization($1_ssh_t)
+
+	seutil_read_config($1_ssh_t)
+
+	optional_policy(`
+		kerberos_use($1_ssh_t)
+	')
+')
+
+#######################################
+## <summary>
+##	The template to define a ssh server.
+## </summary>
+## <desc>
+##	<p>
+##	This template creates a domains to be used for
+##	creating a ssh server.  This is typically done
+##	to have multiple ssh servers of different sensitivities,
+##	such as for an internal network-facing ssh server, and
+##	a external network-facing ssh server.
+##	</p>
+## </desc>
+## <param name="userdomain_prefix">
+##	<summary>
+##	The prefix of the server domain (e.g., sshd
+##	is the prefix for sshd_t).
+##	</summary>
+## </param>
+#
+template(`ssh_server_template', `
+	type $1_t, ssh_server;
+	auth_login_pgm_domain($1_t)
+
+	type $1_devpts_t;
+	term_login_pty($1_devpts_t)
+
+	type $1_tmpfs_t;
+	files_tmpfs_file($1_tmpfs_t)
+
+	type $1_var_run_t;
+	files_pid_file($1_var_run_t)
+
+	allow $1_t self:capability { sys_admin kill sys_chroot sys_nice sys_resource chown dac_override fowner fsetid net_admin setgid setuid sys_tty_config };
+	allow $1_t self:fifo_file rw_fifo_file_perms;
+	allow $1_t self:process { signal getcap getsched setsched setrlimit setexec };
+	allow $1_t self:tcp_socket create_stream_socket_perms;
+	allow $1_t self:udp_socket create_socket_perms;
+	allow $1_t self:tun_socket { create_socket_perms relabelfrom relabelto };
+	# ssh agent connections:
+	allow $1_t self:unix_stream_socket create_stream_socket_perms;
+	allow $1_t self:shm create_shm_perms;
+
+	allow $1_t $1_devpts_t:chr_file { rw_chr_file_perms setattr_chr_file_perms getattr_chr_file_perms relabelfrom };
+	term_create_pty($1_t, $1_devpts_t)
+
+	manage_files_pattern($1_t, $1_tmpfs_t, $1_tmpfs_t)
+	fs_tmpfs_filetrans($1_t, $1_tmpfs_t, file)
+
+	allow $1_t $1_var_run_t:file manage_file_perms;
+	files_pid_filetrans($1_t, $1_var_run_t, file)
+
+	can_exec($1_t, sshd_exec_t)
+
+	# Access key files
+	allow $1_t sshd_key_t:file read_file_perms;
+
+	kernel_read_kernel_sysctls($1_t)
+	kernel_read_network_state($1_t)
+	kernel_request_load_module($1_t)
+
+	corenet_all_recvfrom_unlabeled($1_t)
+	corenet_all_recvfrom_netlabel($1_t)
+	corenet_tcp_sendrecv_generic_if($1_t)
+	corenet_udp_sendrecv_generic_if($1_t)
+	corenet_raw_sendrecv_generic_if($1_t)
+	corenet_tcp_sendrecv_generic_node($1_t)
+	corenet_udp_sendrecv_generic_node($1_t)
+	corenet_raw_sendrecv_generic_node($1_t)
+	corenet_udp_sendrecv_all_ports($1_t)
+	corenet_tcp_sendrecv_all_ports($1_t)
+	corenet_tcp_bind_generic_node($1_t)
+	corenet_udp_bind_generic_node($1_t)
+	corenet_tcp_bind_ssh_port($1_t)
+	corenet_tcp_connect_all_ports($1_t)
+	corenet_tcp_bind_all_unreserved_ports($1_t)
+	corenet_sendrecv_ssh_server_packets($1_t)
+	# -R qualifier
+	corenet_sendrecv_ssh_server_packets($1_t)
+	# tunnel feature and -w (net_admin capability also)
+	corenet_rw_tun_tap_dev($1_t)
+
+	fs_dontaudit_getattr_all_fs($1_t)
+
+	auth_rw_login_records($1_t)
+	auth_rw_faillog($1_t)
+
+	corecmd_read_bin_symlinks($1_t)
+	corecmd_getattr_bin_files($1_t)
+	# for sshd subsystems, such as sftp-server.
+	corecmd_getattr_bin_files($1_t)
+
+	domain_interactive_fd($1_t)
+	domain_dyntrans_type($1_t)
+
+    dev_read_rand($1_t)
+    dev_read_urand($1_t)
+
+	files_read_etc_files($1_t)
+	files_read_etc_runtime_files($1_t)
+	files_read_usr_files($1_t)
+
+	logging_search_logs($1_t)
+
+	miscfiles_read_localization($1_t)
+
+	userdom_dontaudit_relabelfrom_user_ptys($1_t)
+	userdom_read_user_home_content_files($1_t)
+
+	# Allow checking users mail at login
+	mta_getattr_spool($1_t)
+
+	tunable_policy(`use_fusefs_home_dirs',`
+        fs_manage_fusefs_dirs($1_t)
+        fs_manage_fusefs_files($1_t)
+    ')
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_read_nfs_files($1_t)
+		fs_read_nfs_symlinks($1_t)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_read_cifs_files($1_t)
+	')
+
+	optional_policy(`
+		kerberos_use($1_t)
+		kerberos_manage_host_rcache($1_t)
+	')
+
+	optional_policy(`
+		files_read_var_lib_symlinks($1_t)
+		nx_spec_domtrans_server($1_t)
+	')
+
+	optional_policy(`
+		rlogin_read_home_content($1_t)
+	')
+
+	optional_policy(`
+		shutdown_getattr_exec_files($1_t)
+	')
+')
+
+########################################
+## <summary>
+##	Role access for ssh
+## </summary>
+## <param name="role_prefix">
+##	<summary>
+##	The prefix of the role (e.g., user
+##	is the prefix for user_r).
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+## <rolecap/>
+#
+template(`ssh_role_template',`
+	gen_require(`
+		attribute ssh_server, ssh_agent_type;
+
+		type ssh_t, ssh_exec_t, ssh_tmpfs_t, ssh_home_t;
+		type ssh_agent_exec_t, ssh_keysign_t, ssh_tmpfs_t;
+		type ssh_agent_tmp_t;
+	')
+
+	##############################
+	#
+	# Declarations
+	#
+
+	role $2 types ssh_t;
+
+	type $1_ssh_agent_t, ssh_agent_type;
+	application_domain($1_ssh_agent_t, ssh_agent_exec_t)
+	domain_interactive_fd($1_ssh_agent_t)
+	ubac_constrained($1_ssh_agent_t)
+	role $2 types $1_ssh_agent_t;
+
+	##############################
+	#
+	# Local policy
+	#
+
+	# Transition from the domain to the derived domain.
+	domtrans_pattern($3, ssh_exec_t, ssh_t)
+
+	# inheriting stream sockets is needed for "ssh host command" as no pty
+	# is allocated
+	allow $3 ssh_server:unix_stream_socket rw_stream_socket_perms;
+
+	# allow ps to show ssh
+	ps_process_pattern($3, ssh_t)
+	allow $3 ssh_t:process { ptrace signal_perms };
+
+	# for rsync
+	allow ssh_t $3:unix_stream_socket rw_socket_perms;
+	allow ssh_t $3:unix_stream_socket connectto;
+
+	# user can manage the keys and config
+	manage_files_pattern($3, ssh_home_t, ssh_home_t)
+	manage_lnk_files_pattern($3, ssh_home_t, ssh_home_t)
+	manage_sock_files_pattern($3, ssh_home_t, ssh_home_t)
+	userdom_search_user_home_dirs($1_t)
+	userdom_manage_tmp_role($2, ssh_t)
+
+	##############################
+	#
+	# SSH agent local policy
+	#
+
+	allow $1_ssh_agent_t self:process setrlimit;
+	allow $1_ssh_agent_t self:capability setgid;
+
+	allow $1_ssh_agent_t { $1_ssh_agent_t $3 }:process signull;
+
+	allow $1_ssh_agent_t self:unix_stream_socket { create_stream_socket_perms connectto };
+
+	manage_dirs_pattern($1_ssh_agent_t, ssh_agent_tmp_t, ssh_agent_tmp_t)
+	manage_sock_files_pattern($1_ssh_agent_t, ssh_agent_tmp_t, ssh_agent_tmp_t)
+	files_tmp_filetrans($1_ssh_agent_t, ssh_agent_tmp_t, { dir sock_file })
+
+	# for ssh-add
+	stream_connect_pattern($3, ssh_agent_tmp_t, ssh_agent_tmp_t, $1_ssh_agent_t)
+
+	# Allow the user shell to signal the ssh program.
+	allow $3 $1_ssh_agent_t:process { ptrace signal_perms };
+
+	# allow ps to show ssh
+	ps_process_pattern($3, $1_ssh_agent_t)
+
+	domtrans_pattern($3, ssh_agent_exec_t, $1_ssh_agent_t)
+
+	kernel_read_kernel_sysctls($1_ssh_agent_t)
+
+	dev_read_urand($1_ssh_agent_t)
+	dev_read_rand($1_ssh_agent_t)
+
+	fs_search_auto_mountpoints($1_ssh_agent_t)
+
+	# transition back to normal privs upon exec
+	corecmd_shell_domtrans($1_ssh_agent_t, $3)
+	corecmd_bin_domtrans($1_ssh_agent_t, $3)
+
+	domain_use_interactive_fds($1_ssh_agent_t)
+
+	files_read_etc_files($1_ssh_agent_t)
+	files_read_etc_runtime_files($1_ssh_agent_t)
+	files_search_home($1_ssh_agent_t)
+
+	libs_read_lib_files($1_ssh_agent_t)
+
+	logging_send_syslog_msg($1_ssh_agent_t)
+
+	miscfiles_read_localization($1_ssh_agent_t)
+	miscfiles_read_certs($1_ssh_agent_t)
+
+	seutil_dontaudit_read_config($1_ssh_agent_t)
+
+	# Write to the user domain tty.
+	userdom_use_user_terminals($1_ssh_agent_t)
+
+	# for the transition back to normal privs upon exec
+	userdom_search_user_home_content($1_ssh_agent_t)
+	userdom_user_home_domtrans($1_ssh_agent_t, $3)
+
+	tunable_policy(`use_nfs_home_dirs',`
+		fs_manage_nfs_files($1_ssh_agent_t)
+
+		# transition back to normal privs upon exec
+		fs_nfs_domtrans($1_ssh_agent_t, $3)
+	')
+
+	tunable_policy(`use_samba_home_dirs',`
+		fs_manage_cifs_files($1_ssh_agent_t)
+
+		# transition back to normal privs upon exec
+		fs_cifs_domtrans($1_ssh_agent_t, $3)
+	')
+
+	optional_policy(`
+		nis_use_ypbind($1_ssh_agent_t)
+	')
+
+	optional_policy(`
+        ssh_run_keygen($3,$2)
+    ')
+
+	optional_policy(`
+		xserver_use_xdm_fds($1_ssh_agent_t)
+		xserver_rw_xdm_pipes($1_ssh_agent_t)
+	')
+')
+
+########################################
+## <summary>
+##	Send a SIGCHLD signal to the ssh server.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_sigchld',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	allow $1 sshd_t:process sigchld;
+')
+
+########################################
+## <summary>
+##	Send a generic signal to the ssh server.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_signal',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	allow $1 sshd_t:process signal;
+')
+
+########################################
+## <summary>
+##	Read a ssh server unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_read_pipes',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	allow $1 sshd_t:fifo_file read_fifo_file_perms;
+')
+########################################
+## <summary>
+##	Read and write a ssh server unnamed pipe.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_rw_pipes',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	allow $1 sshd_t:fifo_file rw_inherited_fifo_file_perms;
+')
+
+########################################
+## <summary>
+##	Read and write ssh server unix domain stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_rw_stream_sockets',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	allow $1 sshd_t:unix_stream_socket rw_stream_socket_perms;
+')
+
+#######################################
+## <summary>
+##      Read and write ssh server unix dgram sockets.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`ssh_rw_dgram_sockets',`
+    gen_require(`
+        type sshd_t;
+    ')
+
+    allow $1 sshd_t:unix_dgram_socket rw_stream_socket_perms;
+')
+
+########################################
+## <summary>
+##	Read and write ssh server TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_rw_tcp_sockets',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	allow $1 sshd_t:tcp_socket rw_stream_socket_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write
+##	ssh server TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`ssh_dontaudit_rw_tcp_sockets',`
+	gen_require(`
+		type sshd_t;
+	')
+
+	dontaudit $1 sshd_t:tcp_socket { read write };
+')
+
+########################################
+## <summary>
+##	Connect to SSH daemons over TCP sockets.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_tcp_connect',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Execute the ssh daemon sshd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_domtrans',`
+	gen_require(`
+		type sshd_t, sshd_exec_t;
+	')
+
+	domtrans_pattern($1, sshd_exec_t, sshd_t)
+')
+
+
+########################################
+## <summary>
+##	Execute sshd server in the sshd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`ssh_initrc_domtrans',`
+	gen_require(`
+		type sshd_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, sshd_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute the ssh client in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_exec',`
+	gen_require(`
+		type ssh_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, ssh_exec_t)
+')
+
+########################################
+## <summary>
+##	Set the attributes of sshd key files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_setattr_key_files',`
+	gen_require(`
+		type sshd_key_t;
+	')
+
+	allow $1 sshd_key_t:file setattr_file_perms;
+	files_search_pids($1)
+')
+
+########################################
+## <summary>
+##	Execute the ssh agent client in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_agent_exec',`
+	gen_require(`
+		type ssh_agent_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, ssh_agent_exec_t)
+')
+
+########################################
+## <summary>
+##	Read ssh home directory content
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_read_user_home_files',`
+	gen_require(`
+		type ssh_home_t;
+	')
+
+	allow $1 ssh_home_t:dir list_dir_perms;
+	read_files_pattern($1, ssh_home_t, ssh_home_t)
+	read_lnk_files_pattern($1, ssh_home_t, ssh_home_t)
+	userdom_search_user_home_dirs($1)
+')
+
+########################################
+## <summary>
+##	Execute the ssh key generator in the ssh keygen domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_domtrans_keygen',`
+	gen_require(`
+		type ssh_keygen_t, ssh_keygen_exec_t;
+	')
+
+	domtrans_pattern($1, ssh_keygen_exec_t, ssh_keygen_t)
+')
+
+#######################################
+## <summary>
+##      Execute the ssh key generator in the caller domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to transition.
+##      </summary>
+## </param>
+#
+interface(`ssh_exec_keygen',`
+        gen_require(`
+                type ssh_keygen_exec_t;
+        ')
+
+        can_exec($1, ssh_keygen_exec_t)
+')
+
+######################################
+## <summary>
+##  Execute ssh-keygen in the iptables domain, and
+##  allow the specified role the ssh-keygen domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed to transition.
+##  </summary>
+## </param>
+## <param name="role">
+##  <summary>
+##  Role allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`ssh_run_keygen',`
+    gen_require(`
+        type ssh_keygen_t;
+    ')
+
+    role $2 types ssh_keygen_t;
+    ssh_domtrans_keygen($1)
+')
+
+########################################
+## <summary>
+##	Read ssh server keys
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_dontaudit_read_server_keys',`
+	gen_require(`
+		type sshd_key_t;
+	')
+
+	dontaudit $1 sshd_key_t:file read_file_perms;
+')
+
+######################################
+## <summary>
+##  Manage ssh home directory content
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ssh_manage_user_home_files',`
+    gen_require(`
+        type ssh_home_t;
+    ')
+
+    allow $1 ssh_home_t:dir list_dir_perms;
+    manage_dirs_pattern($1, ssh_home_t, ssh_home_t)
+    manage_files_pattern($1, ssh_home_t, ssh_home_t)
+    userdom_search_user_home_dirs($1)
+')
+
+########################################
+## <summary>
+##	Create Secure Shell home directory 
+##	content.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_create_user_home_files',`
+	gen_require(`
+		type home_ssh_t;
+	')
+
+	# This is only for Seahorse. May no longer be required in future.
+	create_dirs_pattern($1, home_ssh_t, home_ssh_t)
+	create_files_pattern($1, home_ssh_t, home_ssh_t)
+	userdom_user_home_dir_filetrans($1, home_ssh_t, { dir file })
+	userdom_search_user_home_dirs($1)
+')
+
+#######################################
+## <summary>
+##	Delete from the ssh temp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_delete_tmp',`
+	gen_require(`
+		type sshd_tmp_t;
+	')
+
+	files_search_tmp($1)
+	delete_files_pattern($1, sshd_tmp_t, sshd_tmp_t)
+')
+
+#######################################
+## <summary>
+## Send a null signal to sshd processes.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`ssh_signull',`
+	gen_require(`
+		type sshd_t;
+	')
+	allow $1 sshd_t:process signull;
+')
+
+######################################
+## <summary>
+##  Allow domain dyntransition to chroot_user_t domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`ssh_dyntransition_chroot_user',`
+	gen_require(`
+		type chroot_user_t;
+	')
+
+	allow $1 chroot_user_t:process dyntransition;
+	allow chroot_user_t $1:process sigchld;
+')
+
+#######################################
+## <summary>
+##	Getattr ssh home directory
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_getattr_user_home_dir',`
+	gen_require(`
+		type ssh_home_t;
+	')
+
+	allow $1 ssh_home_t:dir getattr;
+')
+
+#######################################
+## <summary>
+##	Dontaudit search ssh home directory
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`ssh_dontaudit_search_user_home_dir',`
+	gen_require(`
+		type ssh_home_t;
+	')
+
+	dontaudit $1 ssh_home_t:dir search_dir_perms;
+')
+
+#######################################
+## <summary>
+##      Do not audit attempts to read and
+##      write the sshd pty type.  
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain to not audit.
+##      </summary>
+## </param>
+#
+interface(`ssh_dontaudit_use_ptys',`
+        gen_require(`
+                type sshd_devpts_t;
+        ')
+
+        dontaudit $1 sshd_devpts_t:chr_file { getattr read write ioctl };
+')
+
+#######################################
+## <summary>
+##      Read and write inherited sshd pty type.  
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain to not audit.
+##      </summary>
+## </param>
+#
+interface(`ssh_use_ptys',`
+        gen_require(`
+                type sshd_devpts_t;
+        ')
+
+        allow $1 sshd_devpts_t:chr_file { open getattr read write ioctl };
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an sshd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`ssh_admin_server',`
+	gen_require(`
+		type sshd_t, ssh_home_t, sshd_key_t, sshd_tmp_t; 
+		type sshd_tmpfs_t, sshd_var_run_t;
+		type sshd_initrc_exec_t;
+	')
+
+	allow $1 sshd_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, sshd_t, sshd_t)
+
+	ssh_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 sshd_initrc_exec_t system_r;
+
+	userdom_search_user_home_dirs($1)
+	userdom_search_admin_dir($1)
+	admin_pattern($1, ssh_home_t)
+
+	files_search_etc($1)
+	admin_pattern($1,sshd_key_t)
+
+	files_search_tmp($1)
+	admin_pattern($1, sshd_tmp_t)
+
+	admin_pattern($1, sshd_tmpfs_t)
+
+	files_search_pids($1)
+	admin_pattern($1, sshd_var_run_t)
+')

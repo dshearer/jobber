@@ -1,0 +1,249 @@
+## <summary>policy for dirsrv</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run dirsrv.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`dirsrv_domtrans',`
+	gen_require(`
+		type dirsrv_t, dirsrv_exec_t;
+	')
+
+	domtrans_pattern($1, dirsrv_exec_t,dirsrv_t)
+
+	ifdef(`hide_broken_symptoms', `
+		dontaudit dirsrv_t $1:socket_class_set { read write };
+	')
+')
+
+
+########################################
+## <summary>
+##  Allow caller to signal dirsrv.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`dirsrv_signal',`
+	gen_require(`
+		type dirsrv_t;
+	')
+
+	allow $1 dirsrv_t:process signal;
+')
+
+
+########################################
+## <summary>
+##      Send a null signal to dirsrv.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`dirsrv_signull',`
+	gen_require(`
+		type dirsrv_t;
+	')
+
+	allow $1 dirsrv_t:process signull;
+')
+
+#######################################
+## <summary>
+##      Allow a domain to manage dirsrv logs.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dirsrv_manage_log',`
+	gen_require(`
+		type dirsrv_var_log_t;
+	')
+
+	allow $1 dirsrv_var_log_t:dir manage_dir_perms;
+	allow $1 dirsrv_var_log_t:file manage_file_perms;
+	allow $1 dirsrv_var_log_t:fifo_file manage_fifo_file_perms;
+')
+
+######################################
+## <summary>
+##      Allow a domain to manage dirsrv lock.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dirsrv_manage_lock',`
+        gen_require(`
+                type dirsrv_var_lock_t;
+        ')
+
+	manage_files_pattern($1, dirsrv_var_lock_t, dirsrv_var_lock_t)
+	manage_dirs_pattern($1, dirsrv_var_lock_t, dirsrv_var_lock_t)
+')
+
+#####################################
+## <summary>
+##      Allow a domain to manage dirsrv logs.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dirsrv_filetrans_lock',`
+        gen_require(`
+                type dirsrv_var_lock_t;
+        ')
+
+	files_lock_filetrans($1, dirsrv_var_lock_t, file)
+')
+
+#######################################
+## <summary>
+##      Allow a domain to manage dirsrv /var/lib files.
+## </summary>
+## <param name="domain">
+## 	<summary>
+##		Domain allowed access.
+## 	</summary>
+## </param>
+#
+interface(`dirsrv_manage_var_lib',`
+        gen_require(`
+                type dirsrv_var_lib_t;
+        ')
+        allow $1 dirsrv_var_lib_t:dir manage_dir_perms;
+        allow $1 dirsrv_var_lib_t:file manage_file_perms;
+')
+
+#######################################
+## <summary>
+##      Allow a domain to manage dirsrv /var/run files.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dirsrv_manage_var_run',`
+	gen_require(`
+		type dirsrv_var_run_t;
+	')
+	allow $1 dirsrv_var_run_t:dir manage_dir_perms;
+	allow $1 dirsrv_var_run_t:file manage_file_perms;
+	allow $1 dirsrv_var_run_t:sock_file manage_file_perms;
+')
+
+######################################
+## <summary>
+##      Allow a domain to create dirsrv pid directories.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dirsrv_pid_filetrans',`
+        gen_require(`
+                type dirsrv_var_run_t;
+        ')
+        # Allow creating a dir in /var/run with this type
+        files_pid_filetrans($1, dirsrv_var_run_t, dir)
+')
+
+#######################################
+## <summary>
+##      Allow a domain to read dirsrv /var/run files.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed access.
+## </summary>
+## </param>
+#
+interface(`dirsrv_read_var_run',`
+        gen_require(`
+                type dirsrv_var_run_t;
+        ')
+        allow $1 dirsrv_var_run_t:dir list_dir_perms;
+        allow $1 dirsrv_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##      Manage dirsrv configuration files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`dirsrv_manage_config',`
+	gen_require(`
+		type dirsrv_config_t;
+	')
+
+	allow $1 dirsrv_config_t:dir manage_dir_perms;
+	allow $1 dirsrv_config_t:file manage_file_perms;
+')
+
+########################################
+## <summary>
+##      Read dirsrv share files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`dirsrv_read_share',`
+	gen_require(`
+		type dirsrv_share_t;
+	')
+
+	allow $1 dirsrv_share_t:dir list_dir_perms;
+	allow $1 dirsrv_share_t:file read_file_perms;
+	allow $1 dirsrv_share_t:lnk_file read;
+')
+
+#######################################
+## <summary>
+##  Connect to dirsrv over an unix stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`dirsrv_stream_connect',`
+    gen_require(`
+        type dirsrv_t, dirsrv_var_run_t;
+    ')
+
+    files_search_pids($1)
+    stream_connect_pattern($1, dirsrv_var_run_t, dirsrv_var_run_t, dirsrv_t)
+')

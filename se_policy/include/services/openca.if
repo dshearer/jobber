@@ -1,0 +1,76 @@
+## <summary>OpenCA - Open Certificate Authority</summary>
+
+########################################
+## <summary>
+##	Execute the OpenCA program with
+##	a domain transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openca_domtrans',`
+	gen_require(`
+		type openca_ca_t, openca_ca_exec_t, openca_usr_share_t;
+	')
+
+	domtrans_pattern($1, openca_ca_exec_t, openca_ca_t)
+	allow $1 openca_usr_share_t:dir search_dir_perms;
+	files_search_usr($1)
+')
+
+########################################
+## <summary>
+##	Send OpenCA generic signals.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openca_signal',`
+	gen_require(`
+		type openca_ca_t;
+	')
+
+	allow $1 openca_ca_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send OpenCA stop signals.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openca_sigstop',`
+	gen_require(`
+		type openca_ca_t;
+	')
+
+	allow $1 openca_ca_t:process sigstop;
+')
+
+########################################
+## <summary>
+##	Kill OpenCA.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`openca_kill',`
+	gen_require(`
+		type openca_ca_t;
+	')
+
+	allow $1 openca_ca_t:process sigkill;
+')

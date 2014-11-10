@@ -1,0 +1,214 @@
+## <summary>Line printer daemon</summary>
+
+########################################
+## <summary>
+##	Role access for lpd
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`lpd_role',`
+	gen_require(`
+		type lpr_t, lpr_exec_t, print_spool_t;
+	')
+
+	role $1 types lpr_t;
+
+	# Transition from the user domain to the derived domain.
+	domtrans_pattern($2, lpr_exec_t, lpr_t)
+	dontaudit lpr_t $2:unix_stream_socket { read write };
+
+	ps_process_pattern($2, lpr_t)
+	allow $2 lpr_t:process signull;
+
+	optional_policy(`
+		cups_read_config($2)
+	')
+')
+
+########################################
+## <summary>
+##	Execute lpd in the lpd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lpd_domtrans_checkpc',`
+	gen_require(`
+		type checkpc_t, checkpc_exec_t;
+	')
+
+	domtrans_pattern($1, checkpc_exec_t, checkpc_t)
+')
+
+########################################
+## <summary>
+##	Execute amrecover in the lpd domain, and
+##	allow the specified role the lpd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the lpd domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lpd_run_checkpc',`
+	gen_require(`
+		type checkpc_t;
+	')
+
+	lpd_domtrans_checkpc($1)
+	role $2 types checkpc_t;
+')
+
+########################################
+## <summary>
+##	List the contents of the printer spool directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lpd_list_spool',`
+	gen_require(`
+		type print_spool_t;
+	')
+
+	files_search_spool($1)
+	allow $1 print_spool_t:dir list_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read the printer spool files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lpd_read_spool',`
+	gen_require(`
+		type print_spool_t;
+	')
+
+	files_search_spool($1)
+	read_files_pattern($1, print_spool_t, print_spool_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete printer spool files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lpd_manage_spool',`
+	gen_require(`
+		type print_spool_t;
+	')
+
+	files_search_spool($1)
+	manage_dirs_pattern($1, print_spool_t, print_spool_t)
+	manage_files_pattern($1, print_spool_t, print_spool_t)
+	manage_lnk_files_pattern($1, print_spool_t, print_spool_t)
+')
+
+########################################
+## <summary>
+##	Relabel from and to the spool files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lpd_relabel_spool',`
+	gen_require(`
+		type print_spool_t;
+	')
+
+	files_search_spool($1)
+	allow $1 print_spool_t:file relabel_file_perms;
+')
+
+########################################
+## <summary>
+##	List the contents of the printer spool directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`lpd_read_config',`
+	gen_require(`
+		type printconf_t;
+	')
+
+	allow $1 printconf_t:dir list_dir_perms;
+	read_files_pattern($1, printconf_t, printconf_t)
+')
+
+########################################
+## <summary>
+##	Transition to a user lpr domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+template(`lpd_domtrans_lpr',`
+	gen_require(`
+		type lpr_t, lpr_exec_t;
+	')
+
+	domtrans_pattern($1, lpr_exec_t, lpr_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to execute lpr
+##	in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`lpd_exec_lpr',`
+	gen_require(`
+		type lpr_exec_t;
+	')
+
+	can_exec($1, lpr_exec_t)
+')

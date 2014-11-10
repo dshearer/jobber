@@ -1,0 +1,113 @@
+## <summary>Ainit ALSA configuration tool</summary>
+
+########################################
+## <summary>
+##	Domain transition to alsa
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`alsa_domtrans',`
+	gen_require(`
+		type alsa_t, alsa_exec_t;
+	')
+
+	domtrans_pattern($1, alsa_exec_t, alsa_t)
+')
+
+########################################
+## <summary>
+##	Allow read and write access to alsa semaphores.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`alsa_rw_semaphores',`
+	gen_require(`
+		type alsa_t;
+	')
+
+	allow $1 alsa_t:sem { unix_read unix_write associate read write };
+')
+
+########################################
+## <summary>
+##	Allow read and write access to alsa shared memory.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`alsa_rw_shared_mem',`
+	gen_require(`
+		type alsa_t;
+	')
+
+	allow $1 alsa_t:shm { unix_read unix_write create_shm_perms };
+')
+
+########################################
+## <summary>
+##	Read alsa writable config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`alsa_read_rw_config',`
+	gen_require(`
+		type alsa_etc_rw_t;
+	')
+
+	allow $1 alsa_etc_rw_t:dir list_dir_perms;
+	read_files_pattern($1, alsa_etc_rw_t, alsa_etc_rw_t)
+	read_lnk_files_pattern($1, alsa_etc_rw_t, alsa_etc_rw_t)
+')
+
+########################################
+## <summary>
+##	Manage alsa writable config files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`alsa_manage_rw_config',`
+	gen_require(`
+		type alsa_etc_rw_t;
+	')
+
+	allow $1 alsa_etc_rw_t:dir list_dir_perms;
+	manage_files_pattern($1, alsa_etc_rw_t, alsa_etc_rw_t)
+	read_lnk_files_pattern($1, alsa_etc_rw_t, alsa_etc_rw_t)
+')
+
+########################################
+## <summary>
+##	Read alsa lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`alsa_read_lib',`
+	gen_require(`
+		type alsa_var_lib_t;
+	')
+
+	read_files_pattern($1, alsa_var_lib_t, alsa_var_lib_t)
+')

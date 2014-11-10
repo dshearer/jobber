@@ -1,0 +1,66 @@
+## <summary>Load keyboard mappings.</summary>
+
+########################################
+## <summary>
+##	Execute the loadkeys program in the loadkeys domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`loadkeys_domtrans',`
+	gen_require(`
+		type loadkeys_t, loadkeys_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, loadkeys_exec_t, loadkeys_t)
+ifdef(`hide_broken_symptoms', `
+	dontaudit loadkeys_t $1:socket_class_set { read write };
+')
+')
+
+########################################
+## <summary>
+##	Execute the loadkeys program in the loadkeys domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the loadkeys domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`loadkeys_run',`
+	gen_require(`
+		type loadkeys_t;
+	')
+
+	loadkeys_domtrans($1)
+	role $2 types loadkeys_t;
+')
+
+########################################
+## <summary>
+##	Execute the loadkeys program in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`loadkeys_exec',`
+	gen_require(`
+		type loadkeys_exec_t;
+	')
+
+	can_exec($1, loadkeys_exec_t)
+')

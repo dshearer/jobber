@@ -1,0 +1,472 @@
+## <summary>Hardware abstraction layer</summary>
+
+########################################
+## <summary>
+##	Execute hal in the hal domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_domtrans',`
+	gen_require(`
+		type hald_t, hald_exec_t;
+	')
+
+	domtrans_pattern($1, hald_exec_t, hald_t)
+')
+
+########################################
+## <summary>
+##	Get the attributes of a hal process.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_getattr',`
+	gen_require(`
+		type hald_t;
+	')
+
+	allow $1 hald_t:process getattr;
+')
+
+########################################
+## <summary>
+##	Read hal system state
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`hal_read_state',`
+	gen_require(`
+		type hald_t;
+	')
+
+	kernel_search_proc($1)
+	ps_process_pattern($1, hald_t)
+')
+
+########################################
+## <summary>
+##	Allow ptrace of hal domain
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_ptrace',`
+	gen_require(`
+		type hald_t;
+	')
+
+	allow $1 hald_t:process ptrace;
+')
+
+########################################
+## <summary>
+##	Allow domain to use file descriptors from hal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`hal_use_fds',`
+	gen_require(`
+		type hald_t;
+	')
+
+	allow $1 hald_t:fd use; 
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to use file descriptors from hal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`hal_dontaudit_use_fds',`
+	gen_require(`
+		type hald_t;
+	')
+
+	dontaudit $1 hald_t:fd use; 
+')
+
+########################################
+## <summary>
+##	Allow attempts to read and write to
+##	hald unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`hal_rw_pipes',`
+	gen_require(`
+		type hald_t;
+	')
+
+	allow $1 hald_t:fifo_file rw_fifo_file_perms; 
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read and write to
+##	hald unnamed pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`hal_dontaudit_rw_pipes',`
+	gen_require(`
+		type hald_t;
+	')
+
+	dontaudit $1 hald_t:fifo_file rw_fifo_file_perms; 
+')
+
+########################################
+## <summary>
+##	Send to hal over a unix domain
+##	datagram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_dgram_send',`
+	gen_require(`
+		type hald_t;
+	')
+
+	allow $1 hald_t:unix_dgram_socket sendto;
+')
+
+########################################
+## <summary>
+##	Send to hal over a unix domain
+##	stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_stream_connect',`
+	gen_require(`
+		type hald_t;
+	')
+
+	allow $1 hald_t:unix_stream_socket connectto;
+')
+
+########################################
+## <summary>
+##	Dontaudit read/write to a hal unix datagram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_dontaudit_rw_dgram_sockets',`
+	gen_require(`
+		type hald_t;
+	')
+
+	dontaudit $1 hald_t:unix_dgram_socket { read write };
+')
+
+########################################
+## <summary>
+##	Send a dbus message to hal.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_dbus_send',`
+	gen_require(`
+		type hald_t;
+		class dbus send_msg;
+	')
+
+	allow $1 hald_t:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	hal over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_dbus_chat',`
+	gen_require(`
+		type hald_t;
+		class dbus send_msg;
+	')
+
+	allow $1 hald_t:dbus send_msg;
+	allow hald_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Execute hal mac in the hal mac domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_domtrans_mac',`
+	gen_require(`
+		type hald_mac_t, hald_mac_exec_t;
+	')
+
+	domtrans_pattern($1, hald_mac_exec_t, hald_mac_t)
+')
+
+########################################
+## <summary>
+##	Allow attempts to write the hal
+##	log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_write_log',`
+	gen_require(`
+		type hald_log_t;
+	')
+
+	logging_search_logs($1)
+	allow $1 hald_log_t:file write_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write the hal
+##	log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit
+##	</summary>
+## </param>
+#
+interface(`hal_dontaudit_write_log',`
+	gen_require(`
+		type hald_log_t;
+	')
+
+	dontaudit $1 hald_log_t:file { append write };
+')
+
+#######################################
+## <summary>
+##  Manage hald log files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`hal_rw_log',`
+    gen_require(`
+        type hald_log_t;
+    ')
+
+	rw_files_pattern($1, hald_log_t, hald_log_t)
+')
+
+########################################
+## <summary>
+##	Manage hald log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_manage_log',`
+	gen_require(`
+		type hald_log_t;
+	')
+
+	# log files for hald
+	manage_files_pattern($1, hald_log_t, hald_log_t)
+	logging_log_filetrans($1, hald_log_t, file)
+')
+
+########################################
+## <summary>
+##	Read hald tmp files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_read_tmp_files',`
+	gen_require(`
+		type hald_tmp_t;
+	')
+
+	allow $1 hald_tmp_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read or write
+##	HAL libraries files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_dontaudit_append_lib_files',`
+	gen_require(`
+		type hald_var_lib_t;
+	')
+
+	dontaudit $1 hald_var_lib_t:file { read_file_perms append_file_perms };
+')
+
+########################################
+## <summary>
+##	Read hald PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_read_pid_files',`
+	gen_require(` 
+		type hald_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 hald_var_run_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to read 
+##	hald PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`hal_dontaudit_read_pid_files',`
+	gen_require(` 
+		type hald_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 hald_var_run_t:file read_inherited_file_perms;
+')
+
+########################################
+## <summary>
+##	Read/Write hald PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_rw_pid_files',`
+	gen_require(`
+		type hald_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 hald_var_run_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Manage hald PID dirs.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_manage_pid_dirs',`
+	gen_require(`
+		type hald_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_dirs_pattern($1, hald_var_run_t, hald_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage hald PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`hal_manage_pid_files',`
+	gen_require(`
+		type hald_var_run_t;
+	')
+
+	files_search_pids($1)
+	manage_files_pattern($1, hald_var_run_t, hald_var_run_t)
+')

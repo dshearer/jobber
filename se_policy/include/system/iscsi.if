@@ -1,0 +1,76 @@
+## <summary>Establish connections to iSCSI devices</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run iscsid.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`iscsid_domtrans',`
+	gen_require(`
+		type iscsid_t, iscsid_exec_t;
+	')
+
+	domtrans_pattern($1, iscsid_exec_t, iscsid_t)
+')
+
+########################################
+## <summary>
+##	Connect to ISCSI using a unix domain stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`iscsi_stream_connect',`
+	gen_require(`
+		type iscsid_t, iscsi_var_lib_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, iscsi_var_lib_t, iscsi_var_lib_t, iscsid_t)
+')
+
+########################################
+## <summary>
+##	Read iscsi lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`iscsi_read_lib_files',`
+	gen_require(`
+		type iscsi_var_lib_t;
+	')
+
+	read_files_pattern($1, iscsi_var_lib_t, iscsi_var_lib_t)
+	allow $1 iscsi_var_lib_t:dir list_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Manage iscsid sempaphores.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`iscsi_manage_semaphores',`
+	gen_require(`
+		type iscsid_t;
+	')
+
+	allow $1 iscsid_t:sem create_sem_perms;
+')

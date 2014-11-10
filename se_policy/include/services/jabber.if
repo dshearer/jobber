@@ -1,0 +1,139 @@
+## <summary>Jabber instant messaging server</summary>
+
+#######################################
+## <summary>
+##      Execute a domain transition to run jabberd services
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`jabber_domtrans_jabberd',`
+        gen_require(`
+                type jabberd_t, jabberd_exec_t;
+        ')
+
+        domtrans_pattern($1, jabberd_exec_t, jabberd_t)
+')
+
+######################################
+## <summary>
+##      Execute a domain transition to run jabberd router service
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`jabber_domtrans_router',`
+        gen_require(`
+                type jabberd_router_t, jabberd_router_exec_t;
+        ')
+
+        domtrans_pattern($1, jabberd_router_exec_t, jabberd_router_t)
+')
+
+#######################################
+## <summary>
+##      Read jabberd lib files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`jabberd_read_lib_files',`
+        gen_require(`
+                type jabberd_var_lib_t;
+        ')
+
+        files_search_var_lib($1)
+        read_files_pattern($1, jabberd_var_lib_t, jabberd_var_lib_t)
+')
+
+#######################################
+## <summary>
+##      Dontaudit inherited read jabberd lib files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain to not audit.
+##      </summary>
+## </param>
+#
+interface(`jabberd_dontaudit_read_lib_files',`
+        gen_require(`
+                type jabberd_var_lib_t;
+        ')
+
+        dontaudit $1 jabberd_var_lib_t:file read_inherited_file_perms;
+')
+
+#######################################
+## <summary>
+##      Create, read, write, and delete
+##      jabberd lib files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`jabberd_manage_lib_files',`
+        gen_require(`
+                type jabberd_var_lib_t;
+        ')
+
+        files_search_var_lib($1)
+        manage_files_pattern($1, jabberd_var_lib_t, jabberd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an jabber environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the jabber domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`jabber_admin',`
+	gen_require(`
+		type jabberd_t, jabberd_log_t, jabberd_var_lib_t;
+		type jabberd_var_run_t, jabberd_initrc_exec_t;
+		type jabberd_router_t;
+	')
+
+	allow $1 jabberd_t:process { ptrace signal_perms };
+	ps_process_pattern($1, jabberd_t)
+
+	allow $1 jabberd_router_t:process { ptrace signal_perms };
+	ps_process_pattern($1, jabberd_router_t)
+
+	init_labeled_script_domtrans($1, jabberd_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 jabberd_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	logging_list_logs($1)
+	admin_pattern($1, jabberd_log_t)
+
+	files_list_var_lib($1)
+	admin_pattern($1, jabberd_var_lib_t)
+
+	files_list_pids($1)
+	admin_pattern($1, jabberd_var_run_t)
+')

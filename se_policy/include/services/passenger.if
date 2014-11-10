@@ -1,0 +1,157 @@
+## <summary>Ruby on rails deployment for Apache and Nginx servers.</summary>
+
+######################################
+## <summary>
+##	Execute passenger in the passenger domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`passenger_domtrans',`
+	gen_require(`
+		type passenger_t, passenger_exec_t;
+	')
+
+	domtrans_pattern($1, passenger_exec_t, passenger_t)
+')
+
+######################################
+## <summary>
+##	Execute passenger in the current domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`passenger_exec',`
+	gen_require(`
+		type passenger_exec_t;
+	')
+
+	can_exec($1, passenger_exec_t)
+')
+
+########################################
+## <summary>
+##	Read passenger lib files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`passenger_read_lib_files',`
+	gen_require(`
+		type passenger_var_lib_t;
+	')
+
+	read_files_pattern($1, passenger_var_lib_t, passenger_var_lib_t)
+	read_lnk_files_pattern($1, passenger_var_lib_t, passenger_var_lib_t)
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Manage passenger lib files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`passenger_manage_lib_files',`
+	gen_require(`
+		type passenger_var_lib_t;
+	')
+
+	manage_dirs_pattern($1, passenger_var_lib_t, passenger_var_lib_t)
+	manage_files_pattern($1, passenger_var_lib_t, passenger_var_lib_t)
+	manage_lnk_files_pattern($1, passenger_var_lib_t, passenger_var_lib_t)
+	files_search_var_lib($1)
+')
+
+#####################################
+## <summary>
+##  Manage passenger var_run content.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`passenger_manage_pid_content',`
+    gen_require(`
+        type passenger_var_run_t;
+    ')
+
+    files_search_pids($1)
+    manage_dirs_pattern($1, passenger_var_run_t, passenger_var_run_t)
+    manage_files_pattern($1, passenger_var_run_t, passenger_var_run_t)
+    manage_fifo_files_pattern($1, passenger_var_run_t, passenger_var_run_t)
+    manage_sock_files_pattern($1, passenger_var_run_t, passenger_var_run_t)
+')
+
+########################################
+## <summary>
+##	Connect to passenger unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`passenger_stream_connect',`
+	gen_require(`
+		type passenger_t;
+	')
+
+	allow $1 passenger_t:unix_stream_socket connectto;
+')
+
+#######################################
+## <summary>
+##  Allow to manage passenger tmp files/dirs.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`passenger_manage_tmp_files',`
+    gen_require(`
+        type passenger_tmp_t;
+    ')
+
+    files_search_tmp($1)
+	manage_files_pattern($1, passenger_tmp_t, passenger_tmp_t)
+	manage_dirs_pattern($1, passenger_tmp_t, passenger_tmp_t)
+')
+
+#######################################
+## <summary>
+##  Allow to manage passenger tmp sock_files
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`passenger_rw_tmp_sock_files',`
+    gen_require(`
+        type passenger_tmp_t;
+    ')
+
+    files_search_tmp($1)
+	rw_sock_files_pattern($1, passenger_tmp_t, passenger_tmp_t)
+')

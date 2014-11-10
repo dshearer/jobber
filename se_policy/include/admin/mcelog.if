@@ -1,0 +1,38 @@
+## <summary>policy for mcelog</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run mcelog.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`mcelog_domtrans',`
+	gen_require(`
+		type mcelog_t, mcelog_exec_t;
+	')
+
+	domtrans_pattern($1, mcelog_exec_t, mcelog_t)
+')
+
+####################################
+## <summary>
+##     Read mcelog logs.
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain allowed access.
+##     </summary>
+## </param>
+#
+interface(`mcelog_read_log',`
+       gen_require(`
+               type mcelog_log_t;
+       ')
+
+       logging_search_logs($1)
+       read_files_pattern($1, mcelog_log_t, mcelog_log_t)
+')

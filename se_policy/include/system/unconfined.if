@@ -1,0 +1,197 @@
+## <summary>The unconfined domain.</summary>
+
+########################################
+## <summary>
+##	Make the specified domain unconfined.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to make unconfined.
+##	</summary>
+## </param>
+#
+interface(`unconfined_domain_noaudit',`
+	gen_require(`
+		class dbus all_dbus_perms;
+		class nscd all_nscd_perms;
+		class passwd all_passwd_perms;
+	')
+
+	# Use any Linux capability.
+	allow $1 self:capability all_capabilities;
+	allow $1 self:fifo_file { manage_fifo_file_perms relabelfrom relabelto };
+
+	# Transition to myself, to make get_ordered_context_list happy.
+	allow $1 self:process transition;
+
+	# Write access is for setting attributes under /proc/self/attr.
+	allow $1 self:file rw_file_perms;
+	allow $1 self:dir rw_dir_perms;
+
+	# Userland object managers
+	allow $1 self:nscd all_nscd_perms;
+	allow $1 self:dbus all_dbus_perms;
+	allow $1 self:passwd all_passwd_perms;
+	allow $1 self:association all_association_perms;
+	allow $1 self:socket_class_set create_socket_perms;
+
+	kernel_unconfined($1)
+	corenet_unconfined($1)
+	dev_unconfined($1)
+	domain_unconfined($1)
+	domain_dontaudit_read_all_domains_state($1)
+	domain_dontaudit_ptrace_all_domains($1)
+	files_unconfined($1)
+	fs_unconfined($1)
+	selinux_unconfined($1)
+
+	domain_mmap_low_type($1)
+
+	mcs_file_read_all($1)
+
+	ubac_process_exempt($1)
+
+	tunable_policy(`mmap_low_allowed',`
+		domain_mmap_low($1)
+	')
+
+	tunable_policy(`allow_execheap',`
+		# Allow making the stack executable via mprotect.
+		allow $1 self:process execheap;
+	')
+
+	tunable_policy(`allow_execmem',`
+		# Allow making anonymous memory executable, e.g. 
+		# for runtime-code generation or executable stack.
+		allow $1 self:process execmem;
+	')
+
+	tunable_policy(`allow_execstack',`
+		# Allow making the stack executable via mprotect;
+		# execstack implies execmem; Bugzilla #211271
+		allow $1 self:process { execmem execstack };
+#		auditallow $1 self:process execstack;
+	')
+
+	optional_policy(`
+		auth_unconfined($1)
+	')
+
+	optional_policy(`
+		# Communicate via dbusd.
+		dbus_system_bus_unconfined($1)
+		dbus_unconfined($1)
+	')
+
+	optional_policy(`
+		ipsec_setcontext_default_spd($1)
+		ipsec_match_default_spd($1)
+	')
+
+	optional_policy(`
+		nscd_unconfined($1)
+	')
+
+	optional_policy(`
+		postgresql_unconfined($1)
+	')
+
+	optional_policy(`
+		seutil_create_bin_policy($1)
+		seutil_relabelto_bin_policy($1)
+	')
+
+	optional_policy(`
+		storage_unconfined($1)
+	')
+
+	optional_policy(`
+		xserver_unconfined($1)
+	')
+')
+
+########################################
+## <summary>
+##	Make the specified domain unconfined and
+##	audit executable heap usage.
+## </summary>
+## <desc>
+##	<p>
+##	Make the specified domain unconfined and
+##	audit executable heap usage.  With exception
+##	of memory protections, usage of this interface
+##	will result in the level of access the domain has
+##	is like SELinux	was not being used.
+##	</p>
+##	<p>
+##	Only completely trusted domains should use this interface.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain to make unconfined.
+##	</summary>
+## </param>
+#
+interface(`unconfined_domain',`
+	gen_require(`
+		attribute unconfined_services;
+	')	
+
+	unconfined_domain_noaudit($1)
+
+	tunable_policy(`allow_execheap',`
+		auditallow $1 self:process execheap;
+	')
+')
+
+########################################
+## <summary>
+##	Add an alias type to the unconfined domain.  (Deprecated)
+## </summary>
+## <desc>
+##	<p>
+##	Add an alias type to the unconfined domain.  (Deprecated)
+##	</p>
+##	<p>
+##	This is added to support targeted policy.  Its
+##	use should be limited.  It has no effect
+##	on the strict policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	New alias of the unconfined domain.
+##	</summary>
+## </param>
+#
+interface(`unconfined_alias_domain',`
+	refpolicywarn(`$0($1) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Add an alias type to the unconfined execmem
+##	program file type.  (Deprecated)
+## </summary>
+## <desc>
+##	<p>
+##	Add an alias type to the unconfined execmem
+##	program file type.  (Deprecated)
+##	</p>
+##	<p>
+##	This is added to support targeted policy.  Its
+##	use should be limited.  It has no effect
+##	on the strict policy.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	New alias of the unconfined execmem program type.
+##	</summary>
+## </param>
+#
+interface(`unconfined_execmem_alias_program',`
+	refpolicywarn(`$0($1) has been deprecated.')
+')
+

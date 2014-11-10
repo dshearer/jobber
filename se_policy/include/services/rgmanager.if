@@ -1,0 +1,202 @@
+## <summary>SELinux policy for rgmanager</summary>
+
+#######################################
+## <summary>
+##      Execute a domain transition to run rgmanager.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`rgmanager_domtrans',`
+        gen_require(`
+                type rgmanager_t, rgmanager_exec_t;
+        ')
+
+        corecmd_search_bin($1)
+        domtrans_pattern($1,rgmanager_exec_t,rgmanager_t)
+
+')
+
+#######################################
+## <summary>
+##      Allow read and write access to rgmanager semaphores.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`rgmanager_rw_semaphores',`
+        gen_require(`
+                type rgmanager_t;
+        ')
+
+        allow $1 rgmanager_t:sem { unix_read unix_write associate read write };
+')
+
+########################################
+## <summary>
+##	Connect to rgmanager over an unix stream socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`rgmanager_stream_connect',`
+	gen_require(`
+		type rgmanager_t, rgmanager_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, rgmanager_var_run_t, rgmanager_var_run_t, rgmanager_t)
+')
+
+######################################
+## <summary>
+##      Allow manage rgmanager tmpfs files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      The type of the process performing this action.
+##      </summary>
+## </param>
+#
+interface(`rgmanager_manage_tmpfs_files',`
+    gen_require(`
+        type rgmanager_tmpfs_t;
+    ')
+
+    fs_search_tmpfs($1)
+	manage_files_pattern($1, rgmanager_tmpfs_t, rgmanager_tmpfs_t)
+    manage_lnk_files_pattern($1, rgmanager_tmpfs_t, rgmanager_tmpfs_t)
+')
+
+######################################
+## <summary>
+##      Allow manage rgmanager tmp files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      The type of the process performing this action.
+##      </summary>
+## </param>
+#
+interface(`rgmanager_manage_tmp_files',`
+    gen_require(`
+        type rgmanager_tmp_t;
+    ')
+
+    files_search_tmp($1)
+    manage_files_pattern($1, rgmanager_tmp_t, rgmanager_tmp_t)
+    manage_lnk_files_pattern($1, rgmanager_tmp_t, rgmanager_tmp_t)
+')
+
+######################################
+## <summary>
+##      Allow manage rgmanager pid files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      The type of the process performing this action.
+##      </summary>
+## </param>
+#
+interface(`rgmanager_manage_pid_files',`
+    gen_require(`
+        type rgmanager_tmp_t;
+    ')
+
+    manage_files_pattern($1, rgmanager_var_run_t, rgmanager_var_run_t)
+')
+
+
+######################################
+## <summary>
+##	All of the rules required to administrate 
+##	an rgmanager environment
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed access.
+##	 </summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed to manage the rgmanager domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`rgmanager_admin',`
+	gen_require(`
+		type rgmanager_t, rgmanager_initrc_exec_t, rgmanager_tmp_t; 
+		type rgmanager_tmpfs_t, rgmanager_var_log_t, rgmanager_var_run_t;
+        ')
+
+	allow $1 rgmanager_t:process { ptrace signal_perms };
+	ps_process_pattern($1, rgmanager_t)
+
+	init_labeled_script_domtrans($1, rgmanager_initrc_exec_t)
+	domain_system_change_exemption($1)
+	role_transition $2 rgmanager_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_tmp($1)
+	admin_pattern($1, rgmanager_tmp_t)
+
+	admin_pattern($1, rgmanager_tmpfs_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, rgmanager_var_log_t)
+
+	files_search_pids($1)
+	admin_pattern($1, rgmanager_var_run_t)
+')
+
+######################################
+## <summary>
+##  Allow the specified domain to manage rgmanager's lib/run files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rgmanager_manage_files',`
+    gen_require(`
+        type rgmanager_var_lib_t;
+        type rgmanager_var_run_t;
+    ')
+
+    files_list_var_lib($1)
+    admin_pattern($1, rgmanager_var_lib_t)
+
+    files_list_pids($1)
+    admin_pattern($1, rgmanager_var_run_t)
+')
+
+######################################
+## <summary>
+##  Allow the specified domain to search rgmanager's lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`rgmanager_search_lib',`
+    gen_require(`
+        type rgmanager_var_lib_t;
+    ')
+
+    files_list_var_lib($1)
+    allow $1 rgmanager_var_lib_t:dir search_dir_perms;
+')

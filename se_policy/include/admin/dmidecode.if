@@ -1,0 +1,69 @@
+## <summary>Decode DMI data for x86/ia64 bioses.</summary>
+
+########################################
+## <summary>
+##	Execute dmidecode in the dmidecode domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`dmidecode_domtrans',`
+	gen_require(`
+		type dmidecode_t, dmidecode_exec_t;
+	')
+
+	domain_auto_trans($1, dmidecode_exec_t, dmidecode_t)
+
+	allow $1 dmidecode_t:fd use;
+	allow dmidecode_t $1:fd use;
+	allow dmidecode_t $1:fifo_file rw_file_perms;
+	allow dmidecode_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Execute dmidecode in the dmidecode domain, and
+##	allow the specified role the dmidecode domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the dmidecode domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`dmidecode_run',`
+	gen_require(`
+		type dmidecode_t;
+	')
+
+	dmidecode_domtrans($1)
+	role $2 types dmidecode_t;
+')
+
+#####################################
+## <summary>
+##  Execute dmidecode in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`dmidecode_exec',`
+    gen_require(`
+        type dmidecode_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    can_exec($1, dmidecode_exec_t)
+')

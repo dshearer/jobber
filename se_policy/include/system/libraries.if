@@ -1,0 +1,557 @@
+## <summary>Policy for system libraries.</summary>
+
+########################################
+## <summary>
+##	Execute ldconfig in the ldconfig domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_domtrans_ldconfig',`
+	gen_require(`
+		type ldconfig_t, ldconfig_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, ldconfig_exec_t, ldconfig_t)
+')
+
+######################################
+## <summary>
+##  Execute ldconfig in the caller domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+## <rolecap/>
+#
+interface(`libs_exec_ldconfig',`
+    gen_require(`
+        type ldconfig_exec_t;
+    ')
+
+    corecmd_search_bin($1)
+    can_exec($1, ldconfig_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute ldconfig in the ldconfig domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to allow the ldconfig domain.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`libs_run_ldconfig',`
+	gen_require(`
+		type ldconfig_t;
+	')
+
+	libs_domtrans_ldconfig($1)
+	role $2 types ldconfig_t;
+')
+
+########################################
+## <summary>
+##	Use the dynamic link/loader for automatic loading
+##	of shared libraries.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_use_ld_so',`
+	gen_require(`
+		type lib_t, ld_so_t, ld_so_cache_t;
+	')
+
+	files_list_etc($1)
+	allow $1 lib_t:dir list_dir_perms;
+
+	read_lnk_files_pattern($1, lib_t, { lib_t ld_so_t })
+	mmap_files_pattern($1, lib_t, ld_so_t)
+
+	allow $1 ld_so_cache_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Use the dynamic link/loader for automatic loading
+##	of shared libraries with legacy support.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_legacy_use_ld_so',`
+	gen_require(`
+		type ld_so_t, ld_so_cache_t;
+	')
+
+	libs_use_ld_so($1)
+	allow $1 ld_so_t:file execmod;
+	allow $1 ld_so_cache_t:file execute;
+')
+
+########################################
+## <summary>
+##	Execute the dynamic link/loader in the caller's domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_exec_ld_so',`
+	gen_require(`
+		type lib_t, ld_so_t;
+	')
+
+	allow $1 lib_t:dir list_dir_perms;
+	read_lnk_files_pattern($1, lib_t, { lib_t ld_so_t })
+	exec_files_pattern($1, lib_t, ld_so_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete the
+##	dynamic link/loader.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`libs_manage_ld_so',`
+	gen_require(`
+		type lib_t, ld_so_t;
+	')
+
+	manage_files_pattern($1, lib_t, ld_so_t)
+')
+
+########################################
+## <summary>
+##	Relabel to and from the type used for
+##	the dynamic link/loader.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`libs_relabel_ld_so',`
+	gen_require(`
+		type lib_t, ld_so_t;
+	')
+
+	relabel_files_pattern($1, lib_t, ld_so_t)
+')
+
+########################################
+## <summary>
+##	Modify the dynamic link/loader's cached listing
+##	of shared libraries.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_rw_ld_so_cache',`
+	gen_require(`
+		type ld_so_cache_t;
+	')
+
+	files_list_etc($1)
+	allow $1 ld_so_cache_t:file rw_file_perms;
+')
+
+########################################
+## <summary>
+##	Search library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_search_lib',`
+	gen_require(`
+		type lib_t;
+	')
+
+	allow $1 lib_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Do not audit attempts to write to library directories.
+## </summary>
+## <desc>
+##	<p>
+##	Do not audit attempts to write to library directories.
+##	Typically this is used to quiet attempts to recompile
+##	python byte code.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_dontaudit_write_lib_dirs',`
+	gen_require(`
+		type lib_t;
+	')
+
+	dontaudit $1 lib_t:dir write;
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_manage_lib_dirs',`
+	gen_require(`
+		type lib_t;
+	')
+
+	allow $1 lib_t:dir manage_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read files in the library directories, such
+##	as static libraries.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_read_lib_files',`
+	gen_require(`
+		type lib_t;
+	')
+
+	files_list_usr($1)
+	list_dirs_pattern($1, lib_t, lib_t)
+	read_files_pattern($1, lib_t, lib_t)
+	read_lnk_files_pattern($1, lib_t, lib_t)
+')
+
+########################################
+## <summary>
+##	Execute library scripts in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_exec_lib_files',`
+	gen_require(`
+		type lib_t;
+	')
+
+	files_search_usr($1)
+	allow $1 lib_t:dir list_dir_perms;
+	read_lnk_files_pattern($1, lib_t, lib_t)
+	exec_files_pattern($1, lib_t, lib_t)
+')
+
+########################################
+## <summary>
+##	Load and execute functions from generic
+##	lib files as shared libraries.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_use_lib_files',`
+	refpolicywarn(`$0($*) has been deprecated, use libs_use_shared_libs() instead.')
+	libs_use_shared_libs($1)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete generic
+##	files in library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`libs_manage_lib_files',`
+	gen_require(`
+		type lib_t;
+	')
+
+	manage_files_pattern($1, lib_t, lib_t)
+')
+
+########################################
+## <summary>
+##	Relabel files to the type used in library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_relabelto_lib_files',`
+	gen_require(`
+		type lib_t;
+	')
+
+	relabelto_files_pattern($1, lib_t, lib_t)
+')
+
+########################################
+## <summary>
+##	Relabel to and from the type used
+##	for generic lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`libs_dontaudit_relabel_lib_files',`
+	gen_require(`
+		type lib_t;
+	')
+
+    dontaudit $1 lib_t:file relabel_file_perms;
+')
+
+########################################
+## <summary>
+##	Relabel to and from the type used
+##	for generic lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`libs_relabel_lib_files',`
+	gen_require(`
+		type lib_t;
+	')
+
+	relabel_files_pattern($1, lib_t, lib_t)
+')
+
+########################################
+## <summary>
+##	Delete generic symlinks in library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`libs_delete_lib_symlinks',`
+	gen_require(`
+		type lib_t;
+	')
+
+	delete_lnk_files_pattern($1, lib_t, lib_t)
+')
+
+########################################
+## <summary>
+##	Delete generic symlinks in library directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`libs_delete_lib_files',`
+	gen_require(`
+		type lib_t;
+	')
+
+	delete_files_pattern($1, lib_t, lib_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete shared libraries.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`libs_manage_shared_libs',`
+	gen_require(`
+		type lib_t, textrel_shlib_t;
+	')
+
+	manage_files_pattern($1, lib_t, { lib_t textrel_shlib_t })
+')
+
+########################################
+## <summary>
+##	Load and execute functions from shared libraries.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_use_shared_libs',`
+	gen_require(`
+		type lib_t, textrel_shlib_t;
+	')
+
+	files_search_usr($1)
+	allow $1 lib_t:dir list_dir_perms;
+	read_lnk_files_pattern($1, lib_t, { lib_t textrel_shlib_t })
+	mmap_files_pattern($1, lib_t, { lib_t textrel_shlib_t })
+	allow $1 textrel_shlib_t:file execmod;
+')
+
+########################################
+## <summary>
+##	Load and execute functions from shared libraries,
+##	with legacy support.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`libs_legacy_use_shared_libs',`
+	gen_require(`
+		type lib_t;
+	')
+
+	libs_use_shared_libs($1)
+	allow $1 lib_t:file execmod;
+')
+
+########################################
+## <summary>
+##	Relabel to and from the type used for
+##	shared libraries.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+# cjp: added for prelink
+interface(`libs_relabel_shared_libs',`
+	gen_require(`
+		type lib_t, textrel_shlib_t;
+	')
+
+	relabel_files_pattern($1, lib_t, { lib_t textrel_shlib_t })
+')
+
+########################################
+## <summary>
+##	Create an object in lib directories, with
+##	the shared libraries type using a type transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object">
+##	<summary>
+##	The object class of the object being created.
+##	</summary>
+## </param>
+#
+interface(`lib_filetrans_shared_lib',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Create an object in lib directories, with
+##	the shared libraries type using a type transition.  (Deprecated)
+## </summary>
+## <desc>
+##	<p>
+##	Create an object in lib directories, with
+##	the shared libraries type using a type transition.  (Deprecated)
+##	</p>
+##	<p>
+##	lib_filetrans_shared_lib() should be used instead.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="object">
+##	<summary>
+##	The object class of the object being created.
+##	</summary>
+## </param>
+#
+interface(`files_lib_filetrans_shared_lib',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')

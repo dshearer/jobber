@@ -1,0 +1,236 @@
+## <summary>Devicekit modular hardware abstraction layer</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run devicekit.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`devicekit_domtrans',`
+	gen_require(`
+		type devicekit_t, devicekit_exec_t;
+	')
+
+	domtrans_pattern($1, devicekit_exec_t, devicekit_t)
+')
+
+########################################
+## <summary>
+##	Send to devicekit over a unix domain
+##	datagram socket.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`devicekit_dgram_send',`
+	gen_require(`
+		type devicekit_t;
+	')
+
+	allow $1 devicekit_t:unix_dgram_socket sendto;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	devicekit over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`devicekit_dbus_chat',`
+	gen_require(`
+		type devicekit_t;
+		class dbus send_msg;
+	')
+
+	allow $1 devicekit_t:dbus send_msg;
+	allow devicekit_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	devicekit disk over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`devicekit_dbus_chat_disk',`
+	gen_require(`
+		type devicekit_disk_t;
+		class dbus send_msg;
+	')
+
+	allow $1 devicekit_disk_t:dbus send_msg;
+	allow devicekit_disk_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Send signal devicekit power
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`devicekit_signal_power',`
+	gen_require(`
+		type devicekit_power_t;
+	')
+
+	allow $1 devicekit_power_t:process signal;
+')
+
+########################################
+## <summary>
+##	Send and receive messages from
+##	devicekit power over dbus.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`devicekit_dbus_chat_power',`
+	gen_require(`
+		type devicekit_power_t;
+		class dbus send_msg;
+	')
+
+	allow $1 devicekit_power_t:dbus send_msg;
+	allow devicekit_power_t $1:dbus send_msg;
+')
+
+########################################
+## <summary>
+##	Read devicekit PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`devicekit_read_pid_files',`
+	gen_require(`
+		type devicekit_var_run_t;
+	')
+
+	files_search_pids($1)
+	read_files_pattern($1, devicekit_var_run_t, devicekit_var_run_t)
+')
+
+########################################
+## <summary>
+##	Manage devicekit var_run files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`devicekit_manage_var_run',`
+	gen_require(`
+		type devicekit_var_run_t;
+	')
+
+         manage_dirs_pattern($1,devicekit_var_run_t,devicekit_var_run_t)
+         manage_files_pattern($1,devicekit_var_run_t,devicekit_var_run_t)
+         manage_lnk_files_pattern($1,devicekit_var_run_t,devicekit_var_run_t)
+')
+
+#######################################
+## <summary>
+## Dontaudit Send and receive messages from
+## devicekit disk over dbus.
+## </summary>
+## <param name="domain">
+## <summary>
+## Domain to not audit.
+## </summary>
+## </param>
+#
+interface(`devicekit_dontaudit_dbus_chat_disk',`
+	gen_require(`
+		type devicekit_disk_t;
+		class dbus send_msg;
+ ')
+
+	dontaudit $1 devicekit_disk_t:dbus send_msg;
+	dontaudit devicekit_disk_t $1:dbus send_msg;
+')
+
+#######################################
+## <summary>
+##  Manage devicekit PID files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`devicekit_manage_pid_files',`
+    gen_require(`
+        type devicekit_var_run_t;
+    ')
+
+    files_search_pids($1)
+    manage_dirs_pattern($1, devicekit_var_run_t, devicekit_var_run_t)
+    manage_files_pattern($1, devicekit_var_run_t, devicekit_var_run_t)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate 
+##	an devicekit environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`devicekit_admin',`
+	gen_require(`
+		type devicekit_t, devicekit_disk_t, devicekit_power_t;
+		type devicekit_var_lib_t, devicekit_var_run_t, devicekit_tmp_t;
+	')
+
+	allow $1 devicekit_t:process { ptrace signal_perms };
+	ps_process_pattern($1, devicekit_t)
+
+	allow $1 devicekit_disk_t:process { ptrace signal_perms };
+	ps_process_pattern($1, devicekit_disk_t)
+
+	allow $1 devicekit_power_t:process { ptrace signal_perms };
+	ps_process_pattern($1, devicekit_power_t)
+
+	admin_pattern($1, devicekit_tmp_t)
+	files_search_tmp($1)
+
+	admin_pattern($1, devicekit_var_lib_t)
+	files_search_var_lib($1)
+
+	admin_pattern($1, devicekit_var_run_t)
+	files_search_pids($1)
+')
+

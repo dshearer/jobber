@@ -1,0 +1,351 @@
+
+## <summary>policy for condor</summary>
+
+#####################################
+## <summary>
+##  Creates types and rules for a basic
+##  condor init daemon domain.
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+template(`condor_domain_template',`
+    gen_require(`
+        type condor_master_t;
+        attribute condor_domain;
+    ')
+
+    #############################
+    #
+    # Declarations
+    #
+
+    type condor_$1_t, condor_domain;
+    type condor_$1_exec_t;
+    init_daemon_domain(condor_$1_t, condor_$1_exec_t)
+    role system_r types condor_$1_t;
+
+    domtrans_pattern(condor_master_t, condor_$1_exec_t, condor_$1_t)
+    allow condor_master_t condor_$1_exec_t:file ioctl;
+')
+
+########################################
+## <summary>
+##	Transition to condor.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`condor_domtrans',`
+	gen_require(`
+		type condor_t, condor_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, condor_exec_t, condor_t)
+')
+########################################
+## <summary>
+##	Read condor's log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`condor_read_log',`
+	gen_require(`
+		type condor_log_t;
+	')
+
+	logging_search_logs($1)
+	read_files_pattern($1, condor_log_t, condor_log_t)
+')
+
+########################################
+## <summary>
+##	Append to condor log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`condor_append_log',`
+	gen_require(`
+		type condor_log_t;
+	')
+
+	logging_search_logs($1)
+	append_files_pattern($1, condor_log_t, condor_log_t)
+')
+
+########################################
+## <summary>
+##	Manage condor log files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`condor_manage_log',`
+	gen_require(`
+		type condor_log_t;
+	')
+
+	logging_search_logs($1)
+	manage_dirs_pattern($1, condor_log_t, condor_log_t)
+	manage_files_pattern($1, condor_log_t, condor_log_t)
+	manage_lnk_files_pattern($1, condor_log_t, condor_log_t)
+')
+
+########################################
+## <summary>
+##	Search condor lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`condor_search_lib',`
+	gen_require(`
+		type condor_var_lib_t;
+	')
+
+	allow $1 condor_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read condor lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`condor_read_lib_files',`
+	gen_require(`
+		type condor_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, condor_var_lib_t, condor_var_lib_t)
+')
+#######################################
+## <summary>
+##  Read condor lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`condor_rw_lib_files',`
+    gen_require(`
+        type condor_var_lib_t;
+    ')
+
+    files_search_var_lib($1)
+    rw_files_pattern($1, condor_var_lib_t, condor_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage condor lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`condor_manage_lib_files',`
+	gen_require(`
+		type condor_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, condor_var_lib_t, condor_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage condor lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`condor_manage_lib_dirs',`
+	gen_require(`
+		type condor_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, condor_var_lib_t, condor_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Read condor PID files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`condor_read_pid_files',`
+	gen_require(`
+		type condor_var_run_t;
+	')
+
+	files_search_pids($1)
+	allow $1 condor_var_run_t:file read_file_perms;
+')
+
+#######################################
+## <summary>
+##  Read and write condor_startd server TCP sockets.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`condor_rw_tcp_sockets_startd',`
+       gen_require(`
+               type condor_startd_t;
+       ')
+
+       allow $1 condor_startd_t:tcp_socket rw_socket_perms;
+')
+
+######################################
+## <summary>
+##  Read and write condor_schedd server TCP sockets.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`condor_rw_tcp_sockets_schedd',`
+    gen_require(`
+        type condor_schedd_t;
+    ')
+
+    allow $1 condor_schedd_t:tcp_socket rw_socket_perms;
+')
+
+######################################
+## <summary>
+##  Allows to start userland processes
+##  by transitioning to the specified domain,
+##  with a range transition.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The process type entered by condor_startd.
+##  </summary>
+## </param>
+## <param name="entrypoint">
+##  <summary>
+##  The executable type for the entrypoint.
+##  </summary>
+## </param>
+## <param name="range">
+##  <summary>
+##  Range for the domain.
+##  </summary>
+## </param>
+#
+interface(`condor_startd_ranged_domtrans_to',`
+    gen_require(`
+        type sshd_t;
+    ')
+    condor_startd_domtrans_to($1, $2)
+
+
+    ifdef(`enable_mcs',`
+        range_transition condor_startd_t $2:process $3;
+    ')
+
+')
+
+######################################
+## <summary>
+##  Allows to start userlandprocesses
+##  by transitioning to the specified domain.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  The process type entered by condor_startd.
+##  </summary>
+## </param>
+## <param name="entrypoint">
+##  <summary>
+##  The executable type for the entrypoint.
+##  </summary>
+## </param>
+#
+interface(`condor_startd_domtrans_to',`
+    gen_require(`
+        type condor_startd_t;
+    ')
+
+    domtrans_pattern(condor_startd_t, $2, $1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an condor environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`condor_admin',`
+	gen_require(`
+		type condor_t;
+		type condor_log_t;
+		type condor_var_lib_t;
+		type condor_var_run_t;
+	')
+
+	allow $1 condor_t:process { ptrace signal_perms };
+	ps_process_pattern($1, condor_t)
+
+	logging_search_logs($1)
+	admin_pattern($1, condor_log_t)
+
+	files_search_var_lib($1)
+	admin_pattern($1, condor_var_lib_t)
+
+	files_search_pids($1)
+	admin_pattern($1, condor_var_run_t)
+')

@@ -1,0 +1,233 @@
+## <summary>Courier IMAP and POP3 email servers</summary>
+
+########################################
+## <summary>
+##	Template for creating courier server processes.
+## </summary>
+## <param name="prefix">
+##	<summary>
+##	Prefix name of the server process.
+##	</summary>
+## </param>
+#
+template(`courier_domain_template',`
+
+	##############################
+	#
+	# Declarations
+	#
+
+	type courier_$1_t;
+	type courier_$1_exec_t;
+	init_daemon_domain(courier_$1_t, courier_$1_exec_t)
+
+	##############################
+	#
+	# Declarations
+	#
+
+	allow courier_$1_t self:capability dac_override;
+	dontaudit courier_$1_t self:capability sys_tty_config;
+	allow courier_$1_t self:process { setpgid signal_perms };
+	allow courier_$1_t self:fifo_file { read write getattr };
+	allow courier_$1_t self:tcp_socket create_stream_socket_perms;
+	allow courier_$1_t self:udp_socket create_socket_perms;
+
+	can_exec(courier_$1_t, courier_$1_exec_t)
+
+	read_files_pattern(courier_$1_t, courier_etc_t, courier_etc_t)
+	allow courier_$1_t courier_etc_t:dir list_dir_perms;
+
+	manage_files_pattern(courier_$1_t, courier_var_run_t, courier_var_run_t)
+	manage_lnk_files_pattern(courier_$1_t, courier_var_run_t, courier_var_run_t)
+	manage_sock_files_pattern(courier_$1_t, courier_var_run_t, courier_var_run_t)
+	files_search_pids(courier_$1_t)
+
+	kernel_read_system_state(courier_$1_t)
+	kernel_read_kernel_sysctls(courier_$1_t)
+
+	corecmd_exec_bin(courier_$1_t)
+
+	corenet_all_recvfrom_unlabeled(courier_$1_t)
+	corenet_all_recvfrom_netlabel(courier_$1_t)
+	corenet_tcp_sendrecv_generic_if(courier_$1_t)
+	corenet_udp_sendrecv_generic_if(courier_$1_t)
+	corenet_tcp_sendrecv_generic_node(courier_$1_t)
+	corenet_udp_sendrecv_generic_node(courier_$1_t)
+	corenet_tcp_sendrecv_all_ports(courier_$1_t)
+	corenet_udp_sendrecv_all_ports(courier_$1_t)
+
+	dev_read_sysfs(courier_$1_t)
+
+	domain_use_interactive_fds(courier_$1_t)
+
+	files_read_etc_files(courier_$1_t)
+	files_read_etc_runtime_files(courier_$1_t)
+	files_read_usr_files(courier_$1_t)
+
+	fs_getattr_xattr_fs(courier_$1_t)
+	fs_search_auto_mountpoints(courier_$1_t)
+
+	logging_send_syslog_msg(courier_$1_t)
+
+	sysnet_read_config(courier_$1_t)
+
+	userdom_dontaudit_use_unpriv_user_fds(courier_$1_t)
+
+	optional_policy(`
+		seutil_sigchld_newrole(courier_$1_t)
+	')
+
+	optional_policy(`
+		udev_read_db(courier_$1_t)
+	')
+')
+
+########################################
+## <summary>
+##	Execute the courier authentication daemon with
+##	a domain transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`courier_domtrans_authdaemon',`
+	gen_require(`
+		type courier_authdaemon_t, courier_authdaemon_exec_t;
+	')
+
+	domtrans_pattern($1, courier_authdaemon_exec_t, courier_authdaemon_t)
+')
+
+######################################
+## <summary>
+##  Connect to courier-authdaemon over an unix stream socket.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`courier_stream_connect_authdaemon',`
+    gen_require(`
+        type courier_authdaemon_t, courier_spool_t;
+    ')
+
+    files_search_spool($1)
+    stream_connect_pattern($1, courier_spool_t, courier_spool_t, courier_authdaemon_t)
+')
+
+########################################
+## <summary>
+##	Execute the courier POP3 and IMAP server with
+##	a domain transition.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`courier_domtrans_pop',`
+	gen_require(`
+		type courier_pop_t, courier_pop_exec_t;
+	')
+
+	domtrans_pattern($1, courier_pop_exec_t, courier_pop_t)
+')
+
+########################################
+## <summary>
+##	Read courier config files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`courier_read_config',`
+	gen_require(`
+		type courier_etc_t;
+	')
+
+	read_files_pattern($1, courier_etc_t, courier_etc_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete courier
+##	spool directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`courier_manage_spool_dirs',`
+	gen_require(`
+		type courier_spool_t;
+	')
+
+	manage_dirs_pattern($1, courier_spool_t, courier_spool_t)
+')
+
+########################################
+## <summary>
+##	Create, read, write, and delete courier
+##	spool files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`courier_manage_spool_files',`
+	gen_require(`
+		type courier_spool_t;
+	')
+
+	manage_files_pattern($1, courier_spool_t, courier_spool_t)
+')
+
+########################################
+## <summary>
+##	Read courier spool files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`courier_read_spool',`
+	gen_require(`
+		type courier_spool_t;
+	')
+
+	read_files_pattern($1, courier_spool_t, courier_spool_t)
+')
+
+########################################
+## <summary>
+##	Read and write to courier spool pipes.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`courier_rw_spool_pipes',`
+	gen_require(`
+		type courier_spool_t;
+	')
+
+	allow $1 courier_spool_t:fifo_file rw_fifo_file_perms;
+')

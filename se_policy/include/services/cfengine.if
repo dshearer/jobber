@@ -1,0 +1,143 @@
+
+## <summary>policy for cfengine</summary>
+
+######################################
+## <summary>
+##  Creates types and rules for a basic
+##  cfengine init daemon domain.
+## </summary>
+## <param name="prefix">
+##  <summary>
+##  Prefix for the domain.
+##  </summary>
+## </param>
+#
+template(`cfengine_domain_template',`
+    gen_require(`
+        attribute cfengine_domain;
+    ')
+
+	##############################
+	#
+	# Declarations
+	#
+
+	type cfengine_$1_t, cfengine_domain;
+	type cfengine_$1_exec_t;
+	init_daemon_domain(cfengine_$1_t, cfengine_$1_exec_t)
+
+')
+
+########################################
+## <summary>
+##	Transition to cfengine.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`cfengine_domtrans_server',`
+	gen_require(`
+		type cfengine_server_t, cfengine_server_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, cfengine_server_exec_t, cfengine_server_t)
+')
+
+#######################################
+## <summary>
+##  Search cfengine lib files.
+## </summary>
+## <param name="domain">
+##  <summary>
+##  Domain allowed access.
+##  </summary>
+## </param>
+#
+interface(`cfengine_search_lib_files',`
+    gen_require(`
+        type cfengine_var_lib_t;
+    ')
+
+	allow $1 cfengine_var_lib_t:dir search_dir_perms;
+')
+
+########################################
+## <summary>
+##	Read cfengine lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cfengine_read_lib_files',`
+	gen_require(`
+		type cfengine_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, cfengine_var_lib_t, cfengine_var_lib_t)
+')
+
+######################################
+## <summary>
+##      Allow the specified domain to read cfengine's log files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`cfengine_read_log',`
+        gen_require(`
+                type cfengine_var_log_t;
+        ')
+
+        logging_search_logs($1)
+		files_search_var_lib($1)
+		cfengine_search_lib_files($1)
+        read_files_pattern($1, cfengine_var_log_t, cfengine_var_log_t)
+')
+
+#####################################
+## <summary>
+##      Allow the specified domain to append cfengine's log files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`cfengine_append_inherited_log',`
+        gen_require(`
+                type cfengine_var_log_t;
+        ')
+
+        cfengine_search_lib_files($1)
+		allow $1 cfengine_var_log_t:file { getattr append ioctl lock };
+')
+
+####################################
+## <summary>
+##      Dontaudit the specified domain to write cfengine's log files.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`cfengine_dontaudit_write_log',`
+        gen_require(`
+                type cfengine_var_log_t;
+        ')
+
+		dontaudit $1 cfengine_var_log_t:file write;
+')

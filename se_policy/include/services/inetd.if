@@ -1,0 +1,209 @@
+## <summary>Internet services daemon.</summary>
+
+########################################
+## <summary>
+##	Define the specified domain as a inetd service.
+## </summary>
+## <desc>
+##	<p>
+##	Define the specified domain as a inetd service.  The
+##	inetd_service_domain(), inetd_tcp_service_domain(),
+##	or inetd_udp_service_domain() interfaces should be used
+##	instead of this interface, as this interface only provides
+##	the common rules to these three interfaces.
+##	</p>
+## </desc>
+## <param name="domain">
+##	<summary>
+##	The type associated with the inetd service process.
+##	</summary>
+## </param>
+## <param name="entrypoint">
+##	<summary>
+##	The type associated with the process program.
+##	</summary>
+## </param>
+#
+interface(`inetd_core_service_domain',`
+	gen_require(`
+		type inetd_t;
+		role system_r;
+	')
+
+	domain_type($1)
+	domain_entry_file($1, $2)
+
+	role system_r types $1;
+
+	domtrans_pattern(inetd_t, $2, $1)
+	allow inetd_t $1:process { siginh sigkill };
+
+	optional_policy(`
+		abrt_stream_connect($1)
+	')
+')
+
+########################################
+## <summary>
+##	Define the specified domain as a TCP inetd service.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type associated with the inetd service process.
+##	</summary>
+## </param>
+## <param name="entrypoint">
+##	<summary>
+##	The type associated with the process program.
+##	</summary>
+## </param>
+#
+interface(`inetd_tcp_service_domain',`
+
+	gen_require(`
+		type inetd_t;
+	')
+
+	inetd_core_service_domain($1, $2)
+
+	allow $1 inetd_t:tcp_socket rw_stream_socket_perms;
+')
+
+########################################
+## <summary>
+##	Define the specified domain as a UDP inetd service.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type associated with the inetd service process.
+##	</summary>
+## </param>
+## <param name="entrypoint">
+##	<summary>
+##	The type associated with the process program.
+##	</summary>
+## </param>
+#
+interface(`inetd_udp_service_domain',`
+	gen_require(`
+		type inetd_t;
+	')
+
+	inetd_core_service_domain($1, $2)
+
+	allow $1 inetd_t:udp_socket rw_socket_perms;
+')
+
+########################################
+## <summary>
+##	Define the specified domain as a TCP and UDP inetd service.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type associated with the inetd service process.
+##	</summary>
+## </param>
+## <param name="entrypoint">
+##	<summary>
+##	The type associated with the process program.
+##	</summary>
+## </param>
+#
+interface(`inetd_service_domain',`
+	gen_require(`
+		type inetd_t;
+	')
+
+	inetd_core_service_domain($1, $2)
+
+	allow $1 inetd_t:tcp_socket rw_stream_socket_perms;
+	allow $1 inetd_t:udp_socket rw_socket_perms;
+
+	# encrypt the service through stunnel
+	optional_policy(`
+		stunnel_service_domain($1, $2)
+	')
+')
+
+########################################
+## <summary>
+##	Inherit and use file descriptors from inetd.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inetd_use_fds',`
+	gen_require(`
+		type inetd_t;
+	')
+
+	allow $1 inetd_t:fd use;
+')
+
+########################################
+## <summary>
+##	Connect to the inetd service using a TCP connection.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inetd_tcp_connect',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Run inetd child process in the inet child domain
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`inetd_domtrans_child',`
+	gen_require(`
+		type inetd_child_t, inetd_child_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, inetd_child_exec_t, inetd_child_t)
+')
+
+########################################
+## <summary>
+##	Send UDP network traffic to inetd.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`inetd_udp_send',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')
+
+########################################
+## <summary>
+##	Read and write inetd TCP sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`inetd_rw_tcp_sockets',`
+	gen_require(`
+		type inetd_t;
+	')
+
+	allow $1 inetd_t:tcp_socket rw_stream_socket_perms;
+')

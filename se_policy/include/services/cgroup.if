@@ -1,0 +1,147 @@
+## <summary>libcg is a library that abstracts the control group file system in Linux.</summary>
+
+########################################
+## <summary>
+##	Execute a domain transition to run
+##	CG config parser.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`cgroup_domtrans_cgconfig',`
+	gen_require(`
+		type cgconfig_t, cgconfig_exec_t;
+	')
+
+	domtrans_pattern($1, cgconfig_exec_t, cgconfig_t)
+	corecmd_search_bin($1)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run
+##	CG config parser.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`cgroup_initrc_domtrans_cgconfig',`
+	gen_require(`
+		type cgconfig_initrc_exec_t;
+	')
+
+	files_search_etc($1)
+	init_labeled_script_domtrans($1, cgconfig_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run
+##	CG rules engine daemon.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`cgroup_domtrans_cgred',`
+	gen_require(`
+		type cgred_t, cgred_exec_t;
+	')
+
+	domtrans_pattern($1, cgred_exec_t, cgred_t)
+	corecmd_search_bin($1)
+')
+
+########################################
+## <summary>
+##	Execute a domain transition to run
+## 	CG rules engine daemon.
+##	domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`cgroup_initrc_domtrans_cgred',`
+	gen_require(`
+		type cgred_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, cgred_initrc_exec_t)
+')
+
+########################################
+## <summary>
+##	Connect to CG rules engine daemon
+##	over unix stream sockets.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`cgroup_stream_connect', `
+	gen_require(`
+		type cgred_var_run_t, cgred_t;
+	')
+
+	stream_connect_pattern($1, cgred_var_run_t, cgred_var_run_t, cgred_t)
+	files_search_pids($1)
+')
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an cgroup environment.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`cgroup_admin',`
+	gen_require(`
+		type cgred_t, cgconfig_t, cgred_var_run_t;
+		type cgconfig_etc_t, cgconfig_initrc_exec_t, cgred_initrc_exec_t;
+		type cgrules_etc_t;
+	')
+
+	allow $1 cgconfig_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, cgconfig_t, cgconfig_t)
+
+	allow $1 cgred_t:process { ptrace signal_perms getattr };
+	read_files_pattern($1, cgred_t, cgred_t)
+
+	admin_pattern($1, cgconfig_etc_t)
+	admin_pattern($1, cgrules_etc_t)
+	files_search_etc($1)
+
+	admin_pattern($1, cgred_var_run_t)
+	files_search_pids($1)
+
+	cgroup_initrc_domtrans_cgconfig($1)
+	domain_system_change_exemption($1)
+	role_transition $2 cgconfig_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	cgroup_initrc_domtrans_cgred($1)
+	role_transition $2 cgred_initrc_exec_t system_r;
+')

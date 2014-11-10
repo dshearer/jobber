@@ -1,0 +1,33 @@
+## <summary>Finger user information service.</summary>
+
+########################################
+## <summary>
+##	Execute fingerd in the fingerd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	The type of the process performing this action.
+##	</summary>
+## </param>
+#
+interface(`finger_domtrans',`
+	gen_require(`
+		type fingerd_t, fingerd_exec_t;
+	')
+
+	domtrans_pattern($1, fingerd_exec_t, fingerd_t)
+')
+
+########################################
+## <summary>
+##	Allow the specified domain to connect to fingerd with a tcp socket.  (Deprecated)
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`finger_tcp_connect',`
+	refpolicywarn(`$0($*) has been deprecated.')
+')

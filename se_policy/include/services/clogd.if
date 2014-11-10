@@ -1,0 +1,82 @@
+## <summary>clogd - clustered mirror log server</summary>
+
+######################################
+## <summary>
+##      Execute a domain transition to run clogd.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`clogd_domtrans',`
+        gen_require(`
+                type clogd_t, clogd_exec_t;
+        ')
+
+        corecmd_search_bin($1)
+        domtrans_pattern($1,clogd_exec_t,clogd_t)
+
+')
+
+#####################################
+## <summary>
+##      Connect to clogd over a unix domain
+##      stream socket.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`clogd_stream_connect',`
+        gen_require(`
+                type clogd_t, clogd_var_run_t;
+        ')
+
+        files_search_pids($1)
+        stream_connect_pattern($1, clogd_var_run_t, clogd_var_run_t, clogd_t)
+')
+
+#####################################
+## <summary>
+##      Allow read and write access to clogd semaphores.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`clogd_rw_semaphores',`
+        gen_require(`
+                type clogd_t;
+        ')
+
+        allow $1 clogd_t:sem { rw_sem_perms destroy };
+')
+
+########################################
+## <summary>
+##      Read and write to group shared memory.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      The type of the process performing this action.
+##      </summary>
+## </param>
+#
+interface(`clogd_rw_shm',`
+        gen_require(`
+                type clogd_t, clogd_tmpfs_t;
+        ')
+
+        allow $1 clogd_t:shm { rw_shm_perms destroy };
+		allow $1 clogd_tmpfs_t:dir list_dir_perms;
+        rw_files_pattern($1, clogd_tmpfs_t, clogd_tmpfs_t)
+        read_lnk_files_pattern($1, clogd_tmpfs_t, clogd_tmpfs_t)
+        fs_search_tmpfs($1)
+')
+
