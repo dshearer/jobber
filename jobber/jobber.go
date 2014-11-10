@@ -56,8 +56,12 @@ func main() {
         
         // make sure the daemon is running
         if _, err := os.Stat(jobber.DaemonSocketAddr); os.IsNotExist(err) {
-            fmt.Fprintf(os.Stderr, "jobberd isn't running.\n")
-            os.Exit(1)
+            if flag.Arg(0) == StopCmdStr {
+                os.Exit(0)
+            } else {
+                fmt.Fprintf(os.Stderr, "jobberd isn't running.\n")
+                os.Exit(1)
+            }
         }
         
         // connect to daemon

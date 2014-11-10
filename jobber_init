@@ -24,7 +24,7 @@ start() {
     [ -x $exec ] || exit 5
     echo -n $"Starting $prog: "
     daemon daemonize -p $pidfile -l $lockfile $exec
-    retval=$?
+    local retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile
 }
@@ -35,10 +35,27 @@ stop() {
         exit 4
     fi
     echo -n $"Stopping $prog: "
-    /usr/local/bin/jobber stop && success
-    retval=$?
+
+    rh_status_q
+    local stat=$?
+    case $stat in
+        0)
+            # running
+            /usr/local/bin/jobber stop && success && rm -f $lockfile $pidfile
+            ;;
+        1)
+            # stopped but pid file exists
+            rm -f $pidfile $pidfile
+            ;;
+        2)
+            # stopped but subsys locked
+            rm -f $lockfile $pidfile
+            ;;
+    esac
+    local retval=$?
+
     echo
-    [ $retval -eq 0 ] && rm -f $lockfile $pidfile
+    return $retval
 }
 
 restart() {
@@ -47,7 +64,6 @@ restart() {
 }
 
 rh_status() {
-    # run checks to determine if the service is running or use generic status
     status -p $pidfile $prog
 }
 
