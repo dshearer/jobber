@@ -11,6 +11,10 @@ Along with the functionality of cron, Jobber also provides:
 * **Sophisticated error handling**: you can control whether and when a job is run again after it fails.  For example, after an initial failure of a job, Jobber can schedule future runs using an exponential backoff algorithm.
 * **Sophisticated error reporting**: you can control whether Jobber notifies you about each failed run, or only about jobs that have been disabled due to repeated failures.
 
+## Maturity
+
+Jobber is curerntly at a "beta" level of maturity.  The largest open task is to do a thorough security review.
+
 ## Target Systems
 
 Jobber is written in [Go](http://golang.org/), and it should be possible to compile and run it on any modern Unix-like system.  However, at this time its installation script targets RHEL, Fedora, and CentOS.  (Actually, it has only been tested on CentOS....)
