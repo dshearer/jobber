@@ -2,6 +2,22 @@
 
 A replacement for cron, with sophisticated status-reporting and error-handling.
 
+# Table of Contents
+*generated with [DocToc](http://doctoc.herokuapp.com/)*
+
+- [Intro](#intro)
+- [Maturity](#maturity)
+- [Target Systems](#target-systems)
+- [Installation](#installation)
+- [Usage](#usage)
+	- [Defining Jobs](#defining-jobs)
+		- [Field "time"](#field-time)
+		- [Fields "onError", "notifyOnError", and "notifyOnFailure"](#fields-onerror-notifyonerror-and-notifyonfailure)
+	- [Loading Jobs](#loading-jobs)
+	- [Listing Jobs](#listing-jobs)
+	- [Listing Runs](#listing-runs)
+	- [Testing Jobs](#testing-jobs)
+
 # Intro
 
 Jobber is a utility for Unix-like systems that can run arbitrary commands, or "jobs", according to a schedule.  It is meant to be a replacement for the classic Unix utility [cron](http://en.wikipedia.org/wiki/Cron).
