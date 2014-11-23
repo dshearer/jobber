@@ -75,16 +75,27 @@ func (m *JobManager) LoadAllJobs() (int, error) {
 }
 
 func (m *JobManager) ReloadAllJobs() (int, error) {
+    // stop job-runner thread and wait for current runs to end
+    m.stopJobRunnerThread()
+    
     // remove jobs
     amt := len(m.jobs)
     m.jobs = make([]*Job, 0)
     m.logger.Printf("Removed %v jobs.\n", amt)
     
     // reload jobs
-    return m.LoadAllJobs()
+    amt, err := m.LoadAllJobs()
+    
+    // restart job-runner thread
+    m.runJobRunnerThread()
+    
+    return amt, err
 }
 
 func (m *JobManager) ReloadJobsForUser(username string) (int, error) {
+    // stop job-runner thread and wait for current runs to end
+    m.stopJobRunnerThread()
+    
     // remove user's jobs
     newJobList := make([]*Job, 0)
     for _, job := range m.jobs {
@@ -96,7 +107,12 @@ func (m *JobManager) ReloadJobsForUser(username string) (int, error) {
     m.jobs = newJobList
     
     // reload user's jobs
-    return m.LoadJobsForUser(username)
+    amt, err := m.LoadJobsForUser(username)
+    
+    // restart job-runner thread
+    m.runJobRunnerThread()
+    
+    return amt, err
 }
 
 func (m *JobManager) LoadJobsForUser(username string) (int, error) {

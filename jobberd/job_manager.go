@@ -54,15 +54,19 @@ func (s *runLogEntrySorter) Less(i, j int) bool {
 }
 
 type JobManager struct {
-    jobs            []*Job
-    loadedJobs      bool
-    runLog          []RunLogEntry
-    cmdChan         chan ICmd
-    doneChan        <-chan bool
-    jobWaitGroup    sync.WaitGroup
-    logger          *log.Logger
-    errorLogger     *log.Logger
-    Shell           string
+    jobs                  []*Job
+    loadedJobs            bool
+    runLog                []RunLogEntry
+    cmdChan               chan ICmd
+    mainThreadCtx         context.Context
+    doneChan              <-chan bool
+    jobRunThreadDoneChan  chan bool
+    runRecChan            chan *RunRec
+    stopMainThread        func()
+    stopJobRunnerThread   func()
+    logger                *log.Logger
+    errorLogger           *log.Logger
+    Shell                 string
 }
 
 func NewJobManager() (*JobManager, error) {
@@ -131,28 +135,35 @@ func (m *JobManager) Wait() {
 }
 
 func (m *JobManager) Stop() {
-    m.cmdChan <- &StopCmd{"root", make(chan ICmdResp, 1)}
     close(m.cmdChan)
-    m.Wait()
+    m.stopMainThread()
 }
 
 func (m *JobManager) runMainThread() <-chan bool {
     doneChan := make(chan bool, 1)
+    
+    ctx, cancel := context.WithCancel(context.Background())
+    m.mainThreadCtx = ctx
+    m.stopMainThread = func() {
+        cancel()
+        <-doneChan
+    }
+    
     go func() {
         /*
          All modifications to the job manager's state occur here.
         */
     
         // make job-runner thread
-        runRecChan, stopJobRunThreadFunc := m.runJobRunnerThread()
+        m.runJobRunnerThread()
     
         Loop: for {
             select {
-            case rec, ok := <-runRecChan:
-                if !ok {
-                    /* Job-runner thread is done. */
-                    break Loop
-                } else {
+            case <-ctx.Done():
+                break Loop
+                
+            case rec, ok := <-m.runRecChan:
+                if ok {
                     if len(rec.Stdout) > 0 {
                         m.logger.Println(rec.Stdout)
                     }
@@ -186,12 +197,13 @@ func (m *JobManager) runMainThread() <-chan bool {
             case cmd, ok := <-m.cmdChan:
                 if ok {
                     //fmt.Printf("JobManager: processing cmd.\n")
-                    m.doCmd(cmd, stopJobRunThreadFunc)
+                    m.doCmd(cmd)
                 }
             }
         }
         
-        /* At this point, the job-runner thread is done. */
+        // wait for job-running thread to quit
+        <-m.jobRunThreadDoneChan
         
         // clean up
         doneChan <- true
@@ -201,15 +213,18 @@ func (m *JobManager) runMainThread() <-chan bool {
     return doneChan
 }
 
-func (m *JobManager) runJobRunnerThread() (<-chan *RunRec, func()) {
-    runRecChan := make(chan *RunRec)
-    ctx, cancel := context.WithCancel(context.Background())
-    stopJobRunThreadFunc := func() {
+func (m *JobManager) runJobRunnerThread() {
+    m.runRecChan = make(chan *RunRec)
+    m.jobRunThreadDoneChan = make(chan bool)
+    
+    subctx, cancel := context.WithCancel(m.mainThreadCtx)
+    m.stopJobRunnerThread = func() {
         cancel()
-        m.jobWaitGroup.Wait()
+        <-m.jobRunThreadDoneChan
     }
     
     go func() {
+        var jobWaitGroup sync.WaitGroup
         ticker := time.Tick(time.Duration(1 * time.Second))
         Loop: for {
             select {
@@ -217,29 +232,28 @@ func (m *JobManager) runJobRunnerThread() (<-chan *RunRec, func()) {
                 jobsToRun := m.jobsToRun(now)
                 for _, j := range jobsToRun {
                     m.logger.Printf("%v: %v\n", j.User, j.Cmd)
-                    m.jobWaitGroup.Add(1)
+                    jobWaitGroup.Add(1)
                     go func(job *Job) {
-                        runRecChan <- job.Run(ctx, m.Shell, false)
-                        m.jobWaitGroup.Done()
+                        m.runRecChan <- job.Run(subctx, m.Shell, false)
+                        jobWaitGroup.Done()
                     }(j)
                 }
         
-            case <-ctx.Done():
+            case <-subctx.Done():
                 break Loop
             }
         }
     
         // clean up
         //fmt.Printf("JobRunner: cleaning up...\n")
-        m.jobWaitGroup.Wait()
-        close(runRecChan)
-        //fmt.Printf("JobRunner: done cleaning up.\n")
+        jobWaitGroup.Wait()
+        m.jobRunThreadDoneChan <- true
+        close(m.jobRunThreadDoneChan)
+        //m.logger.Printf("JobRunner: done cleaning up.\n")
     }()
-    
-    return runRecChan, stopJobRunThreadFunc
 }
 
-func (m *JobManager) doCmd(cmd ICmd, stopJobRunThreadFunc func()) {
+func (m *JobManager) doCmd(cmd ICmd) {
     
     /*
     Security:
@@ -364,7 +378,7 @@ func (m *JobManager) doCmd(cmd ICmd, stopJobRunThreadFunc func()) {
         m.logger.Println("Stopping.")
         
         // stop job-runner thread
-        stopJobRunThreadFunc()
+        m.stopJobRunnerThread()
     
         // send response
         cmd.RespChan() <- &SuccessCmdResp{}
