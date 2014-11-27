@@ -354,6 +354,23 @@ Full-Width Styles
   background: url(../images/sprite_download.png) no-repeat top right;
 }
 
+#toc {
+  position: fixed;
+  padding-top: 40px;
+  padding-left: 10px;
+  max-width: 300px;
+  font-size: 130%;
+}
+
+#toc ul {
+  list-style: none;
+}
+
+#toc ul ul {
+  list-style: none;
+  font-size: 80%;
+}
+
 #main_content_wrap {
   background: #f2f2f2;
   border-top: 1px solid #111;
@@ -362,6 +379,7 @@ Full-Width Styles
 
 #main_content {
   padding-top: 40px;
+  margin-left: 250px;
 }
 
 #footer_wrap {
