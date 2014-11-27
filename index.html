@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Jobber : A replacement for cron, with sophisticated status-reporting and error-handling.">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Jobber</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/dshearer/jobber">View on GitHub</a>
+
+          <h1 id="project_title">Jobber</h1>
+          <h2 id="project_tagline">A replacement for cron, with sophisticated status-reporting and error-handling.</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/dshearer/jobber/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/dshearer/jobber/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a id="jobber" class="anchor" href="#jobber" aria-hidden="true"><span class="octicon octicon-link"></span></a>Jobber</h1>
+
+<p>A replacement for cron, with sophisticated status-reporting and error-handling.</p>
+
+<h1>
+<a id="table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h1>
+
+<p><em>generated with <a href="http://doctoc.herokuapp.com/">DocToc</a></em></p>
+
+<ul>
+<li><a href="#intro">Intro</a></li>
+<li><a href="#maturity">Maturity</a></li>
+<li><a href="#target-systems">Target Systems</a></li>
+<li><a href="#installation">Installation</a></li>
+<li>
+<a href="#usage">Usage</a>
+
+<ul>
+<li>
+<a href="#defining-jobs">Defining Jobs</a>
+
+<ul>
+<li><a href="#field-time">Field "time"</a></li>
+<li><a href="#fields-onerror-notifyonerror-and-notifyonfailure">Fields "onError", "notifyOnError", and "notifyOnFailure"</a></li>
+</ul>
+</li>
+<li><a href="#loading-jobs">Loading Jobs</a></li>
+<li><a href="#listing-jobs">Listing Jobs</a></li>
+<li><a href="#listing-runs">Listing Runs</a></li>
+<li><a href="#testing-jobs">Testing Jobs</a></li>
+</ul>
+</li>
+</ul>
+
+<h1>
+<a id="intro" class="anchor" href="#intro" aria-hidden="true"><span class="octicon octicon-link"></span></a>Intro</h1>
+
+<p>Jobber is a utility for Unix-like systems that can run arbitrary commands, or "jobs", according to a schedule.  It is meant to be a replacement for the classic Unix utility <a href="http://en.wikipedia.org/wiki/Cron">cron</a>.</p>
+
+<p>Along with the functionality of cron, Jobber also provides:</p>
+
+<ul>
+<li>
+<strong>Job execution history</strong>: you can see what jobs have recently run, and whether they succeeded or failed.</li>
+<li>
+<strong>Sophisticated error handling</strong>: you can control whether and when a job is run again after it fails.  For example, after an initial failure of a job, Jobber can schedule future runs using an exponential backoff algorithm.</li>
+<li>
+<strong>Sophisticated error reporting</strong>: you can control whether Jobber notifies you about each failed run, or only about jobs that have been disabled due to repeated failures.</li>
+</ul>
+
+<h1>
+<a id="maturity" class="anchor" href="#maturity" aria-hidden="true"><span class="octicon octicon-link"></span></a>Maturity</h1>
+
+<p>Jobber is curerntly at a "beta" level of maturity.  The largest open task is to do a thorough security review.</p>
+
+<h1>
+<a id="target-systems" class="anchor" href="#target-systems" aria-hidden="true"><span class="octicon octicon-link"></span></a>Target Systems</h1>
+
+<p>Jobber is written in <a href="http://golang.org/">Go</a>, and it should be possible to compile and run it on any modern Unix-like system.  However, at this time its installation script targets RHEL, Fedora, and CentOS.  (Actually, it has only been tested on CentOS....)</p>
+
+<h1>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>You need a recent version of <a href="http://golang.org/">Go</a> to compile Jobber.  Once you've installed Go and set up your Go workspace, you can build it thus:</p>
+
+<pre><code>cd /path/to/your/workspace
+go get github.com/dshearer/jobber
+make -C src/github.com/dshearer/jobber
+</code></pre>
+
+<p>As mentioned above, Jobber's installation script currently targets RHEL-like systems.  If you are on such a system, you can install Jobber thus:</p>
+
+<pre><code>cd /path/to/your/workspace
+sudo make install
+</code></pre>
+
+<h1>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<h2>
+<a id="defining-jobs" class="anchor" href="#defining-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Defining Jobs</h2>
+
+<p>As with cron, each user can have its own set of jobs, which will be run under that user's privileges.  A user's jobs are defined in a file named ".jobber" in the user's home directory.  Jobfiles are written in JSON format.  Here's an example:</p>
+
+<pre><code>[
+    {
+        "name": "DailyBackup",
+        "cmd": "backup daily",
+        "time": {
+            "sec": 0,
+            "min": 0,
+            "hour": 13
+        },
+        "onError": "Stop",
+        "notifyOnError": false,
+        "notifyOnFailure": true
+    },
+    {
+        "name": "WeeklyBackup",
+        "cmd": "backup weekly",
+        "time": {
+            "sec": 0,
+            "min": 0,
+            "hour": 14,
+            "wday": 1
+        },
+        "onError": "Stop",
+        "notifyOnError": false,
+        "notifyOnFailure": true
+    }
+]
+</code></pre>
+
+<p>This jobfile defines two jobs.  Field "name" is self-explanatory.  Field "cmd" can contain any shell command.</p>
+
+<h3>
+<a id="field-time" class="anchor" href="#field-time" aria-hidden="true"><span class="octicon octicon-link"></span></a>Field "time"</h3>
+
+<p>Field "time" specifies when the job is run, in a manner similar to how cron jobs' schedules are specified.  A job is scheduled thus: at each second, jobber looks at the job's "time" field and determines whether all of the subfields that happen to be present match the current time; if so it runs the job, and otherwise it does not.  Thus, "DailyBackup" is run whenever the current time is 13:00:00 (i.e., 1 PM), no matter the day, whereas "WeeklyBackup" is run whenever the current time is 14:00:00 (i.e., 2 PM) and the current weekday is Monday.  The possible subfields of "time" and their value ranges are as follows:</p>
+
+<ul>
+<li>"sec": 0 – 59</li>
+<li>"min": 0 – 59</li>
+<li>"hour": 0 – 23</li>
+<li>"mday": 1 – 31</li>
+<li>"mon": 1 – 12</li>
+<li>"wday": 1 – 7</li>
+</ul>
+
+<h3>
+<a id="fields-onerror-notifyonerror-and-notifyonfailure" class="anchor" href="#fields-onerror-notifyonerror-and-notifyonfailure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fields "onError", "notifyOnError", and "notifyOnFailure"</h3>
+
+<p>When discussnig jobs, by "job error" we mean the failure of a particular run of a job, whereas by "job failure" we mean a job that jobber has decided not to schedule anymore due to one or more recent job errors.  Jobber considers a run to have failed when the command (in field "cmd") returns a non-0 exit status.</p>
+
+<p>Field "onError" specifies what jobber will do when a job error occurs.  The possible values:</p>
+
+<ul>
+<li>"Stop": <em>Stop scheduling runs of this job.</em>  That is, a single job error results in a job failure.</li>
+<li>"Backoff": <em>Schedule runs of this job according to an exponential backoff algorithm.</em>  If a later run of the job succeeds, jobber resumes scheduling this job normally; but if the job fails again on several consecutive runs, jobber stops scheduling it &amp;emdash; that is, the job fails.</li>
+<li>"Continue": <em>Continue scheduling this job normally.</em>  That is, the job will never fail.</li>
+</ul>
+
+<p>Fields "notifyOnError" and "notifyOnFailure" control whether the user that owns a job is notified about job errors and job failures.</p>
+
+<h2>
+<a id="loading-jobs" class="anchor" href="#loading-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading Jobs</h2>
+
+<p>After you've created a user's jobfile, log in as that user and do:</p>
+
+<pre><code>jobber reload
+</code></pre>
+
+<p>You can also reload all users' jobfiles by logging in as root and doing:</p>
+
+<pre><code>jobber reload -a
+</code></pre>
+
+<h2>
+<a id="listing-jobs" class="anchor" href="#listing-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Jobs</h2>
+
+<p>You can list the jobs for a particular user by logging in as that user and doing</p>
+
+<pre><code>jobber list
+</code></pre>
+
+<p>This command also shows you the status of each job — that is, whether the job is being scheduled as normal, the exponential backoff algorithm is being applied, or the job has failed.</p>
+
+<p>As with the "reload" command, you can do the same for all users by adding the "-a" option as root.</p>
+
+<h2>
+<a id="listing-runs" class="anchor" href="#listing-runs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Runs</h2>
+
+<p>You can see a list of recent runs of any jobs for a particular user by logging in as that user and doing</p>
+
+<pre><code>jobber log
+</code></pre>
+
+<p>As with the other commands, you can do the same for all users by adding the "-a" option as root.</p>
+
+<h2>
+<a id="testing-jobs" class="anchor" href="#testing-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing Jobs</h2>
+
+<p>If you'd like to test out a job, do</p>
+
+<pre><code>jobber test JOB_NAME
+</code></pre>
+
+<p>Jobber will immediately run that job, tell you whether it succeeded, and show you its output.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Jobber maintained by <a href="https://github.com/dshearer">dshearer</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
