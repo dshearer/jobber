@@ -11,19 +11,19 @@
     <title>Jobber: A replacement for cron, with sophisticated status-reporting and error-handling.</title>
   </head>
 
-  <body>
+  <body itemscope itemtype="http://schema.org/SoftwareApplication">
 
     <!-- HEADER -->
     <div id="header_wrap" class="outer">
         <header class="inner">
           <a id="forkme_banner" href="https://github.com/dshearer/jobber">View on GitHub</a>
 
-          <h1 id="project_title">Jobber</h1>
+          <h1 id="project_title" itemprop="name">Jobber</h1>
           <h2 id="project_tagline">A replacement for cron, with sophisticated status-reporting and error-handling.</h2>
 
             <section id="downloads">
-              <a class="zip_download_link" href="https://github.com/dshearer/jobber/zipball/master">Download this project as a .zip file</a>
-              <a class="tar_download_link" href="https://github.com/dshearer/jobber/tarball/master">Download this project as a tar.gz file</a>
+              <a class="zip_download_link" href="https://github.com/dshearer/jobber/zipball/master" itemprop="downloadUrl">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/dshearer/jobber/tarball/master" itemprop="downloadUrl">Download this project as a tar.gz file</a>
             </section>
         </header>
     </div>
@@ -55,11 +55,11 @@
 <h1>
 <a id="intro" class="anchor" href="#intro" aria-hidden="true"><span class="octicon octicon-link"></span></a>Intro</h1>
 
-<p>Jobber is a utility for Unix-like systems that can run arbitrary commands, or &ldquo;jobs&rdquo;, according to a schedule.  It is meant to be a replacement for the classic Unix utility <a href="http://en.wikipedia.org/wiki/Cron">cron</a>.</p>
+<p itemprop="description">Jobber is a <span itemprop="applicationCategory">utility</span> for Unix-like systems that can run arbitrary commands, or &ldquo;jobs&rdquo;, according to a schedule.  It is meant to be a replacement for the classic Unix utility <a href="http://en.wikipedia.org/wiki/Cron">cron</a>.</p>
 
 <p>Along with the functionality of cron, Jobber also provides:</p>
 
-<ul>
+<ul itemprop="featureList">
 <li>
 <strong>Job execution history</strong>: you can see what jobs have recently run, and whether they succeeded or failed.</li>
 <li>
@@ -70,9 +70,10 @@
 
 <h1><a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
 
-<p>Jobber's source code is copyright &#0169; 2014 Charles Dylan Shearer.  It is licensed according to the MIT License:</p>
+<p>Jobber's source code is copyright &#0169; <span itemprop="copyrightYear">2014</span> <span itemprop="copyrightHolder" itemscope itemtype="http://schema.org/Person"><span itemprop="name">Charles Dylan Shearer</span></span>.  It is licensed according to the MIT License:</p>
 
-<pre>
+<div itemprop="license" itemscope itemtype="http://schema.org/CreativeWork">
+<pre itemprop="text">
 The MIT License (MIT)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -93,6 +94,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 </pre>
+</div>
 
 <h1><a id="project-status" class="anchor" href="#project-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Status</h1>
 
@@ -100,7 +102,7 @@ SOFTWARE.
 
 <h1><a id="target-systems" class="anchor" href="#target-systems" aria-hidden="true"><span class="octicon octicon-link"></span></a>Target Systems</h1>
 
-<p>Jobber is written in <a href="http://golang.org/">Go</a>, and it should be possible to compile and run it on any modern Unix-like system.  However, at this time its installation script targets RHEL, Fedora, and CentOS.  (Actually, it has only been tested on CentOS....)</p>
+<p itemprop="requirements">Jobber is written in <a href="http://golang.org/">Go</a>, and it should be possible to compile and run it on <span itemprop="operatingSystem">any modern Unix-like system</span>.  However, at this time its installation script targets RHEL, Fedora, and CentOS.  (Actually, it has only been tested on CentOS....)</p>
 
 <h1><a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
 
