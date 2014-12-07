@@ -55,6 +55,7 @@ func (s *runLogEntrySorter) Less(i, j int) bool {
 
 type JobManager struct {
     jobs                  []*Job
+    jobQueue              JobQueue
     loadedJobs            bool
     runLog                []RunLogEntry
     cmdChan               chan ICmd
@@ -82,16 +83,6 @@ func NewJobManager() (*JobManager, error) {
     }
     jm.loadedJobs = false
     return &jm, nil
-}
-
-func (m *JobManager) jobsToRun(now time.Time) []*Job {
-    jobs := make([]*Job, 0)
-    for _, job := range m.jobs {
-        if job.ShouldRun(now) {
-            jobs = append(jobs, job)
-        }
-    }
-    return jobs
 }
 
 func (m *JobManager) jobsForUser(username string) []*Job {
@@ -135,6 +126,7 @@ func (m *JobManager) Wait() {
 }
 
 func (m *JobManager) Stop() {
+    m.logger.Printf("Stopping\n")
     close(m.cmdChan)
     m.stopMainThread()
 }
@@ -223,24 +215,22 @@ func (m *JobManager) runJobRunnerThread() {
         <-m.jobRunThreadDoneChan
     }
     
+    m.jobQueue.SetJobs(time.Now(), m.jobs)
+    
     go func() {
         var jobWaitGroup sync.WaitGroup
-        ticker := time.Tick(time.Duration(1 * time.Second))
-        Loop: for {
-            select {
-            case now := <-ticker:
-                jobsToRun := m.jobsToRun(now)
-                for _, j := range jobsToRun {
-                    m.logger.Printf("%v: %v\n", j.User, j.Cmd)
-                    jobWaitGroup.Add(1)
-                    go func(job *Job) {
-                        m.runRecChan <- job.Run(subctx, m.Shell, false)
-                        jobWaitGroup.Done()
-                    }(j)
-                }
-        
-            case <-subctx.Done():
-                break Loop
+        for {
+            var job *Job = m.jobQueue.Pop(time.Now(), subctx) // sleeps
+            if job != nil {
+                m.logger.Printf("%v: %v\n", job.User, job.Cmd)
+                jobWaitGroup.Add(1)
+                go func(j *Job) {
+                    m.runRecChan <- j.Run(subctx, m.Shell, false)
+                    jobWaitGroup.Done()
+                }(job)
+            } else if subctx.Err() != nil {
+                /* We were cancelled. */
+                break
             }
         }
     

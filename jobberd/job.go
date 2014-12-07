@@ -31,13 +31,14 @@ func (s JobStatus) String() string {
     }
 }
 
-type TimePred struct {
-    apply func(int) bool
-    desc string
-}
+type TimeSpec int
 
-func (p TimePred) String() string {
-    return p.desc
+func (t TimeSpec) String() string {
+    if t == -1 {
+        return "*"
+    } else {
+        return fmt.Sprintf("%v", int(t))
+    }
 }
 
 const (
@@ -88,12 +89,12 @@ var ErrorHandlerContinue = ErrorHandler{
 type Job struct {
     // params
     Name            string
-    Sec             TimePred
-    Min             TimePred
-    Hour            TimePred
-    Mday            TimePred
-    Mon             TimePred
-    Wday            TimePred
+    Sec             TimeSpec
+    Min             TimeSpec
+    Hour            TimeSpec
+    Mday            TimeSpec
+    Mon             TimeSpec
+    Wday            TimeSpec
     Cmd             string
     User            string
     ErrorHandler   *ErrorHandler
@@ -119,78 +120,16 @@ func (j *Job) String() string {
 
 func NewJob(name string, cmd string, username string) *Job {
     job := &Job{Name: name, Cmd: cmd, Status: JobGood, User: username}
-    job.Sec = TimePred{func (i int) bool { return true }, "*"}
-    job.Min = TimePred{func (i int) bool { return true }, "*"}
-    job.Hour = TimePred{func (i int) bool { return true }, "*"}
-    job.Mday = TimePred{func (i int) bool { return true }, "*"}
-    job.Mon = TimePred{func (i int) bool { return true }, "*"}
-    job.Wday = TimePred{func (i int) bool { return true }, "*"}
+    job.Sec = -1
+    job.Min = -1
+    job.Hour = -1
+    job.Mday = -1
+    job.Mon = -1
+    job.Wday = -1
     job.ErrorHandler = &ErrorHandlerContinue
     job.NotifyOnError = false
     job.NotifyOnFailure = true
     return job
-}
-
-func monthToInt(m time.Month) int {
-    switch m {
-        case time.January : return 1
-        case time.February : return 2
-        case time.March : return 3
-        case time.April : return 4
-        case time.May : return 5
-        case time.June : return 6
-        case time.July : return 7
-        case time.August : return 8
-        case time.September : return 9
-        case time.October : return 10
-        case time.November : return 11
-        default : return 12
-    }
-}
-
-func weekdayToInt(d time.Weekday) int {
-    switch d {
-        case time.Sunday: return 0
-        case time.Monday: return 1
-        case time.Tuesday: return 2
-        case time.Wednesday: return 3
-        case time.Thursday: return 4
-        case time.Friday: return 5
-        default: return 6
-    }
-}
-
-func (job *Job) ShouldRun(now time.Time) bool {
-    if job.Status == JobFailed {
-        return false
-    } else if job.shouldRun_time(now) {
-        if job.Status == JobBackoff {
-            job.backoffTillNextTry--
-            return job.backoffTillNextTry <= 0
-        } else {
-            return true
-        }
-    } else {
-        return false
-    }
-}
-
-func (job *Job) shouldRun_time(now time.Time) bool {
-    if !job.Sec.apply(now.Second()) {
-        return false
-    } else if !job.Min.apply(now.Minute()) {
-        return false
-    } else if !job.Hour.apply(now.Hour()) {
-        return false
-    } else if !job.Mday.apply(now.Day()) {
-        return false
-    } else if !job.Mon.apply(monthToInt(now.Month())) {
-        return false
-    } else if !job.Wday.apply(weekdayToInt(now.Weekday())) {
-        return false
-    } else {
-        return true
-    }
 }
 
 type RunRec struct {

@@ -4,7 +4,6 @@ import (
     "io"
     "io/ioutil"
     "encoding/json"
-    "fmt"
     "path/filepath"
     "os"
     "os/user"
@@ -19,19 +18,19 @@ const (
 type JobConfigEntry struct {
     Name             string
     Cmd              string
-    Time             TimeSpec
+    Time             ConfigTimeSpec
     OnError          string
     NotifyOnError    *bool
     NotifyOnFailure  *bool
 }
 
-type TimeSpec struct {
-    Sec  *int
-    Min  *int
-    Hour *int
-    Mday *int
-    Mon  *int
-    Wday *int
+type ConfigTimeSpec struct {
+    Sec  *TimeSpec
+    Min  *TimeSpec
+    Hour *TimeSpec
+    Mday *TimeSpec
+    Mon  *TimeSpec
+    Wday *TimeSpec
 }
 
 func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) error {
@@ -186,50 +185,50 @@ func readJobFile(r io.Reader, username string) ([]*Job, error) {
         
         // sec
         if config.Time.Sec != nil {
-            job.Sec, err = makeTimePred(*config.Time.Sec)
-            if err != nil {
-                return nil, err
+            if *config.Time.Sec < 0 || *config.Time.Sec > 59 {
+                return nil, &JobberError{"Invalid 'sec' value.", nil}
             }
+            job.Sec = *config.Time.Sec
         }
         
         // min
         if config.Time.Min != nil {
-            job.Min, err = makeTimePred(*config.Time.Min)
-            if err != nil {
-                return nil, err
+            if *config.Time.Min < 0 || *config.Time.Min > 59 {
+                return nil, &JobberError{"Invalid 'min' value.", nil}
             }
+            job.Min = *config.Time.Min
         }
         
         // hour
         if config.Time.Hour != nil {
-            job.Hour, err = makeTimePred(*config.Time.Hour)
-            if err != nil {
-                return nil, err
+            if *config.Time.Hour < 0 || *config.Time.Hour > 23 {
+                return nil, &JobberError{"Invalid 'hour' value.", nil}
             }
+            job.Hour = *config.Time.Hour
         }
         
         // mday
         if config.Time.Mday != nil {
-            job.Mday, err = makeTimePred(*config.Time.Mday)
-            if err != nil {
-                return nil, err
+            if *config.Time.Mday < 1 || *config.Time.Mday > 31 {
+                return nil, &JobberError{"Invalid 'mday' value.", nil}
             }
+            job.Mday = *config.Time.Mday
         }
         
         // month
         if config.Time.Mon != nil {
-            job.Mon, err = makeTimePred(*config.Time.Mon)
-            if err != nil {
-                return nil, err
+            if *config.Time.Mon < 1 || *config.Time.Mon > 12 {
+                return nil, &JobberError{"Invalid 'mon' value.", nil}
             }
+            job.Mon = *config.Time.Mon
         }
         
         // wday
         if config.Time.Wday != nil {
-            job.Wday, err = makeTimePred(*config.Time.Wday)
-            if err != nil {
-                return nil, err
+            if *config.Time.Wday < 0 || *config.Time.Wday > 6 {
+                return nil, &JobberError{"Invalid 'wday' value.", nil}
             }
+            job.Wday = *config.Time.Wday
         }
         
         jobs = append(jobs, job)
@@ -244,8 +243,4 @@ func getErrorHandler(name string) (*ErrorHandler, error) {
         case ErrorHandlerContinueName: return &ErrorHandlerContinue, nil
         default: return nil, &JobberError{"Invalid error handler: " + name, nil}
     }
-}
-
-func makeTimePred(v int) (TimePred, error) {
-    return TimePred{func(i int) bool { return i == v }, fmt.Sprintf("%v", v)}, nil
 }

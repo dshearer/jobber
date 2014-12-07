@@ -3,6 +3,7 @@ package main
 import (
     "os"
     "os/signal"
+    "syscall"
     "log/syslog"
 )
 
@@ -14,7 +15,7 @@ func stopServerOnSignal(server *IpcServer, jm *JobManager) {
 	// We must use a buffered channel or risk missing the signal
 	// if we're not ready to receive when the signal is sent.
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, os.Kill)
 
 	// Block until a signal is received.
 	<-c

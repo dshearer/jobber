@@ -41,7 +41,7 @@ stop() {
     case $stat in
         0)
             # running
-            /usr/local/bin/jobber stop && success && rm -f $lockfile $pidfile
+            kill `cat $pidfile` && success && rm -f $lockfile $pidfile
             ;;
         1)
             # stopped but pid file exists
@@ -64,7 +64,7 @@ restart() {
 }
 
 rh_status() {
-    status -p $pidfile $prog
+    status -p $pidfile -b $exec $prog
 }
 
 rh_status_q() {
