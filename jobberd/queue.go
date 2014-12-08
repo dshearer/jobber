@@ -169,9 +169,18 @@ func (jq *JobQueue) Empty() bool {
     return jq.q.Len() == 0
 }
 
+/*!
+ * Get the next job to run, after sleeping until the time it's supposed
+ * to run.
+ *
+ * @return The next job to run, or nil if the context has been canceled.
+ */
 func (jq *JobQueue) Pop(now time.Time, ctx context.Context) *Job {
     if jq.Empty() {
+        // just wait till the context has been canceled
+        <-ctx.Done()
         return nil
+        
     } else {
         // get next-scheduled job
         schedJob := heap.Pop(&jq.q).(scheduledJob)

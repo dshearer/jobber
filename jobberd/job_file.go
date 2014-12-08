@@ -33,6 +33,71 @@ type ConfigTimeSpec struct {
     Wday *TimeSpec
 }
 
+func (m *JobManager) LoadAllJobs() (int, error) {
+    // load jobs for normal users
+    err := filepath.Walk(HomeDirRoot, m.procHomeFile)
+    if err != nil {
+        return -1, err
+    }
+    
+    // load jobs for root
+    _, err = m.loadJobsForUser("root")
+    if err != nil {
+        return -1, err
+    } else {
+        return len(m.jobs), nil
+    }
+}
+
+func (m *JobManager) ReloadAllJobs() (int, error) {
+    // stop job-runner thread and wait for current runs to end
+    m.jobRunner.Cancel()
+    for rec := range m.jobRunner.RunRecChan() {
+        m.handleRunRec(rec)
+    }
+    m.jobRunner.Wait()
+    
+    // remove jobs
+    amt := len(m.jobs)
+    m.jobs = make([]*Job, 0)
+    Logger.Printf("Removed %v jobs.\n", amt)
+    
+    // reload jobs
+    amt, err := m.LoadAllJobs()
+    
+    // restart job-runner thread
+    m.jobRunner.Start(m.jobs, m.Shell, m.mainThreadCtx)
+    
+    return amt, err
+}
+
+func (m *JobManager) ReloadJobsForUser(username string) (int, error) {
+    // stop job-runner thread and wait for current runs to end
+    m.jobRunner.Cancel()
+    for rec := range m.jobRunner.RunRecChan() {
+        m.handleRunRec(rec)
+    }
+    m.jobRunner.Wait()
+    
+    // remove user's jobs
+    newJobList := make([]*Job, 0)
+    for _, job := range m.jobs {
+        if job.User != username {
+            newJobList = append(newJobList, job)
+        }
+    }
+    Logger.Printf("Removed %v jobs.\n", len(m.jobs) - len(newJobList))
+    m.jobs = newJobList
+    
+    // reload user's jobs
+    amt, err := m.loadJobsForUser(username)
+    
+    // restart job-runner thread
+    m.jobRunner.Start(m.jobs, m.Shell, m.mainThreadCtx)
+    
+    return amt, err
+}
+
 func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) error {
     if err != nil {
         return err
@@ -45,9 +110,9 @@ func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) erro
         _, err = user.Lookup(username)
         if err == nil {
             /* User exists. */
-            _, err = m.LoadJobsForUser(username)
+            _, err = m.loadJobsForUser(username)
             if err != nil {
-                m.errorLogger.Printf("Failed to load jobs for %v: %v.\n", username, err)
+                ErrLogger.Printf("Failed to load jobs for %v: %v.\n", username, err)
             }
         }
         
@@ -57,64 +122,7 @@ func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) erro
     }
 }
 
-func (m *JobManager) LoadAllJobs() (int, error) {
-    // load jobs for normal users
-    err := filepath.Walk(HomeDirRoot, m.procHomeFile)
-    if err != nil {
-        return -1, err
-    }
-    
-    // load jobs for root
-    _, err = m.LoadJobsForUser("root")
-    if err != nil {
-        return -1, err
-    } else {
-        return len(m.jobs), nil
-    }
-}
-
-func (m *JobManager) ReloadAllJobs() (int, error) {
-    // stop job-runner thread and wait for current runs to end
-    m.stopJobRunnerThread()
-    
-    // remove jobs
-    amt := len(m.jobs)
-    m.jobs = make([]*Job, 0)
-    m.logger.Printf("Removed %v jobs.\n", amt)
-    
-    // reload jobs
-    amt, err := m.LoadAllJobs()
-    
-    // restart job-runner thread
-    m.runJobRunnerThread()
-    
-    return amt, err
-}
-
-func (m *JobManager) ReloadJobsForUser(username string) (int, error) {
-    // stop job-runner thread and wait for current runs to end
-    m.stopJobRunnerThread()
-    
-    // remove user's jobs
-    newJobList := make([]*Job, 0)
-    for _, job := range m.jobs {
-        if job.User != username {
-            newJobList = append(newJobList, job)
-        }
-    }
-    m.logger.Printf("Removed %v jobs.\n", len(m.jobs) - len(newJobList))
-    m.jobs = newJobList
-    
-    // reload user's jobs
-    amt, err := m.LoadJobsForUser(username)
-    
-    // restart job-runner thread
-    m.runJobRunnerThread()
-    
-    return amt, err
-}
-
-func (m *JobManager) LoadJobsForUser(username string) (int, error) {
+func (m *JobManager) loadJobsForUser(username string) (int, error) {
     // compute .jobber file path
     var jobberFilePath string
     if username == "root" {
@@ -140,7 +148,7 @@ func (m *JobManager) LoadJobsForUser(username string) (int, error) {
         }
     }
     m.jobs = append(m.jobs, newJobs...)
-    m.logger.Printf("Loaded %v new jobs.\n", len(newJobs))
+    Logger.Printf("Loaded %v new jobs.\n", len(newJobs))
     
     return len(newJobs), nil
 }

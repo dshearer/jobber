@@ -4,14 +4,15 @@ import (
     "time"
     "log"
     "log/syslog"
-    "sync"
     "fmt"
     "strings"
     "sort"
-    "code.google.com/p/go.net/context"
     "text/tabwriter"
     "bytes"
 )
+
+var Logger *log.Logger = nil
+var ErrLogger *log.Logger = nil
 
 type JobberError struct {
     What  string
@@ -55,33 +56,28 @@ func (s *runLogEntrySorter) Less(i, j int) bool {
 
 type JobManager struct {
     jobs                  []*Job
-    jobQueue              JobQueue
     loadedJobs            bool
     runLog                []RunLogEntry
     cmdChan               chan ICmd
-    mainThreadCtx         context.Context
-    doneChan              <-chan bool
-    jobRunThreadDoneChan  chan bool
-    runRecChan            chan *RunRec
-    stopMainThread        func()
-    stopJobRunnerThread   func()
-    logger                *log.Logger
-    errorLogger           *log.Logger
+    mainThreadCtx         *JobberContext
+    mainThreadCtl         JobberCtl
+    jobRunner             *JobRunnerThread
     Shell                 string
 }
 
 func NewJobManager() (*JobManager, error) {
     var err error
     jm := JobManager{Shell: "/bin/sh"}
-    jm.logger, err = syslog.NewLogger(syslog.LOG_NOTICE | syslog.LOG_CRON, 0)
+    Logger, err = syslog.NewLogger(syslog.LOG_NOTICE | syslog.LOG_CRON, 0)
     if err != nil {
         return nil, &JobberError{What: "Couldn't make Syslog logger.", Cause: err}
     }
-    jm.errorLogger, err = syslog.NewLogger(syslog.LOG_ERR | syslog.LOG_CRON, 0)
+    ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR | syslog.LOG_CRON, 0)
     if err != nil {
         return nil, &JobberError{What: "Couldn't make Syslog logger.", Cause: err}
     }
     jm.loadedJobs = false
+    jm.jobRunner = NewJobRunnerThread()
     return &jm, nil
 }
 
@@ -106,144 +102,125 @@ func (m *JobManager) runLogEntriesForUser(username string) []RunLogEntry {
 }
 
 func (m *JobManager) Launch() (chan<- ICmd, error) {
-    m.logger.Println("Launching.")
+    if m.mainThreadCtx != nil {
+        return nil, &JobberError{"Already launched.", nil}
+    }
+    
+    Logger.Println("Launching.")
     if !m.loadedJobs {
         _, err := m.LoadAllJobs()
         if err != nil {
-            m.errorLogger.Printf("Failed to load jobs: %v.\n", err)
+            ErrLogger.Printf("Failed to load jobs: %v.\n", err)
             return nil, err
         }
     }
     
     // make main thread
     m.cmdChan = make(chan ICmd)
-    m.doneChan = m.runMainThread()
+    m.runMainThread()
     return m.cmdChan, nil
 }
 
-func (m *JobManager) Wait() {
-    <-m.doneChan
-}
-
-func (m *JobManager) Stop() {
-    m.logger.Printf("Stopping\n")
-    close(m.cmdChan)
-    m.stopMainThread()
-}
-
-func (m *JobManager) runMainThread() <-chan bool {
-    doneChan := make(chan bool, 1)
-    
-    ctx, cancel := context.WithCancel(context.Background())
-    m.mainThreadCtx = ctx
-    m.stopMainThread = func() {
-        cancel()
-        <-doneChan
+func (m *JobManager) Cancel() {
+    if m.mainThreadCtl.Cancel != nil {
+        Logger.Printf("JobManager canceling\n")
+        m.mainThreadCtl.Cancel()
     }
+}
+
+func (m *JobManager) Wait() {
+    if m.mainThreadCtl.Wait != nil {
+        m.mainThreadCtl.Wait()
+    }
+}
+
+func (m *JobManager) handleRunRec(rec *RunRec) {
+    if len(rec.Stdout) > 0 {
+        Logger.Println(rec.Stdout)
+    }
+    if len(rec.Stderr) > 0 {
+        ErrLogger.Println(rec.Stderr)
+    }
+    if rec.Err != nil {
+        ErrLogger.Panicln(rec.Err)
+    }
+    
+    m.runLog = append(m.runLog, RunLogEntry{rec.Job, rec.RunTime, rec.Succeeded, rec.NewStatus})
+    
+    /* NOTE: error-handler was already applied by the job, if necessary. */
+    
+    if (!rec.Succeeded && rec.Job.NotifyOnError) ||
+        (rec.Job.NotifyOnFailure && rec.NewStatus == JobFailed) {
+        // notify user
+        headers := fmt.Sprintf("To: %v\r\nFrom: %v\r\nSubject: \"%v\" failed.", rec.Job.User, rec.Job.User, rec.Job.Name)
+        bod := rec.Describe()
+        msg := fmt.Sprintf("%s\r\n\r\n%s.\r\n", headers, bod)
+        sendmailCmd := fmt.Sprintf("sendmail %v", rec.Job.User)
+        sudoResult, err := sudo(rec.Job.User, sendmailCmd, "/bin/sh", &msg)
+        if err != nil {
+            ErrLogger.Println("Failed to send mail: %v", err)
+        } else if !sudoResult.Succeeded {
+            ErrLogger.Println("Failed to send mail: %v", sudoResult.Stderr)
+        }
+    }
+}
+
+func (m *JobManager) runMainThread() {
+    m.mainThreadCtx, m.mainThreadCtl = NewJobberContext(BackgroundJobberContext())
+    Logger.Printf("Main thread context: %v\n", m.mainThreadCtx.Name)
     
     go func() {
         /*
          All modifications to the job manager's state occur here.
         */
     
-        // make job-runner thread
-        m.runJobRunnerThread()
+        // start job-runner thread
+        m.jobRunner.Start(m.jobs, m.Shell, m.mainThreadCtx)
     
         Loop: for {
             select {
-            case <-ctx.Done():
+            case <-m.mainThreadCtx.Done():
+                Logger.Printf("Main thread got 'stop'\n")
                 break Loop
                 
-            case rec, ok := <-m.runRecChan:
+            case rec, ok := <-m.jobRunner.RunRecChan():
                 if ok {
-                    if len(rec.Stdout) > 0 {
-                        m.logger.Println(rec.Stdout)
-                    }
-                    if len(rec.Stderr) > 0 {
-                        m.errorLogger.Println(rec.Stderr)
-                    }
-                    if rec.Err != nil {
-                        m.errorLogger.Panicln(rec.Err)
-                    }
-                    
-                    m.runLog = append(m.runLog, RunLogEntry{rec.Job, rec.RunTime, rec.Succeeded, rec.NewStatus})
-                    
-                    /* NOTE: error-handler was already applied by the job, if necessary. */
-                    
-                    if (!rec.Succeeded && rec.Job.NotifyOnError) ||
-                        (rec.Job.NotifyOnFailure && rec.NewStatus == JobFailed) {
-                        // notify user
-                        headers := fmt.Sprintf("To: %v\r\nFrom: %v\r\nSubject: \"%v\" failed.", rec.Job.User, rec.Job.User, rec.Job.Name)
-                        bod := rec.Describe()
-                        msg := fmt.Sprintf("%s\r\n\r\n%s.\r\n", headers, bod)
-                        sendmailCmd := fmt.Sprintf("sendmail %v", rec.Job.User)
-                        sudoResult, err := sudo(rec.Job.User, sendmailCmd, "/bin/sh", &msg)
-                        if err != nil {
-                            m.errorLogger.Println("Failed to send mail: %v", err)
-                        } else if !sudoResult.Succeeded {
-                            m.errorLogger.Println("Failed to send mail: %v", sudoResult.Stderr)
-                        }
-                    }
+                    m.handleRunRec(rec)
+                } else {
+                    ErrLogger.Printf("Job-runner thread ended prematurely.\n")
+                    break Loop
                 }
     
             case cmd, ok := <-m.cmdChan:
                 if ok {
                     //fmt.Printf("JobManager: processing cmd.\n")
-                    m.doCmd(cmd)
+                    shouldStop := m.doCmd(cmd)
+                    if shouldStop {
+                        break Loop
+                    }
+                } else {
+                    ErrLogger.Printf("Command channel was closed.\n")
+                    break Loop
                 }
             }
         }
         
-        // wait for job-running thread to quit
-        <-m.jobRunThreadDoneChan
+        // cancel main thread
+        m.mainThreadCtl.Cancel()
         
-        // clean up
-        doneChan <- true
-        close(doneChan)
-    }()
-    
-    return doneChan
-}
-
-func (m *JobManager) runJobRunnerThread() {
-    m.runRecChan = make(chan *RunRec)
-    m.jobRunThreadDoneChan = make(chan bool)
-    
-    subctx, cancel := context.WithCancel(m.mainThreadCtx)
-    m.stopJobRunnerThread = func() {
-        cancel()
-        <-m.jobRunThreadDoneChan
-    }
-    
-    m.jobQueue.SetJobs(time.Now(), m.jobs)
-    
-    go func() {
-        var jobWaitGroup sync.WaitGroup
-        for {
-            var job *Job = m.jobQueue.Pop(time.Now(), subctx) // sleeps
-            if job != nil {
-                m.logger.Printf("%v: %v\n", job.User, job.Cmd)
-                jobWaitGroup.Add(1)
-                go func(j *Job) {
-                    m.runRecChan <- j.Run(subctx, m.Shell, false)
-                    jobWaitGroup.Done()
-                }(job)
-            } else if subctx.Err() != nil {
-                /* We were cancelled. */
-                break
-            }
+        // consume all run-records
+        for rec := range m.jobRunner.RunRecChan() {
+            m.handleRunRec(rec)
         }
-    
-        // clean up
-        //fmt.Printf("JobRunner: cleaning up...\n")
-        jobWaitGroup.Wait()
-        m.jobRunThreadDoneChan <- true
-        close(m.jobRunThreadDoneChan)
-        //m.logger.Printf("JobRunner: done cleaning up.\n")
+        
+        // finish up (and wait for job-runner thread to finish)
+        m.mainThreadCtx.Finish()
+        
+        Logger.Printf("Main Thread done.\n")
     }()
 }
 
-func (m *JobManager) doCmd(cmd ICmd) {
+func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
     
     /*
     Security:
@@ -267,20 +244,22 @@ func (m *JobManager) doCmd(cmd ICmd) {
                 break
             }
             
-            m.logger.Printf("Reloading jobs for all users.\n")
+            Logger.Printf("Reloading jobs for all users.\n")
             amt, err = m.ReloadAllJobs()
         } else {
-            m.logger.Printf("Reloading jobs for %v.\n", cmd.RequestingUser())
+            Logger.Printf("Reloading jobs for %v.\n", cmd.RequestingUser())
             amt, err = m.ReloadJobsForUser(cmd.RequestingUser())
         }
         
         // send response
         if err != nil {
-            m.errorLogger.Printf("Failed to load jobs: %v.\n", err)
+            ErrLogger.Printf("Failed to load jobs: %v.\n", err)
             cmd.RespChan() <- &ErrorCmdResp{err}
         } else {
             cmd.RespChan() <- &SuccessCmdResp{fmt.Sprintf("Loaded %v jobs.", amt)}
         }
+        
+        return false
     
     case *ListJobsCmd:
         /* Policy: Only root can list other users' jobs. */
@@ -324,6 +303,8 @@ func (m *JobManager) doCmd(cmd ICmd) {
         
         // send response
         cmd.RespChan() <- &SuccessCmdResp{buffer.String()}
+        
+        return false
     
     case *ListHistoryCmd:
         /* Policy: Only root can see the histories of other users' jobs. */
@@ -356,6 +337,8 @@ func (m *JobManager) doCmd(cmd ICmd) {
     
         // send response
         cmd.RespChan() <- &SuccessCmdResp{buffer.String()}
+        
+        return false
     
     case *StopCmd:
         /* Policy: Only root can stop jobberd. */
@@ -365,13 +348,8 @@ func (m *JobManager) doCmd(cmd ICmd) {
             break
         }
         
-        m.logger.Println("Stopping.")
-        
-        // stop job-runner thread
-        m.stopJobRunnerThread()
-    
-        // send response
-        cmd.RespChan() <- &SuccessCmdResp{}
+        Logger.Println("Stopping.")
+        return true
     
     case *TestCmd:
         /* Policy: Only root can test other users' jobs. */
@@ -407,8 +385,13 @@ func (m *JobManager) doCmd(cmd ICmd) {
             break
         }
         cmd.RespChan() <- &SuccessCmdResp{Details: runRec.Describe()}
+        
+        return false
     
     default:
         cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "Unknown command."}}
+        return false
     }
+    
+    return false
 }

@@ -21,7 +21,8 @@ func stopServerOnSignal(server *IpcServer, jm *JobManager) {
 	<-c
 	g_logger.Printf("Got signal.\n")
 	server.Stop()
-	jm.Stop()
+	jm.Cancel()
+	jm.Wait()
 	os.Exit(0)
 }
 
