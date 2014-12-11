@@ -123,51 +123,26 @@ sudo make install
 
 <h2><a id="defining-jobs" class="anchor" href="#defining-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Defining Jobs</h2>
 
-<p>As with cron, each user can have its own set of jobs, which will be run under that user&rsquo;s privileges.  A user&rsquo;s jobs are defined in a file named &ldquo;.jobber&rdquo; in the user&rsquo;s home directory.  Jobfiles are written in JSON format.  Here's an example:</p>
+<p>As with cron, each user can have its own set of jobs, which will be run under that user&rsquo;s privileges.  A user&rsquo;s jobs are defined in a file named &ldquo;.jobber&rdquo; in the user&rsquo;s home directory.  Jobfiles are written in YAML format.  Here's an example:</p>
 
-<pre><code>[
-    {
-        "name": "DailyBackup",
-        "cmd": "backup daily",
-        "time": {
-            "sec": 0,
-            "min": 0,
-            "hour": 13
-        },
-        "onError": "Stop",
-        "notifyOnError": false,
-        "notifyOnFailure": true
-    },
-    {
-        "name": "WeeklyBackup",
-        "cmd": "backup weekly",
-        "time": {
-            "sec": 0,
-            "min": 0,
-            "hour": 14,
-            "wday": 1
-        },
-        "onError": "Stop",
-        "notifyOnError": false,
-        "notifyOnFailure": true
-    }
-]
-</code></pre>
+<pre><code>---
+- name: DailyBackup
+  cmd: backup daily
+  time: 0 0 13
+  onError: Stop
 
-<p>This jobfile defines two jobs.  Field &ldquo;name&rdquo; is self-explanatory.  Field &ldquo;cmd&rdquo; can contain any shell command.</p>
+- name: WeeklyBackup
+  cmd: backup weekly
+  time: 0 0 14 * * 1
+  onError: Stop</code></pre>
+
+<p>This jobfile defines two jobs.  Field &ldquo;name&rdquo; is self-explanatory.  Field &ldquo;cmd&rdquo; can contain any Bash script.</p>
 
 <h3><a id="field-time" class="anchor" href="#field-time" aria-hidden="true"><span class="octicon octicon-link"></span></a>Field &ldquo;time&rdquo;</h3>
 
-<p>Field &ldquo;time&rdquo; specifies when the job is run, in a manner similar to how cron jobs&rsquo; schedules are specified.  A job is scheduled thus: at each second, jobber looks at the job's &ldquo;time&rdquo; field and determines whether all of the subfields that happen to be present match the current time; if so it runs the job, and otherwise it does not.  Thus, &ldquo;DailyBackup&rdquo; is run whenever the current time is 13:00:00 (i.e., 1 PM), no matter the day, whereas &ldquo;WeeklyBackup&rdquo; is run whenever the current time is 14:00:00 (i.e., 2 PM) and the current weekday is Monday.  The possible subfields of &ldquo;time&rdquo; and their value ranges are as follows:</p>
+<p>Field &ldquo;time&rdquo; specifies when the job is run, in a manner similar to how cron jobs&rsquo; schedules are specified: with a space-separated list of up to six specifiers, which can be numerals or &ldquo;*&rdquo;.  The first specifier constrains the second value of a given time, the second constrains to the minute value, the third to the hour value, the fourth to the day of the month, the fifth to the month, and the sixth to the day of the week.  A job is scheduled thus: a job will run at the next time that satisfies all of these specifiers.</p>
 
-<ul>
-<li>&ldquo;sec&rdquo;: 0 – 59</li>
-<li>&ldquo;min&rdquo;: 0 – 59</li>
-<li>&ldquo;hour&rdquo;: 0 – 23</li>
-<li>&ldquo;mday&rdquo;: 1 – 31</li>
-<li>&ldquo;mon&rdquo;: 1 – 12</li>
-<li>&ldquo;wday&rdquo;: 1 – 7</li>
-</ul>
+<p>Thus, &ldquo;DailyBackup&rdquo; is run whenever the current time is 13:00:00 (i.e., 1 PM), no matter the day, whereas &ldquo;WeeklyBackup&rdquo; is run whenever the current time is 14:00:00 (i.e., 2 PM) and the current weekday is Monday.</p>
 
 <h3><a id="fields-onerror-notifyonerror-and-notifyonfailure" class="anchor" href="#fields-onerror-notifyonerror-and-notifyonfailure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fields &ldquo;onError&rdquo;, &ldquo;notifyOnError&rdquo;, and &ldquo;notifyOnFailure&rdquo;</h3>
 
