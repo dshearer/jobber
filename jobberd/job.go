@@ -31,13 +31,15 @@ func (s JobStatus) String() string {
     }
 }
 
-type TimeSpec int
+type TimeSpec struct {
+    Value *uint
+}
 
 func (t TimeSpec) String() string {
-    if t == -1 {
+    if t.Value == nil {
         return "*"
     } else {
-        return fmt.Sprintf("%v", int(t))
+        return fmt.Sprintf("%v", *t.Value)
     }
 }
 
@@ -120,12 +122,6 @@ func (j *Job) String() string {
 
 func NewJob(name string, cmd string, username string) *Job {
     job := &Job{Name: name, Cmd: cmd, Status: JobGood, User: username}
-    job.Sec = -1
-    job.Min = -1
-    job.Hour = -1
-    job.Mday = -1
-    job.Mon = -1
-    job.Wday = -1
     job.ErrorHandler = &ErrorHandlerContinue
     job.NotifyOnError = false
     job.NotifyOnFailure = true

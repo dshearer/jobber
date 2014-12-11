@@ -283,6 +283,11 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         fmt.Fprintf(writer, "NAME\tSTATUS\tSEC\tMIN\tHOUR\tMDAY\tMONTH\tWDAY\tCOMMAND\tNOTIFY ON ERROR\tNOTIFY ON FAILURE\tERROR HANDLER\t\n")
         strs := make([]string, 0, len(m.jobs))
         for _, j := range jobs {
+            cmdStrMaxLen := 40
+            cmdStr := j.Cmd
+            if len(cmdStr) > cmdStrMaxLen {
+                cmdStr = cmdStr[0:cmdStrMaxLen-3] + "..."
+            }
             s := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t%v\t%v\t%v\t",
                                j.Name,
                                j.Status,
@@ -292,7 +297,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
                                j.Mday,
                                j.Mon,
                                j.Wday,
-                               j.Cmd,
+                               cmdStr,
                                j.NotifyOnError,
                                j.NotifyOnFailure,
                                j.ErrorHandler)

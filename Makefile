@@ -18,6 +18,7 @@ SE_FILES = se_policy/jobber.fc \
 .PHONY : build
 build :
 	go get code.google.com/p/go.net/context
+	go get gopkg.in/yaml.v2
 	go install github.com/dshearer/jobber
 	go install github.com/dshearer/jobber/${CLIENT}
 	go install github.com/dshearer/jobber/${DAEMON}

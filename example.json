@@ -15,3 +15,9 @@
         "time": {}
     }
 ]
+
+-
+    name: Echo
+    time: [0, *, *, *, *, *]
+    cmd: |
+        (echo \"Hello\" >> result) && whoami

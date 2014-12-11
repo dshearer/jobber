@@ -3,34 +3,29 @@ package main
 import (
     "io"
     "io/ioutil"
-    "encoding/json"
+    "gopkg.in/yaml.v2"
     "path/filepath"
     "os"
     "os/user"
+    "strconv"
+    "fmt"
+    "strings"
 )
 
 const (
     HomeDirRoot    = "/home"
     RootHomeDir = "/root"
     JobberFileName = ".jobber"
+    TimeWildcard = "*"
 )
 
 type JobConfigEntry struct {
     Name             string
     Cmd              string
-    Time             ConfigTimeSpec
+    Time             string
     OnError          string
     NotifyOnError    *bool
     NotifyOnFailure  *bool
-}
-
-type ConfigTimeSpec struct {
-    Sec  *TimeSpec
-    Min  *TimeSpec
-    Hour *TimeSpec
-    Mday *TimeSpec
-    Mon  *TimeSpec
-    Wday *TimeSpec
 }
 
 func (m *JobManager) LoadAllJobs() (int, error) {
@@ -43,10 +38,9 @@ func (m *JobManager) LoadAllJobs() (int, error) {
     // load jobs for root
     _, err = m.loadJobsForUser("root")
     if err != nil {
-        return -1, err
-    } else {
-        return len(m.jobs), nil
+        ErrLogger.Printf("Failed to load jobs for root: %v\n", err)
     }
+    return len(m.jobs), nil
 }
 
 func (m *JobManager) ReloadAllJobs() (int, error) {
@@ -160,7 +154,7 @@ func readJobFile(r io.Reader, username string) ([]*Job, error) {
         return nil, err
     }
     var configs []JobConfigEntry
-    err = json.Unmarshal(data, &configs)
+    err = yaml.Unmarshal(data, &configs)
     if err != nil {
         return nil, err
     }
@@ -191,57 +185,101 @@ func readJobFile(r io.Reader, username string) ([]*Job, error) {
             job.NotifyOnFailure = *config.NotifyOnFailure
         }
         
+        var timeParts []string = strings.Fields(config.Time)
+        
         // sec
-        if config.Time.Sec != nil {
-            if *config.Time.Sec < 0 || *config.Time.Sec > 59 {
-                return nil, &JobberError{"Invalid 'sec' value.", nil}
+        if len(timeParts) > 0 {
+            val, err := parseTimeStr(timeParts[0], "sec", 0, 59)
+            if err != nil {
+                return nil, err
             }
-            job.Sec = *config.Time.Sec
+            job.Sec.Value = val
         }
         
         // min
-        if config.Time.Min != nil {
-            if *config.Time.Min < 0 || *config.Time.Min > 59 {
-                return nil, &JobberError{"Invalid 'min' value.", nil}
+        if len(timeParts) > 1 {
+            val, err := parseTimeStr(timeParts[1], "minute", 0, 59)
+            if err != nil {
+                return nil, err
             }
-            job.Min = *config.Time.Min
+            job.Min.Value = val
         }
         
         // hour
-        if config.Time.Hour != nil {
-            if *config.Time.Hour < 0 || *config.Time.Hour > 23 {
-                return nil, &JobberError{"Invalid 'hour' value.", nil}
+        if len(timeParts) > 2 {
+            val, err := parseTimeStr(timeParts[2], "hour", 0, 23)
+            if err != nil {
+                return nil, err
             }
-            job.Hour = *config.Time.Hour
+            job.Hour.Value = val
         }
         
         // mday
-        if config.Time.Mday != nil {
-            if *config.Time.Mday < 1 || *config.Time.Mday > 31 {
-                return nil, &JobberError{"Invalid 'mday' value.", nil}
+        if len(timeParts) > 3 {
+            val, err := parseTimeStr(timeParts[3], "month day", 1, 31)
+            if err != nil {
+                return nil, err
             }
-            job.Mday = *config.Time.Mday
+            job.Mday.Value = val
         }
         
         // month
-        if config.Time.Mon != nil {
-            if *config.Time.Mon < 1 || *config.Time.Mon > 12 {
-                return nil, &JobberError{"Invalid 'mon' value.", nil}
+        if len(timeParts) > 4 {
+            val, err := parseTimeStr(timeParts[4], "month", 1, 12)
+            if err != nil {
+                return nil, err
             }
-            job.Mon = *config.Time.Mon
+            job.Mon.Value = val
         }
         
         // wday
-        if config.Time.Wday != nil {
-            if *config.Time.Wday < 0 || *config.Time.Wday > 6 {
-                return nil, &JobberError{"Invalid 'wday' value.", nil}
+        if len(timeParts) > 5 {
+            val, err := parseTimeStr(timeParts[5], "weekday", 0, 6)
+            if err != nil {
+                return nil, err
             }
-            job.Wday = *config.Time.Wday
+            job.Wday.Value = val
+        }
+        
+        if len(timeParts) > 6 {
+            return nil, &JobberError{"Excess elements in 'time' field.", nil}
         }
         
         jobs = append(jobs, job)
     }
     return jobs, nil
+}
+
+func parseTimeStr(s string, fieldName string, min uint, max uint) (*uint, error) {
+    errMsg := fmt.Sprintf("Invalid '%v' value", fieldName)
+    
+    if s == TimeWildcard {
+        return nil, nil
+    } else {
+        // convert to int
+        val, err := strconv.Atoi(s)
+        if err != nil {
+            return nil, &JobberError{errMsg, err}
+        }
+        
+        // check sign
+        if val < 0 {
+            errMsg := fmt.Sprintf("%s: cannot be negative.", errMsg)
+            return nil, &JobberError{errMsg, nil}
+        }
+        uval := uint(val)
+        
+        // check range
+        if uval < min {
+            errMsg := fmt.Sprintf("%s: cannot be less than %v.", errMsg, min)
+            return nil, &JobberError{errMsg, nil}
+        } else if uval > max {
+            errMsg := fmt.Sprintf("%s: cannot be greater than %v.", errMsg, max)
+            return nil, &JobberError{errMsg, nil}
+        }
+        
+        return &uval, nil
+    }
 }
 
 func getErrorHandler(name string) (*ErrorHandler, error) {

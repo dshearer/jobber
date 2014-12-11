@@ -48,63 +48,63 @@ func monthHasDay(month time.Month, day int) bool {
 func nextRunTime(job *Job, now time.Time) time.Time {
     var next time.Time = now
     for {
-        if job.Sec != -1 && next.Second() != int(job.Sec) {
+        if job.Sec.Value != nil && next.Second() != int(*job.Sec.Value) {
             /*
              * The earliest possible time is the next time t
              * s.t. t.Second == job.Sec.
              */
-            if next.Second() > int(job.Sec) {
+            if next.Second() > int(*job.Sec.Value) {
                 next = next.Add(time.Minute)
             }
-            next = setTimeComp(next, next.Second(), int(job.Sec), time.Second)
+            next = setTimeComp(next, next.Second(), int(*job.Sec.Value), time.Second)
             
-        } else if job.Min != -1 && next.Minute() != int(job.Min) {
+        } else if job.Min.Value != nil && next.Minute() != int(*job.Min.Value) {
             /*
              * The earliest possible time is the next time t
              * s.t. t.Minute == job.Min.
              */
-            if next.Minute() > int(job.Min) {
+            if next.Minute() > int(*job.Min.Value) {
                 next = next.Add(time.Hour)
             }
-            next = setTimeComp(next, next.Minute(), int(job.Min), time.Minute)
+            next = setTimeComp(next, next.Minute(), int(*job.Min.Value), time.Minute)
             next = setTimeComp(next, next.Second(), 0, time.Second)
             
-        } else if job.Hour != -1 && next.Hour() != int(job.Hour) {
-            if next.Hour() > int(job.Hour) {
+        } else if job.Hour.Value != nil && next.Hour() != int(*job.Hour.Value) {
+            if next.Hour() > int(*job.Hour.Value) {
                 next = next.AddDate(0, 0, 1) // add 1 day
             }
-            next = setTimeComp(next, next.Hour(), int(job.Hour), time.Hour)
+            next = setTimeComp(next, next.Hour(), int(*job.Hour.Value), time.Hour)
             next = setTimeComp(next, next.Minute(), 0, time.Minute)
             next = setTimeComp(next, next.Second(), 0, time.Second)
             
-        } else if job.Wday != -1 && weekdayToInt(next.Weekday()) != int(job.Wday) {
-            if weekdayToInt(next.Weekday()) > int(job.Wday) {
+        } else if job.Wday.Value != nil && weekdayToInt(next.Weekday()) != int(*job.Wday.Value) {
+            if weekdayToInt(next.Weekday()) > int(*job.Wday.Value) {
                 next = next.AddDate(0, 0, 7) // add 7 days
             }
-            deltaDays := int(job.Wday) - weekdayToInt(next.Weekday())
+            deltaDays := int(*job.Wday.Value) - weekdayToInt(next.Weekday())
             next = next.AddDate(0, 0, deltaDays)
             next = setTimeComp(next, next.Hour(), 0, time.Hour)
             next = setTimeComp(next, next.Minute(), 0, time.Minute)
             next = setTimeComp(next, next.Second(), 0, time.Second)
             
-        } else if job.Mday != -1 && next.Day() != int(job.Mday) {
-            if next.Day() > int(job.Mday) || !monthHasDay(next.Month(), int(job.Mday)) {
+        } else if job.Mday.Value != nil && next.Day() != int(*job.Mday.Value) {
+            if next.Day() > int(*job.Mday.Value) || !monthHasDay(next.Month(), int(*job.Mday.Value)) {
                 next = next.AddDate(0, 1, 0) // add 1 month
                 deltaDays := 1 - next.Day()
                 next = next.AddDate(0, 0, deltaDays) // set mday to 1
             } else {
-                deltaDays := int(job.Mday) - next.Day()
+                deltaDays := int(*job.Mday.Value) - next.Day()
                 next = next.AddDate(0, 0, deltaDays) // set mday to job.Mday
             }
             next = setTimeComp(next, next.Hour(), 0, time.Hour)
             next = setTimeComp(next, next.Minute(), 0, time.Minute)
             next = setTimeComp(next, next.Second(), 0, time.Second)
             
-        } else if job.Mon != -1 && monthToInt(next.Month()) != int(job.Mon) {
-            if monthToInt(next.Month()) > int(job.Mon) {
+        } else if job.Mon.Value != nil && monthToInt(next.Month()) != int(*job.Mon.Value) {
+            if monthToInt(next.Month()) > int(*job.Mon.Value) {
                 next = next.AddDate(1, 0, 0) // add 1 year
             }
-            deltaMonths := int(job.Mon) - monthToInt(next.Month())
+            deltaMonths := int(*job.Mon.Value) - monthToInt(next.Month())
             next = next.AddDate(0, deltaMonths, 0)
             deltaDays := 1 - next.Day()
             next = next.AddDate(0, 0, deltaDays) // set mday to 1
