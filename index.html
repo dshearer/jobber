@@ -54,8 +54,7 @@
         
       <section id="main_content" class="inner">
 
-<h1>
-<a id="intro" class="anchor" href="#intro" aria-hidden="true"><span class="octicon octicon-link"></span></a>Intro</h1>
+<h2><a id="intro" class="anchor" href="#intro" aria-hidden="true"><span class="octicon octicon-link"></span></a>Intro</h2>
 
 <p itemprop="description">Jobber is a <span itemprop="applicationCategory">utility</span> for Unix-like systems that can run arbitrary commands, or &ldquo;jobs&rdquo;, according to a schedule.  It is meant to be a replacement for the classic Unix utility <a href="http://en.wikipedia.org/wiki/Cron">cron</a>.</p>
 
@@ -70,7 +69,7 @@
 <strong>Sophisticated error reporting</strong>: you can control whether Jobber notifies you about each failed run, or only about jobs that have been disabled due to repeated failures.</li>
 </ul>
 
-<h1><a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+<h2><a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
 
 <p>Jobber's source code is copyright &#0169; <span itemprop="copyrightYear">2014</span> <span itemprop="copyrightHolder" itemscope itemtype="http://schema.org/Person"><span itemprop="name">Charles Dylan Shearer</span></span>.  It is licensed according to the MIT License:</p>
 
@@ -98,15 +97,15 @@ SOFTWARE.
 </pre>
 </div>
 
-<h1><a id="project-status" class="anchor" href="#project-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Status</h1>
+<h2><a id="project-status" class="anchor" href="#project-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Status</h2>
 
 <p>Jobber is curerntly at a &ldquo;beta&rdquo; level of maturity.  The largest open task is to do a thorough security review &mdash; specifically, a review of how Jobber maintains privilege separation between different users' jobs.</p>
 
-<h1><a id="target-systems" class="anchor" href="#target-systems" aria-hidden="true"><span class="octicon octicon-link"></span></a>Target Systems</h1>
+<h2><a id="target-systems" class="anchor" href="#target-systems" aria-hidden="true"><span class="octicon octicon-link"></span></a>Target Systems</h2>
 
 <p itemprop="requirements">Jobber is written in <a href="http://golang.org/">Go</a>, and it should be possible to compile and run it on <span itemprop="operatingSystem">any modern Unix-like system</span>.  However, at this time its installation script targets RHEL, Fedora, and CentOS.  (Actually, it has only been tested on CentOS....)</p>
 
-<h1><a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+<h2><a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
 
 <p>You need a recent version of <a href="http://golang.org/">Go</a> to compile Jobber.  Once you've installed Go and set up your Go workspace, you can build it thus:</p>
 
@@ -121,9 +120,9 @@ make -C src/github.com/dshearer/jobber
 sudo make install
 </code></pre>
 
-<h1><a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+<h2><a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
 
-<h2><a id="defining-jobs" class="anchor" href="#defining-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Defining Jobs</h2>
+<h3><a id="defining-jobs" class="anchor" href="#defining-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Defining Jobs</h3>
 
 <p>As with cron, each user can have its own set of jobs, which will be run under that user&rsquo;s privileges.  A user&rsquo;s jobs are defined in a file named &ldquo;.jobber&rdquo; in the user&rsquo;s home directory.  Jobfiles are written in YAML format.  Here's an example:</p>
 
@@ -140,13 +139,13 @@ sudo make install
 
 <p>This jobfile defines two jobs.  Field &ldquo;name&rdquo; is self-explanatory.  Field &ldquo;cmd&rdquo; can contain any Bash script.</p>
 
-<h3><a id="field-time" class="anchor" href="#field-time" aria-hidden="true"><span class="octicon octicon-link"></span></a>Field &ldquo;time&rdquo;</h3>
+<h4><a id="field-time" class="anchor" href="#field-time" aria-hidden="true"><span class="octicon octicon-link"></span></a>Field &ldquo;time&rdquo;</h4>
 
 <p>Field &ldquo;time&rdquo; specifies when the job is run, in a manner similar to how cron jobs&rsquo; schedules are specified: with a space-separated list of up to six specifiers, which can be numerals or &ldquo;*&rdquo;.  The first specifier constrains the second value of a given time, the second constrains to the minute value, the third to the hour value, the fourth to the day of the month, the fifth to the month, and the sixth to the day of the week.  A job is scheduled thus: a job will run at the next time that satisfies all of these specifiers.</p>
 
 <p>Thus, &ldquo;DailyBackup&rdquo; is run whenever the current time is 13:00:00 (i.e., 1 PM), no matter the day, whereas &ldquo;WeeklyBackup&rdquo; is run whenever the current time is 14:00:00 (i.e., 2 PM) and the current weekday is Monday.</p>
 
-<h3><a id="fields-onerror-notifyonerror-and-notifyonfailure" class="anchor" href="#fields-onerror-notifyonerror-and-notifyonfailure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fields &ldquo;onError&rdquo;, &ldquo;notifyOnError&rdquo;, and &ldquo;notifyOnFailure&rdquo;</h3>
+<h4><a id="fields-onerror-notifyonerror-and-notifyonfailure" class="anchor" href="#fields-onerror-notifyonerror-and-notifyonfailure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fields &ldquo;onError&rdquo;, &ldquo;notifyOnError&rdquo;, and &ldquo;notifyOnFailure&rdquo;</h4>
 
 <p>When discussnig jobs, by &ldquo;job error&rdquo; we mean the failure of a particular run of a job, whereas by &ldquo;job failure&rdquo; we mean a job that jobber has decided not to schedule anymore due to one or more recent job errors.  Jobber considers a run to have failed when the command (in field &ldquo;cmd&rdquo;) returns a non-0 exit status.</p>
 
@@ -160,7 +159,7 @@ sudo make install
 
 <p>Fields &ldquo;notifyOnError&rdquo; and &ldquo;notifyOnFailure&rdquo; control whether the user that owns a job is notified about job errors and job failures.</p>
 
-<h2><a id="loading-jobs" class="anchor" href="#loading-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading Jobs</h2>
+<h3><a id="loading-jobs" class="anchor" href="#loading-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading Jobs</h3>
 
 <p>After you've created a user&rsquo;s jobfile, log in as that user and do:</p>
 
@@ -170,8 +169,7 @@ sudo make install
 
 <pre><code>jobber reload -a</code></pre>
 
-<h2>
-<a id="listing-jobs" class="anchor" href="#listing-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Jobs</h2>
+<h3><a id="listing-jobs" class="anchor" href="#listing-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Jobs</h3>
 
 <p>You can list the jobs for a particular user by logging in as that user and doing</p>
 
@@ -181,7 +179,7 @@ sudo make install
 
 <p>As with the &ldquo;reload&rdquo; command, you can do the same for all users by adding the &ldquo;-a&rdquo; option as root.</p>
 
-<h2><a id="listing-runs" class="anchor" href="#listing-runs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Runs</h2>
+<h3><a id="listing-runs" class="anchor" href="#listing-runs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Runs</h3>
 
 <p>You can see a list of recent runs of any jobs for a particular user by logging in as that user and doing</p>
 
@@ -189,7 +187,7 @@ sudo make install
 
 <p>As with the other commands, you can do the same for all users by adding the &ldquo;-a&rdquo; option as root.</p>
 
-<h2><a id="testing-jobs" class="anchor" href="#testing-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing Jobs</h2>
+<h3><a id="testing-jobs" class="anchor" href="#testing-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing Jobs</h3>
 
 <p>If you'd like to test out a job, do</p>
 
