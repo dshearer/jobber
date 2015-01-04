@@ -131,11 +131,15 @@ sudo make install
   cmd: backup daily
   time: 0 0 13
   onError: Stop
+  notifyOnError: false
+  notifyOnFailure: true
 
 - name: WeeklyBackup
   cmd: backup weekly
   time: 0 0 14 * * 1
-  onError: Stop</code></pre>
+  onError: Stop
+  notifyOnError: false
+  notifyOnFailure: true</code></pre>
 
 <p>This jobfile defines two jobs.  Field &ldquo;name&rdquo; is self-explanatory.  Field &ldquo;cmd&rdquo; can contain any Bash script.</p>
 
