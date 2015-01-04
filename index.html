@@ -38,6 +38,7 @@
             <li><a href="#license">License</a></li>
             <li><a href="#project-status">Project Status</a></li>
             <li><a href="#installation">Installation</a></li>
+            <li><a href="#security">Security</a></li>
             <li>
                 <a href="#usage">Usage</a>
                 <ul>
@@ -104,7 +105,7 @@ SOFTWARE.
 
 <p itemprop="requirements">Jobber is written in <a href="http://golang.org/">Go</a>, and it should be possible to compile and run it on <span itemprop="operatingSystem">any modern Unix-like system</span>.  However, at this time its installation script targets RHEL, Fedora, and CentOS.  (Actually, it has only been tested on CentOS....)</p>
 
-<p>You need a recent version of <a href="http://golang.org/">Go</a> to compile Jobber.  Once you've installed Go and set up your Go workspace, you can build it thus:</p>
+<p>You need a recent version of Go to compile Jobber.  Once you've installed Go and set up your Go workspace, you can build it thus:</p>
 
 <pre><code>cd /path/to/your/workspace
 go get github.com/dshearer/jobber
@@ -116,6 +117,12 @@ make -C src/github.com/dshearer/jobber
 <pre><code>cd /path/to/your/workspace
 sudo make install
 </code></pre>
+
+<h2><a id="security" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Security</h2>
+
+<p>Like cron, Jobber enables different users to run their own sets of jobs.  The main security requirement is that Jobber does not enable users to do something they otherwise would not be allowed to do.  In particular, the set of commands that a user can execute via Jobber must be a subset of the set of commands that the user can execute in the shell.</p>
+
+<p>Note that Jobber has <em>not</em> been thoroughly and expertly reviewed with regard to security.  (Of course, neither has most software....)  Meeting its security requirements is indeed a goal, but, as made clear in <a href="#license">the license</a>, the authors make no guarantee that there are no vulnerabilities in Jobber.</p>
 
 <h2><a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
 
