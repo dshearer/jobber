@@ -24,8 +24,8 @@ type JobConfigEntry struct {
     Cmd              string
     Time             string
     OnError          string
-    NotifyOnError    *bool
-    NotifyOnFailure  *bool
+    NotifyOnError    *bool   "notifyOnError,omitempty"
+    NotifyOnFailure  *bool   "notifyOnFailure,omitempty"
 }
 
 func (m *JobManager) LoadAllJobs() (int, error) {
