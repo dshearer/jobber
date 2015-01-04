@@ -2,11 +2,12 @@
 <html>
 
   <head>
-    <meta charset='utf-8'>
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <meta name="description" content="Jobber: A replacement for cron, with sophisticated status-reporting and error-handling.">
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Jobber: A replacement for cron, with sophisticated status-reporting and error-handling." />
 
-    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css" />
 
     <title>Jobber: A replacement for cron, with sophisticated status-reporting and error-handling.</title>
   </head>
@@ -32,6 +33,7 @@
     <div id="main_content_wrap" class="outer">
         <nav id="toc">
             <ul>
+            <li id="top_link" style="visibility:hidden"><a href="#">[top]</a></li>
             <li><a href="#intro">Intro</a></li>
             <li><a href="#license">License</a></li>
             <li><a href="#project-status">Project Status</a></li>
@@ -214,6 +216,30 @@ sudo make install
 
   ga('create', 'UA-57172909-1', 'auto');
   ga('send', 'pageview');
+</script>
+    
+<script>
+var header = $('#header_wrap');
+var toc = $('#toc');
+var topLink = $('#top_link');
+
+function repositionToc(event) {
+    var scrollOffset = $(window).scrollTop();
+    var headerBottom = header.offset().top + header.height();
+    var headerRelBottom = headerBottom - scrollOffset;
+    var newOffset = toc.offset();
+    if (headerRelBottom >= 0) {
+        newOffset.top = headerBottom;
+        topLink.css('visibility', 'hidden');
+    }
+    else {
+        newOffset.top = scrollOffset;
+        topLink.css('visibility', 'visible');
+    }
+    toc.offset(newOffset);
+}
+
+$(window).scroll(repositionToc);
 </script>
 
 
