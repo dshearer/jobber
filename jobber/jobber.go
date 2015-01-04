@@ -49,7 +49,7 @@ func main() {
         os.Exit(0)
     } else {
         if len(flag.Args()) == 0 {
-            fmt.Fprintf(os.Stderr, "Specify a command, asshole.\n\n")
+            fmt.Fprintf(os.Stderr, "Please specify a command.\n\n")
             flag.Usage()
             os.Exit(1)
         }
