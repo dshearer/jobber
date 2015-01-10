@@ -23,7 +23,7 @@ type JobConfigEntry struct {
     Name             string
     Cmd              string
     Time             string
-    OnError          string
+    OnError          *string "onError,omitempty"
     NotifyOnError    *bool   "notifyOnError,omitempty"
     NotifyOnFailure  *bool   "notifyOnFailure,omitempty"
 }
@@ -170,8 +170,8 @@ func readJobFile(r io.Reader, username string) ([]*Job, error) {
         }
         
         // set failure-handler
-        if len(config.OnError) > 0 {
-            job.ErrorHandler, err = getErrorHandler(config.OnError)
+        if config.OnError != nil {
+            job.ErrorHandler, err = getErrorHandler(*config.OnError)
             if err != nil {
                 return nil, err
             }
