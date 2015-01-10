@@ -17,11 +17,16 @@ const (
     ReloadCmdStr = "reload"
     StopCmdStr   = "stop"
     TestCmdStr   = "test"
+    Version      = "0.1.0"
 )
 
 func usage() {
     fmt.Printf("Usage: %v [flags] (%v|%v|%v|%v|%v)\nFlags:\n", os.Args[0], ListCmdStr, LogCmdStr, ReloadCmdStr, StopCmdStr, TestCmdStr)
     flag.PrintDefaults()
+}
+
+func version() {
+    fmt.Printf("jobber %v\n", Version)
 }
 
 func subcmdUsage(subcmd string, flagSet *flag.FlagSet) func() {
@@ -42,10 +47,14 @@ func main() {
     flag.Usage = usage
     
     var helpFlag_p = flag.Bool("h", false, "help")
+    var versionFlag_p = flag.Bool("v", false, "version")
     flag.Parse()
     
     if *helpFlag_p {
         usage()
+        os.Exit(0)
+    } else if *versionFlag_p {
+        version()
         os.Exit(0)
     } else {
         if len(flag.Args()) == 0 {
