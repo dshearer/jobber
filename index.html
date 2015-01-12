@@ -54,6 +54,9 @@
         
       <section id="main_content" class="inner">
 
+<!--
+Intro
+-->
 <h2><a id="intro" class="anchor" href="#intro" aria-hidden="true"><span class="octicon octicon-link"></span></a>Intro</h2>
 
 <p itemprop="description">Jobber is a <span itemprop="applicationCategory">utility</span> for Unix-like systems that can run arbitrary commands, or &ldquo;jobs&rdquo;, according to a schedule.  It is meant to be a replacement for the classic Unix utility <a href="http://en.wikipedia.org/wiki/Cron">cron</a>.</p>
@@ -69,12 +72,18 @@
 <strong>Sophisticated error reporting</strong>: you can control whether Jobber notifies you about each failed run, or only about jobs that have been disabled due to repeated failures.</li>
 </ul>
 
+<!--
+Project Status
+-->
 <h2><a id="project-status" class="anchor" href="#project-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Status</h2>
 
 <p>Jobber is curerntly at a &ldquo;beta&rdquo; level of maturity.  The largest open task is to do a thorough security review &mdash; specifically, a review of how Jobber maintains privilege separation between different users' jobs.</p>
 
 <p><strong>Contributions/suggestions/requests are welcome!</strong>  Feel free to <a href="https://github.com/dshearer/jobber/issues">open an issue</a>, or ask a question on <a href="https://groups.google.com/d/forum/jobber-proj">the mailing list</a>.</p>
 
+<!--
+License
+-->
 <h2><a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
 
 <p>Jobber's source code is copyright &#0169; <span itemprop="copyrightYear">2014</span> <span itemprop="copyrightHolder" itemscope itemtype="http://schema.org/Person"><span itemprop="name">Charles Dylan Shearer</span></span>.  It is licensed according to the MIT License:</p>
@@ -103,9 +112,14 @@ SOFTWARE.
 </pre>
 </div>
 
+<!--
+Installation
+-->
 <h2><a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
 
 <p itemprop="requirements">Jobber is written in <a href="http://golang.org/">Go</a>, and it should be possible to compile and run it on <span itemprop="operatingSystem">any modern Unix-like system</span>.  However, at this time its installation script targets RHEL, Fedora, and CentOS.  (Actually, it has only been tested on CentOS....)</p>
+
+<p>Note that, although Jobber can be used instead of cron, it is certainly possible to run both at the same time.</p>
 
 <p>You need a recent version of Go to compile Jobber.  Once you've installed Go and set up your Go workspace, you can build it thus:</p>
 
@@ -120,12 +134,18 @@ make -C src/github.com/dshearer/jobber
 sudo make install
 </code></pre>
 
-<h2><a id="security" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Security</h2>
+<!--
+Security
+-->
+<h2><a id="security" class="anchor" href="#security" aria-hidden="true"><span class="octicon octicon-link"></span></a>Security</h2>
 
 <p>Like cron, Jobber enables different users to run their own sets of jobs.  The main security requirement is that Jobber does not enable users to do something they otherwise would not be allowed to do.  In particular, the set of commands that a user can execute via Jobber must be a subset of the set of commands that the user can execute in the shell.</p>
 
 <p>Note that Jobber has <em>not</em> been thoroughly and expertly reviewed with regard to security.  (Of course, neither has most software....)  Meeting its security requirements is indeed a goal, but, as made clear in <a href="#license">the license</a>, the authors make no guarantee that there are no vulnerabilities in Jobber.</p>
 
+<!--
+Usage
+-->
 <h2><a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
 
 <h3><a id="defining-jobs" class="anchor" href="#defining-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Defining Jobs</h3>
