@@ -29,30 +29,30 @@
         </header>
     </div>
 
-    <!-- MAIN CONTENT -->
-    <div id="main_content_wrap" class="outer">
-        <nav id="toc">
+<!-- MAIN CONTENT -->
+<div id="main_content_wrap" class="outer">
+    <nav id="toc">
+        <ul>
+        <li id="top_link" style="visibility:hidden"><a href="#">[top]</a></li>
+        <li><a href="#intro">Intro</a></li>
+        <li><a href="#project-status">Project Status</a></li>
+        <li><a href="#license">License</a></li>
+        <li><a href="#deployment">Deployment</a></li>
+        <li><a href="#security">Security</a></li>
+        <li>
+            <a href="#usage">Usage</a>
             <ul>
-            <li id="top_link" style="visibility:hidden"><a href="#">[top]</a></li>
-            <li><a href="#intro">Intro</a></li>
-            <li><a href="#project-status">Project Status</a></li>
-            <li><a href="#license">License</a></li>
-            <li><a href="#installation">Installation</a></li>
-            <li><a href="#security">Security</a></li>
-            <li>
-                <a href="#usage">Usage</a>
-                <ul>
-                <li><a href="#defining-jobs">Defining Jobs</a></li>
-                <li><a href="#loading-jobs">Loading Jobs</a></li>
-                <li><a href="#listing-jobs">Listing Jobs</a></li>
-                <li><a href="#listing-runs">Listing Runs</a></li>
-                <li><a href="#testing-jobs">Testing Jobs</a></li>
-                </ul>
-            </li>
+            <li><a href="#defining-jobs">Defining Jobs</a></li>
+            <li><a href="#loading-jobs">Loading Jobs</a></li>
+            <li><a href="#listing-jobs">Listing Jobs</a></li>
+            <li><a href="#listing-runs">Listing Runs</a></li>
+            <li><a href="#testing-jobs">Testing Jobs</a></li>
             </ul>
-        </nav>
-        
-      <section id="main_content" class="inner">
+        </li>
+        </ul>
+    </nav>
+    
+  <section id="main_content" class="inner">
 
 <!--
 Intro
@@ -113,13 +113,15 @@ SOFTWARE.
 </div>
 
 <!--
-Installation
+Deployment
 -->
-<h2><a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+<h2><a id="deployment" class="anchor" href="#deployment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deployment</h2>
 
 <p itemprop="requirements">Jobber is written in <a href="http://golang.org/">Go</a>, and it should be possible to compile and run it on <span itemprop="operatingSystem">any modern Unix-like system</span>.  However, at this time its installation script targets RHEL, Fedora, and CentOS.  (Actually, it has only been tested on CentOS....)</p>
 
 <p>Note that, although Jobber can be used instead of cron, it is certainly possible to run both at the same time.</p>
+
+<h3>Compilation</h3>
 
 <p>You need a recent version of Go to compile Jobber.  Once you've installed Go and set up your Go workspace, you can build it thus:</p>
 
@@ -128,11 +130,33 @@ go get github.com/dshearer/jobber
 make -C src/github.com/dshearer/jobber
 </code></pre>
 
+<h3>Installation</h3>
+
+<h4>On RHELish Systems</h4>
+
 <p>As mentioned above, Jobber's installation script currently targets RHEL-like systems.  If you are on such a system, you can install Jobber thus:</p>
 
 <pre><code>cd /path/to/your/workspace
-sudo make install
+sudo GOPATH="${GOPATH}" make -C src/github.com/dshearer/jobber install
 </code></pre>
+
+<p>If you get sick of it, you can uninstall it thus:</p>
+
+<pre><code>cd /path/to/your/workspace
+sudo GOPATH="${GOPATH}" make -C src/github.com/dshearer/jobber uninstall
+</code></pre>
+
+<h4>On Other Systems</h4>
+
+<p>Jobber consists of two binaries: jobber and jobberd.  jobberd is a daemon that runs jobs; jobber is a client with which the user can interact with jobbberd.  After compiling, you&rsquo;ll find them in ${GOPATH}/bin.</p>
+
+<p>Before installing the binaries, create a new, non-login user called &ldquo;jobber_client&rdquo;:</p>
+
+<pre><code>useradd --home / -M --system --shell /sbin/nologin jobber_client</code></pre>
+
+<p>Now, copy jobber to wherever you want and set its owner to jobber_client:root and its permissions to 4755.  Copy jobberd to wherever and set its owner to root:root and its permissions to 0755.</p>
+
+<p>jobberd does not daemonize itself; you need to run it with daemonize(1).  Alternatively, if your system uses SysV-style init, you can copy the file jobber_init into the appropriate directly and then run jobberd as an init service.  However you get it to run, jobberd needs to run as root.</p>
 
 <!--
 Security
