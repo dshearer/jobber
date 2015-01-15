@@ -3,9 +3,11 @@ package main
 import (
     "io"
     "io/ioutil"
+    "bufio"
     "gopkg.in/yaml.v2"
     "path/filepath"
     "os"
+    "syscall"
     "os/user"
     "strconv"
     "fmt"
@@ -13,8 +15,6 @@ import (
 )
 
 const (
-    HomeDirRoot    = "/home"
-    RootHomeDir = "/root"
     JobberFileName = ".jobber"
     TimeWildcard = "*"
 )
@@ -28,18 +28,70 @@ type JobConfigEntry struct {
     NotifyOnFailure  *bool   "notifyOnFailure,omitempty"
 }
 
-func (m *JobManager) LoadAllJobs() (int, error) {
-    // load jobs for normal users
-    err := filepath.Walk(HomeDirRoot, m.procHomeFile)
+func openUsersJobberFile(username string) (*os.File, error) {
+    /*
+     * Not all users listed in /etc/passwd have their own
+     * jobber file.  E.g., some of them may share a home dir.
+     * When this happens, we say that the jobber file belongs
+     * to the user who owns that file.
+     */
+     
+     // make path to jobber file
+    user, err := user.Lookup(username)
     if err != nil {
-        return -1, err
+        return nil, err
+    }
+    jobberFilePath := filepath.Join(user.HomeDir, JobberFileName)
+    
+    // open it
+    f, err := os.Open(jobberFilePath)
+    if err != nil {
+        return nil, err
     }
     
-    // load jobs for root
-    _, err = m.loadJobsForUser("root")
+    // check owner
+    info, err := f.Stat()
     if err != nil {
-        ErrLogger.Printf("Failed to load jobs for root: %v\n", err)
+        f.Close()
+        return nil, err
     }
+    uid, err := strconv.Atoi(user.Uid)
+    if err != nil {
+        f.Close()
+        return nil, err
+    }
+    if uint32(uid) != info.Sys().(*syscall.Stat_t).Uid {
+        f.Close()
+        return nil, os.ErrNotExist
+    }
+    
+    return f, nil
+}
+
+func (m *JobManager) LoadAllJobs() (int, error) {
+    // get all users by reading passwd
+    f, err := os.Open("/etc/passwd")
+    if err != nil {
+        ErrLogger.Printf("Failed to open /etc/passwd: %v\n", err)
+        return 0, err
+    }
+    defer f.Close()
+    scanner := bufio.NewScanner(f)
+    totalJobs := 0
+    for scanner.Scan() {
+        parts := strings.Split(scanner.Text(), ":")
+        if len(parts) > 0 {
+            user := parts[0]
+            nbr, err := m.loadJobsForUser(user)
+            totalJobs += nbr
+            if err != nil {
+                ErrLogger.Printf("Failed to load jobs for %s: %v\n", err, user)
+            }
+        }
+    }
+    
+    ErrLogger.Printf("totalJobs: %v; len(m.jobs): %v", totalJobs, len(m.jobs));
+    
     return len(m.jobs), nil
 }
 
@@ -92,42 +144,10 @@ func (m *JobManager) ReloadJobsForUser(username string) (int, error) {
     return amt, err
 }
 
-func (m *JobManager) procHomeFile(path string, info os.FileInfo, err error) error {
-    if err != nil {
-        return err
-    } else if path == HomeDirRoot {
-        return nil
-    } else if info.IsDir() {
-        username := filepath.Base(path)
-        
-        // check whether this user exists
-        _, err = user.Lookup(username)
-        if err == nil {
-            /* User exists. */
-            _, err = m.loadJobsForUser(username)
-            if err != nil {
-                ErrLogger.Printf("Failed to load jobs for %v: %v.\n", username, err)
-            }
-        }
-        
-        return filepath.SkipDir
-    } else {
-        return nil
-    }
-}
-
 func (m *JobManager) loadJobsForUser(username string) (int, error) {
-    // compute .jobber file path
-    var jobberFilePath string
-    if username == "root" {
-        jobberFilePath = filepath.Join(RootHomeDir, JobberFileName)
-    } else {
-        jobberFilePath = filepath.Join(HomeDirRoot, username, JobberFileName)
-    }
-    
     // read .jobber file
     var newJobs []*Job
-    f, err := os.Open(jobberFilePath)
+    f, err := openUsersJobberFile(username)
     if err != nil {
         if os.IsNotExist(err) {
             newJobs = make([]*Job, 0)
@@ -142,7 +162,7 @@ func (m *JobManager) loadJobsForUser(username string) (int, error) {
         }
     }
     m.jobs = append(m.jobs, newJobs...)
-    Logger.Printf("Loaded %v new jobs.\n", len(newJobs))
+    Logger.Printf("Loaded %v new jobs for %s.\n", len(newJobs), username)
     
     return len(newJobs), nil
 }
