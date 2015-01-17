@@ -64,20 +64,38 @@ var ErrorHandlerStop = ErrorHandler{
 }
 
 var ErrorHandlerBackoff = ErrorHandler{
-    apply : func(job *Job) { 
+    apply : func(job *Job) {
+        /*
+        The job has just had an error.  We'll handle
+        it by skipping the next N consecutive chances
+        to run.  If this is the first time it has failed
+        (i.e., job.Status == JobGood), then N will be 1;
+        otherwise, N will be twice the amount of chances
+        previously skipped.  If N is greater than 
+        MaxBackoffWait, however, we mark this job as 
+        "Failed" and don't run it again.
+        
+        We use two variables: backoffLevel and skipsLeft.
+        backoffLevel is the amount of chances to skip
+        at this time.  skipsLeft is the amount of chances
+        we have skipped so far.  When a job is in state
+        JobBackoff, Job.ShouldRun decrements skipsLeft
+        and returns false if skipsLeft > 0, true otherwise.
+        */
+        
         if job.Status == JobGood {
             job.Status = JobBackoff
-            job.backoffWait = 1
+            job.backoffLevel = 1
         } else {
-            job.backoffWait *= 2
+            job.backoffLevel *= 2
         }
-
-        job.backoffTillNextTry = job.backoffWait
-        if job.backoffWait > MaxBackoffWait {
+        if job.backoffLevel > MaxBackoffWait {
             // give up
             job.Status = JobFailed
-            job.backoffWait = 0
-            job.backoffTillNextTry = 0
+            job.backoffLevel = 0
+            job.skipsLeft = 0
+        } else {
+            job.skipsLeft = job.backoffLevel
         }
     },
     desc : ErrorHandlerBackoffName,
@@ -112,8 +130,8 @@ type Job struct {
     LastRunTime time.Time
     
     // backoff after errors
-    backoffWait         int
-    backoffTillNextTry   int
+    backoffLevel         int
+    skipsLeft            int
 }
 
 func (j *Job) String() string {
@@ -183,5 +201,19 @@ func (job *Job) Run(ctx context.Context, shell string, testing bool) *RunRec {
     }
     
     return rec
+}
+
+func (job *Job) ShouldRun() bool {
+    switch job.Status {
+        case JobFailed:
+            return false
+            
+        case JobBackoff:
+            job.skipsLeft--
+            return job.skipsLeft <= 0
+        
+        default:
+            return true
+    }
 }
 

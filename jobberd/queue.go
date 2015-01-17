@@ -203,22 +203,11 @@ func (jq *JobQueue) Pop(now time.Time, ctx context.Context) *Job {
         heap.Push(&jq.q, schedJob2)
         
         // decide whether we really should run this job
-        switch job.Status {
-            case JobFailed:
-                // skip this job
-                return jq.Pop(now, ctx)
-                
-            case JobBackoff:
-                job.backoffTillNextTry--
-                if job.backoffTillNextTry <= 0 {
-                    return job
-                } else {
-                    // skip this job
-                    return jq.Pop(now, ctx)
-                }
-            
-            default:
-                return job
+        if job.ShouldRun() {
+            return job
+        } else {
+            // skip this job
+            return jq.Pop(now, ctx)
         }
     }
 }

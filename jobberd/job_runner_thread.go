@@ -33,7 +33,7 @@ func (t *JobRunnerThread) Start(jobs []*Job, shell string, ctx *JobberContext) {
     
     // make subcontext
     t.ctx, t.ctl = NewJobberContext(ctx)
-    Logger.Printf("Job Runner thread context: %v\n", t.ctx.Name)
+    //Logger.Printf("Job Runner thread context: %v\n", t.ctx.Name)
     
     go func() {
         for {
@@ -50,18 +50,18 @@ func (t *JobRunnerThread) Start(jobs []*Job, shell string, ctx *JobberContext) {
             
             } else {
                 /* We were canceled. */
-                Logger.Printf("Run thread got 'stop'\n")
+                //Logger.Printf("Run thread got 'stop'\n")
                 break
             }
         }
         
         // wait for run threads to stop
-        Logger.Printf("JobRunner: cleaning up...\n")
+        //Logger.Printf("JobRunner: cleaning up...\n")
         t.ctx.Finish()
         
         // close run-rec channel
         close(t.runRecChan)
-        Logger.Printf("JobRunner done\n")
+        //Logger.Printf("JobRunner done\n")
     }()
 }
 
