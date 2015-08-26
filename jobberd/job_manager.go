@@ -280,15 +280,16 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         // make response
         var buffer bytes.Buffer
         var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5, 0, 2, ' ', 0)
-        fmt.Fprintf(writer, "NAME\tSTATUS\tSEC\tMIN\tHOUR\tMDAY\tMONTH\tWDAY\tCOMMAND\tNOTIFY ON ERROR\tNOTIFY ON FAILURE\tERROR HANDLER\t\n")
+        fmt.Fprintf(writer, "NAME\tSTATUS\tSEC\tMIN\tHOUR\tMDAY\tMONTH\tWDAY\tCOMMAND\tNOTIFY ON ERROR\tNOTIFY ON FAILURE\tERROR HANDLER\tRUN TIME\n")
         strs := make([]string, 0, len(m.jobs))
         for _, j := range jobs {
             cmdStrMaxLen := 40
             cmdStr := j.Cmd
+            cmdStr = strings.Replace(cmdStr, "\n", "\\n", -1)
             if len(cmdStr) > cmdStrMaxLen {
                 cmdStr = cmdStr[0:cmdStrMaxLen-3] + "..."
             }
-            s := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t%v\t%v\t%v\t",
+            s := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t%v\t%v\t%v\t%v",
                                j.Name,
                                j.Status,
                                j.Sec,
@@ -300,7 +301,8 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
                                cmdStr,
                                j.NotifyOnError,
                                j.NotifyOnFailure,
-                               j.ErrorHandler)
+                               j.ErrorHandler,
+                               j.NextRunTime.Format("Jan _2 15:04:05 2006"))
             strs = append(strs, s)
         }
         fmt.Fprintf(writer, "%v", strings.Join(strs, "\n"))

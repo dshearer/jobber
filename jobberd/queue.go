@@ -45,93 +45,32 @@ func monthHasDay(month time.Month, day int) bool {
     return t.Month() == month
 }
 
-func nextRunTime(job *Job, now time.Time) time.Time {
-    var next time.Time = now
-    for {
-        if job.Sec.Value != nil && next.Second() != int(*job.Sec.Value) {
-            /*
-             * The earliest possible time is the next time t
-             * s.t. t.Second == job.Sec.
-             */
-            if next.Second() > int(*job.Sec.Value) {
-                next = next.Add(time.Minute)
-            }
-            next = setTimeComp(next, next.Second(), int(*job.Sec.Value), time.Second)
-            
-        } else if job.Min.Value != nil && next.Minute() != int(*job.Min.Value) {
-            /*
-             * The earliest possible time is the next time t
-             * s.t. t.Minute == job.Min.
-             */
-            if next.Minute() > int(*job.Min.Value) {
-                next = next.Add(time.Hour)
-            }
-            next = setTimeComp(next, next.Minute(), int(*job.Min.Value), time.Minute)
-            next = setTimeComp(next, next.Second(), 0, time.Second)
-            
-        } else if job.Hour.Value != nil && next.Hour() != int(*job.Hour.Value) {
-            if next.Hour() > int(*job.Hour.Value) {
-                next = next.AddDate(0, 0, 1) // add 1 day
-            }
-            next = setTimeComp(next, next.Hour(), int(*job.Hour.Value), time.Hour)
-            next = setTimeComp(next, next.Minute(), 0, time.Minute)
-            next = setTimeComp(next, next.Second(), 0, time.Second)
-            
-        } else if job.Wday.Value != nil && weekdayToInt(next.Weekday()) != int(*job.Wday.Value) {
-            if weekdayToInt(next.Weekday()) > int(*job.Wday.Value) {
-                next = next.AddDate(0, 0, 7) // add 7 days
-            }
-            deltaDays := int(*job.Wday.Value) - weekdayToInt(next.Weekday())
-            next = next.AddDate(0, 0, deltaDays)
-            next = setTimeComp(next, next.Hour(), 0, time.Hour)
-            next = setTimeComp(next, next.Minute(), 0, time.Minute)
-            next = setTimeComp(next, next.Second(), 0, time.Second)
-            
-        } else if job.Mday.Value != nil && next.Day() != int(*job.Mday.Value) {
-            if next.Day() > int(*job.Mday.Value) || !monthHasDay(next.Month(), int(*job.Mday.Value)) {
-                next = next.AddDate(0, 1, 0) // add 1 month
-                deltaDays := 1 - next.Day()
-                next = next.AddDate(0, 0, deltaDays) // set mday to 1
-            } else {
-                deltaDays := int(*job.Mday.Value) - next.Day()
-                next = next.AddDate(0, 0, deltaDays) // set mday to job.Mday
-            }
-            next = setTimeComp(next, next.Hour(), 0, time.Hour)
-            next = setTimeComp(next, next.Minute(), 0, time.Minute)
-            next = setTimeComp(next, next.Second(), 0, time.Second)
-            
-        } else if job.Mon.Value != nil && monthToInt(next.Month()) != int(*job.Mon.Value) {
-            if monthToInt(next.Month()) > int(*job.Mon.Value) {
-                next = next.AddDate(1, 0, 0) // add 1 year
-            }
-            deltaMonths := int(*job.Mon.Value) - monthToInt(next.Month())
-            next = next.AddDate(0, deltaMonths, 0)
-            deltaDays := 1 - next.Day()
-            next = next.AddDate(0, 0, deltaDays) // set mday to 1
-            next = setTimeComp(next, next.Hour(), 0, time.Hour)
-            next = setTimeComp(next, next.Minute(), 0, time.Minute)
-            next = setTimeComp(next, next.Second(), 0, time.Second)
-            
-        } else {
-            break
+func nextRunTime(job *Job, now time.Time) *time.Time {
+    var max time.Time = now.Add(time.Hour * 24 * 366)
+    for next := now; next.Before(max); next = next.Add(time.Second) {
+        var a bool = true
+        a = a && job.Sec.Satisfied(next.Second())
+        a = a && job.Min.Satisfied(next.Minute())
+        a = a && job.Hour.Satisfied(next.Hour())
+        a = a && (job.Wday.Satisfied(weekdayToInt(next.Weekday())) || job.Mday.Satisfied(next.Day()))
+        a = a && job.Mon.Satisfied(monthToInt(next.Month()))
+        if a {
+            Logger.Printf("Scheduled %v: %v\n", job.Name, next)
+            return &next
         }
     }
-    return next;
+    Logger.Printf("Failed to schedule %v\n", job.Name)
+    return nil
 }
 
-type scheduledJob struct {
-    job      *Job
-    runTime  time.Time
-}
-
-type priQueue []scheduledJob // implements heap.Interface
+type priQueue []*Job // implements heap.Interface
 
 func (q priQueue) Len() int {
     return len(q)
 }
 
 func (q priQueue) Less(i, j int) bool {
-    return q[i].runTime.Before(q[j].runTime)
+    return q[i].NextRunTime.Before(*q[j].NextRunTime)
 }
 
 func (q priQueue) Swap(i, j int) {
@@ -139,7 +78,7 @@ func (q priQueue) Swap(i, j int) {
 }
 
 func (q *priQueue) Push(x interface{}) {
-    *q = append(*q, x.(scheduledJob))
+    *q = append(*q, x.(*Job))
 }
 
 func (q *priQueue) Pop() interface{} {
@@ -158,11 +97,16 @@ type JobQueue struct {
 }
 
 func (jq *JobQueue) SetJobs(now time.Time, jobs []*Job) {
-    jq.q = make(priQueue, len(jobs))
-    for i := 0; i < len(jobs); i++ {
-        jq.q[i] = scheduledJob{jobs[i], nextRunTime(jobs[i], now)}
-    }
+    jq.q = make(priQueue, 0)
     heap.Init(&jq.q)
+    
+    for i := 0; i < len(jobs); i++ {
+        var job *Job = jobs[i]
+        job.NextRunTime = nextRunTime(job, now)
+        if job.NextRunTime != nil {
+            heap.Push(&jq.q, job)
+        }
+    }
 }
 
 func (jq *JobQueue) Empty() bool {
@@ -183,24 +127,25 @@ func (jq *JobQueue) Pop(now time.Time, ctx context.Context) *Job {
         
     } else {
         // get next-scheduled job
-        schedJob := heap.Pop(&jq.q).(scheduledJob)
-        job := schedJob.job
+        job := heap.Pop(&jq.q).(*Job)
         
         // sleep till it's time to run it
-        if now.Before(schedJob.runTime) {
-            afterChan := time.After(schedJob.runTime.Sub(now))
+        if now.Before(*job.NextRunTime) {
+            afterChan := time.After(job.NextRunTime.Sub(now))
             select {
                 case now = <-afterChan:
                 case <-ctx.Done():
                     // abort!
-                    heap.Push(&jq.q, schedJob)
+                    heap.Push(&jq.q, job)
                     return nil
             }
         }
         
         // schedule this job's next run
-        schedJob2 := scheduledJob{job, nextRunTime(job, now.Add(time.Second))}
-        heap.Push(&jq.q, schedJob2)
+        job.NextRunTime = nextRunTime(job, now.Add(time.Second))
+        if job.NextRunTime != nil {
+            heap.Push(&jq.q, job)
+        }
         
         // decide whether we really should run this job
         if job.ShouldRun() {

@@ -31,16 +31,9 @@ func (s JobStatus) String() string {
     }
 }
 
-type TimeSpec struct {
-    Value *uint
-}
-
-func (t TimeSpec) String() string {
-    if t.Value == nil {
-        return "*"
-    } else {
-        return fmt.Sprintf("%v", *t.Value)
-    }
+type TimeSpec interface {
+    String() string
+    Satisfied(int) bool
 }
 
 const (
@@ -120,6 +113,7 @@ type Job struct {
     ErrorHandler   *ErrorHandler
     NotifyOnError   bool
     NotifyOnFailure bool
+    NextRunTime *time.Time
     
     // other params
     stdoutLogger *log.Logger

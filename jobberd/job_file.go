@@ -205,60 +205,67 @@ func readJobFile(r io.Reader, username string) ([]*Job, error) {
             job.NotifyOnFailure = *config.NotifyOnFailure
         }
         
+        job.Sec = WildcardTimeSpec
+        job.Min = WildcardTimeSpec
+        job.Hour = WildcardTimeSpec
+        job.Mday = WildcardTimeSpec
+        job.Mon = WildcardTimeSpec
+        job.Wday = WildcardTimeSpec
+        
         var timeParts []string = strings.Fields(config.Time)
         
         // sec
         if len(timeParts) > 0 {
-            val, err := parseTimeStr(timeParts[0], "sec", 0, 59)
+            spec, err := parseTimeStr(timeParts[0], "sec", 0, 59)
             if err != nil {
                 return nil, err
             }
-            job.Sec.Value = val
+            job.Sec = spec
         }
         
         // min
         if len(timeParts) > 1 {
-            val, err := parseTimeStr(timeParts[1], "minute", 0, 59)
+            spec, err := parseTimeStr(timeParts[1], "minute", 0, 59)
             if err != nil {
                 return nil, err
             }
-            job.Min.Value = val
+            job.Min = spec
         }
         
         // hour
         if len(timeParts) > 2 {
-            val, err := parseTimeStr(timeParts[2], "hour", 0, 23)
+            spec, err := parseTimeStr(timeParts[2], "hour", 0, 23)
             if err != nil {
                 return nil, err
             }
-            job.Hour.Value = val
+            job.Hour = spec
         }
         
         // mday
         if len(timeParts) > 3 {
-            val, err := parseTimeStr(timeParts[3], "month day", 1, 31)
+            spec, err := parseTimeStr(timeParts[3], "month day", 1, 31)
             if err != nil {
                 return nil, err
             }
-            job.Mday.Value = val
+            job.Mday = spec
         }
         
         // month
         if len(timeParts) > 4 {
-            val, err := parseTimeStr(timeParts[4], "month", 1, 12)
+            spec, err := parseTimeStr(timeParts[4], "month", 1, 12)
             if err != nil {
                 return nil, err
             }
-            job.Mon.Value = val
+            job.Mon = spec
         }
         
         // wday
         if len(timeParts) > 5 {
-            val, err := parseTimeStr(timeParts[5], "weekday", 0, 6)
+            spec, err := parseTimeStr(timeParts[5], "weekday", 0, 6)
             if err != nil {
                 return nil, err
             }
-            job.Wday.Value = val
+            job.Wday = spec
         }
         
         if len(timeParts) > 6 {
@@ -270,11 +277,66 @@ func readJobFile(r io.Reader, username string) ([]*Job, error) {
     return jobs, nil
 }
 
-func parseTimeStr(s string, fieldName string, min uint, max uint) (*uint, error) {
+type OneValTimeSpec struct {
+    desc string
+    val *int
+}
+
+func (s OneValTimeSpec) String() string {
+    return s.desc
+}
+
+func (s OneValTimeSpec) Satisfied(v int) bool {
+    if s.val == nil {
+        return true
+    } else {
+        return *s.val == v
+    }
+}
+
+type SetTimeSpec struct {
+    desc string
+    vals []int
+}
+
+func (s SetTimeSpec) String() string {
+    return s.desc
+}
+
+func (s SetTimeSpec) Satisfied(v int) bool {
+    for _, v2 := range s.vals {
+        if v == v2 {
+            return true
+        }
+    }
+    return false
+}
+
+var WildcardTimeSpec OneValTimeSpec = OneValTimeSpec{val: nil, desc: "*"}
+
+func parseTimeStr(s string, fieldName string, min int, max int) (TimeSpec, error) {
     errMsg := fmt.Sprintf("Invalid '%v' value", fieldName)
     
     if s == TimeWildcard {
-        return nil, nil
+        return WildcardTimeSpec, nil
+    } else if strings.HasPrefix(s, "*/") {
+        // parse step
+        stepStr := s[2:]
+        step, err := strconv.Atoi(stepStr)
+        if err != nil {
+            return nil, &JobberError{errMsg, err}
+        }
+        
+        // make set of valid values
+        vals := make([]int, 0)
+        for v := min; v <= max; v = v + step {
+            vals = append(vals, v)
+        }
+        
+        // make spec
+        spec := SetTimeSpec{vals: vals, desc: s}
+        return spec, nil
+        
     } else {
         // convert to int
         val, err := strconv.Atoi(s)
@@ -282,23 +344,19 @@ func parseTimeStr(s string, fieldName string, min uint, max uint) (*uint, error)
             return nil, &JobberError{errMsg, err}
         }
         
-        // check sign
-        if val < 0 {
-            errMsg := fmt.Sprintf("%s: cannot be negative.", errMsg)
-            return nil, &JobberError{errMsg, nil}
-        }
-        uval := uint(val)
+        // make TimeSpec
+        spec := OneValTimeSpec{val: &val, desc: s}
         
         // check range
-        if uval < min {
+        if val < min {
             errMsg := fmt.Sprintf("%s: cannot be less than %v.", errMsg, min)
             return nil, &JobberError{errMsg, nil}
-        } else if uval > max {
+        } else if val > max {
             errMsg := fmt.Sprintf("%s: cannot be greater than %v.", errMsg, max)
             return nil, &JobberError{errMsg, nil}
         }
         
-        return &uval, nil
+        return spec, nil
     }
 }
 
