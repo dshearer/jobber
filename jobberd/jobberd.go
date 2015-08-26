@@ -32,12 +32,16 @@ func main() {
     // run them
 	manager, err := NewJobManager()
 	if err != nil {
-        g_err_logger.Printf("Error: %v\n", err)
+        if g_err_logger != nil {
+            g_err_logger.Printf("Error: %v\n", err)
+        }
         os.Exit(1)
     }
 	cmdChan, err := manager.Launch()
 	if err != nil {
-        g_err_logger.Printf("Error: %v\n", err)
+        if g_err_logger != nil {
+            g_err_logger.Printf("Error: %v\n", err)
+        }
         os.Exit(1)
     }
     
@@ -46,7 +50,9 @@ func main() {
     go stopServerOnSignal(ipcServer, manager)
     err = ipcServer.Launch()
     if err != nil {
-        g_err_logger.Printf("Error: %v\n", err)
+        if g_err_logger != nil {
+            g_err_logger.Printf("Error: %v\n", err)
+        }
         os.Exit(1)
     }
     defer ipcServer.Stop()
