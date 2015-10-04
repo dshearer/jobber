@@ -35,53 +35,61 @@ func weekdayToInt(d time.Weekday) int {
     }
 }
 
-func setTimeComp(t time.Time, oldValue int, newValue int, unit time.Duration) time.Time {
-    delta := newValue - oldValue
-    return t.Add(time.Duration(delta) * unit)
-}
-
-func monthHasDay(month time.Month, day int) bool {
-    t := time.Date(2014, month, day, 0, 0, 0, 0, time.Now().Location())
-    return t.Month() == month
-}
-
 func nextRunTime(job *Job, now time.Time) *time.Time {
+    /*
+     * We test every second from now till 366 days from now, 
+     * looking for a time that satisfies the job's schedule
+     * criteria.
+     */
+    
     var max time.Time = now.Add(time.Hour * 24 * 366)
     for next := now; next.Before(max); next = next.Add(time.Second) {
         var a bool = true
-        a = a && job.Sec.Satisfied(next.Second())
-        a = a && job.Min.Satisfied(next.Minute())
-        a = a && job.Hour.Satisfied(next.Hour())
-        a = a && (job.Wday.Satisfied(weekdayToInt(next.Weekday())) || job.Mday.Satisfied(next.Day()))
-        a = a && job.Mon.Satisfied(monthToInt(next.Month()))
+        a = a && job.FullTimeSpec.Sec.Satisfied(next.Second())
+        a = a && job.FullTimeSpec.Min.Satisfied(next.Minute())
+        a = a && job.FullTimeSpec.Hour.Satisfied(next.Hour())
+        _, ok := job.FullTimeSpec.Wday.(WildcardTimeSpec)
+        if !ok {
+            a = a && job.FullTimeSpec.Wday.Satisfied(weekdayToInt(next.Weekday()))
+        }
+        _, ok = job.FullTimeSpec.Mday.(WildcardTimeSpec)
+        if !ok {
+            a = a && job.FullTimeSpec.Mday.Satisfied(next.Day())
+        }
+        a = a && job.FullTimeSpec.Mon.Satisfied(monthToInt(next.Month()))
         if a {
             Logger.Printf("Scheduled %v: %v\n", job.Name, next)
             return &next
         }
     }
+    
     Logger.Printf("Failed to schedule %v\n", job.Name)
     return nil
 }
 
-type priQueue []*Job // implements heap.Interface
+/*
+ * jobQueueImpl is a priority queue containing Jobs that sorts
+ * them by next run time.
+ */
+type jobQueueImpl []*Job // implements heap.Interface
 
-func (q priQueue) Len() int {
+func (q jobQueueImpl) Len() int {
     return len(q)
 }
 
-func (q priQueue) Less(i, j int) bool {
+func (q jobQueueImpl) Less(i, j int) bool {
     return q[i].NextRunTime.Before(*q[j].NextRunTime)
 }
 
-func (q priQueue) Swap(i, j int) {
+func (q jobQueueImpl) Swap(i, j int) {
     q[i], q[j] = q[j], q[i]
 }
 
-func (q *priQueue) Push(x interface{}) {
+func (q *jobQueueImpl) Push(x interface{}) {
     *q = append(*q, x.(*Job))
 }
 
-func (q *priQueue) Pop() interface{} {
+func (q *jobQueueImpl) Pop() interface{} {
     n := len(*q)
     if n == 0 {
         return nil
@@ -92,12 +100,16 @@ func (q *priQueue) Pop() interface{} {
     }
 }
 
+/*
+ * A priority queue containing jobs.  It's a public
+ * wrapper for an instance of jobQueueImpl.
+ */
 type JobQueue struct {
-    q   priQueue
+    q   jobQueueImpl
 }
 
 func (jq *JobQueue) SetJobs(now time.Time, jobs []*Job) {
-    jq.q = make(priQueue, 0)
+    jq.q = make(jobQueueImpl, 0)
     heap.Init(&jq.q)
     
     for i := 0; i < len(jobs); i++ {

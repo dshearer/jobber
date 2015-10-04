@@ -205,93 +205,40 @@ func readJobFile(r io.Reader, username string) ([]*Job, error) {
             job.NotifyOnFailure = *config.NotifyOnFailure
         }
         
-        job.Sec = WildcardTimeSpec
-        job.Min = WildcardTimeSpec
-        job.Hour = WildcardTimeSpec
-        job.Mday = WildcardTimeSpec
-        job.Mon = WildcardTimeSpec
-        job.Wday = WildcardTimeSpec
-        
-        var timeParts []string = strings.Fields(config.Time)
-        
-        // sec
-        if len(timeParts) > 0 {
-            spec, err := parseTimeStr(timeParts[0], "sec", 0, 59)
-            if err != nil {
-                return nil, err
-            }
-            job.Sec = spec
+        // parse time spec
+        var tmp *FullTimeSpec
+        tmp, err = parseFullTimeSpec(config.Time)
+        if err != nil {
+            return nil, err
         }
-        
-        // min
-        if len(timeParts) > 1 {
-            spec, err := parseTimeStr(timeParts[1], "minute", 0, 59)
-            if err != nil {
-                return nil, err
-            }
-            job.Min = spec
-        }
-        
-        // hour
-        if len(timeParts) > 2 {
-            spec, err := parseTimeStr(timeParts[2], "hour", 0, 23)
-            if err != nil {
-                return nil, err
-            }
-            job.Hour = spec
-        }
-        
-        // mday
-        if len(timeParts) > 3 {
-            spec, err := parseTimeStr(timeParts[3], "month day", 1, 31)
-            if err != nil {
-                return nil, err
-            }
-            job.Mday = spec
-        }
-        
-        // month
-        if len(timeParts) > 4 {
-            spec, err := parseTimeStr(timeParts[4], "month", 1, 12)
-            if err != nil {
-                return nil, err
-            }
-            job.Mon = spec
-        }
-        
-        // wday
-        if len(timeParts) > 5 {
-            spec, err := parseTimeStr(timeParts[5], "weekday", 0, 6)
-            if err != nil {
-                return nil, err
-            }
-            job.Wday = spec
-        }
-        
-        if len(timeParts) > 6 {
-            return nil, &JobberError{"Excess elements in 'time' field.", nil}
-        }
+        job.FullTimeSpec = *tmp
         
         jobs = append(jobs, job)
     }
     return jobs, nil
 }
 
+type WildcardTimeSpec struct {
+}
+
+func (s WildcardTimeSpec) String() string {
+    return "*"
+}
+
+func (s WildcardTimeSpec) Satisfied(v int) bool {
+    return true
+}
+
 type OneValTimeSpec struct {
-    desc string
-    val *int
+    val int
 }
 
 func (s OneValTimeSpec) String() string {
-    return s.desc
+    return fmt.Sprintf("%v", s.val)
 }
 
 func (s OneValTimeSpec) Satisfied(v int) bool {
-    if s.val == nil {
-        return true
-    } else {
-        return *s.val == v
-    }
+    return s.val == v
 }
 
 type SetTimeSpec struct {
@@ -312,13 +259,83 @@ func (s SetTimeSpec) Satisfied(v int) bool {
     return false
 }
 
-var WildcardTimeSpec OneValTimeSpec = OneValTimeSpec{val: nil, desc: "*"}
+func parseFullTimeSpec(s string) (*FullTimeSpec, error) {
+    var fullSpec FullTimeSpec
+    fullSpec.Sec = WildcardTimeSpec{}
+    fullSpec.Min = WildcardTimeSpec{}
+    fullSpec.Hour = WildcardTimeSpec{}
+    fullSpec.Mday = WildcardTimeSpec{}
+    fullSpec.Mon = WildcardTimeSpec{}
+    fullSpec.Wday = WildcardTimeSpec{}
+    
+    var timeParts []string = strings.Fields(s)
+    
+    // sec
+    if len(timeParts) > 0 {
+        spec, err := parseTimeSpec(timeParts[0], "sec", 0, 59)
+        if err != nil {
+            return nil, err
+        }
+        fullSpec.Sec = spec
+    }
+    
+    // min
+    if len(timeParts) > 1 {
+        spec, err := parseTimeSpec(timeParts[1], "minute", 0, 59)
+        if err != nil {
+            return nil, err
+        }
+        fullSpec.Min = spec
+    }
+    
+    // hour
+    if len(timeParts) > 2 {
+        spec, err := parseTimeSpec(timeParts[2], "hour", 0, 23)
+        if err != nil {
+            return nil, err
+        }
+        fullSpec.Hour = spec
+    }
+    
+    // mday
+    if len(timeParts) > 3 {
+        spec, err := parseTimeSpec(timeParts[3], "month day", 1, 31)
+        if err != nil {
+            return nil, err
+        }
+        fullSpec.Mday = spec
+    }
+    
+    // month
+    if len(timeParts) > 4 {
+        spec, err := parseTimeSpec(timeParts[4], "month", 1, 12)
+        if err != nil {
+            return nil, err
+        }
+        fullSpec.Mon = spec
+    }
+    
+    // wday
+    if len(timeParts) > 5 {
+        spec, err := parseTimeSpec(timeParts[5], "weekday", 0, 6)
+        if err != nil {
+            return nil, err
+        }
+        fullSpec.Wday = spec
+    }
+    
+    if len(timeParts) > 6 {
+        return nil, &JobberError{"Excess elements in 'time' field.", nil}
+    }
+    
+    return &fullSpec, nil
+}
 
-func parseTimeStr(s string, fieldName string, min int, max int) (TimeSpec, error) {
+func parseTimeSpec(s string, fieldName string, min int, max int) (TimeSpec, error) {
     errMsg := fmt.Sprintf("Invalid '%v' value", fieldName)
     
     if s == TimeWildcard {
-        return WildcardTimeSpec, nil
+        return WildcardTimeSpec{}, nil
     } else if strings.HasPrefix(s, "*/") {
         // parse step
         stepStr := s[2:]
@@ -345,7 +362,7 @@ func parseTimeStr(s string, fieldName string, min int, max int) (TimeSpec, error
         }
         
         // make TimeSpec
-        spec := OneValTimeSpec{val: &val, desc: s}
+        spec := OneValTimeSpec{val}
         
         // check range
         if val < min {

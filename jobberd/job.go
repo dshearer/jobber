@@ -36,6 +36,15 @@ type TimeSpec interface {
     Satisfied(int) bool
 }
 
+type FullTimeSpec struct {
+    Sec             TimeSpec
+    Min             TimeSpec
+    Hour            TimeSpec
+    Mday            TimeSpec
+    Mon             TimeSpec
+    Wday            TimeSpec
+}
+
 const (
     ErrorHandlerStopName       = "Stop"
     ErrorHandlerBackoffName    = "Backoff"
@@ -102,18 +111,13 @@ var ErrorHandlerContinue = ErrorHandler{
 type Job struct {
     // params
     Name            string
-    Sec             TimeSpec
-    Min             TimeSpec
-    Hour            TimeSpec
-    Mday            TimeSpec
-    Mon             TimeSpec
-    Wday            TimeSpec
     Cmd             string
+    FullTimeSpec    FullTimeSpec
     User            string
     ErrorHandler   *ErrorHandler
     NotifyOnError   bool
     NotifyOnFailure bool
-    NextRunTime *time.Time
+    NextRunTime    *time.Time
     
     // other params
     stdoutLogger *log.Logger
