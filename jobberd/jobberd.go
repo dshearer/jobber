@@ -5,9 +5,11 @@ import (
     "os/signal"
     "syscall"
     "log/syslog"
+    "log"
+    "io"
 )
 
-var g_logger, _ = syslog.NewLogger(syslog.LOG_NOTICE | syslog.LOG_CRON, 0)
+var g_logger *log.Logger = nil
 var g_err_logger, _ = syslog.NewLogger(syslog.LOG_ERR | syslog.LOG_CRON, 0)
 
 func stopServerOnSignal(server *IpcServer, jm *JobManager) {
@@ -29,8 +31,19 @@ func stopServerOnSignal(server *IpcServer, jm *JobManager) {
 func main() {
     var err error
     
+    // make loggers
+    infoSyslogWriter, _ := syslog.New(syslog.LOG_NOTICE | syslog.LOG_CRON, "")
+    errSyslogWriter, _ := syslog.New(syslog.LOG_ERR | syslog.LOG_CRON, "")
+    if infoSyslogWriter == nil {
+        g_logger = log.New(os.Stdout, "", 0)
+        g_err_logger = log.New(os.Stderr, "", 0)
+    } else {
+        g_logger = log.New(io.MultiWriter(infoSyslogWriter, os.Stdout), "", 0)
+        g_err_logger = log.New(io.MultiWriter(errSyslogWriter, os.Stderr), "", 0)
+    }
+    
     // run them
-	manager, err := NewJobManager()
+	manager, err := NewJobManager(g_logger, g_err_logger)
 	if err != nil {
         if g_err_logger != nil {
             g_err_logger.Printf("Error: %v\n", err)
