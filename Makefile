@@ -5,9 +5,6 @@ CLIENT = jobber
 DAEMON = jobberd
 CLIENT_USER = jobber_client
 
-CLIENT_PERMS = 4755
-DAEMON_PERMS = 0755
-
 SE_FILES = se_policy/jobber.fc \
            se_policy/jobber.if \
            se_policy/jobber.te \
@@ -23,26 +20,32 @@ build :
 	go install github.com/dshearer/jobber/${CLIENT}
 	go install github.com/dshearer/jobber/${DAEMON}
 
+.PHONY : install-bin
+install-bin : build \
+              ${DESTDIR}/bin/${CLIENT} \
+              ${DESTDIR}/sbin/${DAEMON}
+
+.PHONY : install-centos
+install-centos : build \
+                 /etc/init.d/jobber \
+                 /var/lock/subsys/jobber \
+                 se_policy/.installed
+
 .PHONY : install
-install : build \
-          ${DESTDIR}/bin/${CLIENT} \
-          ${DESTDIR}/sbin/${DAEMON} \
-          /etc/init.d/jobber \
-          /var/lock/subsys/jobber \
-          se_policy/.installed
+install : build install-bin install-centos
 
 ${DESTDIR}/bin/${CLIENT} : ${GOPATH}/bin/${CLIENT}
 	-userdel ${CLIENT_USER}
-	useradd --home / -M --system --shell /sbin/nologin ${CLIENT_USER}
-	install -d ${DESTDIR}/bin
-	install -T -o ${CLIENT_USER} -g root -m ${CLIENT_PERMS} -p ${GOPATH}/bin/${CLIENT} $@
+	useradd --home / -M --system --shell /sbin/nologin "${CLIENT_USER}"
+	install -d "${DESTDIR}/bin"
+	install -T -o "${CLIENT_USER}" -g root -m 4755 -p "${GOPATH}/bin/${CLIENT}" "$@"
 
 ${DESTDIR}/sbin/${DAEMON} : ${GOPATH}/bin/${DAEMON}
-	install -d ${DESTDIR}/sbin
-	install -T -o root -g root -m ${DAEMON_PERMS} -p ${GOPATH}/bin/${DAEMON} $@
+	install -d "${DESTDIR}/sbin"
+	install -T -o root -g root -m 0755 -p "${GOPATH}/bin/${DAEMON}" "$@"
 
 /etc/init.d/jobber : jobber_init
-	install -T -o root -g root -m 755 $< $@
+	install -T -o root -g root -m 0755 "$<" "$@"
 	chkconfig --add jobber
 	chkconfig jobber on
 
@@ -53,23 +56,30 @@ se_policy/jobber.pp : ${SE_FILES}
 	${MAKE} -C se_policy
 
 se_policy/.installed : se_policy/jobber.pp
-	semodule -i $< -v
+	semodule -i "$<" -v
 	restorecon -Rv /usr/local /etc/init.d
-	touch $@
+	touch "$@"
 
-.PHONY : uninstall
-uninstall :
+.PHONY : uninstall-bin
+uninstall-bin :
+	rm -f "${DESTDIR}/bin/${CLIENT}" "${DESTDIR}/sbin/${DAEMON}"
+	-userdel "${CLIENT_USER}"
+
+.PHONY : uninstall-centos
+uninstall-centos :
 	service jobber stop
 	chkconfig jobber off
 	chkconfig --del jobber
-	rm -f ${DESTDIR}/bin/${CLIENT} ${DESTDIR}/sbin/${DAEMON} /etc/init.d/jobber
-	-userdel ${CLIENT_USER}
+	rm -f /etc/init.d/jobber
 	semodule -r jobber -v
 	rm -f se_policy/.installed
+
+.PHONY : uninstall
+uninstall : uninstall-bin uninstall-centos
 
 .PHONY : clean
 clean :
 	go clean -i github.com/dshearer/jobber
-	go clean -i github.com/dshearer/jobber/${CLIENT}
-	go clean -i github.com/dshearer/jobber/${DAEMON}
-	${MAKE} -C se_policy clean
+	go clean -i "github.com/dshearer/jobber/${CLIENT}"
+	go clean -i "github.com/dshearer/jobber/${DAEMON}"
+	-${MAKE} -C se_policy clean
