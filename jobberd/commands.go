@@ -132,3 +132,24 @@ func (c *TestCmd) RequestingUser() string {
 func (c TestCmd) String() string {
     return "TestCmd"
 }
+
+/* CatCmd */
+
+type CatCmd struct {
+    user string
+    respChan chan ICmdResp
+    job string
+    jobUser string
+}
+
+func (c *CatCmd) RespChan() chan ICmdResp {
+    return c.respChan
+}
+
+func (c *CatCmd) RequestingUser() string {
+    return c.user
+}
+
+func (c CatCmd) String() string {
+    return "CatCmd"
+}

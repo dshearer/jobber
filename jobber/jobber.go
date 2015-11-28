@@ -17,12 +17,30 @@ const (
     ReloadCmdStr = "reload"
     StopCmdStr   = "stop"
     TestCmdStr   = "test"
+    CatCmdStr    = "cat"
     Version      = "0.1.0"
 )
 
+var CmdStrs = [...]string{ 
+    ListCmdStr,
+    LogCmdStr,
+    ReloadCmdStr,
+    StopCmdStr,
+    TestCmdStr,
+    CatCmdStr,
+}
+
 func usage() {
-    fmt.Printf("Usage: %v [flags] (%v|%v|%v|%v|%v)\nFlags:\n", os.Args[0], ListCmdStr, LogCmdStr, ReloadCmdStr, StopCmdStr, TestCmdStr)
+    fmt.Printf("Usage: %v [flags] COMMAND\n\n", os.Args[0])
+    
+    fmt.Printf("Flags:\n")
     flag.PrintDefaults()
+    fmt.Printf("\n")
+    
+    fmt.Printf("Commands:\n")
+    for _, cmd := range CmdStrs {
+        fmt.Printf("    %v\n", cmd)
+    }
 }
 
 func version() {
@@ -128,6 +146,9 @@ func main() {
         case TestCmdStr:
             doTestCmd(flag.Args()[1:], rpcClient, user)
         
+        case CatCmdStr:
+            doCatCmd(flag.Args()[1:], rpcClient, user)
+        
         default:
             fmt.Fprintf(os.Stderr, "Invalid command: \"%v\".\n", flag.Arg(0))
             flag.Usage()
@@ -223,7 +244,7 @@ func doTestCmd(args []string, rpcClient *rpc.Client, user *user.User) {
     } else {
         // get job to test
         if len(flagSet.Args()) == 0 {
-            fmt.Fprintf(os.Stderr, "You must specify a job to test.\n")
+            fmt.Fprintf(os.Stderr, "You must specify a job.\n")
             os.Exit(1)
         }
         var job string = flagSet.Args()[0]
@@ -238,6 +259,42 @@ func doTestCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         fmt.Printf("Running job \"%v\" for user \"%v\"...\n", job, *jobUser_p)
         arg := jobber.IpcArg{User: user.Username, Job: job, JobUser: *jobUser_p}
         err := rpcClient.Call("RealIpcServer.Test", arg, &result)
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "%v\n", err)
+            os.Exit(1)
+        }
+        fmt.Printf("%v\n", result)
+    }
+}
+
+func doCatCmd(args []string, rpcClient *rpc.Client, user *user.User) {
+    // parse flags
+    flagSet := flag.NewFlagSet("cat", flag.ExitOnError)
+    flagSet.Usage = subcmdUsage("cat", flagSet)
+    var help_p *bool = flagSet.Bool("h", false, "help")
+    var jobUser_p *string = flagSet.String("u", user.Username, "user")
+    flagSet.Parse(args)
+    
+    if *help_p {
+        flagSet.Usage()
+        os.Exit(0)
+    } else {
+        // get job to cat
+        if len(flagSet.Args()) == 0 {
+            fmt.Fprintf(os.Stderr, "You must specify a job.\n")
+            os.Exit(1)
+        }
+        var job string = flagSet.Args()[0]
+    
+        // check "-u" opt
+        if *jobUser_p == "" {
+            fmt.Fprintf(os.Stderr, "Option requires an argument: \"-u\"\n")
+            os.Exit(1)
+        }
+        
+        var result string
+        arg := jobber.IpcArg{User: user.Username, Job: job, JobUser: *jobUser_p}
+        err := rpcClient.Call("RealIpcServer.Cat", arg, &result)
         if err != nil {
             fmt.Fprintf(os.Stderr, "%v\n", err)
             os.Exit(1)

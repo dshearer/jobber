@@ -4,7 +4,7 @@ type IpcArg struct {
     User string
     ForAllUsers bool
     
-    // For TestCmd:
+    // For TestCmd, CatCmd:
     Job string
     JobUser string
 }

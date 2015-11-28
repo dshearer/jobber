@@ -261,6 +261,36 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         
         return false
     
+    case *CatCmd:
+        /* Policy: Only root can cat other users' jobs. */
+        
+        var catCmd *CatCmd = cmd.(*CatCmd)
+        
+        // enfore policy
+        if catCmd.jobUser != catCmd.RequestingUser() && catCmd.RequestingUser() != "root" {
+            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+            break
+        }
+    
+        // find job to cat
+        var job_p *Job
+        for _, job := range m.jobsForUser(catCmd.jobUser) {
+            if job.Name == catCmd.job {
+                job_p = job
+                break
+            }
+        }
+        if job_p == nil {
+            msg := fmt.Sprintf("No job named \"%v\".", catCmd.job)
+            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: msg}}
+            break
+        }
+        
+        // make and send response
+        cmd.RespChan() <- &SuccessCmdResp{job_p.Cmd}
+        
+        return false
+    
     case *ListJobsCmd:
         /* Policy: Only root can list other users' jobs. */
         
@@ -280,29 +310,24 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         // make response
         var buffer bytes.Buffer
         var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5, 0, 2, ' ', 0)
-        fmt.Fprintf(writer, "NAME\tSTATUS\tSEC\tMIN\tHOUR\tMDAY\tMONTH\tWDAY\tCOMMAND\tNOTIFY ON ERROR\tNOTIFY ON FAILURE\tERROR HANDLER\tRUN TIME\n")
+        fmt.Fprintf(writer, "NAME\tSTATUS\tSEC/MIN/HR/MDAY/MTH/WDAY\tNEXT RUN TIME\tNOTIFY ON ERR\tNOTIFY ON FAIL\tERR HANDLER\n")
         strs := make([]string, 0, len(m.jobs))
         for _, j := range jobs {
-            cmdStrMaxLen := 40
-            cmdStr := j.Cmd
-            cmdStr = strings.Replace(cmdStr, "\n", "\\n", -1)
-            if len(cmdStr) > cmdStrMaxLen {
-                cmdStr = cmdStr[0:cmdStrMaxLen-3] + "..."
-            }
-            s := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t\"%v\"\t%v\t%v\t%v\t%v",
+            schedStr := fmt.Sprintf("%v %v %v %v %v %v", 
+                                    j.FullTimeSpec.Sec,
+                                    j.FullTimeSpec.Min,
+                                    j.FullTimeSpec.Hour,
+                                    j.FullTimeSpec.Mday,
+                                    j.FullTimeSpec.Mon,
+                                    j.FullTimeSpec.Wday)
+            s := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v",
                                j.Name,
                                j.Status,
-                               j.FullTimeSpec.Sec,
-                               j.FullTimeSpec.Min,
-                               j.FullTimeSpec.Hour,
-                               j.FullTimeSpec.Mday,
-                               j.FullTimeSpec.Mon,
-                               j.FullTimeSpec.Wday,
-                               cmdStr,
+                               schedStr,
+                               j.NextRunTime.Format("Jan _2 15:04:05 2006"),
                                j.NotifyOnError,
                                j.NotifyOnFailure,
-                               j.ErrorHandler,
-                               j.NextRunTime.Format("Jan _2 15:04:05 2006"))
+                               j.ErrorHandler)
             strs = append(strs, s)
         }
         fmt.Fprintf(writer, "%v", strings.Join(strs, "\n"))
