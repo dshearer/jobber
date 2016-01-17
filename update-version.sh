@@ -10,6 +10,5 @@ elif [[ version.go.in -nt version.go ]]; then
     UPDATE=Y
 fi
 if [[ "${UPDATE}" = "Y" ]]; then
-    echo HERE
     sed "s/{{JobberRevision}}/${CURR_COMMIT}/g" version.go.in > version.go
 fi
