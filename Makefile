@@ -4,6 +4,7 @@ DESTDIR = /usr/local
 CLIENT = jobber
 DAEMON = jobberd
 CLIENT_USER = jobber_client
+TEST_TMPDIR = ${PWD}
 
 SE_FILES = se_policy/jobber.fc \
            se_policy/jobber.if \
@@ -20,13 +21,19 @@ build :
 	go install github.com/dshearer/jobber/${CLIENT}
 	go install github.com/dshearer/jobber/${DAEMON}
 
+.PHONY : test
+test :
+	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobberd
+
 .PHONY : install-bin
 install-bin : build \
+              test \
               ${DESTDIR}/bin/${CLIENT} \
               ${DESTDIR}/sbin/${DAEMON}
 
 .PHONY : install-centos
 install-centos : build \
+                 test \
                  /etc/init.d/jobber \
                  /var/lock/subsys/jobber \
                  se_policy/.installed
