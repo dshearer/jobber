@@ -13,6 +13,9 @@ SE_FILES = se_policy/jobber.fc \
            se_policy/Makefile \
            se_policy/policygentool
 
+.PHONY : default
+default : build test
+
 .PHONY : build
 build :
 	go get code.google.com/p/go.net/context
