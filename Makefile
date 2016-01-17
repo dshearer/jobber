@@ -47,7 +47,7 @@ install : build install-bin install-centos
 
 .PHONY : version.go
 version.go : update-version.sh version.go.in
-	./update-version.sh
+	bash update-version.sh
 
 ${DESTDIR}/bin/${CLIENT} : ${GOPATH}/bin/${CLIENT}
 	-userdel ${CLIENT_USER}
