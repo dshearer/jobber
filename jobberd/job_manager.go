@@ -312,7 +312,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
                                     j.FullTimeSpec.Mday,
                                     j.FullTimeSpec.Mon,
                                     j.FullTimeSpec.Wday)
-            var runTimeStr string = "unknown"
+            var runTimeStr string = "none"
             if j.NextRunTime != nil {
                 runTimeStr = j.NextRunTime.Format("Jan _2 15:04:05 2006")
             }
