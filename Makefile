@@ -17,7 +17,7 @@ SE_FILES = se_policy/jobber.fc \
 default : build test
 
 .PHONY : build
-build :
+build : version.go
 	go get code.google.com/p/go.net/context
 	go get gopkg.in/yaml.v2
 	go install github.com/dshearer/jobber
@@ -44,6 +44,10 @@ install-centos : build \
 
 .PHONY : install
 install : build install-bin install-centos
+
+.PHONY : version.go
+version.go : update-version.sh version.go.in
+	./update-version.sh
 
 ${DESTDIR}/bin/${CLIENT} : ${GOPATH}/bin/${CLIENT}
 	-userdel ${CLIENT_USER}
@@ -94,3 +98,4 @@ clean :
 	go clean -i "github.com/dshearer/jobber/${CLIENT}"
 	go clean -i "github.com/dshearer/jobber/${DAEMON}"
 	-${MAKE} -C se_policy clean
+	rm -f version.go

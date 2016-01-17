@@ -1,0 +1,16 @@
+package jobber
+
+import (
+    "fmt"
+)
+
+const jobberVersion string = "1.0.0"
+const jobberRevision string = "{{JobberRevision}}" // overwritten by Makefile
+
+func ShortVersionStr() string {
+    return jobberVersion
+}
+
+func LongVersionStr() string {
+    return fmt.Sprintf("%v-%v", jobberVersion, jobberRevision)
+}

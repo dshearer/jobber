@@ -18,7 +18,6 @@ const (
     StopCmdStr   = "stop"
     TestCmdStr   = "test"
     CatCmdStr    = "cat"
-    Version      = "0.1.0"
 )
 
 var CmdStrs = [...]string{ 
@@ -41,10 +40,6 @@ func usage() {
     for _, cmd := range CmdStrs {
         fmt.Printf("    %v\n", cmd)
     }
-}
-
-func version() {
-    fmt.Printf("jobber %v\n", Version)
 }
 
 func subcmdUsage(subcmd string, flagSet *flag.FlagSet) func() {
@@ -72,7 +67,7 @@ func main() {
         usage()
         os.Exit(0)
     } else if *versionFlag_p {
-        version()
+        fmt.Printf("%v\n", jobber.LongVersionStr())
         os.Exit(0)
     } else {
         if len(flag.Args()) == 0 {
