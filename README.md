@@ -1,4 +1,4 @@
-# Jobber
+# Jobber [![Build Status](https://travis-ci.org/dshearer/jobber.svg?branch=master)](https://travis-ci.org/dshearer/jobber)
 
 A replacement for cron, with sophisticated status-reporting and error-handling.
 
