@@ -26,6 +26,7 @@ build :
 
 .PHONY : test
 test :
+	go get github.com/stretchr/testify
 	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobberd
 
 .PHONY : install-bin
