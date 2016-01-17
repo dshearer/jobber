@@ -37,33 +37,25 @@ func weekdayToInt(d time.Weekday) int {
 
 func nextRunTime(job *Job, now time.Time) *time.Time {
     /*
-     * We test every second from now till 366 days from now, 
+     * We test every second from now till 2 years from now, 
      * looking for a time that satisfies the job's schedule
      * criteria.
      */
     
-    var max time.Time = now.Add(time.Hour * 24 * 366)
+    var year time.Duration = time.Hour * 24 * 365
+    var max time.Time = now.Add(2 * year)
     for next := now; next.Before(max); next = next.Add(time.Second) {
-        var a bool = true
-        a = a && job.FullTimeSpec.Sec.Satisfied(next.Second())
-        a = a && job.FullTimeSpec.Min.Satisfied(next.Minute())
-        a = a && job.FullTimeSpec.Hour.Satisfied(next.Hour())
-        _, ok := job.FullTimeSpec.Wday.(WildcardTimeSpec)
-        if !ok {
-            a = a && job.FullTimeSpec.Wday.Satisfied(weekdayToInt(next.Weekday()))
-        }
-        _, ok = job.FullTimeSpec.Mday.(WildcardTimeSpec)
-        if !ok {
-            a = a && job.FullTimeSpec.Mday.Satisfied(next.Day())
-        }
-        a = a && job.FullTimeSpec.Mon.Satisfied(monthToInt(next.Month()))
+        a := job.FullTimeSpec.Sec.Satisfied(next.Second()) &&
+             job.FullTimeSpec.Min.Satisfied(next.Minute()) &&
+             job.FullTimeSpec.Hour.Satisfied(next.Hour()) &&
+             job.FullTimeSpec.Wday.Satisfied(weekdayToInt(next.Weekday())) &&
+             job.FullTimeSpec.Mday.Satisfied(next.Day()) &&
+             job.FullTimeSpec.Mon.Satisfied(monthToInt(next.Month()))
         if a {
-            Logger.Printf("Scheduled %v: %v\n", job.Name, next)
             return &next
         }
     }
     
-    Logger.Printf("Failed to schedule %v\n", job.Name)
     return nil
 }
 
