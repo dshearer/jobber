@@ -1,1 +1,1 @@
-buildpack: https://github.com/dshearer/jobber#packaging
+buildpack: https://github.com/dshearer/jobber.git#packaging
