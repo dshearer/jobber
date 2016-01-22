@@ -1,1 +1,1 @@
-buildpack: https://github.com/kr/heroku-buildpack-go#master
+buildpack: https://github.com/dshearer/jobber#packaging
