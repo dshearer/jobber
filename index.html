@@ -6,10 +6,13 @@
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
     <meta name="description" content="Jobber: A replacement for cron, with sophisticated status-reporting and error-handling." />
 
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css" />
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js">
+    </script>
+    <link rel="stylesheet" type="text/css" media="screen" 
+    href="stylesheets/stylesheet.css" />
 
-    <title>Jobber: A replacement for cron, with sophisticated status-reporting and error-handling.</title>
+    <title>Jobber: A replacement for cron, with sophisticated status-reporting
+    and error-handling.</title>
   </head>
 
   <body itemscope itemtype="http://schema.org/SoftwareApplication">
@@ -17,10 +20,12 @@
     <!-- HEADER -->
     <div id="header_wrap" class="outer">
         <header class="inner">
-          <a id="forkme_banner" href="https://github.com/dshearer/jobber">View on GitHub</a>
+          <a id="forkme_banner" href="https://github.com/dshearer/jobber">
+          View on GitHub</a>
 
           <h1 id="project_title" itemprop="name">Jobber</h1>
-          <h2 id="project_tagline">A replacement for cron, with sophisticated status-reporting and error-handling.</h2>
+          <h2 id="project_tagline">A replacement for cron, with sophisticated 
+          status-reporting and error-handling.</h2>
 
             <section id="downloads">
               <a class="zip_download_link" href="https://github.com/dshearer/jobber/zipball/master" itemprop="downloadUrl">Download this project as a .zip file</a>
@@ -57,36 +62,53 @@
 <!--
 Intro
 -->
-<h2><a id="intro" class="anchor" href="#intro" aria-hidden="true"><span class="octicon octicon-link"></span></a>Intro</h2>
+<h2><a id="intro" class="anchor" href="#intro" aria-hidden="true">
+<span class="octicon octicon-link"></span></a>Intro</h2>
 
-<p itemprop="description">Jobber is a <span itemprop="applicationCategory">utility</span> for Unix-like systems that can run arbitrary commands, or &ldquo;jobs&rdquo;, according to a schedule.  It is meant to be a replacement for the classic Unix utility <a href="http://en.wikipedia.org/wiki/Cron">cron</a>.</p>
+<p itemprop="description">Jobber is a <span itemprop="applicationCategory">
+utility</span> for Unix-like systems that can run arbitrary commands, or 
+&ldquo;jobs&rdquo;, according to a schedule.  It is meant to be a replacement 
+for the classic Unix utility 
+<a href="http://en.wikipedia.org/wiki/Cron">cron</a>.</p>
 
 <p>Along with the functionality of cron, Jobber also provides:</p>
 
 <ul itemprop="featureList">
 <li>
-<strong>Job execution history</strong>: you can see what jobs have recently run, and whether they succeeded or failed.</li>
+<strong>Job execution history</strong>: you can see what jobs have recently 
+run, and whether they succeeded or failed.</li>
 <li>
-<strong>Sophisticated error handling</strong>: you can control whether and when a job is run again after it fails.  For example, after an initial failure of a job, Jobber can schedule future runs using an exponential backoff algorithm.</li>
+<strong>Sophisticated error handling</strong>: you can control whether and 
+when a job is run again after it fails.  For example, after an initial failure of a job, Jobber can schedule future runs using an exponential backoff algorithm.</li>
 <li>
-<strong>Sophisticated error reporting</strong>: you can control whether Jobber notifies you about each failed run, or only about jobs that have been disabled due to repeated failures.</li>
+<strong>Sophisticated error reporting</strong>: you can control whether 
+Jobber notifies you about each failed run, or only about jobs that have been disabled due to repeated failures.</li>
 </ul>
 
 <!--
 Project Status
 -->
-<h2><a id="project-status" class="anchor" href="#project-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Status</h2>
+<h2><a id="project-status" class="anchor" href="#project-status" 
+aria-hidden="true"><span class="octicon octicon-link"></span></a>
+Project Status</h2>
 
 <p>The latest version is 1.0.0, which was released on 16 January 2016.</p>
 
-<p><strong>Contributions/suggestions/requests are welcome!</strong>  Feel free to <a href="https://github.com/dshearer/jobber/issues">open an issue</a>, or ask a question on <a href="https://groups.google.com/d/forum/jobber-proj">the mailing list</a>.</p>
+<p><strong>Contributions/suggestions/requests are welcome!</strong>  Feel 
+free to <a href="https://github.com/dshearer/jobber/issues">open an issue</a>, 
+or ask a question on <a href="https://groups.google.com/d/forum/jobber-proj">
+the mailing list</a>.</p>
 
 <!--
 License
 -->
-<h2><a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+<h2><a id="license" class="anchor" href="#license" aria-hidden="true">
+<span class="octicon octicon-link"></span></a>License</h2>
 
-<p>Jobber's source code is copyright &#0169; <span itemprop="copyrightYear">2014&ndash;2016</span> <span itemprop="copyrightHolder" itemscope itemtype="http://schema.org/Person"><span itemprop="name">Charles Dylan Shearer</span></span>.  It is licensed according to the MIT License:</p>
+<p>Jobber's source code is copyright &#0169; <span itemprop="copyrightYear">
+2014&ndash;2016</span> <span itemprop="copyrightHolder" itemscope 
+itemtype="http://schema.org/Person"><span itemprop="name">Charles Dylan Shearer
+</span></span>.  It is licensed according to the MIT License:</p>
 
 <div itemprop="license" itemscope itemtype="http://schema.org/CreativeWork">
 <pre itemprop="text">
@@ -115,15 +137,22 @@ SOFTWARE.
 <!--
 Deployment
 -->
-<h2><a id="deployment" class="anchor" href="#deployment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deployment</h2>
+<h2><a id="deployment" class="anchor" href="#deployment" aria-hidden="true">
+<span class="octicon octicon-link"></span></a>Deployment</h2>
 
-<p itemprop="requirements">Jobber is written in <a href="http://golang.org/">Go</a>, and it should be possible to compile and run it on <span itemprop="operatingSystem">any modern Unix-like system</span>.  However, at this time its installation script targets RHEL, Fedora, and CentOS.  (Actually, it has only been tested on CentOS....)</p>
+<p itemprop="requirements">Jobber is written in <a href="http://golang.org/">Go
+</a>, and it should be possible to compile and run it on 
+<span itemprop="operatingSystem">any modern Unix-like system</span>.  However, 
+at this time its installation script targets RHEL, Fedora, and CentOS.  
+(Actually, it has only been tested on CentOS....)</p>
 
-<p>Note that, although Jobber can be used instead of cron, it is certainly possible to run both at the same time.</p>
+<p>Note that, although Jobber can be used instead of cron, it is certainly 
+possible to run both at the same time.</p>
 
 <h3>Compilation</h3>
 
-<p>You need a recent version of Go to compile Jobber.  Once you've installed Go and set up your Go workspace, you can build it thus:</p>
+<p>You need a recent version of Go to compile Jobber.  Once you've installed 
+Go and set up your Go workspace, you can build it thus:</p>
 
 <pre><code>cd /path/to/your/workspace
 go get github.com/dshearer/jobber
@@ -136,7 +165,8 @@ make
 
 <h4>On RHELish Systems</h4>
 
-<p>As mentioned above, Jobber's installation script currently targets RHEL-like systems.  If you are on such a system, you can install Jobber thus:</p>
+<p>As mentioned above, Jobber's installation script currently targets RHEL-like 
+systems.  If you are on such a system, you can install Jobber thus:</p>
 
 <pre><code>cd /path/to/your/workspace
 sudo GOPATH="${GOPATH}" make -C src/github.com/dshearer/jobber install
@@ -150,33 +180,56 @@ sudo GOPATH="${GOPATH}" make -C src/github.com/dshearer/jobber uninstall
 
 <h4>On Other Systems</h4>
 
-<p>Jobber consists of two binaries: jobber and jobberd.  jobberd is a daemon that runs jobs; jobber is a client with which the user can interact with jobbberd.  After compiling, you&rsquo;ll find them in ${GOPATH}/bin.</p>
+<p>Jobber consists of two binaries: jobber and jobberd.  jobberd is a daemon 
+that runs jobs; jobber is a client with which the user can interact with 
+jobbberd.  After compiling, you&rsquo;ll find them in ${GOPATH}/bin.</p>
 
-<p>Before installing the binaries, create a new, non-login user called &ldquo;jobber_client&rdquo;:</p>
+<p>Before installing the binaries, create a new, non-login user called 
+&ldquo;jobber_client&rdquo;:</p>
 
 <pre><code>useradd --home / -M --system --shell /sbin/nologin jobber_client</code></pre>
 
-<p>Now, copy jobber to wherever you want and set its owner to jobber_client:root and its permissions to 4755.  Copy jobberd to wherever and set its owner to root:root and its permissions to 0755.</p>
+<p>Now, copy jobber to wherever you want and set its owner to 
+jobber_client:root and its permissions to 4755.  Copy jobberd to wherever and 
+set its owner to root:root and its permissions to 0755.</p>
 
-<p>jobberd does not daemonize itself; you need to run it with daemonize(1).  Alternatively, if your system uses SysV-style init, you can copy the file jobber_init into the appropriate directly and then run jobberd as an init service.  However you get it to run, jobberd needs to run as root.</p>
+<p>jobberd does not daemonize itself; you need to run it with daemonize(1).  
+Alternatively, if your system uses SysV-style init, you can copy the file 
+jobber_init into the appropriate directly and then run jobberd as an init 
+service.  However you get it to run, jobberd needs to run as root.</p>
 
 <!--
 Security
 -->
-<h2><a id="security" class="anchor" href="#security" aria-hidden="true"><span class="octicon octicon-link"></span></a>Security</h2>
+<h2><a id="security" class="anchor" href="#security" aria-hidden="true">
+<span class="octicon octicon-link"></span></a>Security</h2>
 
-<p>Like cron, Jobber enables different users to run their own sets of jobs.  The main security requirement is that Jobber does not enable users to do something they otherwise would not be allowed to do.  In particular, the set of commands that a user can execute via Jobber must be a subset of the set of commands that the user can execute in the shell.</p>
+<p>Like cron, Jobber enables different users to run their own sets of jobs.  
+The main security requirement is that Jobber does not enable users to do 
+something they otherwise would not be allowed to do.  In particular, the set of
+commands that a user can execute via Jobber must be a subset of the set of 
+commands that the user can execute in the shell.</p>
 
-<p>Note that Jobber has <em>not</em> been thoroughly and expertly reviewed with regard to security.  (Of course, neither has most software....)  Meeting its security requirements is indeed a goal, but, as made clear in <a href="#license">the license</a>, the authors make no guarantee that there are no vulnerabilities in Jobber.</p>
+<p>Note that Jobber has <em>not</em> been thoroughly and expertly reviewed 
+with regard to security.  (Of course, neither has most software....)  Meeting 
+its security requirements is indeed a goal, but, as made clear in 
+<a href="#license">the license</a>, the authors make no guarantee that there 
+are no vulnerabilities in Jobber.</p>
 
 <!--
 Usage
 -->
-<h2><a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+<h2><a id="usage" class="anchor" href="#usage" aria-hidden="true"><span 
+class="octicon octicon-link"></span></a>Usage</h2>
 
-<h3><a id="defining-jobs" class="anchor" href="#defining-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Defining Jobs</h3>
+<h3><a id="defining-jobs" class="anchor" href="#defining-jobs" 
+aria-hidden="true"><span class="octicon octicon-link"></span></a>Defining 
+Jobs</h3>
 
-<p>As with cron, each user can have its own set of jobs, which will be run under that user&rsquo;s privileges.  A user&rsquo;s jobs are defined in a file named &ldquo;.jobber&rdquo; in the user&rsquo;s home directory.  Jobfiles are written in YAML format.  Here's an example:</p>
+<p>As with cron, each user can have its own set of jobs, which will be run 
+under that user&rsquo;s privileges.  A user&rsquo;s jobs are defined in a file
+named &ldquo;.jobber&rdquo; in the user&rsquo;s home directory.  Jobfiles are 
+written in YAML format.  Here's an example:</p>
 
 <pre><code>---
 - name: DailyBackup
@@ -193,70 +246,115 @@ Usage
   notifyOnError: false
   notifyOnFailure: true</code></pre>
 
-<p>This jobfile defines two jobs.  Field &ldquo;name&rdquo; is self-explanatory.  Field &ldquo;cmd&rdquo; can contain any Bash script.</p>
+<p>This jobfile defines two jobs.  Field &ldquo;name&rdquo; is 
+self-explanatory.  Field &ldquo;cmd&rdquo; can contain any Bash script.</p>
 
-<h4><a id="field-time" class="anchor" href="#field-time" aria-hidden="true"><span class="octicon octicon-link"></span></a>Field &ldquo;time&rdquo;</h4>
+<h4><a id="field-time" class="anchor" href="#field-time" aria-hidden="true">
+<span class="octicon octicon-link"></span></a>Field &ldquo;time&rdquo;</h4>
 
-<p>Field &ldquo;time&rdquo; specifies when the job is run, in a manner similar to how cron jobs&rsquo; schedules are specified: with a space-separated list of up to six specifiers, which can be numerals or &ldquo;*&rdquo;.  The first specifier constrains the second value of a given time, the second constrains to the minute value, the third to the hour value, the fourth to the day of the month, the fifth to the month, and the sixth to the day of the week.  A job is scheduled thus: a job will run at the next time that satisfies all of these specifiers.</p>
+<p>Field &ldquo;time&rdquo; specifies when the job is run, in a manner similar 
+to how cron jobs&rsquo; schedules are specified: with a space-separated list 
+of up to six specifiers, which can be numerals or &ldquo;*&rdquo;.  The first 
+specifier constrains the second value of a given time, the second constrains 
+to the minute value, the third to the hour value, the fourth to the day of the 
+month, the fifth to the month, and the sixth to the day of the week.  A job is 
+scheduled thus: a job will run at the next time that satisfies all of these 
+specifiers.</p>
 
-<p>Thus, &ldquo;DailyBackup&rdquo; is run whenever the current time is 13:00:00 (i.e., 1 PM), no matter the day, whereas &ldquo;WeeklyBackup&rdquo; is run whenever the current time is 14:00:00 (i.e., 2 PM) and the current weekday is Monday.</p>
+<p>Thus, &ldquo;DailyBackup&rdquo; is run whenever the current time is 13:00:00
+(i.e., 1 PM), no matter the day, whereas &ldquo;WeeklyBackup&rdquo; is run 
+whenever the current time is 14:00:00 (i.e., 2 PM) and the current weekday is 
+Monday.</p>
 
-<h4><a id="fields-onerror-notifyonerror-and-notifyonfailure" class="anchor" href="#fields-onerror-notifyonerror-and-notifyonfailure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fields &ldquo;onError&rdquo;, &ldquo;notifyOnError&rdquo;, and &ldquo;notifyOnFailure&rdquo;</h4>
+<h4><a id="fields-onerror-notifyonerror-and-notifyonfailure" class="anchor" 
+href="#fields-onerror-notifyonerror-and-notifyonfailure" aria-hidden="true">
+<span class="octicon octicon-link"></span></a>Fields &ldquo;onError&rdquo;,
+&ldquo;notifyOnError&rdquo;, and &ldquo;notifyOnFailure&rdquo;</h4>
 
-<p>When discussnig jobs, by &ldquo;job error&rdquo; we mean the failure of a particular run of a job, whereas by &ldquo;job failure&rdquo; we mean a job that jobber has decided not to schedule anymore due to one or more recent job errors.  Jobber considers a run to have failed when the command (in field &ldquo;cmd&rdquo;) returns a non-0 exit status.</p>
+<p>When discussnig jobs, by &ldquo;job error&rdquo; we mean the failure of a 
+particular run of a job, whereas by &ldquo;job failure&rdquo; we mean a job 
+that jobber has decided not to schedule anymore due to one or more recent job 
+errors.  Jobber considers a run to have failed when the command (in field 
+&ldquo;cmd&rdquo;) returns a non-0 exit status.</p>
 
-<p>Field &ldquo;onError&rdquo; specifies what jobber will do when a job error occurs.  The possible values:</p>
+<p>Field &ldquo;onError&rdquo; specifies what jobber will do when a job error 
+occurs.  The possible values:</p>
 
 <ul>
-<li>&ldquo;Stop&rdquo;: <em>Stop scheduling runs of this job.</em>  That is, a single job error results in a job failure.</li>
-<li>&ldquo;Backoff&rdquo;: <em>Schedule runs of this job according to an exponential backoff algorithm.</em>  If a later run of the job succeeds, jobber resumes scheduling this job normally; but if the job fails again on several consecutive runs, jobber stops scheduling it &amp;emdash; that is, the job fails.</li>
-<li>&ldquo;Continue&rdquo;: <em>Continue scheduling this job normally.</em>  That is, the job will never fail.</li>
+<li>&ldquo;Stop&rdquo;: <em>Stop scheduling runs of this job.</em>  That is, a 
+single job error results in a job failure.</li>
+<li>&ldquo;Backoff&rdquo;: <em>Schedule runs of this job according to an 
+exponential backoff algorithm.</em>  If a later run of the job succeeds, jobber
+resumes scheduling this job normally; but if the job fails again on several 
+consecutive runs, jobber stops scheduling it &amp;emdash; that is, the job 
+fails.</li>
+<li>&ldquo;Continue&rdquo;: <em>Continue scheduling this job normally.</em>  
+That is, the job will never fail.</li>
 </ul>
 
-<p>Fields &ldquo;notifyOnError&rdquo; and &ldquo;notifyOnFailure&rdquo; control whether the user that owns a job is notified about job errors and job failures.</p>
+<p>Fields &ldquo;notifyOnError&rdquo; and &ldquo;notifyOnFailure&rdquo; control
+whether the user that owns a job is notified about job errors and job failures.
+</p>
 
-<h3><a id="loading-jobs" class="anchor" href="#loading-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading Jobs</h3>
+<h3><a id="loading-jobs" class="anchor" href="#loading-jobs" 
+aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading Jobs
+</h3>
 
 <p>After you've created a user&rsquo;s jobfile, log in as that user and do:</p>
 
 <pre><code>jobber reload</code></pre>
 
-<p>You can also reload all users&rsquo; jobfiles by logging in as root and doing:</p>
+<p>You can also reload all users&rsquo; jobfiles by logging in as root and 
+doing:</p>
 
 <pre><code>jobber reload -a</code></pre>
 
-<h3><a id="listing-jobs" class="anchor" href="#listing-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Jobs</h3>
+<h3><a id="listing-jobs" class="anchor" href="#listing-jobs" 
+aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing 
+Jobs</h3>
 
-<p>You can list the jobs for a particular user by logging in as that user and doing</p>
+<p>You can list the jobs for a particular user by logging in as that user and 
+doing</p>
 
 <pre><code>jobber list</code></pre>
 
-<p>This command also shows you the status of each job &mdash; that is, whether the job is being scheduled as normal, the exponential backoff algorithm is being applied, or the job has failed.</p>
+<p>This command also shows you the status of each job &mdash; that is, whether
+the job is being scheduled as normal, the exponential backoff algorithm is 
+being applied, or the job has failed.</p>
 
-<p>As with the &ldquo;reload&rdquo; command, you can do the same for all users by adding the &ldquo;-a&rdquo; option as root.</p>
+<p>As with the &ldquo;reload&rdquo; command, you can do the same for all users
+by adding the &ldquo;-a&rdquo; option as root.</p>
 
-<h3><a id="listing-runs" class="anchor" href="#listing-runs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Runs</h3>
+<h3><a id="listing-runs" class="anchor" href="#listing-runs" 
+aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing 
+Runs</h3>
 
-<p>You can see a list of recent runs of any jobs for a particular user by logging in as that user and doing</p>
+<p>You can see a list of recent runs of any jobs for a particular user by 
+logging in as that user and doing</p>
 
 <pre><code>jobber log</code></pre>
 
-<p>As with the other commands, you can do the same for all users by adding the &ldquo;-a&rdquo; option as root.</p>
+<p>As with the other commands, you can do the same for all users by adding the
+&ldquo;-a&rdquo; option as root.</p>
 
-<h3><a id="testing-jobs" class="anchor" href="#testing-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing Jobs</h3>
+<h3><a id="testing-jobs" class="anchor" href="#testing-jobs" 
+aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing 
+Jobs</h3>
 
 <p>If you'd like to test out a job, do</p>
 
 <pre><code>jobber test JOB_NAME</code></pre>
 
-<p>Jobber will immediately run that job, tell you whether it succeeded, and show you its output.</p>
+<p>Jobber will immediately run that job, tell you whether it succeeded, and 
+show you its output.</p>
       </section>
     </div>
 
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">
       <footer class="inner">
-        <p class="copyright">Jobber maintained by <a href="https://github.com/dshearer">dshearer</a></p>
+        <p class="copyright">Jobber maintained by 
+        <a href="https://github.com/dshearer">dshearer</a></p>
         <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
