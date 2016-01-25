@@ -386,6 +386,18 @@ Full-Width Styles
   background: #212121;
 }
 
+dfn {
+  font-style: italic;
+}
+
+aside {
+  margin: 10px 0 15px 10px;
+  border: 2px solid black;
+  padding-left: 5px;
+  padding-right: 5px;
+  font-size: 90%;
+}
+
 
 
 /*******************************************************************************

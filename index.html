@@ -193,7 +193,8 @@ jobbberd.  After compiling, you&rsquo;ll find them in ${GOPATH}/bin.</p>
 jobber_client:root and its permissions to 4755.  Copy jobberd to wherever and 
 set its owner to root:root and its permissions to 0755.</p>
 
-<p>jobberd does not daemonize itself; you need to run it with daemonize(1).  
+<p>jobberd does not daemonize itself; you need to run it with 
+<a href="http://linux.die.net/man/1/daemonize">daemonize(1)</a>.  
 Alternatively, if your system uses SysV-style init, you can copy the file 
 jobber_init into the appropriate directly and then run jobberd as an init 
 service.  However you get it to run, jobberd needs to run as root.</p>
@@ -227,51 +228,138 @@ aria-hidden="true"><span class="octicon octicon-link"></span></a>Defining
 Jobs</h3>
 
 <p>As with cron, each user can have its own set of jobs, which will be run 
-under that user&rsquo;s privileges.  A user&rsquo;s jobs are defined in a file
-named &ldquo;.jobber&rdquo; in the user&rsquo;s home directory.  Jobfiles are 
-written in YAML format.  Here's an example:</p>
+under that user&rsquo;s privileges.  A user&rsquo;s jobs are defined in a 
+<dfn>jobfile</dfn> &mdash; a file named &ldquo;.jobber&rdquo; in the 
+user&rsquo;s home directory.  Jobfiles are written in 
+<a href="http://www.yaml.org/">YAML</a> format.  Here's an example that 
+defines two jobs:
+</p>
 
 <pre><code>---
 - name: DailyBackup
   cmd: backup daily
   time: 0 0 13
   onError: Stop
-  notifyOnError: false
-  notifyOnFailure: true
+  notifyOnError: true
+  notifyOnFailure: false
 
-- name: WeeklyBackup
-  cmd: backup weekly
+- name: OffsiteBackup
+  cmd: |
+    mount /backup/offsite
+    mount /backup/linux/weekly
+    backup-offsite /backup/linux/weekly/backup-0 linux || exit 1
+    umount /backup/linux/weekly
+    umount /backup/offsite
   time: 0 0 14 * * 1
-  onError: Stop
-  notifyOnError: false
-  notifyOnFailure: true</code></pre>
+  onError: Stop</code></pre>
 
-<p>This jobfile defines two jobs.  Field &ldquo;name&rdquo; is 
-self-explanatory.  Field &ldquo;cmd&rdquo; can contain any Bash script.</p>
+<aside><p>If you&rsquo;re unfamiliar with YAML: The first line in the example
+(&ldquo;---&rdquo;) marks the beginning of the YAML document.  The document 
+contains a list of maps: the two line-initial dashes (&ldquo;-&rdquo;) mark
+the beginnings of the two maps.  Within the definition of a particular map,
+each key (e.g., &ldquo;name&rdquo;, &ldquo;cmd&rdquo;) must be column-aligned.
+The value for each key in the maps is a string.  In this example, the value 
+for the key &ldquo;cmd&rdquo; in the second map is a multi-line string.</p>
+</aside>
 
-<h4><a id="field-time" class="anchor" href="#field-time" aria-hidden="true">
-<span class="octicon octicon-link"></span></a>Field &ldquo;time&rdquo;</h4>
+<p>The fields of a job definition:</p>
+<table>
+<thead>
+<tr><th>Field</th><th>Contents</th><th>Default Value</th></tr>
+</thead>
+<tfoot></tfoot>
+<tbody>
+<tr>
+	<td>name</td>
+	<td>The name of the job.</td>
+	<td>N/A</td>
+</tr>
+<tr>
+    <td>cmd</td>
+    <td>A Bash script that is executed when this job runs.</td>
+    <td>N/A</td>
+</tr>
+<tr>
+    <td>time</td>
+    <td>A string specifying when the job should run.  See 
+    <a href="#time-strings">below</a> for details.</td>
+    <td>&ldquo;* * * * * *&rdquo;</td>
+</tr>
+<tr>
+    <td>onError</td>
+    <td>A string specifying what should happen when the job has an error.
+    See <a href="#error-handling">below</a> for details.</td>
+    <td>&ldquo;Continue&rdquo;</td>
+</tr>
+<tr>
+    <td>notifyOnError</td>
+    <td>A string (&ldquo;true&rdquo; or &ldquo;false&rdquo;) specifying 
+    whether jobberd should send an email when the job has an error.  See 
+    <a href="#error-handling">below</a> for details.</td>
+    <td>&ldquo;false&rdquo;</td>
+</tr>
+<tr>
+    <td>notifyOnFailure</td>
+    <td>A string (&ldquo;true&rdquo; or &ldquo;false&rdquo;) specifying 
+    whether jobberd should send an email when the job fails.  See 
+    <a href="#error-handling">below</a> for details.</td>
+    <td>&ldquo;true&rdquo;</td>
+</tr>
+</tbody>
+</table>
 
-<p>Field &ldquo;time&rdquo; specifies when the job is run, in a manner similar 
-to how cron jobs&rsquo; schedules are specified: with a space-separated list 
-of up to six specifiers, which can be numerals or &ldquo;*&rdquo;.  The first 
-specifier constrains the second value of a given time, the second constrains 
-to the minute value, the third to the hour value, the fourth to the day of the 
-month, the fifth to the month, and the sixth to the day of the week.  A job is 
-scheduled thus: a job will run at the next time that satisfies all of these 
+<h4><a id="time-strings" class="anchor" href="#time-strings" aria-hidden="true">
+<span class="octicon octicon-link"></span></a>Time Strings</h4>
+
+<p>Field &ldquo;time&rdquo; specifies the schedule at which a job is run, in 
+a manner similar to how cron jobs&rsquo; schedules are specified: with a 
+space-separated list of up to six specifiers.  Each specifier describes a 
+constraint on a &ldquo;time component&rdquo; &mdash; e.g., second, minute 
+&mdash; that must hold in order for the job to run at a particular time.  In 
+order from left to right, these are the time components corresponding to the 
+specifiers:</p>
+<ol>
+<li>second</li>
+<li>minute</li>
+<li>hour</li>
+<li>day of month</li>
+<li>month</li>
+<li>day of week</li>
+</ol>
+
+<p>&ldquo;*&rdquo; as a specifier is a wildcard &mdash; it is satisfied by 
+every value of the corresponding time component.  If any specifiers are 
+missing, they are assumed to be &ldquo;*&rdquo;.</p>
+
+<p>Specific values are specified with numbers: 0&ndash;59 for second and 
+minute, 0&ndash;23 for hour, 1&ndash;31 for day of month, 1&ndash;12 for month,
+and 0&ndash;6 for day of week (with 0 specifying Sunday).</p>
+
+<p>A specifier of the form &ldquo;*/n&rdquo; is satisfied by every nth value 
+&mdash; e.g., &ldquo;*/3&rdquo; as the second specifier is satisfied by minute
+0, minute 3, minute 6, etc.</p>
+
+<p>A job will run at the earliest future time that satisfies the first, second,
+third, and fifth specifiers and at least one of the fourth and sixth
 specifiers.</p>
 
 <p>Thus, &ldquo;DailyBackup&rdquo; is run whenever the current time is 13:00:00
-(i.e., 1 PM), no matter the day, whereas &ldquo;WeeklyBackup&rdquo; is run 
+(i.e., 1 PM), no matter the day, whereas &ldquo;OffsiteBackup&rdquo; is run 
 whenever the current time is 14:00:00 (i.e., 2 PM) and the current weekday is 
 Monday.</p>
 
-<h4><a id="fields-onerror-notifyonerror-and-notifyonfailure" class="anchor" 
-href="#fields-onerror-notifyonerror-and-notifyonfailure" aria-hidden="true">
-<span class="octicon octicon-link"></span></a>Fields &ldquo;onError&rdquo;,
-&ldquo;notifyOnError&rdquo;, and &ldquo;notifyOnFailure&rdquo;</h4>
+<aside><p>Because in a YAML document &ldquo;*&rdquo; has a special meaning at 
+the beginning of an item, if your time string starts with &ldquo;*&rdquo; 
+you must quote the whole string, thus:
 
-<p>When discussnig jobs, by &ldquo;job error&rdquo; we mean the failure of a 
+<code>time: '*/10'</code>
+</aside>
+
+<h4><a id="error-handling" class="anchor" href="#error-handling" 
+aria-hidden="true"><span class="octicon octicon-link"></span></a>
+Error-handling</h4>
+
+<p>When discussing jobs, by &ldquo;job error&rdquo; we mean the failure of a 
 particular run of a job, whereas by &ldquo;job failure&rdquo; we mean a job 
 that jobber has decided not to schedule anymore due to one or more recent job 
 errors.  Jobber considers a run to have failed when the command (in field 
@@ -286,15 +374,11 @@ single job error results in a job failure.</li>
 <li>&ldquo;Backoff&rdquo;: <em>Schedule runs of this job according to an 
 exponential backoff algorithm.</em>  If a later run of the job succeeds, jobber
 resumes scheduling this job normally; but if the job fails again on several 
-consecutive runs, jobber stops scheduling it &amp;emdash; that is, the job 
+consecutive runs, jobber stops scheduling it &mdash; that is, the job 
 fails.</li>
 <li>&ldquo;Continue&rdquo;: <em>Continue scheduling this job normally.</em>  
 That is, the job will never fail.</li>
 </ul>
-
-<p>Fields &ldquo;notifyOnError&rdquo; and &ldquo;notifyOnFailure&rdquo; control
-whether the user that owns a job is notified about job errors and job failures.
-</p>
 
 <h3><a id="loading-jobs" class="anchor" href="#loading-jobs" 
 aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading Jobs
