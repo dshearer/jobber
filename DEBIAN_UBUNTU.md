@@ -1,6 +1,5 @@
 ## Install Go on your Debian / Ubuntu based system
 
-```
 ### Install build dependencies
 ```
 $ apt-get update && apt-get install -y autoconf build-essential imagemagick libbz2-dev libcurl4-openssl-dev libevent-dev libffi-dev libglib2.0-dev libjpeg-dev libmagickcore-dev libmagickwand-dev libmysqlclient-dev libncurses-dev libpq-dev libreadline-dev libsqlite3-dev libssl-dev libxml2-dev libxslt-dev libyaml-dev zlib1g-dev git curl
@@ -57,25 +56,20 @@ $ cd /opt/go/bin/
 $ cp jobber /usr/local/bin/.
 $ cp jobberd /usr/local/sbin/.
 $ cd /usr/local/bin
-$ chmod 4775 jobber
 $ chown jobber_client:root jobber
+$ chmod 4775 jobber
 $ cd /usr/local/sbin
-$ chmod 0755 jobberd
 $ chown root:root jobberd
+$ chmod 0755 jobberd
 ```
 
-## Run Go Applications in the background
+## Run Jobberd in the backend / Run Go Applications in the background
 
 There's a huge number of options here, but we'll look at a stable, popular and cross-distro approach called Supervisor. Supervisor is a process management tool that handles restarting, recovering and managing logs, without requiring anything from your application (i.e. no PID files!).
 
 ### Install Supervisor
 ```
 $ apt-get install supervisor
-```
-
-Restart supervisor
-```
-$ sudo service supervisor restart
 ```
 
 A simple configuration for our script, saved at /etc/supervisor/conf.d/jobberd.conf, would look like so:
@@ -110,3 +104,44 @@ $ ps -ax | grep jobber
 ### More information
 
 * https://www.digitalocean.com/community/tutorials/how-to-install-and-manage-supervisor-on-ubuntu-and-debian-vps
+
+## Use Jobber
+
+Login as a normal user
+```
+$ vi .jobber
+```
+
+```yaml
+---
+- name: Trigger FeedManager
+  cmd: curl -u user:pass -i -H 'Accept:application/json'  http://app.example.com/trigger
+  time: "0 0 * * * *"
+  onError: Stop
+  notifyOnError: true
+  notifyOnFailure: true
+```
+
+Reload jobs
+
+```
+$ jobber reload
+```
+
+List jobs
+
+```
+$ jobber list
+```
+
+Listing runs
+
+```
+$ jobber log
+```
+
+Testing Jobs
+
+```
+$ jobber test JOB_NAME
+```
