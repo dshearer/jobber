@@ -18,7 +18,7 @@ default : build test
 
 .PHONY : build
 build : version.go
-	go get code.google.com/p/go.net/context
+	go get golang.org/x/net/context
 	go get gopkg.in/yaml.v2
 	go install github.com/dshearer/jobber
 	go install github.com/dshearer/jobber/${CLIENT}
