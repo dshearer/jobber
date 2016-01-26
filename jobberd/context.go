@@ -1,7 +1,7 @@
 package main
 
 import (
-    "code.google.com/p/go.net/context"
+    "golang.org/x/net/context"
     "sync"
     "time"
     "fmt"
