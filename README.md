@@ -18,3 +18,7 @@ Along with the functionality of cron, Jobber also provides:
 ## More Info
 
 More info can be found on [Jobber's website](http://dshearer.github.io/jobber/).
+
+## Debian / Ubuntu
+
+HowTo documentation for Debian / Ubuntu based systems can be found in the [DEBIAN_UBUNTU.md](DEBIAN_UBUNTU.md) file.

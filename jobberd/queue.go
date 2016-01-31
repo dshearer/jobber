@@ -3,7 +3,7 @@ package main
 import (
     "time"
     "container/heap"
-    "code.google.com/p/go.net/context"
+    "golang.org/x/net/context"
 )
 
 func monthToInt(m time.Month) int {
