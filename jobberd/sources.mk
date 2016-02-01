@@ -7,6 +7,7 @@ DAEMON_SOURCES := \
 	job.go \
 	job_manager.go \
 	job_runner_thread.go \
+	logging.go \
 	queue.go \
 	sudo.go \
 	sudo_cmd_linux.go \

@@ -2,16 +2,12 @@ package main
 
 import (
     "time"
-    "log"
     "fmt"
     "strings"
     "sort"
     "text/tabwriter"
     "bytes"
 )
-
-var Logger *log.Logger = nil
-var ErrLogger *log.Logger = nil
 
 type JobberError struct {
     What  string
@@ -54,6 +50,7 @@ func (s *runLogEntrySorter) Less(i, j int) bool {
 }
 
 type JobManager struct {
+    userPrefs             map[string]UserPrefs
     jobs                  []*Job
     loadedJobs            bool
     runLog                []RunLogEntry
@@ -64,10 +61,9 @@ type JobManager struct {
     Shell                 string
 }
 
-func NewJobManager(infoLogger *log.Logger, errLogger *log.Logger) (*JobManager, error) {
+func NewJobManager() (*JobManager, error) {
     jm := JobManager{Shell: "/bin/sh"}
-    Logger = infoLogger
-    ErrLogger = errLogger
+    jm.userPrefs = make(map[string]UserPrefs)
     jm.loadedJobs = false
     jm.jobRunner = NewJobRunnerThread()
     return &jm, nil

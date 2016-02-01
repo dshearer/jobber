@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/dshearer/jobber/Godeps/_workspace/src/gopkg.in/yaml.v2"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -16,8 +16,19 @@ import (
 
 const (
 	JobberFileName = ".jobber"
+    PrefsSectName = "prefs"
+    JobsSectName = "jobs"
 	TimeWildcard   = "*"
 )
+
+type JobberFile struct {
+    Prefs    UserPrefs
+    Jobs     []*Job
+}
+
+type UserPrefs struct {
+	NotifyEmail	    *string "notifyEmail,omitempty"
+}
 
 type JobConfigEntry struct {
 	Name            string
@@ -145,77 +156,176 @@ func (m *JobManager) ReloadJobsForUser(username string) (int, error) {
 }
 
 func (m *JobManager) loadJobsForUser(username string) (int, error) {
-	// read .jobber file
-	var newJobs []*Job
-	f, err := openUsersJobberFile(username)
-	if err != nil {
-		if os.IsNotExist(err) {
-			newJobs = make([]*Job, 0)
-		} else {
-			return -1, err
-		}
-	} else {
-		defer f.Close()
-		newJobs, err = readJobFile(f, username)
-		if err != nil {
-			return -1, err
-		}
-	}
-	m.jobs = append(m.jobs, newJobs...)
-	Logger.Printf("Loaded %v new jobs for %s.\n", len(newJobs), username)
-
-	return len(newJobs), nil
+    // read .jobber file
+    var newJobs []*Job
+    var prefs UserPrefs
+    f, err := openUsersJobberFile(username)
+    if err != nil {
+        if os.IsNotExist(err) {
+            newJobs = make([]*Job, 0)
+        } else {
+            return -1, err
+        }
+    } else {
+        defer f.Close()
+        jobberFile, err := readJobberFile(f, username)
+        if err != nil {
+            return -1, err
+        }
+        prefs = jobberFile.Prefs
+        newJobs = jobberFile.Jobs
+    }
+    
+    m.userPrefs[username] = prefs
+    m.jobs = append(m.jobs, newJobs...)
+    Logger.Printf("Loaded %v new jobs for %s.\n", len(newJobs), username)
+    
+    return len(newJobs), nil
 }
 
-func readJobFile(r io.Reader, username string) ([]*Job, error) {
-	// read config file
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-	var configs []JobConfigEntry
-	err = yaml.Unmarshal(data, &configs)
-	if err != nil {
-		return nil, err
-	}
-
-	// make jobs
-	jobs := make([]*Job, 0, len(configs))
-	for _, config := range configs {
-		job := NewJob(config.Name, config.Cmd, username)
-
-		// check name
-		if len(config.Name) == 0 {
-			return nil, &JobberError{"Job name cannot be empty.", nil}
-		}
-
-		// set failure-handler
-		if config.OnError != nil {
-			job.ErrorHandler, err = getErrorHandler(*config.OnError)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// set notify prefs
-		if config.NotifyOnError != nil {
-			job.NotifyOnError = *config.NotifyOnError
-		}
-		if config.NotifyOnFailure != nil {
-			job.NotifyOnFailure = *config.NotifyOnFailure
-		}
-
-		// parse time spec
-		var tmp *FullTimeSpec
-		tmp, err = parseFullTimeSpec(config.Time)
-		if err != nil {
-			return nil, err
-		}
-		job.FullTimeSpec = *tmp
-
-		jobs = append(jobs, job)
-	}
-	return jobs, nil
+func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
+    /*
+    Jobber files have two sections: one begins with "[prefs]" on a line, and 
+    the other begins with "[jobs]".  Both contain a YAML document.  The "prefs"
+    section can be parsed with struct UserPrefs, and the "jobs" section is a 
+    YAML array of records that can be parsed with struct JobConfigEntry.
+    
+    Legacy format: no section beginnings; whole file is YAML doc for "jobs"
+    section.
+    */
+    
+    // iterate over lines
+    scanner := bufio.NewScanner(r)
+    sectionsToLines := make(map[string][]string)
+    var currSection *string
+    lineNbr := 0
+    sectNameRegexp := regexp.MustCompile("^\\[(\\w*)\\]\\s*$")
+    legacyFormat := false
+    scanner.Split(bufio.ScanLines)
+    for scanner.Scan() {
+        lineNbr++
+        line := scanner.Text()
+        
+        if legacyFormat {
+            // save line
+            sectionsToLines[*currSection] = 
+                append(sectionsToLines[*currSection], line)
+                
+        } else {
+            // check whether line begins a section
+            var matches []string = sectNameRegexp.FindStringSubmatch(line)
+            if matches != nil {
+                // we are entering a (new) section
+                sectName := matches[1]
+                _, ok := sectionsToLines[sectName]
+                if ok {
+                    errMsg := 
+                        fmt.Sprintf("Line %v: another section called \"%v\".", 
+                                    lineNbr,
+                                    sectName)
+                    return nil, &JobberError{errMsg, nil}
+                }
+                sectionsToLines[sectName] = make([]string, 0)
+                currSection = &sectName
+                
+            } else if currSection == nil {
+                if len(strings.TrimSpace(line)) > 0 {
+                    /*
+                    To support legacy format, treat whole file as YAML doc
+                    for "jobs" section.
+                    */
+                    Logger.Println("Using legacy jobber file format.")
+                    legacyFormat = true
+                    tmp := JobsSectName
+                    currSection = &tmp
+                    sectionsToLines[JobsSectName] = make([]string, 1)
+                    sectionsToLines[JobsSectName][0] = line
+                }
+                
+            } else {
+                // save line
+                sectionsToLines[*currSection] = 
+                    append(sectionsToLines[*currSection], line)
+            }
+        }
+    }
+    
+    // parse "prefs" section
+    const yamlStarter string = "---"
+    var userPrefs UserPrefs
+    prefsLines, prefsOk := sectionsToLines[PrefsSectName]
+    if prefsOk && len(prefsLines) > 0 {
+        Logger.Println("Got prefs section")
+        prefsSection := strings.Join(prefsLines, "\n")
+        if strings.TrimRight(prefsLines[0], " \t") != yamlStarter {
+            prefsSection = yamlStarter + "\n" + prefsSection
+        }
+	    err := yaml.Unmarshal([]byte(prefsSection), &userPrefs)
+	    if err != nil {
+	        errMsg := fmt.Sprintf("Failed to parse \"%v\" section", 
+	                              PrefsSectName)
+	        return nil, &JobberError{errMsg, err}
+	    }
+    } else {
+        userPrefs.NotifyEmail = &username
+    }
+    
+    // parse "jobs" section
+    var jobConfigs []JobConfigEntry
+    jobsLines, jobsOk := sectionsToLines[JobsSectName]
+    if jobsOk && len(jobsLines) > 0 {
+        Logger.Println("Got jobs section")
+        jobsSection := strings.Join(jobsLines, "\n")
+        if strings.TrimRight(jobsLines[0], " \t") != yamlStarter {
+            jobsSection = yamlStarter + "\n" + jobsSection
+        }
+	    err := yaml.Unmarshal([]byte(jobsSection), &jobConfigs)
+	    if err != nil {
+	        errMsg := fmt.Sprintf("Failed to parse \"%v\" section", 
+	                              JobsSectName)
+	        return nil, &JobberError{errMsg, err}
+	    }
+    }
+    
+    // make jobs
+    jobs := make([]*Job, 0, len(jobConfigs))
+    for _, config := range jobConfigs {
+        job := NewJob(config.Name, config.Cmd, username)
+        var err error = nil
+        
+        // check name
+        if len(config.Name) == 0 {
+            return nil, &JobberError{"Job name cannot be empty.", nil}
+        }
+        
+        // set failure-handler
+        if config.OnError != nil {
+            job.ErrorHandler, err = getErrorHandler(*config.OnError)
+            if err != nil {
+                return nil, err
+            }
+        }
+        
+        // set notify prefs
+        if config.NotifyOnError != nil {
+            job.NotifyOnError = *config.NotifyOnError
+        }
+        if config.NotifyOnFailure != nil {
+            job.NotifyOnFailure = *config.NotifyOnFailure
+        }
+        
+        // parse time spec
+        var tmp *FullTimeSpec
+        tmp, err = parseFullTimeSpec(config.Time)
+        if err != nil {
+            return nil, err
+        }
+        job.FullTimeSpec = *tmp
+        
+        jobs = append(jobs, job)
+    }
+    
+    return &JobberFile{userPrefs, jobs}, nil
 }
 
 type WildcardTimeSpec struct {
