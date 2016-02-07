@@ -18,15 +18,12 @@ default : build test
 
 .PHONY : build
 build : version.go
-	go get golang.org/x/net/context
-	go get gopkg.in/yaml.v2
 	go install github.com/dshearer/jobber
 	go install github.com/dshearer/jobber/${CLIENT}
 	go install github.com/dshearer/jobber/${DAEMON}
 
 .PHONY : test
 test :
-	go get github.com/stretchr/testify
 	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobberd
 
 .PHONY : install-bin
