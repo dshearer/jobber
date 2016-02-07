@@ -1,1 +1,3 @@
 language: Go
+install: true
+script: make
