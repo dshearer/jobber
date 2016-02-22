@@ -45,12 +45,12 @@ install-centos : build \
 install : build install-bin
 
 ${DESTDIR}/bin/${CLIENT} : ${GOPATH}/bin/${CLIENT}
-	install -d "${DESTDIR}/bin"
-	install -o "${CLIENT_USER}" -g root -m 4755 -p "${GOPATH}/bin/${CLIENT}" "$@"
+	mkdir -p "${DESTDIR}/bin"
+	cp "${GOPATH}/bin/${CLIENT}" "$@"
 
 ${DESTDIR}/sbin/${DAEMON} : ${GOPATH}/bin/${DAEMON}
-	install -d "${DESTDIR}/sbin"
-	install -o root -g root -m 0755 -p "${GOPATH}/bin/${DAEMON}" "$@"
+	mkdir -p "${DESTDIR}/sbin"
+	cp "${GOPATH}/bin/${DAEMON}" "$@"
 
 /etc/init.d/jobber : jobber_init
 	install -T -o root -g root -m 0755 "$<" "$@"
