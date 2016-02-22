@@ -42,10 +42,6 @@ install-centos : build \
 .PHONY : install
 install : build install-bin install-centos
 
-.PHONY : version.go
-version.go : update-version.sh version.go.in
-	sh update-version.sh
-
 ${DESTDIR}/bin/${CLIENT} : ${GOPATH}/bin/${CLIENT}
 	-userdel ${CLIENT_USER}
 	useradd --home / -M --system --shell /sbin/nologin "${CLIENT_USER}"
