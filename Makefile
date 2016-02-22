@@ -42,11 +42,9 @@ install-centos : build \
                  se_policy/.installed
 
 .PHONY : install
-install : build install-bin install-centos
+install : build install-bin
 
 ${DESTDIR}/bin/${CLIENT} : ${GOPATH}/bin/${CLIENT}
-	-userdel ${CLIENT_USER}
-	useradd --home / -M --system --shell /sbin/nologin "${CLIENT_USER}"
 	install -d "${DESTDIR}/bin"
 	install -T -o "${CLIENT_USER}" -g root -m 4755 -p "${GOPATH}/bin/${CLIENT}" "$@"
 
