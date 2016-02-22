@@ -46,11 +46,11 @@ install : build install-bin
 
 ${DESTDIR}/bin/${CLIENT} : ${GOPATH}/bin/${CLIENT}
 	install -d "${DESTDIR}/bin"
-	install -T -o "${CLIENT_USER}" -g root -m 4755 -p "${GOPATH}/bin/${CLIENT}" "$@"
+	install -o "${CLIENT_USER}" -g root -m 4755 -p "${GOPATH}/bin/${CLIENT}" "$@"
 
 ${DESTDIR}/sbin/${DAEMON} : ${GOPATH}/bin/${DAEMON}
 	install -d "${DESTDIR}/sbin"
-	install -T -o root -g root -m 0755 -p "${GOPATH}/bin/${DAEMON}" "$@"
+	install -o root -g root -m 0755 -p "${GOPATH}/bin/${DAEMON}" "$@"
 
 /etc/init.d/jobber : jobber_init
 	install -T -o root -g root -m 0755 "$<" "$@"
