@@ -1,0 +1,17 @@
+#!/bin/sh
+
+JOBBER=/usr/bin/jobber
+JOBBERD=/usr/sbin/jobberd
+CLIENT_USER=jobber_client
+
+# make client user
+adduser -h /dev/null -s /sbin/nologin -SDH "${CLIENT_USER}"
+
+# set owner and perms of binaries
+chown "${CLIENT_USER}:root" "${JOBBER}"
+chmod 4755 "${JOBBER}"
+chown root:root "${JOBBERD}"
+chmod 0755 "${JOBBERD}"
+
+# start jobber
+service jobber start

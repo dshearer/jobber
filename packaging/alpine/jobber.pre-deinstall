@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# stop jobber
+service jobber stop 2>/dev/null ||:
+
