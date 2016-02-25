@@ -4,7 +4,7 @@ import (
     "fmt"
 )
 
-const jobberVersion string = "1.0.2"
+const jobberVersion string = "1.0.3"
 const jobberRevision string = "{{JobberRevision}}" // overwritten by Makefile
 
 func ShortVersionStr() string {
