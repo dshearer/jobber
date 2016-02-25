@@ -1,0 +1,74 @@
+#!/bin/sh
+
+# This script tests the official deployment method
+# described on Jobber's website.
+
+# Expected env vars:
+#   - GOPATH
+#   - JOBBER_BRANCH
+#   - HOME
+
+set -e
+
+PARENT_DIR=`dirname "$0"`
+OUTPUT_FILE=${HOME}/test_job
+
+fail() {
+   echo "$1" >&2
+   exit 1
+}
+
+# check prereqs
+if [ -z "${GOPATH}" ]; then
+    fail "\"GOPATH\" is not defined."
+elif [ -z "${JOBBER_BRANCH}" ]; then
+    fail "\"JOBBER_BRANCH\" is not defined."
+elif [ -z "${HOME}" ]; then
+    fail "\"HOME\" is not defined."
+elif [ ! -d "${GOPATH}" ]; then
+    fail "No such dir: ${GOPATH}"
+elif [ -f "${OUTPUT_FILE}" ]; then
+    fail "${OUTPUT_FILE} already exists."
+fi
+
+# official compile and install instructions for RHELish systems
+cd "${GOPATH}"
+go get github.com/dshearer/jobber
+cd src/github.com/dshearer/jobber
+git checkout "${JOBBER_BRANCH}"
+make install
+
+# make sure it's running
+service jobber status
+
+# install .jobber file
+if [ -f "${HOME}/.jobber" ]; then
+    fail "${HOME}/.jobber already exists."
+fi
+cp "${PARENT_DIR}/jobber_file" "${HOME}/.jobber"
+jobber reload
+sleep 1
+
+# make sure job ran
+if [ ! -f "${OUTPUT_FILE}" ]; then
+    fail "${OUTPUT_FILE} doesn't exist."
+fi
+S=`cat "${OUTPUT_FILE}"`
+if [ "${S}" != "Hello!" ]; then
+    fail "${OUTPUT_FILE} has wrong contents."
+fi
+
+# official uninstallation instructions for RHELish systems
+make -C "${GOPATH}/src/github.com/dshearer/jobber" uninstall
+
+# make sure everything is gone
+if service jobber status; then
+    fail "Jobber service is still running."
+fi
+
+# clean up
+rm -f "${OUTPUT_FILE}" "${HOME}/.jobber"
+
+echo "Success!"
+exit 0
+

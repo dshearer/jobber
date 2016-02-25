@@ -1,0 +1,4 @@
+---
+- name: TestJob
+  cmd: echo 'Hello!' > ~/test_job
+  time: '*'
