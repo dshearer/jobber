@@ -13,9 +13,9 @@ type SudoResult struct {
 
 func sudo(user string, cmdStr string, shell string, input *string) (*SudoResult, *JobberError) {
     var cmd *exec.Cmd = exec.Command("su",
-                                     "--login", // login shell
-                                     "--shell", shell,
-                                     "--command", cmdStr,
+                                     "-l", // login shell
+                                     "-s", shell,
+                                     "-c", cmdStr,
                                      user)
     stdout, err := cmd.StdoutPipe()
     if err != nil {
