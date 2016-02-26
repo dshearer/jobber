@@ -64,12 +64,8 @@ ${DESTDIR}/sbin/${DAEMON} : ${GOPATH}/bin/${DAEMON}
 /var/lock/subsys/jobber : ${DESTDIR}/sbin/${DAEMON} /etc/init.d/jobber
 	service jobber restart
 
-se_policy/jobber.pp : ${SE_FILES}
-	${MAKE} -C se_policy
-
-se_policy/.installed : se_policy/jobber.pp
-	semodule -i "$<" -v
-	restorecon -Rv /usr/local /etc/init.d
+se_policy/.installed : ${SE_FILES}
+	-[ -f /etc/sysconfig/selinux ] && ${MAKE} -C se_policy && semodule -i "$<" -v && restorecon -Rv /usr/local /etc/init.d
 	touch "$@"
 
 .PHONY : uninstall-bin
@@ -83,7 +79,7 @@ uninstall-centos :
 	chkconfig jobber off
 	chkconfig --del jobber
 	rm -f /etc/init.d/jobber
-	semodule -r jobber -v
+	-[ -f /etc/sysconfig/selinux ] && semodule -r jobber -v
 	rm -f se_policy/.installed
 
 .PHONY : uninstall
