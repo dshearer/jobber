@@ -4,8 +4,7 @@
 # described on Jobber's website.
 
 # Expected env vars:
-#   - GOPATH
-#   - JOBBER_BRANCH
+#   - SRCDIR
 #   - HOME
 
 set -e
@@ -19,24 +18,16 @@ fail() {
 }
 
 # check prereqs
-if [ -z "${GOPATH}" ]; then
-    fail "\"GOPATH\" is not defined."
-elif [ -z "${JOBBER_BRANCH}" ]; then
-    fail "\"JOBBER_BRANCH\" is not defined."
+if [ -z "${SRCDIR}" ]; then
+    fail "\"SRCDIR\" is not defined."
 elif [ -z "${HOME}" ]; then
     fail "\"HOME\" is not defined."
-elif [ ! -d "${GOPATH}" ]; then
-    fail "No such dir: ${GOPATH}"
 elif [ -f "${OUTPUT_FILE}" ]; then
     fail "${OUTPUT_FILE} already exists."
 fi
 
-# official compile and install instructions for RHELish systems
-cd "${GOPATH}"
-go get github.com/dshearer/jobber
-cd src/github.com/dshearer/jobber
-git checkout "${JOBBER_BRANCH}"
-make install
+# compile & install
+make -C "${SRCDIR}" install
 
 # make sure it's running
 service jobber status
@@ -58,8 +49,8 @@ if [ "${S}" != "Hello!" ]; then
     fail "${OUTPUT_FILE} has wrong contents."
 fi
 
-# official uninstallation instructions for RHELish systems
-make -C "${GOPATH}/src/github.com/dshearer/jobber" uninstall
+# uninstall
+make -C "${SRCDIR}" uninstall
 
 # make sure everything is gone
 if service jobber status; then

@@ -6,6 +6,8 @@ services:
   - docker
 
 before_install:
-  - docker build -t jobber_centos_6.7 ./docker_tests/jobber_centos_6.7
-  - docker run jobber_centos_6.7
+  - make -C docker_tests/jobber_centos_6.7 image
+
+script:
+  - make -C docker_tests/jobber_centos_6.7 test
 
