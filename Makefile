@@ -6,6 +6,8 @@ DAEMON = jobberd
 CLIENT_USER = jobber_client
 TEST_TMPDIR = ${PWD}
 
+VER_SYM_LD_OPT = -X github.com/dshearer/jobber.jobberVersion=`cat version`
+
 SE_FILES = se_policy/jobber.fc \
            se_policy/jobber.if \
            se_policy/jobber.te \
@@ -17,10 +19,10 @@ SE_FILES = se_policy/jobber.fc \
 default : build test
 
 .PHONY : build
-build : version.go
-	go install github.com/dshearer/jobber
-	go install github.com/dshearer/jobber/${CLIENT}
-	go install github.com/dshearer/jobber/${DAEMON}
+build :
+	go install -ldflags "${VER_SYM_LD_OPT}" github.com/dshearer/jobber
+	go install -ldflags "${VER_SYM_LD_OPT}" github.com/dshearer/jobber/${CLIENT}
+	go install -ldflags "${VER_SYM_LD_OPT}" github.com/dshearer/jobber/${DAEMON}
 
 .PHONY : test
 test :
@@ -87,4 +89,3 @@ clean :
 	go clean -i "github.com/dshearer/jobber/${CLIENT}"
 	go clean -i "github.com/dshearer/jobber/${DAEMON}"
 	-${MAKE} -C se_policy clean
-	rm -f version.go

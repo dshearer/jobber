@@ -1,6 +1,6 @@
 package jobber
 
-const jobberVersion string = "1.0.0"
+var jobberVersion string
 
 func ShortVersionStr() string {
     return jobberVersion
