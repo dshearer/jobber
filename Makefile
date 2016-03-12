@@ -6,7 +6,7 @@ DAEMON = jobberd
 CLIENT_USER = jobber_client
 TEST_TMPDIR = ${PWD}
 
-VER_SYM_LD_OPT = -X github.com/dshearer/jobber.jobberVersion=`cat version`
+LDFLAGS = -ldflags "-X github.com/dshearer/jobber.jobberVersion=`cat version`"
 
 SE_FILES = se_policy/jobber.fc \
            se_policy/jobber.if \
@@ -20,9 +20,9 @@ default : build test
 
 .PHONY : build
 build :
-	go install -ldflags "${VER_SYM_LD_OPT}" github.com/dshearer/jobber
-	go install -ldflags "${VER_SYM_LD_OPT}" github.com/dshearer/jobber/${CLIENT}
-	go install -ldflags "${VER_SYM_LD_OPT}" github.com/dshearer/jobber/${DAEMON}
+	go install ${LDFLAGS} github.com/dshearer/jobber
+	go install ${LDFLAGS} github.com/dshearer/jobber/${CLIENT}
+	go install ${LDFLAGS} github.com/dshearer/jobber/${DAEMON}
 
 .PHONY : test
 test :
