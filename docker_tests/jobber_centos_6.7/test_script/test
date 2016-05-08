@@ -10,7 +10,6 @@
 set -e
 
 PARENT_DIR=`dirname "$0"`
-OUTPUT_FILE=${HOME}/test_job
 
 fail() {
    echo "$1" >&2
@@ -22,8 +21,6 @@ if [ -z "${SRCDIR}" ]; then
     fail "\"SRCDIR\" is not defined."
 elif [ -z "${HOME}" ]; then
     fail "\"HOME\" is not defined."
-elif [ -f "${OUTPUT_FILE}" ]; then
-    fail "${OUTPUT_FILE} already exists."
 fi
 
 # compile & install
@@ -32,22 +29,8 @@ make -C "${SRCDIR}" install
 # make sure it's running
 service jobber status
 
-# install .jobber file
-if [ -f "${HOME}/.jobber" ]; then
-    fail "${HOME}/.jobber already exists."
-fi
-cp "${PARENT_DIR}/jobber_file" "${HOME}/.jobber"
-jobber reload
-sleep 1
-
-# make sure job ran
-if [ ! -f "${OUTPUT_FILE}" ]; then
-    fail "${OUTPUT_FILE} doesn't exist."
-fi
-S=`cat "${OUTPUT_FILE}"`
-if [ "${S}" != "Hello!" ]; then
-    fail "${OUTPUT_FILE} has wrong contents."
-fi
+# run test
+"${SRCDIR}/test_installation"
 
 # uninstall
 make -C "${SRCDIR}" uninstall
@@ -58,7 +41,7 @@ if service jobber status; then
 fi
 
 # clean up
-rm -f "${OUTPUT_FILE}" "${HOME}/.jobber"
+rm -f "${HOME}/.jobber"
 
 echo "Success!"
 exit 0

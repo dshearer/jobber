@@ -62,6 +62,10 @@ all : lib ${GOPATH}/bin/${CLIENT} ${GOPATH}/bin/${DAEMON}
 check : ${FINAL_LIB_TEST_SOURCES} ${FINAL_CLIENT_TEST_SOURCES} ${FINAL_DAEMON_TEST_SOURCES}
 	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobberd
 
+.PHONY : installcheck
+installcheck :
+	./test_installation
+
 .PHONY : installdirs
 installdirs :
 	"${srcdir}/buildtools/mkinstalldirs" "${DESTDIR}${bindir}" "${DESTDIR}${libexecdir}"
