@@ -1,10 +1,50 @@
-GOPATH ?= ${HOME}/go_workspace
+# GNU-standard vars (cf. http://www.gnu.org/prep/standards/html_node/Makefile-Conventions.html)
+SHELL = /bin/sh
+prefix = /usr/local
+exec_prefix = ${prefix}
+bindir = ${exec_prefix}/bin
+libexecdir = ${exec_prefix}/libexec
+srcdir = .
+INSTALL = install
+INSTALL_PROGRAM = ${INSTALL}
 
-DESTDIR = /usr/local
+workdir = .
+
+GOPATH ?= ${HOME}/go_workspace
 CLIENT = jobber
 DAEMON = jobberd
+LIB = jobber.a
 CLIENT_USER = jobber_client
 TEST_TMPDIR = ${PWD}
+JOBBER_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
+
+# read lists of source files
+include sources.mk jobber/sources.mk jobberd/sources.mk
+FINAL_LIB_SOURCES := ${LIB_SOURCES}
+FINAL_LIB_TEST_SOURCES := ${LIB_TEST_SOURCES}
+FINAL_CLIENT_SOURCES := $(CLIENT_SOURCES:%=jobber/%)
+FINAL_CLIENT_TEST_SOURCES := $(CLIENT_TEST_SOURCES:%=jobber/%)
+FINAL_DAEMON_SOURCES := $(DAEMON_SOURCES:%=jobberd/%)
+FINAL_DAEMON_TEST_SOURCES := $(DAEMON_TEST_SOURCES:%=jobberd/%)
+
+GO_SOURCES := \
+	${FINAL_LIB_SOURCES} \
+	${FINAL_CLIENT_SOURCES} \
+	${FINAL_DAEMON_SOURCES}
+OTHER_SOURCES := \
+	Makefile \
+	sources.mk \
+	jobber/sources.mk \
+	jobberd/sources.mk \
+	buildtools \
+	README.md \
+	LICENSE \
+	version \
+	Godeps
+
+ALL_SOURCES := \
+	${GO_SOURCES} \
+	${OTHER_SOURCES}
 
 LDFLAGS = -ldflags "-X github.com/dshearer/jobber.jobberVersion=`cat version`"
 
@@ -15,42 +55,61 @@ SE_FILES = se_policy/jobber.fc \
            se_policy/Makefile \
            se_policy/policygentool
 
-.PHONY : default
-default : build test
+.PHONY : all
+all : lib ${GOPATH}/bin/${CLIENT} ${GOPATH}/bin/${DAEMON}
 
-.PHONY : build
-build :
-	go install ${LDFLAGS} github.com/dshearer/jobber
-	go install ${LDFLAGS} github.com/dshearer/jobber/${CLIENT}
-	go install ${LDFLAGS} github.com/dshearer/jobber/${DAEMON}
-
-.PHONY : test
-test :
+.PHONY : check
+check : ${FINAL_LIB_TEST_SOURCES} ${FINAL_CLIENT_TEST_SOURCES} ${FINAL_DAEMON_TEST_SOURCES}
 	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobberd
 
-.PHONY : install-bin
-install-bin : build \
-              test \
-              ${DESTDIR}/bin/${CLIENT} \
-              ${DESTDIR}/sbin/${DAEMON}
-
-.PHONY : install-centos
-install-centos : build \
-                 test \
-                 /etc/init.d/jobber \
-                 /var/lock/subsys/jobber \
-                 se_policy/.installed
+.PHONY : installdirs
+installdirs :
+	"${srcdir}/buildtools/mkinstalldirs" "${DESTDIR}${bindir}" "${DESTDIR}${libexecdir}"
 
 .PHONY : install
-install : build install-bin
+install : installdirs ${GOPATH}/bin/${CLIENT} ${GOPATH}/bin/${DAEMON}
+	# install files
+	"${INSTALL_PROGRAM}" "${GOPATH}/bin/${CLIENT}" -t "${DESTDIR}${bindir}"
+	"${INSTALL_PROGRAM}" "${GOPATH}/bin/${DAEMON}" -t "${DESTDIR}${libexecdir}"
+	
+	# change owner and perms
+	-chown "${CLIENT_USER}:root" "${DESTDIR}${bindir}/${CLIENT}" && \
+		chmod 4755 "${DESTDIR}${bindir}/${CLIENT}"
+	-chown root:root "${DESTDIR}${libexecdir}/${DAEMON}" && \
+		chmod 0755 "${DESTDIR}${libexecdir}/${DAEMON}"
 
-${DESTDIR}/bin/${CLIENT} : ${GOPATH}/bin/${CLIENT}
-	mkdir -p "${DESTDIR}/bin"
-	cp "${GOPATH}/bin/${CLIENT}" "$@"
+.PHONY : uninstall
+uninstall :
+	-rm "${DESTDIR}${bindir}/${CLIENT}" "${DESTDIR}${bindir}/${DAEMON}"
 
-${DESTDIR}/sbin/${DAEMON} : ${GOPATH}/bin/${DAEMON}
-	mkdir -p "${DESTDIR}/sbin"
-	cp "${GOPATH}/bin/${DAEMON}" "$@"
+dist : ${ALL_SOURCES}
+	-mkdir -p "${workdir}/${JOBBER_PKG_NAME}" "${DESTDIR}"
+	"${srcdir}/buildtools/srcsync" ${ALL_SOURCES} "${workdir}/${JOBBER_PKG_NAME}"
+	tar -C "${workdir}" -czf "${DESTDIR}${JOBBER_PKG_NAME}.tgz" "${JOBBER_PKG_NAME}"
+	rm -rf "${workdir}/${JOBBER_PKG_NAME}"
+
+.PHONY : clean
+clean :
+	go clean -i github.com/dshearer/jobber
+	go clean -i "github.com/dshearer/jobber/${CLIENT}"
+	go clean -i "github.com/dshearer/jobber/${DAEMON}"
+	rm -f "${DESTDIR}${JOBBER_PKG_NAME}.tgz"
+	-${MAKE} -C se_policy clean
+	
+
+
+.PHONY : lib
+lib : ${FINAL_LIB_SOURCES}
+	go install ${LDFLAGS} "github.com/dshearer/jobber"
+
+${GOPATH}/bin/${CLIENT} : ${FINAL_CLIENT_SOURCES} lib
+	go install ${LDFLAGS} "github.com/dshearer/jobber/${CLIENT}"
+
+${GOPATH}/bin/${DAEMON} : ${FINAL_DAEMON_SOURCES} lib
+	go install ${LDFLAGS} "github.com/dshearer/jobber/${DAEMON}"
+
+
+## OLD:
 
 /etc/init.d/jobber : jobber_init
 	install -T -o root -g root -m 0755 "$<" "$@"
@@ -78,12 +137,3 @@ uninstall-centos :
 	-[ -f /etc/sysconfig/selinux ] && semodule -r jobber -v
 	rm -f se_policy/.installed
 
-.PHONY : uninstall
-uninstall : uninstall-bin uninstall-centos
-
-.PHONY : clean
-clean :
-	go clean -i github.com/dshearer/jobber
-	go clean -i "github.com/dshearer/jobber/${CLIENT}"
-	go clean -i "github.com/dshearer/jobber/${DAEMON}"
-	-${MAKE} -C se_policy clean

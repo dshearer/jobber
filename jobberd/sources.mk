@@ -1,0 +1,16 @@
+DAEMON_SOURCES := \
+	commands.go \
+	context.go \
+	ipc_server.go \
+	jobberd.go \
+	job_file.go \
+	job.go \
+	job_manager.go \
+	job_runner_thread.go \
+	queue.go \
+	sudo.go
+
+DAEMON_TEST_SOURCES := \
+	job_file_parse_test.go \
+	next_run_time_test.go
+
