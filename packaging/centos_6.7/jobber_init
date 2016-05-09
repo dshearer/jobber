@@ -87,8 +87,11 @@ case "$1" in
     status)
         rh_status
         ;;
+    condrestart)
+        rh_status && restart
+        ;;
     *)
-        echo $"Usage: $0 {start|stop|status|restart}"
+        echo $"Usage: $0 {start|stop|status|restart|condrestart}"
         exit 2
 esac
 exit $?

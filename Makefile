@@ -98,7 +98,6 @@ clean :
 	go clean -i "github.com/dshearer/jobber/${CLIENT}"
 	go clean -i "github.com/dshearer/jobber/${DAEMON}"
 	rm -f "${DESTDIR}${JOBBER_PKG_NAME}.tgz"
-	-${MAKE} -C se_policy clean
 	
 
 
