@@ -9,7 +9,7 @@
 ### END INIT INFO
 
 prog=jobberd
-exec=/usr/local/sbin/jobberd
+exec=/usr/local/libexec/jobberd
 lockfile=/var/lock/subsys/jobber
 pidfile=/var/run/jobber.pid
 
