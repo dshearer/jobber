@@ -8,8 +8,6 @@ srcdir = .
 INSTALL = install
 INSTALL_PROGRAM = ${INSTALL}
 
-workdir = .
-
 GOPATH ?= ${HOME}/go_workspace
 CLIENT = jobber
 DAEMON = jobberd
@@ -19,13 +17,14 @@ TEST_TMPDIR = ${PWD}
 JOBBER_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
 
 # read lists of source files
-include sources.mk jobber/sources.mk jobberd/sources.mk
+include sources.mk jobber/sources.mk jobberd/sources.mk packaging/sources.mk
 FINAL_LIB_SOURCES := ${LIB_SOURCES}
 FINAL_LIB_TEST_SOURCES := ${LIB_TEST_SOURCES}
 FINAL_CLIENT_SOURCES := $(CLIENT_SOURCES:%=jobber/%)
 FINAL_CLIENT_TEST_SOURCES := $(CLIENT_TEST_SOURCES:%=jobber/%)
 FINAL_DAEMON_SOURCES := $(DAEMON_SOURCES:%=jobberd/%)
 FINAL_DAEMON_TEST_SOURCES := $(DAEMON_TEST_SOURCES:%=jobberd/%)
+FINAL_PACKAGING_SOURCES := $(PACKAGING_SOURCES:%=packaging/%)
 
 GO_SOURCES := \
 	${FINAL_LIB_SOURCES} \
@@ -36,11 +35,13 @@ OTHER_SOURCES := \
 	sources.mk \
 	jobber/sources.mk \
 	jobberd/sources.mk \
+	packaging/sources.mk \
 	buildtools \
 	README.md \
 	LICENSE \
 	version \
-	Godeps
+	Godeps \
+	${FINAL_PACKAGING_SOURCES}
 
 ALL_SOURCES := \
 	${GO_SOURCES} \
@@ -87,10 +88,10 @@ uninstall :
 	-rm "${DESTDIR}${bindir}/${CLIENT}" "${DESTDIR}${bindir}/${DAEMON}"
 
 dist : ${ALL_SOURCES}
-	-mkdir -p "${workdir}/${JOBBER_PKG_NAME}" "${DESTDIR}"
-	"${srcdir}/buildtools/srcsync" ${ALL_SOURCES} "${workdir}/${JOBBER_PKG_NAME}"
-	tar -C "${workdir}" -czf "${DESTDIR}${JOBBER_PKG_NAME}.tgz" "${JOBBER_PKG_NAME}"
-	rm -rf "${workdir}/${JOBBER_PKG_NAME}"
+	mkdir -p "dist-tmp/${JOBBER_PKG_NAME}" `dirname "${DESTDIR}${JOBBER_PKG_NAME}.tgz"`
+	"${srcdir}/buildtools/srcsync" ${ALL_SOURCES} "dist-tmp/${JOBBER_PKG_NAME}"
+	tar -C dist-tmp -czf "${DESTDIR}${JOBBER_PKG_NAME}.tgz" "${JOBBER_PKG_NAME}"
+	rm -rf dist-tmp
 
 .PHONY : clean
 clean :

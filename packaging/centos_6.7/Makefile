@@ -1,46 +1,60 @@
+DESTDIR ?= .
 WORK_DIR ?= work
-SRC_ROOT = ../..
-VERSION = $(shell cat ${SRC_ROOT}/version)
-PKGREL = $(shell cat pkgrel)
+SRC_ROOT := $(abspath ../..)
+VERSION := $(shell cat ${SRC_ROOT}/version)
+PKGREL := $(shell cat pkgrel)
 SRC_TARFILE = "jobber-${VERSION}.tgz"
 PLATFORM = $(shell uname -i)
-RPMFILE = "jobber-${VERSION}-${PKGREL}.${PLATFORM}.rpm"
+RPMFILE = jobber-${VERSION}-${PKGREL}.${PLATFORM}.rpm
+DOCKER_IMAGE_NAME = jobber/centos6.7_build_rpm
 
-.PHONY : build
-build : ${WORK_DIR}/.done
+.PHONY : main
+main :
+	@echo "Choose rpm-local or rpm-docker"
 
+.PHONY : ${WORK_DIR}/${SRC_TARFILE}
 ${WORK_DIR}/${SRC_TARFILE} :
-	make -C "${SRC_ROOT}" dist
+	make -C "${SRC_ROOT}" dist "DESTDIR=$(abspath .)/"
 	mkdir -p "${WORK_DIR}"
-	mv "${SRC_ROOT}/${SRC_TARFILE}" "$@"
+	mv "./${SRC_TARFILE}" "$@"
 
-${WORK_DIR}/.done : jobber.spec ${WORK_DIR}/${SRC_TARFILE}
+.PHONY : rpm-docker
+rpm-docker : jobber.spec ${WORK_DIR}/${SRC_TARFILE} docker/Dockerfile
+	mv "${WORK_DIR}/${SRC_TARFILE}" docker/src.tgz
+	docker build -t "${DOCKER_IMAGE_NAME}" docker
+	docker run "${DOCKER_IMAGE_NAME}"
+	docker cp "`docker ps -alq`:/rpms.tar" "${DESTDIR}/"
+	tar xf rpms.tar
+	rm -f rpms.tar
+
+.PHONY : rpm-local
+rpm-local : jobber.spec ${WORK_DIR}/${SRC_TARFILE}
 	# make RPM tree
-	mkdir -p "${dir $@}" \
-		 "${dir $@}BUILD" \
-                 "${dir $@}RPMS" \
-                 "${dir $@}RPMS/${PLATFORM}" \
-                 "${dir $@}SOURCES" \
-                 "${dir $@}SPECS" \
-                 "${dir $@}SRPMS"
-	cp "$<" "${dir $@}SPECS"
+	mkdir -p "${WORK_DIR}" \
+		 "${WORK_DIR}/BUILD" \
+                 "${WORK_DIR}/RPMS" \
+                 "${WORK_DIR}/RPMS/${PLATFORM}" \
+                 "${WORK_DIR}/SOURCES" \
+                 "${WORK_DIR}/SPECS" \
+                 "${WORK_DIR}/SRPMS"
+	cp "$<" "${WORK_DIR}/SPECS"
 	
 	# copy sources
 	cp "${WORK_DIR}/${SRC_TARFILE}" \
-		se_policy/jobber.* \
-		jobber_init "${dir $@}SOURCES/"
+		se_policy/* \
+		jobber_init "${WORK_DIR}/SOURCES/"
 	
 	# build RPMs
-	cd "${dir $@}SPECS" && rpmbuild -bb \
-		--define "_topdir ${abspath ${dir $@}}" \
+	cd "${WORK_DIR}/SPECS" && rpmbuild -bb \
+		--define "_topdir ${abspath ${WORK_DIR}}" \
 		--define "_pkg_version ${VERSION}" \
 		--define "_pkg_release ${PKGREL}" \
 		--define "_enable_debug_packages 0" \
 		"$<"
-	cp "${dir $@}RPMS/${PLATFORM}"/*.rpm ./
-	touch "$@"
+	mkdir -p "${DESTDIR}/"
+	cp "${WORK_DIR}/RPMS/${PLATFORM}"/*.rpm "${DESTDIR}/"
 
 .PHONY : clean
 clean :
-	rm -rf "${WORK_DIR}" "${RPMFILE}"
+	rm -rf "${WORK_DIR}" *.rpm docker/src.tgz
 

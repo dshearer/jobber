@@ -1,4 +1,4 @@
-IMAGE_NAME = jobber/centos6.7
+IMAGE_NAME = jobber/centos6.7_makefile_build
 
 .PHONY : test
 test : image
@@ -10,8 +10,8 @@ image : Dockerfile src.tar
 
 .PHONY : src.tar
 src.tar :
-	cd ../.. && git archive --output "$@" HEAD
-	mv "../../$@" ./
+	cd ../../.. && git archive --output "$@" HEAD
+	mv "../../../$@" ./
 
 .PHONY : clean
 clean :

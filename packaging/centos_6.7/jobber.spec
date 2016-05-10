@@ -84,6 +84,7 @@ cd -
 
 %install
 source "%{_builddir}/vars"
+export GOPATH
 %make_install -C "${GO_SRC_DIR}/jobber"
 mkdir -p "%{buildroot}/etc/init.d"
 cp "%{_builddir}/jobber_init" "%{buildroot}/etc/init.d/jobber"
