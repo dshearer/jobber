@@ -108,6 +108,8 @@ useradd --home / -M --system --shell /sbin/nologin jobber_client
 %post
 if [ "$1" -eq 1 ]; then
     /sbin/service jobber start
+    /sbin/chkconfig --add jobber
+    /sbin/chkconfig jobber on
 else
     /sbin/service jobber condrestart
 fi
@@ -121,6 +123,8 @@ fi
 
 %postun
 if [ "$1" -eq 0 ]; then
+    /sbin/chkconfig jobber off
+    /sbin/chkconfig --del jobber
     userdel jobber_client
 fi
 
