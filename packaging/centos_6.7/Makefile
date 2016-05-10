@@ -1,9 +1,9 @@
 DESTDIR ?= .
 WORK_DIR ?= work
 SRC_ROOT := $(abspath ../..)
+SRC_TARFILE = "jobber-${VERSION}.tgz"
 VERSION := $(shell cat ${SRC_ROOT}/version)
 PKGREL := $(shell cat pkgrel)
-SRC_TARFILE = "jobber-${VERSION}.tgz"
 PLATFORM = $(shell uname -i)
 RPMFILE = jobber-${VERSION}-${PKGREL}.${PLATFORM}.rpm
 DOCKER_IMAGE_NAME = jobber/centos6.7_build_rpm
@@ -24,8 +24,8 @@ rpm-docker : jobber.spec ${WORK_DIR}/${SRC_TARFILE} docker/Dockerfile
 	docker build -t "${DOCKER_IMAGE_NAME}" docker
 	docker run "${DOCKER_IMAGE_NAME}"
 	docker cp "`docker ps -alq`:/rpms.tar" "${DESTDIR}/"
-	tar xf rpms.tar
-	rm -f rpms.tar
+	tar -C "${DESTDIR}/" -xf "${DESTDIR}/rpms.tar"
+	rm -f "${DESTDIR}/rpms.tar"
 
 .PHONY : rpm-local
 rpm-local : jobber.spec ${WORK_DIR}/${SRC_TARFILE}
