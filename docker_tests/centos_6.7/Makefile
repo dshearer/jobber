@@ -1,4 +1,4 @@
-SRC_ROOT = ../../..
+SRC_ROOT = ../..
 IMAGE_NAME = jobber/centos6.7_test_rpm
 
 .PHONY : test
