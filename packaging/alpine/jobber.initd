@@ -1,0 +1,12 @@
+#!/sbin/openrc-run
+
+name="jobber"
+command="/usr/sbin/jobberd"
+pidfile="/var/run/jobberd.pid"
+command_args=""
+start_stop_daemon_args="-b --pidfile=\"${pidfile}\" --make-pidfile"
+
+depend() {
+	need logger
+}
+

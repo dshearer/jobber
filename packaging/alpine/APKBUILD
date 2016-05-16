@@ -1,0 +1,54 @@
+# Contributor: C. Dylan Shearer <dylan@nekonya.info>
+# Maintainer: C. Dylan Shearer <dylan@nekonya.info>
+pkgname=jobber
+pkgdesc="A replacement for cron, with sophisticated status-reporting and error-handling."
+url="https://dshearer.github.io/${pkgname}/"
+arch="all"
+license="MIT"
+depends=""
+depends_dev=""
+makedepends="$depends_dev go"
+install="${pkgname}.post-install ${pkgname}.pre-deinstall ${pkgname}.post-deinstall ${pkgname}.post-upgrade"
+#subpackages="$pkgname-dev $pkgname-doc"
+source="${pkgname}.initd ${pkgname}_src.tar.blah"
+pkgusers=jobber_client
+
+_builddir="${srcdir}/go_workspace"
+
+prepare() {
+	tar -C "${srcdir}" -xf "${srcdir}/${pkgname}_src.tar.blah" || return 1
+
+	local i
+	cd "${srcdir}/${pkgname}"
+	for i in $source; do
+		case $i in
+		*.patch) msg ${i}; patch -p1 -i "${srcdir}"/${i} || return 1;;
+		esac
+	done
+
+	# make Go workspace
+	mkdir -p "${_builddir}/src/github.com/dshearer"
+	ln -s "${srcdir}/${pkgname}" "${_builddir}/src/github.com/dshearer/${pkgname}"
+}
+
+build() {
+	return 0
+}
+
+package() {
+	local BIN_PREFIX=${pkgdir}/usr
+	mkdir -p "${BIN_PREFIX}"
+	cd "${_builddir}/src/github.com/dshearer/${pkgname}"
+	GOPATH="${_builddir}" make install "DESTDIR=${BIN_PREFIX}"
+
+	local INITD=${pkgdir}/etc/init.d
+	mkdir -p "${INITD}"
+	cp ${srcdir}/${pkgname}.initd "${INITD}/jobber"
+}
+
+md5sums="3cd58d855b36a6ca066171859039d902  jobber.initd
+18bf8b5f86e42b03b7aa03a72e84e0ae  jobber_src.tar.blah"
+sha256sums="b54f04c17f482df8851637aff3ff89e69190db2f37ea4b0b33161e15223b48c6  jobber.initd
+ea81dc1461d48d630e75c8ccdda2e781afc6956261c43d3fb0f6b9f4fd559973  jobber_src.tar.blah"
+sha512sums="d77d7b05b425ecf327d829d6f9cad171d457b50d89adc1cd7989b3dcc615d9db599db4d4401b9d69b87f74e87bbc6462fb8edd08f12bfd0d67f07da53cefe837  jobber.initd
+d69118120a34606e348526f8580167a7ee7ef917b011adb0910f22807174d45ca3af5cd77965b6c93f2f6c956461c989aac758e4b24daf1ca5a077a71defcdf5  jobber_src.tar.blah"
