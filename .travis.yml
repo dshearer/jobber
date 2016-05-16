@@ -5,9 +5,7 @@ language: Go
 services:
   - docker
 
-before_install:
-  - make -C docker_tests/jobber_centos_6.7 image
-
 script:
-  - make -C docker_tests/jobber_centos_6.7 test
+  - make check
+  - make -C platform_tests
 

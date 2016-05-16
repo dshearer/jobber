@@ -8,7 +8,7 @@ srcdir = .
 INSTALL = install
 INSTALL_PROGRAM = ${INSTALL}
 
-GOPATH ?= ${HOME}/go_workspace
+GO_WKSPC ?= ${abspath ../../../..}
 CLIENT = jobber
 DAEMON = jobberd
 LIB = jobber.a
@@ -57,7 +57,7 @@ SE_FILES = se_policy/jobber.fc \
            se_policy/policygentool
 
 .PHONY : all
-all : lib ${GOPATH}/bin/${CLIENT} ${GOPATH}/bin/${DAEMON}
+all : lib ${GO_WKSPC}/bin/${CLIENT} ${GO_WKSPC}/bin/${DAEMON}
 
 .PHONY : check
 check : ${FINAL_LIB_TEST_SOURCES} ${FINAL_CLIENT_TEST_SOURCES} ${FINAL_DAEMON_TEST_SOURCES}
@@ -72,10 +72,10 @@ installdirs :
 	"${srcdir}/buildtools/mkinstalldirs" "${DESTDIR}${bindir}" "${DESTDIR}${libexecdir}"
 
 .PHONY : install
-install : installdirs ${GOPATH}/bin/${CLIENT} ${GOPATH}/bin/${DAEMON}
+install : installdirs ${GO_WKSPC}/bin/${CLIENT} ${GO_WKSPC}/bin/${DAEMON}
 	# install files
-	"${INSTALL_PROGRAM}" "${GOPATH}/bin/${CLIENT}" -t "${DESTDIR}${bindir}"
-	"${INSTALL_PROGRAM}" "${GOPATH}/bin/${DAEMON}" -t "${DESTDIR}${libexecdir}"
+	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/${CLIENT}" -t "${DESTDIR}${bindir}"
+	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/${DAEMON}" -t "${DESTDIR}${libexecdir}"
 	
 	# change owner and perms
 	-chown "${CLIENT_USER}:root" "${DESTDIR}${bindir}/${CLIENT}" && \
@@ -106,10 +106,10 @@ clean :
 lib : ${FINAL_LIB_SOURCES}
 	go install ${LDFLAGS} "github.com/dshearer/jobber"
 
-${GOPATH}/bin/${CLIENT} : ${FINAL_CLIENT_SOURCES} lib
+${GO_WKSPC}/bin/${CLIENT} : ${FINAL_CLIENT_SOURCES} lib
 	go install ${LDFLAGS} "github.com/dshearer/jobber/${CLIENT}"
 
-${GOPATH}/bin/${DAEMON} : ${FINAL_DAEMON_SOURCES} lib
+${GO_WKSPC}/bin/${DAEMON} : ${FINAL_DAEMON_SOURCES} lib
 	go install ${LDFLAGS} "github.com/dshearer/jobber/${DAEMON}"
 
 
