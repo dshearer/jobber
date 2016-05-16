@@ -55,12 +55,12 @@ An SELinux policy for Jobber.
 cp "%{_sourcedir}/jobber_init" "%{_builddir}/"
 
 # create Go workspace
-GOPATH="%{_builddir}/go_workspace"
-GO_SRC_DIR="${GOPATH}/src/github.com/dshearer"
+GO_WKSPC="%{_builddir}/go_workspace"
+GO_SRC_DIR="${GO_WKSPC}/src/github.com/dshearer"
 mkdir -p "${GO_SRC_DIR}"
 ln -fs "%{_builddir}/jobber-%{_pkg_version}" "${GO_SRC_DIR}/jobber"
 
-echo "GOPATH=${GOPATH}" > "%{_builddir}/vars"
+echo "GO_WKSPC=${GO_WKSPC}" > "%{_builddir}/vars"
 echo "GO_SRC_DIR=${GO_SRC_DIR}" >> "%{_builddir}/vars"
 
 # SELinux stuff
@@ -84,7 +84,8 @@ cd -
 
 %install
 source "%{_builddir}/vars"
-export GOPATH
+export GO_WKSPC
+export GOPATH="${GO_WKSPC}"
 %make_install -C "${GO_SRC_DIR}/jobber"
 mkdir -p "%{buildroot}/etc/init.d"
 cp "%{_builddir}/jobber_init" "%{buildroot}/etc/init.d/jobber"

@@ -13,7 +13,7 @@ ENV SRC_ARCHIVE     src.tgz
 
 COPY ${SRC_ARCHIVE} /
 
-RUN tar -xzf "${SRC_ARCHIVE}"
+RUN tar -xzmf "${SRC_ARCHIVE}"
 
 CMD cd /jobber-* && \
     make -C packaging/centos_6.7 rpm-local DESTDIR=/rpms && \
