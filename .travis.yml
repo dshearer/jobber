@@ -1,3 +1,11 @@
+sudo: required
+
 language: Go
-install: true
-script: make
+
+services:
+  - docker
+
+script:
+  - make check
+  - make -C platform_tests
+
