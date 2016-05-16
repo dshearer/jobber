@@ -1,0 +1,29 @@
+#!/bin/sh
+
+usage() {
+    echo "srcsync SRCFILE[ SRCFILE ...] DESTDIR" >&2
+}
+
+if [ "$#" -le 0 ]; then
+    usage
+    exit 1
+fi
+
+SRCFILES=
+I=0
+for F; do 
+    if [ "$I" -eq $(($# - 1)) ]; then
+        DESTDIR="$F"
+    else
+        SRCFILES="${SRCFILES} ${F}"
+    fi
+    I=$(($I + 1))
+done
+NBR_SRCFILES=$(($# - 1))
+echo $DESTDIR
+
+for F in ${SRCFILES}; do
+    DIR=`dirname "${F}"`
+    mkdir -p "${DESTDIR}/${DIR}"
+    cp -R "${F}" "${DESTDIR}/${DIR}/"
+done
