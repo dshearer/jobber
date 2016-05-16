@@ -1,5 +1,0 @@
-#!/bin/sh
-
-# delete client user
-deluser jobber_client
-
