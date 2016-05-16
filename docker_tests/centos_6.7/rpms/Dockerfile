@@ -10,6 +10,3 @@ COPY test_installation "${TEST_SCRIPT}"
 
 CMD yum -y install "${RPM_DIR}"/*.rpm && \
    "${TEST_SCRIPT}"
-
-#ENTRYPOINT ["/bin/bash"]
-

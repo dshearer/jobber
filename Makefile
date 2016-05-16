@@ -14,7 +14,7 @@ DAEMON = jobberd
 LIB = jobber.a
 CLIENT_USER = jobber_client
 TEST_TMPDIR = ${PWD}
-JOBBER_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
+DIST_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
 
 # read lists of source files
 include sources.mk jobber/sources.mk jobberd/sources.mk packaging/sources.mk
@@ -88,9 +88,9 @@ uninstall :
 	-rm "${DESTDIR}${bindir}/${CLIENT}" "${DESTDIR}${bindir}/${DAEMON}"
 
 dist : ${ALL_SOURCES}
-	mkdir -p "dist-tmp/${JOBBER_PKG_NAME}" `dirname "${DESTDIR}${JOBBER_PKG_NAME}.tgz"`
-	"${srcdir}/buildtools/srcsync" ${ALL_SOURCES} "dist-tmp/${JOBBER_PKG_NAME}"
-	tar -C dist-tmp -czf "${DESTDIR}${JOBBER_PKG_NAME}.tgz" "${JOBBER_PKG_NAME}"
+	mkdir -p "dist-tmp/${DIST_PKG_NAME}" `dirname "${DESTDIR}${DIST_PKG_NAME}.tgz"`
+	"${srcdir}/buildtools/srcsync" ${ALL_SOURCES} "dist-tmp/${DIST_PKG_NAME}"
+	tar -C dist-tmp -czf "${DESTDIR}${DIST_PKG_NAME}.tgz" "${DIST_PKG_NAME}"
 	rm -rf dist-tmp
 
 .PHONY : clean
@@ -98,7 +98,7 @@ clean :
 	go clean -i github.com/dshearer/jobber
 	go clean -i "github.com/dshearer/jobber/${CLIENT}"
 	go clean -i "github.com/dshearer/jobber/${DAEMON}"
-	rm -f "${DESTDIR}${JOBBER_PKG_NAME}.tgz"
+	rm -f "${DESTDIR}${DIST_PKG_NAME}.tgz"
 	
 
 
