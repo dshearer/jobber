@@ -69,7 +69,10 @@ cp -p %{SOURCE2} %{SOURCE3} %{SOURCE4} selinux/
 
 
 %build
-#make %{?_smp_mflags}
+source "%{_builddir}/vars"
+export GO_WKSPC
+export GOPATH="${GO_WKSPC}"
+make %{?_smp_mflags} -C "${GO_SRC_DIR}/jobber" check
 
 # SELinux stuff
 cd selinux
