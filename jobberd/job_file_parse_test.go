@@ -74,7 +74,7 @@ func TestParseFullTimeSpec(t *testing.T) {
 			OneValTimeSpec{1}}},
 		{"0 0 1,4,7,10,13,16,19,22 * * 1", FullTimeSpec{OneValTimeSpec{0},
 			OneValTimeSpec{0},
-			SetTimeSpec{"*/2", threes},
+			SetTimeSpec{"1,4,7,10,13,16,19,22", threes},
 			WildcardTimeSpec{},
 			WildcardTimeSpec{},
 			OneValTimeSpec{1}}},
