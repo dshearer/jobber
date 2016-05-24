@@ -354,6 +354,24 @@ func parseTimeSpec(s string, fieldName string, min int, max int) (TimeSpec, erro
 		spec := SetTimeSpec{vals: vals, desc: s}
 		return spec, nil
 
+	} else if strings.Contains(s, ",") {
+		// split step
+		stepStrs := strings.Split(s, ",")
+
+		// make set of valid values
+		vals := make([]int, 0)
+		for _,stepStr := range stepStrs {
+			step, err := strconv.Atoi(stepStr)
+			if err != nil {
+				return nil, &JobberError{errMsg, err}
+			}
+			vals = append(vals, step)
+		}
+
+		// make spec
+		spec := SetTimeSpec{vals: vals, desc: s}
+		return spec, nil
+
 	} else {
 		// convert to int
 		val, err := strconv.Atoi(s)
