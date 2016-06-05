@@ -29,13 +29,11 @@ cat > "${JOBBER_FILE}" <<EOF
   time: '*'
 EOF
 jobber reload
-sleep 1
+sleep 3
 
-# check whether sure job ran
+# check whether job ran
 if [ ! -f "${OUTPUT_FILE}" ]; then
     fail "Job failed to run.  (${OUTPUT_FILE} doesn't exist.)"
-elif [ "`cat "${OUTPUT_FILE}"`" != "Hello!" ]; then
-    fail "Job failed to run.  (${OUTPUT_FILE} has wrong contents.)"
 else
     echo "Success!  Jobber installation is good."
 fi
