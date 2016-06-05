@@ -10,4 +10,5 @@ COPY test_installation "${TEST_SCRIPT}"
 # NOTE: OpenRC doesn't work in a container
 CMD (apk add --allow-untrusted "${PKG_DIR}"/*.apk ||:) && \
     (/usr/libexec/jobberd&) && \
+    sleep 2 && \
     "${TEST_SCRIPT}"
