@@ -1,4 +1,4 @@
-PLATFORMS = centos_6.7
+PLATFORMS = centos_6.7 alpine_3.3
 
 .PHONY : test
 test :

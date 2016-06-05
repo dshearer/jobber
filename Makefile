@@ -7,6 +7,7 @@ libexecdir = ${exec_prefix}/libexec
 srcdir = .
 INSTALL = install
 INSTALL_PROGRAM = ${INSTALL}
+GO_EXE_BUILD_ARGS=
 
 GO_WKSPC ?= ${abspath ../../../..}
 CLIENT = jobber
@@ -77,8 +78,8 @@ installdirs :
 .PHONY : install
 install : installdirs ${GO_WKSPC}/bin/${CLIENT} ${GO_WKSPC}/bin/${DAEMON}
 	# install files
-	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/${CLIENT}" -t "${DESTDIR}${bindir}"
-	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/${DAEMON}" -t "${DESTDIR}${libexecdir}"
+	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/${CLIENT}" "${DESTDIR}${bindir}"
+	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/${DAEMON}" "${DESTDIR}${libexecdir}"
 	
 	# change owner and perms
 	-chown "${CLIENT_USER}:root" "${DESTDIR}${bindir}/${CLIENT}" && \
@@ -110,10 +111,10 @@ lib : ${FINAL_LIB_SOURCES}
 	go install ${LDFLAGS} "github.com/dshearer/jobber"
 
 ${GO_WKSPC}/bin/${CLIENT} : ${FINAL_CLIENT_SOURCES} lib
-	go install ${LDFLAGS} "github.com/dshearer/jobber/${CLIENT}"
+	go install ${LDFLAGS} ${GO_EXE_BUILD_ARGS} "github.com/dshearer/jobber/${CLIENT}"
 
 ${GO_WKSPC}/bin/${DAEMON} : ${FINAL_DAEMON_SOURCES} lib
-	go install ${LDFLAGS} "github.com/dshearer/jobber/${DAEMON}"
+	go install ${LDFLAGS} ${GO_EXE_BUILD_ARGS} "github.com/dshearer/jobber/${DAEMON}"
 
 
 ## OLD:

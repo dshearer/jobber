@@ -1,0 +1,25 @@
+#!/bin/sh
+
+JOBBER=/usr/bin/jobber
+JOBBERD=/usr/libexec/jobberd
+CLIENT_USER=jobber_client
+
+# make client user
+adduser -h /dev/null -s /sbin/nologin -SDH "${CLIENT_USER}"
+
+# set owner and perms of binaries
+chown "${CLIENT_USER}:root" "${JOBBER}"
+chmod 4755 "${JOBBER}"
+chown root:root "${JOBBERD}"
+chmod 0755 "${JOBBERD}"
+
+echo "**** WARNING ****"
+echo "We are installing a non-PIE SUID-root program"
+echo "(namely, ${JOBBER}).  It seems that"
+echo "Alpine's developers dislike this, with reason."
+echo "When Go supports PIEs, we'll fix this."
+echo "*****************"
+
+# start jobber
+rc-update add jobber
+service jobber start
