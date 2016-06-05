@@ -1,6 +1,5 @@
 FROM alpine:3.3
 RUN apk upgrade --update
-RUN apk add openrc
 
 ENV PKG_DIR     /pkgs
 ENV TEST_SCRIPT /test_installation
