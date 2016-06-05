@@ -1,7 +1,7 @@
 #!/bin/sh
 
 JOBBER=/usr/bin/jobber
-JOBBERD=/usr/sbin/jobberd
+JOBBERD=/usr/libexec/jobberd
 
 # set owner and perms of binaries
 chown jobber_client:root "${JOBBER}"

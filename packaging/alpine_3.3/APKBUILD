@@ -1,0 +1,48 @@
+# Contributor: C. Dylan Shearer <dylan@nekonya.info>
+# Maintainer: C. Dylan Shearer <dylan@nekonya.info>
+pkgname=jobber
+pkgdesc="A replacement for cron, with sophisticated status-reporting and error-handling."
+url="https://dshearer.github.io/${pkgname}/"
+arch="all"
+license="MIT"
+depends="openrc"
+depends_dev=""
+makedepends="$depends_dev openrc go"
+install="${pkgname}.post-install ${pkgname}.pre-deinstall ${pkgname}.post-deinstall ${pkgname}.post-upgrade"
+#subpackages="$pkgname-dev $pkgname-doc"
+source="${pkgname}.initd ${pkgname}.tgz"
+pkgusers=jobber_client
+
+_builddir="${startdir}/build"
+
+prepare() {
+	# make Go workspace
+	mkdir -p "${_builddir}/src/github.com/dshearer"
+	ln -s "${srcdir}/${pkgname}" "${_builddir}/src/github.com/dshearer/${pkgname}"
+}
+
+build() {
+    export GOPATH="${_builddir}"
+    export GO_WKSPC="${_builddir}"
+    make -C "${_builddir}/src/github.com/dshearer/${pkgname}" check
+}
+
+package() {
+    set -e
+    
+    # build and install
+    export GOPATH="${_builddir}"
+    export GO_WKSPC="${_builddir}"
+	make -C "${_builddir}/src/github.com/dshearer/${pkgname}" \
+	   install "DESTDIR=${pkgdir}/" prefix=/usr
+	
+	# get around abuild's check for non-PIE SUID programs
+	chmod 0755 "${pkgdir}/usr/bin/jobber"
+
+    # install init script
+	local INITD=${pkgdir}/etc/init.d
+	mkdir -p "${INITD}"
+	cp "${startdir}/${pkgname}.initd" "${INITD}/jobber"
+}
+
+md5sums=""
