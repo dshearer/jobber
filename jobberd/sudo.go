@@ -12,11 +12,7 @@ type SudoResult struct {
 }
 
 func sudo(user string, cmdStr string, shell string, input *string) (*SudoResult, *JobberError) {
-    var cmd *exec.Cmd = exec.Command("su",
-                                     "-l", // login shell
-                                     "-s", shell,
-                                     "-c", cmdStr,
-                                     user)
+    var cmd *exec.Cmd = sudo_cmd(user, cmdStr, shell);
     stdout, err := cmd.StdoutPipe()
     if err != nil {
         return nil, &JobberError{"Failed to get pipe to stdout.", err}

@@ -8,7 +8,9 @@ DAEMON_SOURCES := \
 	job_manager.go \
 	job_runner_thread.go \
 	queue.go \
-	sudo.go
+	sudo.go \
+	sudo_cmd_linux.go \
+	sudo_cmd_freebsd.go
 
 DAEMON_TEST_SOURCES := \
 	job_file_parse_test.go \
