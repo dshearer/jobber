@@ -49,6 +49,7 @@ var EverySecTimeSpec FullTimeSpec = FullTimeSpec{WildcardTimeSpec{},
 
 func TestParseFullTimeSpec(t *testing.T) {
 	evens := []int{0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22}
+	threes := []int{1, 4, 7, 10, 13, 16, 19, 22}
 	cases := []struct {
 		str  string
 		spec FullTimeSpec
@@ -68,6 +69,12 @@ func TestParseFullTimeSpec(t *testing.T) {
 		{"0 0 */2 * * 1", FullTimeSpec{OneValTimeSpec{0},
 			OneValTimeSpec{0},
 			SetTimeSpec{"*/2", evens},
+			WildcardTimeSpec{},
+			WildcardTimeSpec{},
+			OneValTimeSpec{1}}},
+		{"0 0 1,4,7,10,13,16,19,22 * * 1", FullTimeSpec{OneValTimeSpec{0},
+			OneValTimeSpec{0},
+			SetTimeSpec{"1,4,7,10,13,16,19,22", threes},
 			WildcardTimeSpec{},
 			WildcardTimeSpec{},
 			OneValTimeSpec{1}}},
