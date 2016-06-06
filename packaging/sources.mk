@@ -1,4 +1,5 @@
 PACKAGING_SOURCES := \
+	Makefile \
 	centos_6.7/se_policy/jobber.fc \
 	centos_6.7/se_policy/jobber.if \
 	centos_6.7/se_policy/jobber.te \

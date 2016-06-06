@@ -9,7 +9,7 @@ test : .made_rpms
 	@grep "Jobber installation is good." docker_output
 
 .made_rpms :
-	make -C "${SRC_ROOT}/packaging/centos_6.7" rpm-docker "DESTDIR=$(abspath .)/"
+	make -C "${SRC_ROOT}/packaging/centos_6.7" pkg-docker "DESTDIR=$(abspath .)/"
 	touch "$@"
 
 .PHONY : clean

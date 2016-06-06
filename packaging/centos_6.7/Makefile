@@ -10,7 +10,7 @@ DOCKER_IMAGE_NAME = jobber/centos6.7_build_rpm
 
 .PHONY : main
 main :
-	@echo "Choose rpm-local or rpm-docker"
+	@echo "Choose pkg-local or pkg-docker"
 
 .PHONY : ${WORK_DIR}/${SRC_TARFILE}
 ${WORK_DIR}/${SRC_TARFILE} :
@@ -18,8 +18,8 @@ ${WORK_DIR}/${SRC_TARFILE} :
 	mkdir -p "${WORK_DIR}"
 	mv "./${SRC_TARFILE}" "$@"
 
-.PHONY : rpm-docker
-rpm-docker : jobber.spec ${WORK_DIR}/${SRC_TARFILE} docker/Dockerfile
+.PHONY : pkg-docker
+pkg-docker : jobber.spec ${WORK_DIR}/${SRC_TARFILE} docker/Dockerfile
 	mv "${WORK_DIR}/${SRC_TARFILE}" docker/src.tgz
 	docker build -t "${DOCKER_IMAGE_NAME}" docker
 	docker run "${DOCKER_IMAGE_NAME}"
@@ -27,8 +27,8 @@ rpm-docker : jobber.spec ${WORK_DIR}/${SRC_TARFILE} docker/Dockerfile
 	tar -C "${DESTDIR}/" -xmf "${DESTDIR}/rpms.tar"
 	rm -f "${DESTDIR}/rpms.tar"
 
-.PHONY : rpm-local
-rpm-local : jobber.spec ${WORK_DIR}/${SRC_TARFILE}
+.PHONY : pkg-local
+pkg-local : jobber.spec ${WORK_DIR}/${SRC_TARFILE}
 	# make RPM tree
 	mkdir -p "${WORK_DIR}" \
 		 "${WORK_DIR}/BUILD" \
