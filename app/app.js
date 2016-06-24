@@ -3,14 +3,8 @@ var app = angular.module('jobberSite', ['ngCookies']);
 
 var gReleaseData = ['html_url', 'name', 'body', 'created_at'];
 var gAssetData = ['browser_download_url', 'name'];
-
-function copyAttrs(to, from, attrs)
-{
-	for (var key in attrs)
-	{
-		to[attrs[key]] = from[attrs[key]];
-	}
-}
+var gAppVer = 1;
+var gCookieVar = 'jobberAppState';
 
 app.controller('JobberSiteController',
   function($scope, $http, $cookies) {
@@ -18,43 +12,49 @@ app.controller('JobberSiteController',
 	 * NOTE: GitHub throttles API requests to max 60/hour.
 	 */
 	
-	// look for cached release info
-	$scope.latestRelease = $cookies.getObject('latestRelease');
-	if ($scope.latestRelease == undefined) {
-	    // get releases
-		$http.get('https://api.github.com/repos/dshearer/jobber/releases/latest')
-			.then(function(resp) {
-				// keep only interesting data
-				$scope.latestRelease = {};
-				copyAttrs($scope.latestRelease, resp.data, gReleaseData);
+	// init cookie
+	var cookie = $cookies.getObject(gCookieVar);
+	if (cookie === undefined || cookie.appVer < gAppVer) {
+		cookie = {appVer: gAppVer, latestRelease: null};
+	}
+	
+	// init model
+	$scope.latestRelease = cookie.latestRelease;
+
+    // get latest release
+	var httpConfig = {
+		cache: false,
+		headers: {'If-None-Match': null, 'If-Modified-Since': null}
+	};
+	if (cookie.latestReleaseEtag !== undefined) {
+		httpConfig.headers['If-None-Match'] = cookie.latestReleaseEtag;
+	}
+	$http.get('https://api.github.com/repos/dshearer/jobber/releases/latest',
+			  httpConfig)
+		.then(function success(resp) {
+				// save release info
+				cookie.latestRelease = makeRelease(resp);
 				
-				// make source artifacts
-				$scope.latestRelease.sourceArtifacts = [];
-				$scope.latestRelease.sourceArtifacts.push({
-					browser_download_url: resp.data.tarball_url,
-					name: resp.data.name + '.tar'
-				});
-				$scope.latestRelease.sourceArtifacts.push({
-					browser_download_url: resp.data.zipball_url,
-					name: resp.data.name + '.zip'
-				});
-				
-				// make binary artifacts
-				$scope.latestRelease.binaryArtifacts = [];
-				for (var key in resp.data.assets)
-				{
-					var asset = resp.data.assets[key];
-					if (asset.state != 'uploaded') {
-						continue;
-					}
-					var artifact = makeBinaryArtifact(asset);
-					$scope.latestRelease.binaryArtifacts.push(artifact);
+				// save etag
+				var etag = resp.headers('ETag');
+				if (etag === undefined || etag === null) {
+					delete cookie.latestReleaseEtag;
+				}
+				else {
+					cookie.latestReleaseEtag = etag;
 				}
 				
-				// save release info
-				$cookies.putObject('latestRelease', $scope.latestRelease);
+				// save cookie
+				$cookies.putObject(gCookieVar, cookie);
+				
+				// set model
+				$scope.latestRelease = cookie.latestRelease;
+			},
+			function error(resp) {
+				if (resp.status != 304) {
+					console.log("HTTP error: " + resp.statusText);
+				}
 			});
-	}
 });
 
 app.filter('bytes', function() {
@@ -66,6 +66,44 @@ app.filter('bytes', function() {
 		return (bytes / Math.pow(1024, Math.floor(number))).toFixed(precision) +  ' ' + units[number];
 	}
 });
+
+function copyAttrs(to, from, attrs)
+{
+	for (var key in attrs)
+	{
+		to[attrs[key]] = from[attrs[key]];
+	}
+}
+
+function makeRelease(githubResp) {
+	// keep only interesting data
+	var latestRelease = {};
+	copyAttrs(latestRelease, githubResp.data, gReleaseData);
+	
+	// make source artifacts
+	latestRelease.sourceArtifacts = [];
+	latestRelease.sourceArtifacts.push({
+		browser_download_url: githubResp.data.tarball_url,
+		name: 				  githubResp.data.name + '.tar'
+	});
+	latestRelease.sourceArtifacts.push({
+		browser_download_url: githubResp.data.zipball_url,
+		name: 				  githubResp.data.name + '.zip'
+	});
+	
+	// make binary artifacts
+	latestRelease.binaryArtifacts = [];
+	for (var key in githubResp.data.assets)
+	{
+		var asset = githubResp.data.assets[key];
+		if (asset.state != 'uploaded') {
+			continue;
+		}
+		latestRelease.binaryArtifacts.push(makeBinaryArtifact(asset));
+	}
+	
+	return latestRelease;
+}
 
 function makeBinaryArtifact(asset)
 {

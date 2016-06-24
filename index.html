@@ -180,7 +180,16 @@ SOFTWARE.
         </section>
 
         <!-- Downloading -->
-        <section id="downloading">
+        <section id="downloading" ng-if="latestRelease === null">
+          <h2>Downloading</h2>
+          <p>
+            Releases can be downloaded from <a
+              href="https://github.com/dshearer/jobber/releases">the Jobber
+              releases page</a>.
+          </p>
+        </section>
+
+        <section id="downloading" ng-if="latestRelease !== null">
           <h2>Downloading</h2>
 
           <p>
@@ -234,9 +243,6 @@ SOFTWARE.
             should be possible to compile and run it on <span
               itemprop="operatingSystem">any Linux system</span>. However, we
             currently only make packages for RHEL-like systems and Alpine Linux.
-            They can be downloaded from <a
-              href="https://github.com/dshearer/jobber/releases">the Jobber
-              releases page</a>.
           </p>
 
           <p>Note that, although Jobber can be used instead of cron, it is
