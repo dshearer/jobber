@@ -2,6 +2,10 @@ body {
 	position: relative;
 }
 
+footer {
+	text-align: center;
+}
+
 .nobr, code {
 	white-space: nowrap;
 }
