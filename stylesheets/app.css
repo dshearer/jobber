@@ -1,66 +1,63 @@
 body {
-	position: relative;
+  position: relative;
 }
-
 footer {
-	text-align: center;
+  text-align: center;
 }
-
-.nobr, code {
-	white-space: nowrap;
+.nobr,
+code {
+  white-space: nowrap;
 }
-
-#forkme_banner {
+.forkme-banner {
   display: block;
   position: absolute;
-  top:0;
+  top: 0;
   right: 10px;
   z-index: 10;
   padding: 10px 50px 10px 10px;
   color: #fff;
   background: url('../images/blacktocat.png') #0090ff no-repeat 95% 50%;
   font-weight: 700;
-  box-shadow: 0 0 10px rgba(0,0,0,.5);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
   border-bottom-left-radius: 2px;
   border-bottom-right-radius: 2px;
 }
-
+.release-banner {
+  text-align: center;
+}
+.release-banner-details {
+  font-size: 80%;
+  display: block;
+}
 #toc-container.affix {
-	top:50px;
+  top: 50px;
 }
-
 .affix-top .top-nav-item {
-    display: none;
+  display: none;
 }
-
 .affix .top-nav-item {
-    font-weight: bold;
-    display: block;
+  font-weight: bold;
+  display: block;
 }
-
 nav .nav-list-1 {
-	padding-left: 0;
-	list-style-type: none;
+  padding-left: 0;
+  list-style-type: none;
 }
-
 nav li {
-    font-weight: normal;
-    padding-top: 5px;
+  font-weight: normal;
+  padding-top: 5px;
 }
-
 nav li.active {
-    font-weight: bold;
+  font-weight: bold;
 }
-
-nav .nav-list-2, nav .nav-list-3 {
-    padding-left: 20px;
-}
-
-nav .nav-list-2 {
-    list-style-type: disc;
-}
-
+nav .nav-list-2,
 nav .nav-list-3 {
-    font-size: 90%;
-    list-style-type: circle;
+  padding-left: 20px;
+}
+nav .nav-list-2 {
+  list-style-type: disc;
+}
+nav .nav-list-3 {
+  font-size: 90%;
+  list-style-type: circle;
 }
