@@ -8,7 +8,7 @@ import (
 
 const NewJobFileEx string = `
 [prefs]
-notifyEmail: a@b.com
+notifyProgram: ~/handleError
 
 [jobs]
 - name: DailyBackup
@@ -144,7 +144,7 @@ func TestReadNewJobberFile(t *testing.T) {
 	}
 	
 	// test prefs
-	require.Equal(t, "a@b.com", *file.Prefs.NotifyEmail);
+	require.NotNil(t, file.Prefs.Notifier)
 	
 	// test jobs
 	require.Equal(t, 2, len(file.Jobs))

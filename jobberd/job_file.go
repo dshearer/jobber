@@ -27,7 +27,7 @@ type JobberFile struct {
 }
 
 type UserPrefs struct {
-	NotifyEmail	    *string "notifyEmail,omitempty"
+	Notifier	    RunRecNotifier
 }
 
 type JobConfigEntry struct {
@@ -252,7 +252,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
     
     // parse "prefs" section
     const yamlStarter string = "---"
-    var userPrefs UserPrefs
+    rawPrefs := map[string]interface{} {}
     prefsLines, prefsOk := sectionsToLines[PrefsSectName]
     if prefsOk && len(prefsLines) > 0 {
         Logger.Println("Got prefs section")
@@ -260,14 +260,12 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
         if strings.TrimRight(prefsLines[0], " \t") != yamlStarter {
             prefsSection = yamlStarter + "\n" + prefsSection
         }
-	    err := yaml.Unmarshal([]byte(prefsSection), &userPrefs)
+	    err := yaml.Unmarshal([]byte(prefsSection), &rawPrefs)
 	    if err != nil {
 	        errMsg := fmt.Sprintf("Failed to parse \"%v\" section", 
 	                              PrefsSectName)
 	        return nil, &JobberError{errMsg, err}
 	    }
-    } else {
-        userPrefs.NotifyEmail = &username
     }
     
     // parse "jobs" section
@@ -285,6 +283,21 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 	                              JobsSectName)
 	        return nil, &JobberError{errMsg, err}
 	    }
+    }
+    
+    // make prefs
+    var userPrefs UserPrefs
+    noteProgVal, hasNoteProg := rawPrefs["notifyProgram"]
+    if hasNoteProg {
+        noteProgValStr, ok := noteProgVal.(string)
+        if !ok {
+	        errMsg := fmt.Sprintf("Invalid value for preference \"notifyProgram\": %v", 
+	                              noteProgVal)
+	        return nil, &JobberError{errMsg, nil}
+        }
+        userPrefs.Notifier = MakeProgramNotifier(noteProgValStr)
+    } else {
+        userPrefs.Notifier = MakeMailNotifier()
     }
     
     // make jobs

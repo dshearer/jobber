@@ -123,33 +123,19 @@ func (m *JobManager) Wait() {
 }
 
 func (m *JobManager) handleRunRec(rec *RunRec) {
-    if len(rec.Stdout) > 0 {
-        Logger.Println(rec.Stdout)
-    }
-    if len(rec.Stderr) > 0 {
-        ErrLogger.Println(rec.Stderr)
-    }
     if rec.Err != nil {
         ErrLogger.Panicln(rec.Err)
     }
     
-    m.runLog = append(m.runLog, RunLogEntry{rec.Job, rec.RunTime, rec.Succeeded, rec.NewStatus})
+    m.runLog = append(m.runLog, 
+              RunLogEntry{rec.Job, rec.RunTime, rec.Succeeded, rec.NewStatus})
     
     /* NOTE: error-handler was already applied by the job, if necessary. */
     
     if (!rec.Succeeded && rec.Job.NotifyOnError) ||
         (rec.Job.NotifyOnFailure && rec.NewStatus == JobFailed) {
         // notify user
-        headers := fmt.Sprintf("To: %v\r\nFrom: %v\r\nSubject: \"%v\" failed.", rec.Job.User, rec.Job.User, rec.Job.Name)
-        bod := rec.Describe()
-        msg := fmt.Sprintf("%s\r\n\r\n%s.\r\n", headers, bod)
-        sendmailCmd := fmt.Sprintf("sendmail %v", rec.Job.User)
-        sudoResult, err := sudo(rec.Job.User, sendmailCmd, "/bin/sh", &msg)
-        if err != nil {
-            ErrLogger.Println("Failed to send mail: %v", err)
-        } else if !sudoResult.Succeeded {
-            ErrLogger.Println("Failed to send mail: %v", sudoResult.Stderr)
-        }
+        m.userPrefs[rec.Job.User].Notifier(rec);
     }
 }
 

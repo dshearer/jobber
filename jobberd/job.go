@@ -46,6 +46,16 @@ type FullTimeSpec struct {
 	Wday TimeSpec
 }
 
+func (self FullTimeSpec) String() string {
+    return fmt.Sprintf("%v %v %v %v %v %v",
+                       self.Sec,
+                       self.Min,
+                       self.Hour,
+                       self.Mday,
+                       self.Mon,
+                       self.Wday)
+}
+
 const (
 	ErrorHandlerStopName     = "Stop"
 	ErrorHandlerBackoffName  = "Backoff"
@@ -149,8 +159,8 @@ type RunRec struct {
 	Job       *Job
 	RunTime   time.Time
 	NewStatus JobStatus
-	Stdout    string
-	Stderr    string
+	Stdout    *[]byte
+	Stderr    *[]byte
 	Succeeded bool
 	Err       *JobberError
 }
@@ -162,7 +172,10 @@ func (rec *RunRec) Describe() string {
 	} else {
 		summary = fmt.Sprintf("Job \"%v\" failed.", rec.Job.Name)
 	}
-	return fmt.Sprintf("%v\r\nNew status: %v.\r\n\r\nStdout:\r\n%v\r\n\r\nStderr:\r\n%v", summary, rec.Job.Status, rec.Stdout, rec.Stderr)
+	stdoutStr, _ := SafeBytesToStr(*rec.Stdout)
+	stderrStr, _ := SafeBytesToStr(*rec.Stderr)
+	return fmt.Sprintf("%v\r\nNew status: %v.\r\n\r\nStdout:\r\n%v\r\n\r\nStderr:\r\n%v",
+		summary, rec.Job.Status, stdoutStr, stderrStr)
 }
 
 func (job *Job) Run(ctx context.Context, shell string, testing bool) *RunRec {
@@ -181,8 +194,8 @@ func (job *Job) Run(ctx context.Context, shell string, testing bool) *RunRec {
 	// update run rec
 	rec.Succeeded = sudoResult.Succeeded
 	rec.NewStatus = JobGood
-	rec.Stdout = sudoResult.Stdout
-	rec.Stderr = sudoResult.Stderr
+	rec.Stdout = &sudoResult.Stdout
+	rec.Stderr = &sudoResult.Stderr
 
 	if !testing {
 		// update job

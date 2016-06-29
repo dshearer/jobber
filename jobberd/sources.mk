@@ -9,6 +9,8 @@ DAEMON_SOURCES := \
 	job_runner_thread.go \
 	logging.go \
 	queue.go \
+	run_rec_notifier.go \
+	safe_bytes_to_str.go \
 	sudo.go \
 	sudo_cmd_linux.go \
 	sudo_cmd_freebsd.go
