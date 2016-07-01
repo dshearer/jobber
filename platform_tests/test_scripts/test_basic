@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# This script checks that Jobber is installed, running, and working correctly.
+# It does this by adding a jobber file to the current user and then checking
+# whether the job in the jobber file gets executed.
+
+set -e
+
+SCRIPT_DIR=`dirname "${0}"`
+source "${SCRIPT_DIR}/lib"
+
+OUTPUT_FILE=`mk_temp_file`
+
+# install jobber file
+TMP=`mk_temp_file`
+cat > "${TMP}" <<EOF
+---
+- name: TestJob
+  cmd: echo 'Hello!' > ${OUTPUT_FILE}
+  time: '*'
+EOF
+install_jobber_file "${TMP}"
+
+# wait for job to run
+sleep 3
+
+# check whether job ran
+if [ ! -f "${OUTPUT_FILE}" ]; then
+    fail "Job failed to run.  (${OUTPUT_FILE} doesn't exist.)"
+else
+    pass "Jobber installation is good."
+fi

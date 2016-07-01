@@ -1,0 +1,49 @@
+#!/bin/sh
+
+SCRIPT_DIR=`dirname "${0}"`
+source "${SCRIPT_DIR}/lib" || exit 1
+
+test_init
+if [ $? -ne 0 ]; then
+    echo "test_init failed" >&2
+    exit 1
+fi
+
+LOG_DIR=/logger-test-results
+mkdir -p "${LOG_DIR}" || exit 1
+
+ALL_PASSED=y
+
+echo
+echo "Running platform tests..."
+
+SCRIPTS=`ls -xd "${SCRIPT_DIR}"/test_*`
+for SCRIPT in ${SCRIPTS}; do
+    # run test
+    test_init
+    SCRIPT_BASE=`basename "${SCRIPT}"`
+    LOG_FILE="${LOG_DIR}/${SCRIPT_BASE}.log"
+    "${SCRIPT}" >"${LOG_FILE}" 2>&1
+    TEST_RETVAL=$?
+    test_cleanup
+    
+    # report result
+    if [ "${TEST_RETVAL}" -eq 0 ]; then
+        echo "${SCRIPT_BASE}: pass"
+    else
+        ALL_PASSED=n
+        echo "${SCRIPT_BASE}: fail"
+        echo "---------"
+        cat "${LOG_FILE}"
+        echo "---------"
+    fi
+done
+
+echo "---------"
+if [ "${ALL_PASSED}" = y ]; then
+    echo "platform_tests: pass"
+else
+    echo "platform_tests: fail"
+fi
+
+rm -rf "${LOG_DIR}"
