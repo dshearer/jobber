@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -e
+
+SCRIPT_DIR=`dirname "${0}"`
+source "${SCRIPT_DIR}/lib"
+
+# make error handler
+HANDLER_OUTPUT="handler called"
+OUTPUT_FILE=`mk_temp_file`
+HANDLER=`mk_temp_file`
+cat > "${HANDLER}" <<EOF
+    echo "${HANDLER_OUTPUT}" > "${OUTPUT_FILE}"
+EOF
+chmod a+x "${HANDLER}"
+
+# install jobber file
+TMP=`mk_temp_file`
+cat > "${TMP}" <<EOF
+[prefs]
+notifyProgram: "${HANDLER}"
+
+[jobs]
+- name: TestJob
+  cmd: exit 1
+  time: '*'
+  notifyOnError: true
+EOF
+install_jobber_file "${TMP}"
+
+# wait for job to run
+sleep 3
+
+# check handler was called
+if [ ! -f "${OUTPUT_FILE}" ]; then
+    fail "Error handler was not called.  (${OUTPUT_FILE} doesn't exist.)"
+elif [ "`cat "${OUTPUT_FILE}"`" != "${HANDLER_OUTPUT}" ]; then
+    fail "Error handler was not called.  (${OUTPUT_FILE} has wrong contents.)"
+else
+    pass "Error handler was called."
+fi

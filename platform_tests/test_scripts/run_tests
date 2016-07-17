@@ -3,13 +3,12 @@
 SCRIPT_DIR=`dirname "${0}"`
 source "${SCRIPT_DIR}/lib" || exit 1
 
-test_init
 if [ $? -ne 0 ]; then
     echo "test_init failed" >&2
     exit 1
 fi
 
-LOG_DIR=/logger-test-results
+LOG_DIR=/jobber-test-results
 mkdir -p "${LOG_DIR}" || exit 1
 
 ALL_PASSED=y
@@ -33,13 +32,13 @@ for SCRIPT in ${SCRIPTS}; do
     else
         ALL_PASSED=n
         echo "${SCRIPT_BASE}: fail"
-        echo "---------"
+        echo "--BEGIN ${SCRIPT_BASE} OUTPUT-------"
         cat "${LOG_FILE}"
-        echo "---------"
+        echo "--END ${SCRIPT_BASE} OUTPUT-------"
     fi
 done
 
-echo "---------"
+echo ""
 if [ "${ALL_PASSED}" = y ]; then
     echo "platform_tests: pass"
 else

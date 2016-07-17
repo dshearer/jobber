@@ -9,7 +9,7 @@ COPY test_scripts.tar "${TEST_SCRIPTS}"
 
 # NOTE: OpenRC doesn't work in a container
 CMD (apk add --allow-untrusted "${PKG_DIR}"/*.apk ||:) && \
-    (/usr/libexec/jobberd&) && \
+    (/usr/libexec/jobberd > /dev/null&) && \
     sleep 2 && \
     #/bin/sh
     tar xf "${TEST_SCRIPTS}" && \
