@@ -6,7 +6,30 @@ import (
 	"testing"
 )
 
-const JobFileEx string = `---
+const NewJobFileEx string = `
+[prefs]
+notifyProgram: ~/handleError
+
+[jobs]
+- name: DailyBackup
+  cmd: backup daily
+  time: 0 0 14
+  onError: Stop
+  notifyOnError: false
+  notifyOnFailure: true
+
+- name: WeeklyBackup
+  cmd: |
+    multi-
+    line
+    script
+  time: 0 0 14 * * 1
+  onError: Backoff
+  notifyOnError: true
+  notifyOnFailure: false
+`
+
+const LegacyJobFileEx string = `---
 - name: DailyBackup
   cmd: backup daily
   time: 0 0 14
@@ -98,16 +121,17 @@ func TestParseFullTimeSpec(t *testing.T) {
 	}
 }
 
-func TestReadJobFile(t *testing.T) {
+func TestReadNewJobberFile(t *testing.T) {
 	/*
 	 * Set up
 	 */
-	buf := bytes.NewBufferString(JobFileEx)
+	buf := bytes.NewBufferString(NewJobFileEx)
 
 	/*
 	 * Call
 	 */
-	jobs, err := readJobFile(buf, UsernameEx)
+	var file *JobberFile
+	file, err := readJobberFile(buf, UsernameEx)
 
 	/*
 	 * Test
@@ -115,13 +139,18 @@ func TestReadJobFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Got error: %v", err)
 	}
-	if jobs == nil {
+	if file == nil {
 		t.Fatalf("jobs == nil")
 	}
-	require.Equal(t, 4, len(jobs))
+	
+	// test prefs
+	require.NotNil(t, file.Prefs.Notifier)
+	
+	// test jobs
+	require.Equal(t, 2, len(file.Jobs))
 
 	// test DailyBackup
-	daily := jobs[0]
+	daily := file.Jobs[0]
 	require.Equal(t, "DailyBackup", daily.Name)
 	require.Equal(t, "backup daily", daily.Cmd)
 	require.Equal(t, &ErrorHandlerStop, daily.ErrorHandler)
@@ -129,7 +158,50 @@ func TestReadJobFile(t *testing.T) {
 	require.Equal(t, true, daily.NotifyOnFailure)
 
 	// test WeeklyBackup
-	weekly := jobs[1]
+	weekly := file.Jobs[1]
+	require.Equal(t, "WeeklyBackup", weekly.Name)
+	require.Equal(t, `multi-
+line
+script
+`, weekly.Cmd)
+	require.Equal(t, &ErrorHandlerBackoff, weekly.ErrorHandler)
+	require.Equal(t, true, weekly.NotifyOnError)
+	require.Equal(t, false, weekly.NotifyOnFailure)
+}
+
+func TestReadLegacyJobberFile(t *testing.T) {
+	/*
+	 * Set up
+	 */
+	buf := bytes.NewBufferString(LegacyJobFileEx)
+
+	/*
+	 * Call
+	 */
+	var file *JobberFile
+	file, err := readJobberFile(buf, UsernameEx)
+
+	/*
+	 * Test
+	 */
+	if err != nil {
+		t.Fatalf("Got error: %v", err)
+	}
+	if file == nil {
+		t.Fatalf("jobs == nil")
+	}
+	require.Equal(t, 4, len(file.Jobs))
+
+	// test DailyBackup
+	daily := file.Jobs[0]
+	require.Equal(t, "DailyBackup", daily.Name)
+	require.Equal(t, "backup daily", daily.Cmd)
+	require.Equal(t, &ErrorHandlerStop, daily.ErrorHandler)
+	require.Equal(t, false, daily.NotifyOnError)
+	require.Equal(t, true, daily.NotifyOnFailure)
+
+	// test WeeklyBackup
+	weekly := file.Jobs[1]
 	require.Equal(t, "WeeklyBackup", weekly.Name)
 	require.Equal(t, `multi-
 line
@@ -140,12 +212,12 @@ script
 	require.Equal(t, false, weekly.NotifyOnFailure)
 
 	// test JobA
-	jobA := jobs[2]
+	jobA := file.Jobs[2]
 	require.Equal(t, "JobA", jobA.Name)
 	require.Equal(t, EverySecTimeSpec, jobA.FullTimeSpec)
 
 	// test JobB
-	jobB := jobs[3]
+	jobB := file.Jobs[3]
 	require.Equal(t, "JobB", jobB.Name)
 	require.Equal(t, EverySecTimeSpec, jobB.FullTimeSpec)
 }

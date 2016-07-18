@@ -6,12 +6,12 @@ import (
 )
 
 type SudoResult struct {
-    Stdout     string
-    Stderr     string
+    Stdout     []byte
+    Stderr     []byte
     Succeeded  bool
 }
 
-func sudo(user string, cmdStr string, shell string, input *string) (*SudoResult, *JobberError) {
+func sudo(user string, cmdStr string, shell string, input *[]byte) (*SudoResult, *JobberError) {
     var cmd *exec.Cmd = sudo_cmd(user, cmdStr, shell);
     stdout, err := cmd.StdoutPipe()
     if err != nil {
@@ -33,7 +33,7 @@ func sudo(user string, cmdStr string, shell string, input *string) (*SudoResult,
     
     if input != nil {
         // write input
-        stdin.Write([]byte(*input))
+        stdin.Write(*input)
     }
     stdin.Close()
     
@@ -42,16 +42,15 @@ func sudo(user string, cmdStr string, shell string, input *string) (*SudoResult,
     if err != nil {
         return nil, &JobberError{"Failed to read stdout.", err}
     }
-    stdoutStr := string(stdoutBytes)
     stderrBytes, err := ioutil.ReadAll(stderr)
     if err != nil {
         return nil, &JobberError{"Failed to read stderr.", err}
     }
-    stderrStr := string(stderrBytes)
     
     // finish execution
     err = cmd.Wait()
     if err != nil {
+        ErrLogger.Printf("sudo: %v", err)
         _, flag := err.(*exec.ExitError)
         if !flag {
             return nil, &JobberError{"Failed to execute command \"" + cmdStr + "\".", err}
@@ -60,8 +59,8 @@ func sudo(user string, cmdStr string, shell string, input *string) (*SudoResult,
     
     // return result
     res := &SudoResult{}
-    res.Stdout = stdoutStr
-    res.Stderr = stderrStr
+    res.Stdout = stdoutBytes
+    res.Stderr = stderrBytes
     res.Succeeded = (err == nil)
     return res, nil
 }

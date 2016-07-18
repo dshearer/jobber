@@ -34,16 +34,13 @@ func main() {
     // make loggers
     infoSyslogWriter, _ := syslog.New(syslog.LOG_NOTICE | syslog.LOG_CRON, "")
     errSyslogWriter, _ := syslog.New(syslog.LOG_ERR | syslog.LOG_CRON, "")
-    if infoSyslogWriter == nil {
-        g_logger = log.New(os.Stdout, "", 0)
-        g_err_logger = log.New(os.Stderr, "", 0)
-    } else {
-        g_logger = log.New(io.MultiWriter(infoSyslogWriter, os.Stdout), "", 0)
-        g_err_logger = log.New(io.MultiWriter(errSyslogWriter, os.Stderr), "", 0)
+    if infoSyslogWriter != nil {
+        Logger = log.New(io.MultiWriter(infoSyslogWriter, os.Stdout), "", 0)
+        ErrLogger = log.New(io.MultiWriter(errSyslogWriter, os.Stderr), "", 0)
     }
     
     // run them
-	manager, err := NewJobManager(g_logger, g_err_logger)
+	manager, err := NewJobManager()
 	if err != nil {
         if g_err_logger != nil {
             g_err_logger.Printf("Error: %v\n", err)
