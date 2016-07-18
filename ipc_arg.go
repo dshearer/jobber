@@ -7,4 +7,7 @@ type IpcArg struct {
     // For TestCmd, CatCmd:
     Job string
     JobUser string
+    
+    // For PauseCmd, ResumeCmd:
+    Jobs []string
 }

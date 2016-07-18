@@ -137,6 +137,7 @@ type Job struct {
 	// dynamic shit
 	Status      JobStatus
 	LastRunTime time.Time
+	Paused      bool
 
 	// backoff after errors
 	backoffLevel int

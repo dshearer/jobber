@@ -9,7 +9,6 @@ import (
     "io"
 )
 
-var g_logger *log.Logger = nil
 var g_err_logger, _ = syslog.NewLogger(syslog.LOG_ERR | syslog.LOG_CRON, 0)
 
 func stopServerOnSignal(server *IpcServer, jm *JobManager) {
@@ -21,7 +20,6 @@ func stopServerOnSignal(server *IpcServer, jm *JobManager) {
 
 	// Block until a signal is received.
 	<-c
-	g_logger.Printf("Got signal.\n")
 	server.Stop()
 	jm.Cancel()
 	jm.Wait()
@@ -68,5 +66,4 @@ func main() {
     defer ipcServer.Stop()
     
     manager.Wait()
-    g_logger.Printf("Job manager stopped.\n")
 }

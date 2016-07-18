@@ -18,6 +18,8 @@ const (
     StopCmdStr   = "stop"
     TestCmdStr   = "test"
     CatCmdStr    = "cat"
+    PauseCmdStr  = "pause"
+    ResumeCmdStr = "resume"
 )
 
 var CmdStrs = [...]string{ 
@@ -27,6 +29,8 @@ var CmdStrs = [...]string{
     StopCmdStr,
     TestCmdStr,
     CatCmdStr,
+    PauseCmdStr,
+    ResumeCmdStr,
 }
 
 func usage() {
@@ -143,6 +147,12 @@ func main() {
         
         case CatCmdStr:
             doCatCmd(flag.Args()[1:], rpcClient, user)
+            
+        case PauseCmdStr:
+            doPauseCmd(flag.Args()[1:], rpcClient, user)
+            
+        case ResumeCmdStr:
+            doResumeCmd(flag.Args()[1:], rpcClient, user)
         
         default:
             fmt.Fprintf(os.Stderr, "Invalid command: \"%v\".\n", flag.Arg(0))
@@ -154,8 +164,8 @@ func main() {
 
 func doListCmd(args []string, rpcClient *rpc.Client, user *user.User) {
     // parse flags
-    flagSet := flag.NewFlagSet("list", flag.ExitOnError)
-    flagSet.Usage = subcmdUsage("list", flagSet)
+    flagSet := flag.NewFlagSet(ListCmdStr, flag.ExitOnError)
+    flagSet.Usage = subcmdUsage(ListCmdStr, flagSet)
     var help_p = flagSet.Bool("h", false, "help")
     var allUsers_p = flagSet.Bool("a", false, "all-users")
     flagSet.Parse(args)
@@ -179,8 +189,8 @@ func doListCmd(args []string, rpcClient *rpc.Client, user *user.User) {
 
 func doLogCmd(args []string, rpcClient *rpc.Client, user *user.User) {
     // parse flags
-    flagSet := flag.NewFlagSet("log", flag.ExitOnError)
-    flagSet.Usage = subcmdUsage("log", flagSet)
+    flagSet := flag.NewFlagSet(LogCmdStr, flag.ExitOnError)
+    flagSet.Usage = subcmdUsage(LogCmdStr, flagSet)
     var help_p = flagSet.Bool("h", false, "help")
     var allUsers_p = flagSet.Bool("a", false, "all-users")
     flagSet.Parse(args)
@@ -204,8 +214,8 @@ func doLogCmd(args []string, rpcClient *rpc.Client, user *user.User) {
 
 func doReloadCmd(args []string, rpcClient *rpc.Client, user *user.User) {
     // parse flags
-    flagSet := flag.NewFlagSet("reload", flag.ExitOnError)
-    flagSet.Usage = subcmdUsage("reload", flagSet)
+    flagSet := flag.NewFlagSet(ReloadCmdStr, flag.ExitOnError)
+    flagSet.Usage = subcmdUsage(ReloadCmdStr, flagSet)
     var help_p = flagSet.Bool("h", false, "help")
     var allUsers_p = flagSet.Bool("a", false, "all-users")
     flagSet.Parse(args)
@@ -227,8 +237,8 @@ func doReloadCmd(args []string, rpcClient *rpc.Client, user *user.User) {
 
 func doTestCmd(args []string, rpcClient *rpc.Client, user *user.User) {
     // parse flags
-    flagSet := flag.NewFlagSet("test", flag.ExitOnError)
-    flagSet.Usage = subcmdUsage("test", flagSet)
+    flagSet := flag.NewFlagSet(TestCmdStr, flag.ExitOnError)
+    flagSet.Usage = subcmdUsage(TestCmdStr, flagSet)
     var help_p *bool = flagSet.Bool("h", false, "help")
     var jobUser_p *string = flagSet.String("u", user.Username, "user")
     flagSet.Parse(args)
@@ -264,8 +274,8 @@ func doTestCmd(args []string, rpcClient *rpc.Client, user *user.User) {
 
 func doCatCmd(args []string, rpcClient *rpc.Client, user *user.User) {
     // parse flags
-    flagSet := flag.NewFlagSet("cat", flag.ExitOnError)
-    flagSet.Usage = subcmdUsage("cat", flagSet)
+    flagSet := flag.NewFlagSet(CatCmdStr, flag.ExitOnError)
+    flagSet.Usage = subcmdUsage(CatCmdStr, flagSet)
     var help_p *bool = flagSet.Bool("h", false, "help")
     var jobUser_p *string = flagSet.String("u", user.Username, "user")
     flagSet.Parse(args)
@@ -290,6 +300,56 @@ func doCatCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         var result string
         arg := jobber.IpcArg{User: user.Username, Job: job, JobUser: *jobUser_p}
         err := rpcClient.Call("RealIpcServer.Cat", arg, &result)
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "%v\n", err)
+            os.Exit(1)
+        }
+        fmt.Printf("%v\n", result)
+    }
+}
+
+func doPauseCmd(args []string, rpcClient *rpc.Client, user *user.User) {
+    // parse flags
+    flagSet := flag.NewFlagSet(PauseCmdStr, flag.ExitOnError)
+    flagSet.Usage = subcmdUsage(PauseCmdStr, flagSet)
+    var help_p *bool = flagSet.Bool("h", false, "help")
+    flagSet.Parse(args)
+    
+    if *help_p {
+        flagSet.Usage()
+        os.Exit(0)
+    } else {
+        // get jobs
+        var jobs []string = flagSet.Args()
+        
+        var result string
+        arg := jobber.IpcArg{User: user.Username, Jobs: jobs}
+        err := rpcClient.Call("RealIpcServer.Pause", arg, &result)
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "%v\n", err)
+            os.Exit(1)
+        }
+        fmt.Printf("%v\n", result)
+    }
+}
+
+func doResumeCmd(args []string, rpcClient *rpc.Client, user *user.User) {
+    // parse flags
+    flagSet := flag.NewFlagSet(ResumeCmdStr, flag.ExitOnError)
+    flagSet.Usage = subcmdUsage(ResumeCmdStr, flagSet)
+    var help_p *bool = flagSet.Bool("h", false, "help")
+    flagSet.Parse(args)
+    
+    if *help_p {
+        flagSet.Usage()
+        os.Exit(0)
+    } else {
+        // get jobs
+        var jobs []string = flagSet.Args()
+        
+        var result string
+        arg := jobber.IpcArg{User: user.Username, Jobs: jobs}
+        err := rpcClient.Call("RealIpcServer.Resume", arg, &result)
         if err != nil {
             fmt.Fprintf(os.Stderr, "%v\n", err)
             os.Exit(1)

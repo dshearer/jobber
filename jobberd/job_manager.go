@@ -240,7 +240,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         
         var catCmd *CatCmd = cmd.(*CatCmd)
         
-        // enfore policy
+        // enforce policy
         if catCmd.jobUser != catCmd.RequestingUser() && catCmd.RequestingUser() != "root" {
             cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
             break
@@ -295,12 +295,16 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
                                     j.FullTimeSpec.Mon,
                                     j.FullTimeSpec.Wday)
             var runTimeStr string = "none"
-            if j.NextRunTime != nil {
+            if j.NextRunTime != nil && !j.Paused {
                 runTimeStr = j.NextRunTime.Format("Jan _2 15:04:05 2006")
+            }
+            statusStr := j.Status.String()
+            if j.Paused {
+                statusStr += " (Paused)"
             }
             s := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v",
                                j.Name,
-                               j.Status,
+                               statusStr,
                                schedStr,
                                runTimeStr,
                                j.NotifyOnError,
@@ -366,7 +370,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         
         var testCmd *TestCmd = cmd.(*TestCmd)
         
-        // enfore policy
+        // enforce policy
         if testCmd.jobUser != testCmd.RequestingUser() && testCmd.RequestingUser() != "root" {
             cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
             break
@@ -396,6 +400,88 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         }
         cmd.RespChan() <- &SuccessCmdResp{Details: runRec.Describe()}
         
+        return false
+    
+    case *PauseCmd:
+        /* Policy: Users can pause only their own jobs. */
+        
+        var pauseCmd *PauseCmd = cmd.(*PauseCmd)
+        
+        // look up jobs to pause
+        var usersJobs []*Job = m.jobsForUser(pauseCmd.RequestingUser())
+        jobsToPause := make([]*Job, 0)
+        if len(pauseCmd.jobs) > 0 {
+            for _, jobName := range pauseCmd.jobs {
+                foundJob := false
+                for _, job := range usersJobs {
+                    if job.Name == jobName {
+                        jobsToPause = append(jobsToPause, job)
+                        foundJob = true
+                        break
+                    }
+                }
+                if !foundJob {
+                    msg := fmt.Sprintf("No job named \"%v\".", jobName)
+                    cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: msg}}
+                    return false
+                }
+            }
+        } else {
+            jobsToPause = usersJobs
+        }
+        
+        // pause them
+        amtPaused := 0
+        for _, job := range jobsToPause {
+            if !job.Paused {
+                job.Paused = true
+                amtPaused += 1
+            }
+        }
+        
+        // make and send response
+        cmd.RespChan() <- &SuccessCmdResp{fmt.Sprintf("Paused %v jobs.", amtPaused)}
+        return false
+    
+    case *ResumeCmd:
+        /* Policy: Users can pause only their own jobs. */
+        
+        var resumeCmd *ResumeCmd = cmd.(*ResumeCmd)
+        
+        // look up jobs to pause
+        var usersJobs []*Job = m.jobsForUser(resumeCmd.RequestingUser())
+        jobsToResume := make([]*Job, 0)
+        if len(resumeCmd.jobs) > 0 {
+            for _, jobName := range resumeCmd.jobs {
+                foundJob := false
+                for _, job := range usersJobs {
+                    if job.Name == jobName {
+                        jobsToResume = append(jobsToResume, job)
+                        foundJob = true
+                        break
+                    }
+                }
+                if !foundJob {
+                    msg := fmt.Sprintf("No job named \"%v\".", jobName)
+                    cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: msg}}
+                    return false
+                }
+            }
+        } else {
+            jobsToResume = usersJobs
+        }
+        
+        // pause them
+        amtResumed := 0
+        for _, job := range jobsToResume {
+            if job.Paused {
+                job.Paused = false
+                amtResumed += 1
+            }
+        }
+        
+        // make and send response
+        cmd.RespChan() <- &SuccessCmdResp{fmt.Sprintf("Resumed %v jobs.", amtResumed)}
         return false
     
     default:
