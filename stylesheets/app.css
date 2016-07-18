@@ -1,6 +1,10 @@
 body {
   position: relative;
 }
+section.main {
+	max-width:700px;
+	margin-left: 5em;
+}
 footer {
   text-align: center;
 }
@@ -8,24 +12,16 @@ footer {
 code {
   white-space: nowrap;
 }
-.forkme-banner {
-  display: block;
-  position: absolute;
-  top: 0;
-  right: 10px;
-  z-index: 10;
-  padding: 10px 50px 10px 10px;
-  color: #fff;
-  background: url('../images/blacktocat.png') #0090ff no-repeat 95% 50%;
-  font-weight: 700;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  border-bottom-left-radius: 2px;
-  border-bottom-right-radius: 2px;
+ul.github-link {
+  background-color: #0090ff;
 }
-.release-banner {
+ul.github-link a.github-link {
+  color: white;
+}
+.banner-btn {
   text-align: center;
 }
-.release-banner-details {
+.banner-btn-details {
   font-size: 80%;
   display: block;
 }
@@ -39,25 +35,25 @@ code {
   font-weight: bold;
   display: block;
 }
-nav .nav-list-1 {
+nav.internal-nav .nav-list-1 {
   padding-left: 0;
   list-style-type: none;
 }
-nav li {
+nav.internal-nav li {
   font-weight: normal;
   padding-top: 5px;
 }
-nav li.active {
+nav.internal-nav li.active {
   font-weight: bold;
 }
-nav .nav-list-2,
-nav .nav-list-3 {
+nav.internal-nav .nav-list-2,
+nav.internal-nav .nav-list-3 {
   padding-left: 20px;
 }
-nav .nav-list-2 {
+nav.internal-nav .nav-list-2 {
   list-style-type: disc;
 }
-nav .nav-list-3 {
+nav.internal-nav .nav-list-3 {
   font-size: 90%;
   list-style-type: circle;
 }

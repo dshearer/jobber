@@ -1,0 +1,46 @@
+<section>
+  <h2>Deployment</h2>
+
+  <p itemprop="requirements">
+    Jobber is written in <a href="http://golang.org/">Go</a>, and it should be
+    possible to compile and run it on <span itemprop="operatingSystem">any
+      Linux system</span>. However, we currently only make packages for RHEL-like
+    systems and Alpine Linux.
+  </p>
+
+  <p>Note that, although Jobber can be used instead of cron, it is certainly
+    possible to run both at the same time.</p>
+
+  <h3>Compilation and Installation from Source</h3>
+
+  <p>You need a recent version of Go to compile Jobber. So, install Go, pick
+    a place for your workspace (say, /path/to/your/workspace), and ensure that
+    the environment variable &ldquo;GOPATH&rdquo; includes a path to your
+    workspace. Then:</p>
+
+  <pre>cd /path/to/your/workspace
+go get github.com/dshearer/jobber
+cd src/github.com/dshearer/jobber
+git checkout {{latestRelease.name}}
+make GO_WKSPC=/path/to/your/workspace</pre>
+
+  <p>Jobber consists of two binaries: jobber and jobberd. jobberd is a
+    daemon that runs jobs; jobber is a client with which the user can interact
+    with jobbberd. After compiling, you&rsquo;ll find them in
+    /path/to/your/workspace/bin.</p>
+
+  <p>Now:</p>
+  <ol>
+    <li>Make a new, non-login user called &ldquo;jobber_client&rdquo;.</li>
+    <li>Change jobber&rsquo;s permissions to 04755, and its owner to
+      jobber_client:root.</li>
+    <li>Change jobberd&rsquo;s permissions to 0755, and its owner to
+      root:root.</li>
+    <li>Move jobber and jobberd someplace more appropriate (e.g.,
+      /usr/local/bin and /usr/local/libexec repectively).</li>
+    <li>Ensure that jobberd will get started when your computer boots. Note
+      that jobberd does not daemonize itself &mdash; you will need to run it
+      with something like <a href="http://linux.die.net/man/1/daemonize">daemonize(1)</a>.
+    </li>
+  </ol>
+</section>

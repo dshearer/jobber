@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="jobberSite">
+
+<head>
+<meta charset='utf-8' />
+<meta http-equiv="X-UA-Compatible" content="chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description"
+  content="Jobber: A replacement for cron, with sophisticated status-reporting and error-handling." />
+
+<link rel="stylesheet"
+  href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+  integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"
+  crossorigin="anonymous" />
+
+<link rel="stylesheet" href="../stylesheets/app.css" />
+
+<script src="https://use.fontawesome.com/9c63186c95.js"></script>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"
+  type="text/javascript"></script>
+
+<script
+  src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
+  integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
+  crossorigin="anonymous" type="text/javascript"></script>
+
+<script
+  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"
+  type="text/javascript"></script>
+
+<script
+  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular-cookies.js"
+  type="text/javascript"></script>
+
+<script src="../app/app.js" type="text/javascript"></script>
+
+<title>Download Jobber</title>
+</head>
+
+<body ng-controller="JobberSiteController" data-spy="scroll"
+  data-target="#toc-container" data-offset="100">
+
+  <!-- NAV BAR -->
+  <nav class="navbar navbar-default">
+    <a class="navbar-brand" href="../">Jobber</a>
+
+    <ul class="nav navbar-nav">
+      <li class="active"><a href="#">Download</a></li>
+      <li><a href="../doc/v1.1/">How to Use</a></li>
+    </ul>
+  </nav>
+  
+  <header class="container"><h1>Download Jobber</h1></header>
+
+  <!-- MAIN CONTENT -->
+  <div class="container">
+
+    <section id="license">
+      <h2>License</h2>
+
+      <p>
+        Jobber's source code is copyright &#0169; <span itemprop="copyrightYear">
+          2014&ndash;2016</span> <span itemprop="copyrightHolder" itemscope
+          itemtype="http://schema.org/Person"><span itemprop="name">Charles
+            Dylan Shearer</span></span>. It is licensed according to the MIT License:
+      </p>
+
+      <div itemprop="license" itemscope
+        itemtype="http://schema.org/CreativeWork">
+        <blockquote itemprop="text">
+          <p>Permission is hereby granted, free of charge, to any person
+            obtaining a copy of this software and associated documentation files
+            (the "Software"), to deal in the Software without restriction,
+            including without limitation the rights to use, copy, modify, merge,
+            publish, distribute, sublicense, and/or sell copies of the Software,
+            and to permit persons to whom the Software is furnished to do so,
+            subject to the following conditions:</p>
+
+          <p>The above copyright notice and this permission notice shall be
+            included in all copies or substantial portions of the Software.</p>
+
+          <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+            EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+            MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+            NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+            BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+            ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+            CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+            SOFTWARE.</p>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- Downloading -->
+    <section id="downloading" ng-if="latestRelease === null">
+      <h2>Downloading</h2>
+      <p>
+        Releases can be downloaded from <a
+          href="https://github.com/dshearer/jobber/releases">the Jobber
+          releases page</a>.
+      </p>
+    </section>
+
+    <section id="downloading" ng-if="latestRelease !== null">
+      <h2>Downloading</h2>
+
+      <p>
+        The latest release is <a href="{{latestRelease.html_url}}">
+          {{latestRelease.name}}</a>, which was made on {{latestRelease.created_at |
+        date : 'd MMMM yyyy'}}.
+      </p>
+
+      <table class="table">
+        <caption>Source</caption>
+        <tr
+          ng-repeat="artifact in latestRelease.sourceArtifacts track by $index">
+          <td><a href="{{artifact.browser_download_url}}"> <span
+              class="fa fa-download" aria-hidden="true">&nbsp;</span>{{artifact.name}}
+          </a></td>
+        </tr>
+      </table>
+
+      <table class="table">
+        <caption>Binary Packages</caption>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>OS</th>
+            <th>Platform</th>
+            <th>Size</th>
+          </tr>
+        </thead>
+        <tfoot></tfoot>
+        <tbody>
+          <tr
+            ng-repeat="artifact in latestRelease.binaryArtifacts track by $index">
+            <td><a href="{{artifact.browser_download_url}}"> <span
+                class="fa fa-download" aria-hidden="true">&nbsp;</span>{{artifact.name}}
+            </a></td>
+            <td>{{artifact.os}}</td>
+            <td>{{artifact.platform}}</td>
+            <td>{{artifact.size | bytes}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+  <!-- main content -->
+</body>
+
+</html>
