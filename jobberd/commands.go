@@ -153,3 +153,43 @@ func (c *CatCmd) RequestingUser() string {
 func (c CatCmd) String() string {
     return "CatCmd"
 }
+
+/* PauseCmd */
+
+type PauseCmd struct {
+    user string
+    respChan chan ICmdResp
+    jobs []string
+}
+
+func (c *PauseCmd) RespChan() chan ICmdResp {
+    return c.respChan
+}
+
+func (c *PauseCmd) RequestingUser() string {
+    return c.user
+}
+
+func (c PauseCmd) String() string {
+    return "PauseCmd"
+}
+
+/* ResumeCmd */
+
+type ResumeCmd struct {
+    user string
+    respChan chan ICmdResp
+    jobs []string
+}
+
+func (c *ResumeCmd) RespChan() chan ICmdResp {
+    return c.respChan
+}
+
+func (c *ResumeCmd) RequestingUser() string {
+    return c.user
+}
+
+func (c ResumeCmd) String() string {
+    return "ResumeCmd"
+}

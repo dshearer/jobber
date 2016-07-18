@@ -67,7 +67,7 @@ install_jobber_file() {
     
     mv "${1}" "${_JOBBER_FILE}"
     touch "${_TMPDIR}/.delete_jobber_file"
-    jobber reload
+    jobber reload >/dev/null
 }
 
 log_info() {
@@ -99,4 +99,19 @@ pass() {
     
     log_info "Passed!"
     exit 0
+}
+
+assert_equal() {
+    local ACTUAL_VALUE=$1
+    local EXPECTED_VALUE=$2
+    if [ -n "$3" ]; then
+        local MSG=$3
+    fi
+    
+    if [ "${ACTUAL_VALUE}" != "${EXPECTED_VALUE}" ]; then
+        [ -n "${MSG}" ] && log_info "${MSG}"
+        log_info "- Expected value:\n${EXPECTED_VALUE}"
+        log_info "- Actual value:\n${ACTUAL_VALUE}"
+        fail
+    fi
 }

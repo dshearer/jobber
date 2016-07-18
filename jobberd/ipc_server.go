@@ -56,6 +56,14 @@ func (s *RealIpcServer) Cat(arg jobber.IpcArg, result *string) error {
     return s.doCmd(&CatCmd{arg.User, make(chan ICmdResp, 1), arg.Job, arg.JobUser}, result)
 }
 
+func (s *RealIpcServer) Pause(arg jobber.IpcArg, result *string) error {
+    return s.doCmd(&PauseCmd{arg.User, make(chan ICmdResp, 1), arg.Jobs}, result)
+}
+
+func (s *RealIpcServer) Resume(arg jobber.IpcArg, result *string) error {
+    return s.doCmd(&ResumeCmd{arg.User, make(chan ICmdResp, 1), arg.Jobs}, result)
+}
+
 type IpcServer struct {
     realServer RealIpcServer
     listener *net.UnixListener

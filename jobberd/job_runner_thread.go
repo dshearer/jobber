@@ -39,7 +39,7 @@ func (t *JobRunnerThread) Start(jobs []*Job, shell string, ctx *JobberContext) {
         for {
             var job *Job = jobQ.Pop(time.Now(), t.ctx) // sleeps
         
-            if job != nil {
+            if job != nil && !job.Paused {
                 // launch thread to run this job
                 Logger.Printf("%v: %v\n", job.User, job.Cmd)
                 subsubctx, _ := NewJobberContext(t.ctx)
@@ -48,7 +48,7 @@ func (t *JobRunnerThread) Start(jobs []*Job, shell string, ctx *JobberContext) {
                     subsubctx.Finish()
                 }(job)
             
-            } else {
+            } else if job == nil {
                 /* We were canceled. */
                 //Logger.Printf("Run thread got 'stop'\n")
                 break
