@@ -2,7 +2,7 @@ PLATFORMS = centos_6.7 alpine_3.3
 
 .PHONY : test
 test :
-	for P in ${PLATFORMS}; do make -C "$${P}"; done
+	for P in ${PLATFORMS}; do make -C "$${P}" || exit 1; done
 
 .PHONY : clean
 clean :
