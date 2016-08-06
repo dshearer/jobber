@@ -1,0 +1,14 @@
+Source: jobber
+Section: admin
+Priority: optional
+Maintainer: C. Dylan Shearer <dylan@nekonya.info>
+Build-Depends: debhelper (>= 9), golang (>= 1.3)
+Standards-Version: 3.9.5
+Homepage: http://dshearer.github.io/jobber/
+Vcs-Git: git://git@github.com:dshearer/jobber.git
+Vcs-Browser: https://github.com/dshearer/jobber
+
+Package: jobber
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, lsb-base (>= 3.2-14)
+Description: replacement for cron, with sophisticated status-reporting and error-handling
