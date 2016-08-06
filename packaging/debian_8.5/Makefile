@@ -1,9 +1,9 @@
 DESTDIR ?= .
 WORK_DIR ?= work
 SRC_ROOT := $(abspath ../..)
-SRC_TARFILE = "jobber_${VERSION}.orig.tar.gz"
+SRC_TARFILE = "jobber-${VERSION}.tgz"
 VERSION := $(shell cat ${SRC_ROOT}/version)
-DOCKER_IMAGE_NAME = jobber/centos6.7_build_rpm
+DOCKER_IMAGE_NAME = jobber/debian8.5_build_pkg
 
 .PHONY : main
 main :
@@ -11,13 +11,15 @@ main :
 
 .PHONY : ${WORK_DIR}/${SRC_TARFILE}
 ${WORK_DIR}/${SRC_TARFILE} :
-	make -C "${SRC_ROOT}" dist "DESTDIR=$(abspath .)/"
 	mkdir -p "${WORK_DIR}"
-	mv "jobber-${VERSION}.tgz" "$@"
+	make -C "${SRC_ROOT}" dist "DESTDIR=$(abspath .)/${WORK_DIR}/"
 
 .PHONY : pkg-docker
 pkg-docker : ${WORK_DIR}/${SRC_TARFILE} docker/Dockerfile
+	# bundle source
 	mv "${WORK_DIR}/${SRC_TARFILE}" docker/src.tgz
+	
+	# run docker image
 	docker build -t "${DOCKER_IMAGE_NAME}" docker
 	docker run "${DOCKER_IMAGE_NAME}"
 	docker cp "`docker ps -alq`:/pkgs.tar" "${DESTDIR}/"
@@ -27,8 +29,10 @@ pkg-docker : ${WORK_DIR}/${SRC_TARFILE} docker/Dockerfile
 .PHONY : pkg-local
 pkg-local : ${WORK_DIR}/${SRC_TARFILE}
 	tar -C "${WORK_DIR}" -xf "${WORK_DIR}/${SRC_TARFILE}"
+	cp "${WORK_DIR}/${SRC_TARFILE}" "${WORK_DIR}/jobber_${VERSION}.orig.tar.gz"
 	cp -R debian-pkg "${WORK_DIR}/jobber-${VERSION}/debian"
 	cd "${WORK_DIR}/jobber-${VERSION}" && dpkg-buildpackage -us -uc
+	mkdir -p "${DESTDIR}/"
 	mv "${WORK_DIR}"/*.deb "${DESTDIR}/"
 
 .PHONY : clean
