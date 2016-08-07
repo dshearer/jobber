@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR=`dirname "${0}"`
-source "${SCRIPT_DIR}/lib"
+. "${SCRIPT_DIR}/lib"
 
 # make error handler
 HANDLER_OUTPUT="handler called"

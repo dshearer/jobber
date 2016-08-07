@@ -99,9 +99,9 @@ dist : ${ALL_SOURCES}
 
 .PHONY : clean
 clean :
-	go clean -i github.com/dshearer/jobber
-	go clean -i "github.com/dshearer/jobber/${CLIENT}"
-	go clean -i "github.com/dshearer/jobber/${DAEMON}"
+	-go clean -i github.com/dshearer/jobber
+	-go clean -i "github.com/dshearer/jobber/${CLIENT}"
+	-go clean -i "github.com/dshearer/jobber/${DAEMON}"
 	rm -f "${DESTDIR}${DIST_PKG_NAME}.tgz"
 	
 
