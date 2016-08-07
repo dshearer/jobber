@@ -124,6 +124,10 @@ function makeBinaryArtifact(asset)
 	case 'apk':
 		artifact.os = 'Alpine Linux';
 		break;
+	
+	case 'deb':
+		artifact.os = 'Debian/Ubuntu';
+		break;
 		
 	default:
 		artifact.os = 'other';
