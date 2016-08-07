@@ -7,7 +7,7 @@
 set -e
 
 SCRIPT_DIR=`dirname "${0}"`
-source "${SCRIPT_DIR}/lib"
+. "${SCRIPT_DIR}/lib"
 
 OUTPUT_FILE=`mk_temp_file`
 
