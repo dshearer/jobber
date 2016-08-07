@@ -32,10 +32,10 @@ test_cleanup() {
 }
 
 mk_temp_file() {
-    local PARENT=$1
+    PARENT=$1
     
     IDX=`_next_tmp_idx` || return 1
-    local TMP=tmp-${IDX}
+    TMP=tmp-${IDX}
     if [ -n "${PARENT}" ]; then
         TMP=${PARENT}/${TMP}
     else
@@ -46,10 +46,10 @@ mk_temp_file() {
 }
 
 mk_temp_dir() {
-    local PARENT=$1
+    PARENT=$1
     
     IDX=`_next_tmp_idx` || return 1
-    local TMP=tmp-dir-${IDX}
+    TMP=tmp-dir-${IDX}
     if [ -n "${PARENT}" ]; then
         TMP=${PARENT}/${TMP}
     else
@@ -99,4 +99,19 @@ pass() {
     
     log_info "Passed!"
     exit 0
+}
+
+assert_equal() {
+    ACTUAL_VALUE=$1
+    EXPECTED_VALUE=$2
+    if [ -n "$3" ]; then
+        MSG=$3
+    fi
+    
+    if [ "${ACTUAL_VALUE}" != "${EXPECTED_VALUE}" ]; then
+        [ -n "${MSG}" ] && log_info "${MSG}"
+        log_info "- Expected value:\n${EXPECTED_VALUE}"
+        log_info "- Actual value:\n${ACTUAL_VALUE}"
+        fail
+    fi
 }

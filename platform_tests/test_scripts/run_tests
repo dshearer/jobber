@@ -1,7 +1,7 @@
 #!/bin/sh
 
 SCRIPT_DIR=`dirname "${0}"`
-source "${SCRIPT_DIR}/lib" || exit 1
+. "${SCRIPT_DIR}/lib" || exit 1
 
 test_init
 if [ $? -ne 0 ]; then
@@ -35,7 +35,7 @@ for SCRIPT in ${SCRIPTS}; do
         echo "${SCRIPT_BASE}: fail"
         echo "---------"
         cat "${LOG_FILE}"
-        echo "---------"
+        echo "--END ${SCRIPT_BASE} OUTPUT-------\n"
     fi
 done
 
