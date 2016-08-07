@@ -1,0 +1,117 @@
+_JOBBER_FILE="${HOME}/.jobber"
+
+test_init() {
+    if [ "${_INITED}" = "true" ]; then
+        return 0
+    fi
+    
+    # make temp dir
+    export _TMPDIR=/jobber-tmp
+    mkdir -p "${_TMPDIR}" || return 1
+    echo 1 > "${_TMPDIR}/.next_tmp_idx"
+    export _INITED=true
+}
+
+_next_tmp_idx() {
+    IDX=`cat "${_TMPDIR}/.next_tmp_idx"` || return 1
+    echo "$((${IDX} + 1))" > "${_TMPDIR}/.next_tmp_idx"
+    echo "${IDX}"
+}
+
+test_cleanup() {
+    if [ -f "${_TMPDIR}/.delete_jobber_file" ]; then
+        rm -f "${_JOBBER_FILE}"
+        jobber reload
+    fi
+    
+    if [ -n "${_TMPDIR}" ]; then
+        rm -rf "${_TMPDIR}"
+    fi
+    
+    export _INITED=false
+}
+
+mk_temp_file() {
+    PARENT=$1
+    
+    IDX=`_next_tmp_idx` || return 1
+    TMP=tmp-${IDX}
+    if [ -n "${PARENT}" ]; then
+        TMP=${PARENT}/${TMP}
+    else
+        TMP=${_TMPDIR}/${TMP}
+    fi
+    touch "${TMP}" || return 1
+    echo "${TMP}"
+}
+
+mk_temp_dir() {
+    PARENT=$1
+    
+    IDX=`_next_tmp_idx` || return 1
+    TMP=tmp-dir-${IDX}
+    if [ -n "${PARENT}" ]; then
+        TMP=${PARENT}/${TMP}
+    else
+        TMP=${_TMPDIR}/${TMP}
+    fi
+    mkdir "${TMP}" || return 1
+    echo "${TMP}"
+}
+
+install_jobber_file() {
+    if [ -e "${_JOBBER_FILE}" ]; then
+        log_error "${_JOBBER_FILE} already exists."
+        errorout
+    fi
+    
+    mv "${1}" "${_JOBBER_FILE}"
+    touch "${_TMPDIR}/.delete_jobber_file"
+    jobber reload
+}
+
+log_info() {
+    echo "$1"
+}
+
+log_error() {
+    echo "$1" >&2
+}
+
+errorout() {
+    log_error "Fatal error!"
+    exit 2
+}
+
+fail() {
+    if [ -n "${1}" ]; then
+        log_info "${1}"
+    fi
+    
+    log_info "Failed!"
+    exit 1
+}
+
+pass() {
+    if [ -n "${1}" ]; then
+        log_info "${1}"
+    fi
+    
+    log_info "Passed!"
+    exit 0
+}
+
+assert_equal() {
+    ACTUAL_VALUE=$1
+    EXPECTED_VALUE=$2
+    if [ -n "$3" ]; then
+        MSG=$3
+    fi
+    
+    if [ "${ACTUAL_VALUE}" != "${EXPECTED_VALUE}" ]; then
+        [ -n "${MSG}" ] && log_info "${MSG}"
+        log_info "- Expected value:\n${EXPECTED_VALUE}"
+        log_info "- Actual value:\n${ACTUAL_VALUE}"
+        fail
+    fi
+}
