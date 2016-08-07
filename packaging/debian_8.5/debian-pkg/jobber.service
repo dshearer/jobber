@@ -1,0 +1,10 @@
+[Unit]
+Description=Replacement for cron, with sophisticated status-reporting and error-handling
+After=syslog.target
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/jobberd
+
+[Install]
+WantedBy=multi-user.target

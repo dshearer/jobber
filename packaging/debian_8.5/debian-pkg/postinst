@@ -24,11 +24,9 @@ case "$1" in
         echo "Setting owners/permissions..."
         chown jobber_client:root /usr/bin/jobber
         chmod 04755 /usr/bin/jobber
-        exit 0
     ;;
-
-    abort-upgrade|abort-remove|abort-deconfigure)
-        exit 0
+    
+    abort-upgrade|abort-deconfigure|abort-remove)
     ;;
 
     *)

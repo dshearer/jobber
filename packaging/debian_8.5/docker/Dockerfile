@@ -4,6 +4,7 @@ RUN apt-get update
 RUN apt-get install -y make
 RUN apt-get install -y dpkg-dev
 RUN apt-get install -y debhelper
+RUN apt-get install -y dh-systemd
 RUN apt-get install -y golang
 
 COPY src.tgz /
