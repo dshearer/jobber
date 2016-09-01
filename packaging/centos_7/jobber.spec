@@ -11,7 +11,7 @@ Source1:    jobber.service
 
 %{?systemd_requires}
 BuildRequires:	golang, coreutils, systemd
-Requires:	daemonize
+Requires:	
 
 Prefix:         /usr/local
 
