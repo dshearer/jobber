@@ -91,6 +91,19 @@ var TestCases []TestCase = []TestCase{
 			myDate(2016, 1, 4, 0, 9, 0),
 		},
 	},
+
+	TestCase{
+		"0 30 7 * * 1-5",            // every monday to friday at 7:30 am
+		myDate(2016, 1, 1, 0, 0, 0), // start on 1 Jan 2016, a Friday
+		[]time.Time{
+			myDate(2016, 1, 1, 7, 30, 0),
+			myDate(2016, 1, 4, 7, 30, 0),
+			myDate(2016, 1, 5, 7, 30, 0),
+			myDate(2016, 1, 6, 7, 30, 0),
+			myDate(2016, 1, 7, 7, 30, 0),
+			myDate(2016, 1, 8, 7, 30, 0),
+		},
+	},
 }
 
 func TestNextRunTime(t *testing.T) {
