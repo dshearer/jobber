@@ -7,6 +7,8 @@ import (
     "sort"
     "text/tabwriter"
     "bytes"
+    "bufio"
+    "os"
 )
 
 type JobberError struct {
@@ -69,26 +71,6 @@ func NewJobManager() (*JobManager, error) {
     return &jm, nil
 }
 
-func (m *JobManager) jobsForUser(username string) []*Job {
-    jobs := make([]*Job, 0)
-    for _, job := range m.jobs {
-        if username == job.User {
-            jobs = append(jobs, job)
-        }
-    }
-    return jobs
-}
-
-func (m *JobManager) runLogEntriesForUser(username string) []RunLogEntry {
-    entries := make([]RunLogEntry, 0)
-    for _, entry := range m.runLog {
-        if username == entry.Job.User {
-            entries = append(entries, entry)
-        }
-    }
-    return entries
-}
-
 func (m *JobManager) Launch() (chan<- ICmd, error) {
     if m.mainThreadCtx != nil {
         return nil, &JobberError{"Already launched.", nil}
@@ -96,7 +78,7 @@ func (m *JobManager) Launch() (chan<- ICmd, error) {
     
     Logger.Println("Launching.")
     if !m.loadedJobs {
-        _, err := m.LoadAllJobs()
+        _, err := m.loadAllJobs()
         if err != nil {
             ErrLogger.Printf("Failed to load jobs: %v.\n", err)
             return nil, err
@@ -120,6 +102,130 @@ func (m *JobManager) Wait() {
     if m.mainThreadCtl.Wait != nil {
         m.mainThreadCtl.Wait()
     }
+}
+
+func (m *JobManager) jobsForUser(username string) []*Job {
+    jobs := make([]*Job, 0)
+    for _, job := range m.jobs {
+        if username == job.User {
+            jobs = append(jobs, job)
+        }
+    }
+    return jobs
+}
+
+func (m *JobManager) runLogEntriesForUser(username string) []RunLogEntry {
+    entries := make([]RunLogEntry, 0)
+    for _, entry := range m.runLog {
+        if username == entry.Job.User {
+            entries = append(entries, entry)
+        }
+    }
+    return entries
+}
+
+func (m *JobManager) loadAllJobs() (int, error) {
+	// get all users by reading passwd
+	f, err := os.Open("/etc/passwd")
+	if err != nil {
+		ErrLogger.Printf("Failed to open /etc/passwd: %v\n", err)
+		return 0, err
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	totalJobs := 0
+	for scanner.Scan() {
+		parts := strings.Split(scanner.Text(), ":")
+		if len(parts) > 0 {
+			user := parts[0]
+			nbr, err := m.loadJobsForUser(user)
+			totalJobs += nbr
+			if err != nil {
+				ErrLogger.Printf("Failed to load jobs for %s: %v\n", err, user)
+			}
+		}
+	}
+
+	ErrLogger.Printf("totalJobs: %v; len(m.jobs): %v", totalJobs, len(m.jobs))
+
+	return len(m.jobs), nil
+}
+
+func (m *JobManager) reloadAllJobs() (int, error) {
+	// stop job-runner thread and wait for current runs to end
+	m.jobRunner.Cancel()
+	for rec := range m.jobRunner.RunRecChan() {
+		m.handleRunRec(rec)
+	}
+	m.jobRunner.Wait()
+
+	// remove jobs
+	amt := len(m.jobs)
+	m.jobs = make([]*Job, 0)
+	Logger.Printf("Removed %v jobs.\n", amt)
+
+	// reload jobs
+	amt, err := m.loadAllJobs()
+
+	// restart job-runner thread
+	m.jobRunner.Start(m.jobs, m.Shell, m.mainThreadCtx)
+
+	return amt, err
+}
+
+func (m *JobManager) reloadJobsForUser(username string) (int, error) {
+	// stop job-runner thread and wait for current runs to end
+	m.jobRunner.Cancel()
+	for rec := range m.jobRunner.RunRecChan() {
+		m.handleRunRec(rec)
+	}
+	m.jobRunner.Wait()
+
+	// remove user's jobs
+	newJobList := make([]*Job, 0)
+	for _, job := range m.jobs {
+		if job.User != username {
+			newJobList = append(newJobList, job)
+		}
+	}
+	Logger.Printf("Removed %v jobs.\n", len(m.jobs)-len(newJobList))
+	m.jobs = newJobList
+
+	// reload user's jobs
+	amt, err := m.loadJobsForUser(username)
+
+	// restart job-runner thread
+	m.jobRunner.Start(m.jobs, m.Shell, m.mainThreadCtx)
+
+	return amt, err
+}
+
+func (m *JobManager) loadJobsForUser(username string) (int, error) {
+    // read .jobber file
+    var newJobs []*Job
+    var prefs UserPrefs
+    f, err := openUsersJobberFile(username)
+    if err != nil {
+        if os.IsNotExist(err) {
+            newJobs = make([]*Job, 0)
+        } else {
+            return -1, err
+        }
+    } else {
+        defer f.Close()
+        jobberFile, err := readJobberFile(f, username)
+        if err != nil {
+            return -1, err
+        }
+        prefs = jobberFile.Prefs
+        newJobs = jobberFile.Jobs
+    }
+    
+    m.userPrefs[username] = prefs
+    m.jobs = append(m.jobs, newJobs...)
+    Logger.Printf("Loaded %v new jobs for %s.\n", len(newJobs), username)
+    
+    return len(newJobs), nil
 }
 
 func (m *JobManager) handleRunRec(rec *RunRec) {
@@ -219,10 +325,10 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
             }
             
             Logger.Printf("Reloading jobs for all users.\n")
-            amt, err = m.ReloadAllJobs()
+            amt, err = m.reloadAllJobs()
         } else {
             Logger.Printf("Reloading jobs for %v.\n", cmd.RequestingUser())
-            amt, err = m.ReloadJobsForUser(cmd.RequestingUser())
+            amt, err = m.reloadJobsForUser(cmd.RequestingUser())
         }
         
         // send response
