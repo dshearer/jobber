@@ -1,8 +1,8 @@
-package main
+package jobfile
 
 import (
+    "github.com/dshearer/jobber/common"
 	"fmt"
-	"github.com/dshearer/jobber/Godeps/_workspace/src/golang.org/x/net/context"
 	"log"
 	"time"
 )
@@ -32,30 +32,6 @@ func (s JobStatus) String() string {
 	}
 }
 
-type TimeSpec interface {
-	String() string
-	Satisfied(int) bool
-}
-
-type FullTimeSpec struct {
-	Sec  TimeSpec
-	Min  TimeSpec
-	Hour TimeSpec
-	Mday TimeSpec
-	Mon  TimeSpec
-	Wday TimeSpec
-}
-
-func (self FullTimeSpec) String() string {
-    return fmt.Sprintf("%v %v %v %v %v %v",
-                       self.Sec,
-                       self.Min,
-                       self.Hour,
-                       self.Mday,
-                       self.Mon,
-                       self.Wday)
-}
-
 const (
 	ErrorHandlerStopName     = "Stop"
 	ErrorHandlerBackoffName  = "Backoff"
@@ -63,7 +39,7 @@ const (
 )
 
 type ErrorHandler struct {
-	apply func(*Job)
+	Apply func(*Job)
 	desc  string
 }
 
@@ -72,12 +48,12 @@ func (h ErrorHandler) String() string {
 }
 
 var ErrorHandlerStop = ErrorHandler{
-	apply: func(job *Job) { job.Status = JobFailed },
+	Apply: func(job *Job) { job.Status = JobFailed },
 	desc:  ErrorHandlerStopName,
 }
 
 var ErrorHandlerBackoff = ErrorHandler{
-	apply: func(job *Job) {
+	Apply: func(job *Job) {
 		/*
 		   The job has just had an error.  We'll handle
 		   it by skipping the next N consecutive chances
@@ -115,7 +91,7 @@ var ErrorHandlerBackoff = ErrorHandler{
 }
 
 var ErrorHandlerContinue = ErrorHandler{
-	apply: func(job *Job) { job.Status = JobGood },
+	Apply: func(job *Job) { job.Status = JobGood },
 	desc:  ErrorHandlerContinueName,
 }
 
@@ -163,7 +139,7 @@ type RunRec struct {
 	Stdout    *[]byte
 	Stderr    *[]byte
 	Succeeded bool
-	Err       *JobberError
+	Err       *common.Error
 }
 
 func (rec *RunRec) Describe() string {
@@ -173,47 +149,10 @@ func (rec *RunRec) Describe() string {
 	} else {
 		summary = fmt.Sprintf("Job \"%v\" failed.", rec.Job.Name)
 	}
-	stdoutStr, _ := SafeBytesToStr(*rec.Stdout)
-	stderrStr, _ := SafeBytesToStr(*rec.Stderr)
+	stdoutStr, _ := common.SafeBytesToStr(*rec.Stdout)
+	stderrStr, _ := common.SafeBytesToStr(*rec.Stderr)
 	return fmt.Sprintf("%v\r\nNew status: %v.\r\n\r\nStdout:\r\n%v\r\n\r\nStderr:\r\n%v",
 		summary, rec.Job.Status, stdoutStr, stderrStr)
-}
-
-func (job *Job) Run(ctx context.Context, shell string, testing bool) *RunRec {
-	rec := &RunRec{Job: job, RunTime: time.Now()}
-
-	// run
-	var sudoResult *SudoResult
-	sudoResult, err := sudo(job.User, job.Cmd, shell, nil)
-
-	if err != nil {
-		/* unexpected error while trying to run job */
-		rec.Err = err
-		return rec
-	}
-
-	// update run rec
-	rec.Succeeded = sudoResult.Succeeded
-	rec.NewStatus = JobGood
-	rec.Stdout = &sudoResult.Stdout
-	rec.Stderr = &sudoResult.Stderr
-
-	if !testing {
-		// update job
-		if sudoResult.Succeeded {
-			/* job succeeded */
-			job.Status = JobGood
-		} else {
-			/* job failed: apply error-handler (which sets job.Status) */
-			job.ErrorHandler.apply(job)
-		}
-		job.LastRunTime = rec.RunTime
-
-		// update rec.NewStatus
-		rec.NewStatus = job.Status
-	}
-
-	return rec
 }
 
 func (job *Job) ShouldRun() bool {

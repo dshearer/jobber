@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
     "io/ioutil"
@@ -11,24 +11,24 @@ type SudoResult struct {
     Succeeded  bool
 }
 
-func sudo(user string, cmdStr string, shell string, input *[]byte) (*SudoResult, *JobberError) {
+func Sudo(user string, cmdStr string, shell string, input *[]byte) (*SudoResult, *Error) {
     var cmd *exec.Cmd = sudo_cmd(user, cmdStr, shell);
     stdout, err := cmd.StdoutPipe()
     if err != nil {
-        return nil, &JobberError{"Failed to get pipe to stdout.", err}
+        return nil, &Error{"Failed to get pipe to stdout.", err}
     }
     stderr, err := cmd.StderrPipe()
     if err != nil {
-        return nil, &JobberError{"Failed to get pipe to stderr.", err}
+        return nil, &Error{"Failed to get pipe to stderr.", err}
     }
     stdin, err := cmd.StdinPipe()
     if err != nil {
-        return nil, &JobberError{"Failed to get pipe to stdin.", err}
+        return nil, &Error{"Failed to get pipe to stdin.", err}
     }
     
     // start cmd
     if err := cmd.Start(); err != nil {
-        return nil, &JobberError{"Failed to execute command \"" + cmdStr + "\".", err}
+        return nil, &Error{"Failed to execute command \"" + cmdStr + "\".", err}
     }
     
     if input != nil {
@@ -40,11 +40,11 @@ func sudo(user string, cmdStr string, shell string, input *[]byte) (*SudoResult,
     // read output
     stdoutBytes, err := ioutil.ReadAll(stdout)
     if err != nil {
-        return nil, &JobberError{"Failed to read stdout.", err}
+        return nil, &Error{"Failed to read stdout.", err}
     }
     stderrBytes, err := ioutil.ReadAll(stderr)
     if err != nil {
-        return nil, &JobberError{"Failed to read stderr.", err}
+        return nil, &Error{"Failed to read stderr.", err}
     }
     
     // finish execution
@@ -53,7 +53,7 @@ func sudo(user string, cmdStr string, shell string, input *[]byte) (*SudoResult,
         ErrLogger.Printf("sudo: %v", err)
         _, flag := err.(*exec.ExitError)
         if !flag {
-            return nil, &JobberError{"Failed to execute command \"" + cmdStr + "\".", err}
+            return nil, &Error{"Failed to execute command \"" + cmdStr + "\".", err}
         }
     }
     

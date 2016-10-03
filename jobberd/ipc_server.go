@@ -1,7 +1,7 @@
 package main
 
 import (
-    "github.com/dshearer/jobber"
+    "github.com/dshearer/jobber/common"
     "net"
     "net/rpc"
     "syscall"
@@ -32,35 +32,35 @@ func (s *RealIpcServer) doCmd(cmd ICmd, result *string) error {
     }
 }
 
-func (s *RealIpcServer) Reload(arg jobber.IpcArg, result *string) error {
+func (s *RealIpcServer) Reload(arg common.IpcArg, result *string) error {
     return s.doCmd(&ReloadCmd{arg.User, make(chan ICmdResp, 1), arg.ForAllUsers}, result)
 }
 
-func (s *RealIpcServer) ListJobs(arg jobber.IpcArg, result *string) error {
+func (s *RealIpcServer) ListJobs(arg common.IpcArg, result *string) error {
     return s.doCmd(&ListJobsCmd{arg.User, make(chan ICmdResp, 1), arg.ForAllUsers}, result)
 }
 
-func (s *RealIpcServer) ListHistory(arg jobber.IpcArg, result *string) error {
+func (s *RealIpcServer) ListHistory(arg common.IpcArg, result *string) error {
     return s.doCmd(&ListHistoryCmd{arg.User, make(chan ICmdResp, 1), arg.ForAllUsers}, result)
 }
 
-func (s *RealIpcServer) Stop(arg jobber.IpcArg, result *string) error {
+func (s *RealIpcServer) Stop(arg common.IpcArg, result *string) error {
     return s.doCmd(&StopCmd{arg.User, make(chan ICmdResp, 1)}, result)
 }
 
-func (s *RealIpcServer) Test(arg jobber.IpcArg, result *string) error {
+func (s *RealIpcServer) Test(arg common.IpcArg, result *string) error {
     return s.doCmd(&TestCmd{arg.User, make(chan ICmdResp, 1), arg.Job, arg.JobUser}, result)
 }
 
-func (s *RealIpcServer) Cat(arg jobber.IpcArg, result *string) error {
+func (s *RealIpcServer) Cat(arg common.IpcArg, result *string) error {
     return s.doCmd(&CatCmd{arg.User, make(chan ICmdResp, 1), arg.Job, arg.JobUser}, result)
 }
 
-func (s *RealIpcServer) Pause(arg jobber.IpcArg, result *string) error {
+func (s *RealIpcServer) Pause(arg common.IpcArg, result *string) error {
     return s.doCmd(&PauseCmd{arg.User, make(chan ICmdResp, 1), arg.Jobs}, result)
 }
 
-func (s *RealIpcServer) Resume(arg jobber.IpcArg, result *string) error {
+func (s *RealIpcServer) Resume(arg common.IpcArg, result *string) error {
     return s.doCmd(&ResumeCmd{arg.User, make(chan ICmdResp, 1), arg.Jobs}, result)
 }
 
@@ -82,8 +82,8 @@ func (s *IpcServer) Launch() error {
     oldUmask := syscall.Umask(0177)
     
     // make socket
-    os.Remove(jobber.DaemonSocketAddr)
-    addr, err := net.ResolveUnixAddr("unix", jobber.DaemonSocketAddr)
+    os.Remove(common.DaemonSocketAddr)
+    addr, err := net.ResolveUnixAddr("unix", common.DaemonSocketAddr)
     if err != nil {
         syscall.Umask(oldUmask)
         return err
@@ -106,7 +106,7 @@ func (s *IpcServer) Launch() error {
     if err != nil {
         return err
     }
-    os.Chown(jobber.DaemonSocketAddr, uid, 0)
+    os.Chown(common.DaemonSocketAddr, uid, 0)
     
     // make RPC server
     rpcServer := rpc.NewServer()

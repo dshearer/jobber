@@ -1,6 +1,7 @@
 package main
 
 import (
+    "github.com/dshearer/jobber/common"
 	"fmt"
 	"github.com/dshearer/jobber/Godeps/_workspace/src/golang.org/x/net/context"
 	"sync"
@@ -43,7 +44,7 @@ func (ctx *JobberContext) Value(key interface{}) interface{} {
 }
 
 func (ctx *JobberContext) Finish() { // must be called only from subthread
-	Logger.Printf("Context %v: Finish(); children = %v\n", ctx.Name, ctx.childAmt)
+	common.Logger.Printf("Context %v: Finish(); children = %v\n", ctx.Name, ctx.childAmt)
 
 	ctx.mutex.Lock()
 
@@ -57,7 +58,7 @@ func (ctx *JobberContext) Finish() { // must be called only from subthread
 		ctx.childWaitGroup.Wait()
 
 		// announce that we've finished
-		Logger.Printf("Context %v: announcing finished\n", ctx.Name)
+		common.Logger.Printf("Context %v: announcing finished\n", ctx.Name)
 		close(ctx.finishedChan)
 		if ctx.parent != nil {
 			ctx.parent.childWaitGroup.Done()
@@ -93,7 +94,7 @@ func NewJobberContext(parent *JobberContext) (*JobberContext, JobberCtl) {
 		finished:     false,
 		parent:       parent,
 	}
-	Logger.Printf("New context: %v\n", newCtxName)
+	common.Logger.Printf("New context: %v\n", newCtxName)
 
 	// make control struct
 	var newCtl JobberCtl

@@ -1,7 +1,7 @@
 package main
 
 import (
-    "github.com/dshearer/jobber"
+    "github.com/dshearer/jobber/common"
     "net"
     "net/rpc"
     "fmt"
@@ -71,7 +71,7 @@ func main() {
         usage()
         os.Exit(0)
     } else if *versionFlag_p {
-        fmt.Printf("%v\n", jobber.LongVersionStr())
+        fmt.Printf("%v\n", common.LongVersionStr())
         os.Exit(0)
     } else {
         if len(flag.Args()) == 0 {
@@ -81,7 +81,7 @@ func main() {
         }
         
         // make sure the daemon is running
-        if _, err := os.Stat(jobber.DaemonSocketAddr); os.IsNotExist(err) {
+        if _, err := os.Stat(common.DaemonSocketAddr); os.IsNotExist(err) {
             if flag.Arg(0) == StopCmdStr {
                 os.Exit(0)
             } else {
@@ -91,7 +91,7 @@ func main() {
         }
         
         // connect to daemon
-        addr, err := net.ResolveUnixAddr("unix", jobber.DaemonSocketAddr)
+        addr, err := net.ResolveUnixAddr("unix", common.DaemonSocketAddr)
         if err != nil {
             fmt.Fprintf(os.Stderr, "Couldn't resolve Unix addr: %v\n", err)
             os.Exit(1)
@@ -135,7 +135,7 @@ func main() {
         
         case StopCmdStr:
             var result string
-            arg := jobber.IpcArg{User: user.Username, ForAllUsers: false}
+            arg := common.IpcArg{User: user.Username, ForAllUsers: false}
             err = rpcClient.Call("RealIpcServer.Stop", arg, &result)
             if err != nil {
                 fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -175,7 +175,7 @@ func doListCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         os.Exit(0)
     } else {
         var result string
-        arg := jobber.IpcArg{User: user.Username, ForAllUsers: *allUsers_p}
+        arg := common.IpcArg{User: user.Username, ForAllUsers: *allUsers_p}
         err := rpcClient.Call("RealIpcServer.ListJobs", arg, &result)
         if err != nil {
             fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -200,7 +200,7 @@ func doLogCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         os.Exit(0)
     } else {
         var result string
-        arg := jobber.IpcArg{User: user.Username, ForAllUsers: *allUsers_p}
+        arg := common.IpcArg{User: user.Username, ForAllUsers: *allUsers_p}
         err := rpcClient.Call("RealIpcServer.ListHistory", arg, &result)
         if err != nil {
             fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -225,7 +225,7 @@ func doReloadCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         os.Exit(0)
     } else {
         var result string
-        arg := jobber.IpcArg{User: user.Username, ForAllUsers: *allUsers_p}
+        arg := common.IpcArg{User: user.Username, ForAllUsers: *allUsers_p}
         err := rpcClient.Call("RealIpcServer.Reload", arg, &result)
         if err != nil {
             fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -262,7 +262,7 @@ func doTestCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         
         var result string
         fmt.Printf("Running job \"%v\" for user \"%v\"...\n", job, *jobUser_p)
-        arg := jobber.IpcArg{User: user.Username, Job: job, JobUser: *jobUser_p}
+        arg := common.IpcArg{User: user.Username, Job: job, JobUser: *jobUser_p}
         err := rpcClient.Call("RealIpcServer.Test", arg, &result)
         if err != nil {
             fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -298,7 +298,7 @@ func doCatCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         }
         
         var result string
-        arg := jobber.IpcArg{User: user.Username, Job: job, JobUser: *jobUser_p}
+        arg := common.IpcArg{User: user.Username, Job: job, JobUser: *jobUser_p}
         err := rpcClient.Call("RealIpcServer.Cat", arg, &result)
         if err != nil {
             fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -323,7 +323,7 @@ func doPauseCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         var jobs []string = flagSet.Args()
         
         var result string
-        arg := jobber.IpcArg{User: user.Username, Jobs: jobs}
+        arg := common.IpcArg{User: user.Username, Jobs: jobs}
         err := rpcClient.Call("RealIpcServer.Pause", arg, &result)
         if err != nil {
             fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -348,7 +348,7 @@ func doResumeCmd(args []string, rpcClient *rpc.Client, user *user.User) {
         var jobs []string = flagSet.Args()
         
         var result string
-        arg := jobber.IpcArg{User: user.Username, Jobs: jobs}
+        arg := common.IpcArg{User: user.Username, Jobs: jobs}
         err := rpcClient.Call("RealIpcServer.Resume", arg, &result)
         if err != nil {
             fmt.Fprintf(os.Stderr, "%v\n", err)

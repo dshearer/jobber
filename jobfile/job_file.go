@@ -1,6 +1,7 @@
-package main
+package jobfile
 
 import (
+    "github.com/dshearer/jobber/common"
 	"bufio"
 	"fmt"
 	"github.com/dshearer/jobber/Godeps/_workspace/src/gopkg.in/yaml.v2"
@@ -18,7 +19,6 @@ const (
 	JobberFileName = ".jobber"
     PrefsSectName = "prefs"
     JobsSectName = "jobs"
-	TimeWildcard   = "*"
 )
 
 type JobberFile struct {
@@ -37,6 +37,22 @@ type JobConfigEntry struct {
 	OnError         *string "onError,omitempty"
 	NotifyOnError   *bool   "notifyOnError,omitempty"
 	NotifyOnFailure *bool   "notifyOnFailure,omitempty"
+}
+
+func LoadJobberFileForUser(username string) (*JobberFile, error) {
+    f, err := openUsersJobberFile(username)
+    if err != nil {
+        if os.IsNotExist(err) {
+            var jobberFile JobberFile
+            jobberFile.Jobs = make([]*Job, 0)
+            return &jobberFile, nil
+        } else {
+            return nil, err
+        }
+    } else {
+        defer f.Close()
+        return readJobberFile(f, username)
+    }
 }
 
 func openUsersJobberFile(username string) (*os.File, error) {
@@ -119,7 +135,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
                         fmt.Sprintf("Line %v: another section called \"%v\".", 
                                     lineNbr,
                                     sectName)
-                    return nil, &JobberError{errMsg, nil}
+                    return nil, &common.Error{errMsg, nil}
                 }
                 sectionsToLines[sectName] = make([]string, 0)
                 currSection = &sectName
@@ -130,7 +146,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
                     To support legacy format, treat whole file as YAML doc
                     for "jobs" section.
                     */
-                    Logger.Println("Using legacy jobber file format.")
+                    common.Logger.Println("Using legacy jobber file format.")
                     legacyFormat = true
                     tmp := JobsSectName
                     currSection = &tmp
@@ -151,7 +167,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
     rawPrefs := map[string]interface{} {}
     prefsLines, prefsOk := sectionsToLines[PrefsSectName]
     if prefsOk && len(prefsLines) > 0 {
-        Logger.Println("Got prefs section")
+        common.Logger.Println("Got prefs section")
         prefsSection := strings.Join(prefsLines, "\n")
         if strings.TrimRight(prefsLines[0], " \t") != yamlStarter {
             prefsSection = yamlStarter + "\n" + prefsSection
@@ -160,7 +176,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 	    if err != nil {
 	        errMsg := fmt.Sprintf("Failed to parse \"%v\" section", 
 	                              PrefsSectName)
-	        return nil, &JobberError{errMsg, err}
+	        return nil, &common.Error{errMsg, err}
 	    }
     }
     
@@ -168,7 +184,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
     var jobConfigs []JobConfigEntry
     jobsLines, jobsOk := sectionsToLines[JobsSectName]
     if jobsOk && len(jobsLines) > 0 {
-        Logger.Println("Got jobs section")
+        common.Logger.Println("Got jobs section")
         jobsSection := strings.Join(jobsLines, "\n")
         if strings.TrimRight(jobsLines[0], " \t") != yamlStarter {
             jobsSection = yamlStarter + "\n" + jobsSection
@@ -177,7 +193,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 	    if err != nil {
 	        errMsg := fmt.Sprintf("Failed to parse \"%v\" section", 
 	                              JobsSectName)
-	        return nil, &JobberError{errMsg, err}
+	        return nil, &common.Error{errMsg, err}
 	    }
     }
     
@@ -189,7 +205,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
         if !ok {
 	        errMsg := fmt.Sprintf("Invalid value for preference \"notifyProgram\": %v", 
 	                              noteProgVal)
-	        return nil, &JobberError{errMsg, nil}
+	        return nil, &common.Error{errMsg, nil}
         }
         userPrefs.Notifier = MakeProgramNotifier(noteProgValStr)
     } else {
@@ -204,7 +220,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
         
         // check name
         if len(config.Name) == 0 {
-            return nil, &JobberError{"Job name cannot be empty.", nil}
+            return nil, &common.Error{"Job name cannot be empty.", nil}
         }
         
         // set failure-handler
@@ -225,7 +241,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
         
         // parse time spec
         var tmp *FullTimeSpec
-        tmp, err = parseFullTimeSpec(config.Time)
+        tmp, err = ParseFullTimeSpec(config.Time)
         if err != nil {
             return nil, err
         }
@@ -237,207 +253,6 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
     return &JobberFile{userPrefs, jobs}, nil
 }
 
-type WildcardTimeSpec struct {
-}
-
-func (s WildcardTimeSpec) String() string {
-	return "*"
-}
-
-func (s WildcardTimeSpec) Satisfied(v int) bool {
-	return true
-}
-
-type OneValTimeSpec struct {
-	val int
-}
-
-func (s OneValTimeSpec) String() string {
-	return fmt.Sprintf("%v", s.val)
-}
-
-func (s OneValTimeSpec) Satisfied(v int) bool {
-	return s.val == v
-}
-
-type SetTimeSpec struct {
-	desc string
-	vals []int
-}
-
-func (s SetTimeSpec) String() string {
-	return s.desc
-}
-
-func (s SetTimeSpec) Satisfied(v int) bool {
-	for _, v2 := range s.vals {
-		if v == v2 {
-			return true
-		}
-	}
-	return false
-}
-
-func parseFullTimeSpec(s string) (*FullTimeSpec, error) {
-	var fullSpec FullTimeSpec
-	fullSpec.Sec = WildcardTimeSpec{}
-	fullSpec.Min = WildcardTimeSpec{}
-	fullSpec.Hour = WildcardTimeSpec{}
-	fullSpec.Mday = WildcardTimeSpec{}
-	fullSpec.Mon = WildcardTimeSpec{}
-	fullSpec.Wday = WildcardTimeSpec{}
-
-	var timeParts []string = strings.Fields(s)
-
-	// sec
-	if len(timeParts) > 0 {
-		spec, err := parseTimeSpec(timeParts[0], "sec", 0, 59)
-		if err != nil {
-			return nil, err
-		}
-		fullSpec.Sec = spec
-	}
-
-	// min
-	if len(timeParts) > 1 {
-		spec, err := parseTimeSpec(timeParts[1], "minute", 0, 59)
-		if err != nil {
-			return nil, err
-		}
-		fullSpec.Min = spec
-	}
-
-	// hour
-	if len(timeParts) > 2 {
-		spec, err := parseTimeSpec(timeParts[2], "hour", 0, 23)
-		if err != nil {
-			return nil, err
-		}
-		fullSpec.Hour = spec
-	}
-
-	// mday
-	if len(timeParts) > 3 {
-		spec, err := parseTimeSpec(timeParts[3], "month day", 1, 31)
-		if err != nil {
-			return nil, err
-		}
-		fullSpec.Mday = spec
-	}
-
-	// month
-	if len(timeParts) > 4 {
-		spec, err := parseTimeSpec(timeParts[4], "month", 1, 12)
-		if err != nil {
-			return nil, err
-		}
-		fullSpec.Mon = spec
-	}
-
-	// wday
-	if len(timeParts) > 5 {
-		spec, err := parseTimeSpec(timeParts[5], "weekday", 0, 6)
-		if err != nil {
-			return nil, err
-		}
-		fullSpec.Wday = spec
-	}
-
-	if len(timeParts) > 6 {
-		return nil, &JobberError{"Excess elements in 'time' field.", nil}
-	}
-
-	return &fullSpec, nil
-}
-
-func parseTimeSpec(s string, fieldName string, min int, max int) (TimeSpec, error) {
-	errMsg := fmt.Sprintf("Invalid '%v' value", fieldName)
-
-	if s == TimeWildcard {
-		return WildcardTimeSpec{}, nil
-	} else if strings.HasPrefix(s, "*/") {
-		// parse step
-		stepStr := s[2:]
-		step, err := strconv.Atoi(stepStr)
-		if err != nil {
-			return nil, &JobberError{errMsg, err}
-		}
-
-		// make set of valid values
-		vals := make([]int, 0)
-		for v := min; v <= max; v = v + step {
-			vals = append(vals, v)
-		}
-
-		// make spec
-		spec := SetTimeSpec{vals: vals, desc: s}
-		return spec, nil
-
-	} else if strings.Contains(s, ",") {
-		// split step
-		stepStrs := strings.Split(s, ",")
-
-		// make set of valid values
-		vals := make([]int, 0)
-		for _,stepStr := range stepStrs {
-			step, err := strconv.Atoi(stepStr)
-			if err != nil {
-				return nil, &JobberError{errMsg, err}
-			}
-			vals = append(vals, step)
-		}
-
-		// make spec
-		spec := SetTimeSpec{vals: vals, desc: s}
-		return spec, nil
-	} else if strings.Contains(s, "-") {
-		// get range extremes
-		extremes := strings.Split(s, "-")
-		begin, err := strconv.Atoi(extremes[0])
-
-		if err != nil {
-			return nil, &JobberError{errMsg, err}
-		}
-
-		end, err := strconv.Atoi(extremes[1])
-
-		if err != nil {
-			return nil, &JobberError{errMsg, err}
-		}
-
-		// make set of valid values
-		vals := make([]int, 0)
-
-		for v := begin; v <= end; v++ {
-			vals = append(vals, v)
-		}
-
-		// make spec
-		spec := SetTimeSpec{vals: vals, desc: s}
-		return spec, nil
-	} else {
-		// convert to int
-		val, err := strconv.Atoi(s)
-		if err != nil {
-			return nil, &JobberError{errMsg, err}
-		}
-
-		// make TimeSpec
-		spec := OneValTimeSpec{val}
-
-		// check range
-		if val < min {
-			errMsg := fmt.Sprintf("%s: cannot be less than %v.", errMsg, min)
-			return nil, &JobberError{errMsg, nil}
-		} else if val > max {
-			errMsg := fmt.Sprintf("%s: cannot be greater than %v.", errMsg, max)
-			return nil, &JobberError{errMsg, nil}
-		}
-
-		return spec, nil
-	}
-}
-
 func getErrorHandler(name string) (*ErrorHandler, error) {
 	switch name {
 	case ErrorHandlerStopName:
@@ -447,6 +262,6 @@ func getErrorHandler(name string) (*ErrorHandler, error) {
 	case ErrorHandlerContinueName:
 		return &ErrorHandlerContinue, nil
 	default:
-		return nil, &JobberError{"Invalid error handler: " + name, nil}
+		return nil, &common.Error{"Invalid error handler: " + name, nil}
 	}
 }

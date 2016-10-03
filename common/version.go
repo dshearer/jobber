@@ -1,4 +1,4 @@
-package jobber
+package common
 
 var jobberVersion string
 
