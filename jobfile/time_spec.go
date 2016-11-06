@@ -1,14 +1,14 @@
 package jobfile
 
 import (
-    "github.com/dshearer/jobber/common"
-    "fmt"
-    "strings"
-    "strconv"
+	"fmt"
+	"github.com/dshearer/jobber/common"
+	"strconv"
+	"strings"
 )
 
 const (
-    TimeWildcard = "*"
+	TimeWildcard = "*"
 )
 
 type TimeSpec interface {
@@ -26,13 +26,13 @@ type FullTimeSpec struct {
 }
 
 func (self FullTimeSpec) String() string {
-    return fmt.Sprintf("%v %v %v %v %v %v",
-                       self.Sec,
-                       self.Min,
-                       self.Hour,
-                       self.Mday,
-                       self.Mon,
-                       self.Wday)
+	return fmt.Sprintf("%v %v %v %v %v %v",
+		self.Sec,
+		self.Min,
+		self.Hour,
+		self.Mday,
+		self.Mon,
+		self.Wday)
 }
 
 type WildcardTimeSpec struct {
@@ -177,7 +177,7 @@ func parseTimeSpec(s string, fieldName string, min int, max int) (TimeSpec, erro
 
 		// make set of valid values
 		vals := make([]int, 0)
-		for _,stepStr := range stepStrs {
+		for _, stepStr := range stepStrs {
 			step, err := strconv.Atoi(stepStr)
 			if err != nil {
 				return nil, &common.Error{errMsg, err}

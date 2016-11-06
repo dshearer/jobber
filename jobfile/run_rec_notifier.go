@@ -1,9 +1,9 @@
 package jobfile
 
 import (
-    "github.com/dshearer/jobber/common"
 	"encoding/json"
 	"fmt"
+	"github.com/dshearer/jobber/common"
 )
 
 type RunRecNotifier func(rec *RunRec)
@@ -24,7 +24,7 @@ func MakeMailNotifier() RunRecNotifier {
 		if err != nil {
 			common.ErrLogger.Printf("Failed to send mail: %v\n", err)
 		} else if !sudoResult.Succeeded {
-		    errMsg, _ := common.SafeBytesToStr(sudoResult.Stderr)
+			errMsg, _ := common.SafeBytesToStr(sudoResult.Stderr)
 			common.ErrLogger.Printf("Failed to send mail: %v\n", errMsg)
 		}
 	}
@@ -50,24 +50,24 @@ func MakeProgramNotifier(program string) RunRecNotifier {
 			"status":          rec.NewStatus.String()}
 
 		// make rec JSON
-		recJson := map[string]interface{} {
+		recJson := map[string]interface{}{
 			"job":       jobJson,
 			"user":      rec.Job.User,
 			"startTime": rec.RunTime.Format(timeFormat),
 			"succeeded": rec.Succeeded}
 		if rec.Stdout == nil {
-		    recJson["stdout"] = nil
+			recJson["stdout"] = nil
 		} else {
-		    stdoutStr, stdoutBase64 := common.SafeBytesToStr(*rec.Stdout)
-		    recJson["stdout"] = stdoutStr
-		    recJson["stdout_base64"] = stdoutBase64
+			stdoutStr, stdoutBase64 := common.SafeBytesToStr(*rec.Stdout)
+			recJson["stdout"] = stdoutStr
+			recJson["stdout_base64"] = stdoutBase64
 		}
 		if rec.Stderr == nil {
-		    recJson["stderr"] = nil
+			recJson["stderr"] = nil
 		} else {
-		    stderrStr, stderrBase64 := common.SafeBytesToStr(*rec.Stderr)
-		    recJson["stderr"] = stderrStr
-		    recJson["stderr_base64"] = stderrBase64
+			stderrStr, stderrBase64 := common.SafeBytesToStr(*rec.Stderr)
+			recJson["stderr"] = stderrStr
+			recJson["stderr_base64"] = stderrBase64
 		}
 		recJsonStr, err := json.Marshal(recJson)
 		if err != nil {
@@ -80,7 +80,7 @@ func MakeProgramNotifier(program string) RunRecNotifier {
 		if err2 != nil {
 			common.ErrLogger.Printf("Failed to call %v: %v\n", program, err2)
 		} else if !sudoResult.Succeeded {
-		    errMsg, _ := common.SafeBytesToStr(sudoResult.Stderr)
+			errMsg, _ := common.SafeBytesToStr(sudoResult.Stderr)
 			common.ErrLogger.Printf("%v failed: %v\n",
 				program,
 				errMsg)

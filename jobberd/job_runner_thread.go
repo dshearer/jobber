@@ -1,82 +1,82 @@
 package main
 
 import (
-    "github.com/dshearer/jobber/common"
-    "github.com/dshearer/jobber/jobfile"
-    "github.com/dshearer/jobber/Godeps/_workspace/src/golang.org/x/net/context"
-    "time"
+	"github.com/dshearer/jobber/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/jobfile"
+	"time"
 )
 
 type JobRunnerThread struct {
-    running     bool
-    runRecChan  chan *jobfile.RunRec
-    ctx         *JobberContext
-    ctl         JobberCtl
+	running    bool
+	runRecChan chan *jobfile.RunRec
+	ctx        *JobberContext
+	ctl        JobberCtl
 }
 
 func NewJobRunnerThread() *JobRunnerThread {
-    return &JobRunnerThread{
-        running: false,
-    }
+	return &JobRunnerThread{
+		running: false,
+	}
 }
 
 func (t *JobRunnerThread) RunRecChan() <-chan *jobfile.RunRec {
-    return t.runRecChan
+	return t.runRecChan
 }
 
 func (t *JobRunnerThread) Start(jobs []*jobfile.Job, shell string, ctx *JobberContext) {
-    if t.running {
-        panic("JobRunnerThread already running.")
-    }
-    t.running = true
-    
-    t.runRecChan = make(chan *jobfile.RunRec)
-    var jobQ JobQueue
-    jobQ.SetJobs(time.Now(), jobs)
-    
-    // make subcontext
-    t.ctx, t.ctl = NewJobberContext(ctx)
-    //Logger.Printf("Job Runner thread context: %v\n", t.ctx.Name)
-    
-    go func() {
-        for {
-            var job *jobfile.Job = jobQ.Pop(time.Now(), t.ctx) // sleeps
-        
-            if job != nil && !job.Paused {
-                // launch thread to run this job
-                common.Logger.Printf("%v: %v\n", job.User, job.Cmd)
-                subsubctx, _ := NewJobberContext(t.ctx)
-                go func(job *jobfile.Job) {
-                    t.runRecChan <- RunJob(job, subsubctx, shell, false)
-                    subsubctx.Finish()
-                }(job)
-            
-            } else if job == nil {
-                /* We were canceled. */
-                //Logger.Printf("Run thread got 'stop'\n")
-                break
-            }
-        }
-        
-        // wait for run threads to stop
-        //Logger.Printf("JobRunner: cleaning up...\n")
-        t.ctx.Finish()
-        
-        // close run-rec channel
-        close(t.runRecChan)
-        //Logger.Printf("JobRunner done\n")
-    }()
+	if t.running {
+		panic("JobRunnerThread already running.")
+	}
+	t.running = true
+
+	t.runRecChan = make(chan *jobfile.RunRec)
+	var jobQ JobQueue
+	jobQ.SetJobs(time.Now(), jobs)
+
+	// make subcontext
+	t.ctx, t.ctl = NewJobberContext(ctx)
+	//Logger.Printf("Job Runner thread context: %v\n", t.ctx.Name)
+
+	go func() {
+		for {
+			var job *jobfile.Job = jobQ.Pop(time.Now(), t.ctx) // sleeps
+
+			if job != nil && !job.Paused {
+				// launch thread to run this job
+				common.Logger.Printf("%v: %v\n", job.User, job.Cmd)
+				subsubctx, _ := NewJobberContext(t.ctx)
+				go func(job *jobfile.Job) {
+					t.runRecChan <- RunJob(job, subsubctx, shell, false)
+					subsubctx.Finish()
+				}(job)
+
+			} else if job == nil {
+				/* We were canceled. */
+				//Logger.Printf("Run thread got 'stop'\n")
+				break
+			}
+		}
+
+		// wait for run threads to stop
+		//Logger.Printf("JobRunner: cleaning up...\n")
+		t.ctx.Finish()
+
+		// close run-rec channel
+		close(t.runRecChan)
+		//Logger.Printf("JobRunner done\n")
+	}()
 }
 
 func (t *JobRunnerThread) Cancel() {
-    if t.running {
-        t.ctl.Cancel()
-        t.running = false
-    }
+	if t.running {
+		t.ctl.Cancel()
+		t.running = false
+	}
 }
 
 func (t *JobRunnerThread) Wait() {
-    t.ctl.Wait()
+	t.ctl.Wait()
 }
 
 func RunJob(job *jobfile.Job, ctx context.Context, shell string, testing bool) *jobfile.RunRec {

@@ -1,8 +1,8 @@
 package jobfile
 
 import (
-    "github.com/dshearer/jobber/common"
 	"fmt"
+	"github.com/dshearer/jobber/common"
 	"log"
 	"time"
 )

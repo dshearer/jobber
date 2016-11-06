@@ -1,9 +1,9 @@
 package main
 
 import (
-    "github.com/dshearer/jobber/jobfile"
 	"fmt"
 	"github.com/dshearer/jobber/Godeps/_workspace/src/github.com/stretchr/testify/require"
+	"github.com/dshearer/jobber/jobfile"
 	"testing"
 	"time"
 )

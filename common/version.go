@@ -3,9 +3,9 @@ package common
 var jobberVersion string
 
 func ShortVersionStr() string {
-    return jobberVersion
+	return jobberVersion
 }
 
 func LongVersionStr() string {
-    return ShortVersionStr()
+	return ShortVersionStr()
 }

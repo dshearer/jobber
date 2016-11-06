@@ -1,8 +1,8 @@
 package common
 
 import (
-    "log"
-    "os"
+	"log"
+	"os"
 )
 
 var Logger *log.Logger = log.New(os.Stdout, "", 0)

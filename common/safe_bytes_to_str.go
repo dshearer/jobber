@@ -1,7 +1,7 @@
 package common
 
 import (
-    "encoding/base64"
+	"encoding/base64"
 	"unicode/utf8"
 )
 
@@ -13,4 +13,3 @@ func SafeBytesToStr(output []byte) (outputStr string, isBase64 bool) {
 		return encoded, true
 	}
 }
-

@@ -1,9 +1,9 @@
 package main
 
 import (
-    "github.com/dshearer/jobber/jobfile"
 	"container/heap"
 	"github.com/dshearer/jobber/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/dshearer/jobber/jobfile"
 	"time"
 )
 
