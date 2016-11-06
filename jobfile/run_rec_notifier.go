@@ -1,6 +1,7 @@
-package main
+package jobfile
 
 import (
+    "github.com/dshearer/jobber/common"
 	"encoding/json"
 	"fmt"
 )
@@ -19,12 +20,12 @@ func MakeMailNotifier() RunRecNotifier {
 
 		// run sendmail
 		msgBytes := []byte(msg)
-		sudoResult, err := sudo(rec.Job.User, sendmailCmd, "/bin/sh", &msgBytes)
+		sudoResult, err := common.Sudo(rec.Job.User, sendmailCmd, "/bin/sh", &msgBytes)
 		if err != nil {
-			ErrLogger.Printf("Failed to send mail: %v\n", err)
+			common.ErrLogger.Printf("Failed to send mail: %v\n", err)
 		} else if !sudoResult.Succeeded {
-		    errMsg, _ := SafeBytesToStr(sudoResult.Stderr)
-			ErrLogger.Printf("Failed to send mail: %v\n", errMsg)
+		    errMsg, _ := common.SafeBytesToStr(sudoResult.Stderr)
+			common.ErrLogger.Printf("Failed to send mail: %v\n", errMsg)
 		}
 	}
 }
@@ -57,31 +58,31 @@ func MakeProgramNotifier(program string) RunRecNotifier {
 		if rec.Stdout == nil {
 		    recJson["stdout"] = nil
 		} else {
-		    stdoutStr, stdoutBase64 := SafeBytesToStr(*rec.Stdout)
+		    stdoutStr, stdoutBase64 := common.SafeBytesToStr(*rec.Stdout)
 		    recJson["stdout"] = stdoutStr
 		    recJson["stdout_base64"] = stdoutBase64
 		}
 		if rec.Stderr == nil {
 		    recJson["stderr"] = nil
 		} else {
-		    stderrStr, stderrBase64 := SafeBytesToStr(*rec.Stderr)
+		    stderrStr, stderrBase64 := common.SafeBytesToStr(*rec.Stderr)
 		    recJson["stderr"] = stderrStr
 		    recJson["stderr_base64"] = stderrBase64
 		}
 		recJsonStr, err := json.Marshal(recJson)
 		if err != nil {
-			ErrLogger.Printf("Failed to make RunRec JSON: %v\n", err)
+			common.ErrLogger.Printf("Failed to make RunRec JSON: %v\n", err)
 			return
 		}
 
 		// call program
-		Logger.Printf("Calling notify program %v\n", program)
-		sudoResult, err2 := sudo(rec.Job.User, program, "/bin/sh", &recJsonStr)
+		common.Logger.Printf("Calling notify program %v\n", program)
+		sudoResult, err2 := common.Sudo(rec.Job.User, program, "/bin/sh", &recJsonStr)
 		if err2 != nil {
-			ErrLogger.Printf("Failed to call %v: %v\n", program, err2)
+			common.ErrLogger.Printf("Failed to call %v: %v\n", program, err2)
 		} else if !sudoResult.Succeeded {
-		    errMsg, _ := SafeBytesToStr(sudoResult.Stderr)
-			ErrLogger.Printf("%v failed: %v\n",
+		    errMsg, _ := common.SafeBytesToStr(sudoResult.Stderr)
+			common.ErrLogger.Printf("%v failed: %v\n",
 				program,
 				errMsg)
 		}

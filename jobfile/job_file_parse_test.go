@@ -1,4 +1,4 @@
-package main
+package jobfile
 
 import (
 	"bytes"
@@ -109,7 +109,7 @@ func TestParseFullTimeSpec(t *testing.T) {
 		 */
 		var result *FullTimeSpec
 		var err error
-		result, err = parseFullTimeSpec(c.str)
+		result, err = ParseFullTimeSpec(c.str)
 
 		/*
 		 * Test

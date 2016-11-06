@@ -18,9 +18,17 @@ TEST_TMPDIR = ${PWD}
 DIST_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
 
 # read lists of source files
-include sources.mk jobber/sources.mk jobberd/sources.mk packaging/sources.mk
-FINAL_LIB_SOURCES := ${LIB_SOURCES}
-FINAL_LIB_TEST_SOURCES := ${LIB_TEST_SOURCES}
+include common/sources.mk \
+		jobber/sources.mk \
+		jobberd/sources.mk \
+		jobfile/sources.mk \
+		packaging/sources.mk
+FINAL_LIB_SOURCES := \
+	$(COMMON_SOURCES:%=common/%) \
+	$(JOBFILE_SOURCES:%=jobfile/%)
+FINAL_LIB_TEST_SOURCES := \
+	$(COMMON_TEST_SOURCES:%=common/%) \
+	$(JOBFILE_TEST_SOURCES:%=jobfile/%)
 FINAL_CLIENT_SOURCES := $(CLIENT_SOURCES:%=jobber/%)
 FINAL_CLIENT_TEST_SOURCES := $(CLIENT_TEST_SOURCES:%=jobber/%)
 FINAL_DAEMON_SOURCES := $(DAEMON_SOURCES:%=jobberd/%)
@@ -36,9 +44,10 @@ GO_SOURCES := \
 	${FINAL_DAEMON_TEST_SOURCES}
 OTHER_SOURCES := \
 	Makefile \
-	sources.mk \
+	common/sources.mk \
 	jobber/sources.mk \
 	jobberd/sources.mk \
+	jobfile/sources.mk \
 	packaging/sources.mk \
 	buildtools \
 	README.md \
@@ -51,7 +60,7 @@ ALL_SOURCES := \
 	${GO_SOURCES} \
 	${OTHER_SOURCES}
 
-LDFLAGS = -ldflags "-X github.com/dshearer/jobber.jobberVersion=`cat version`"
+LDFLAGS = -ldflags "-X github.com/dshearer/jobber/common.jobberVersion=`cat version`"
 
 SE_FILES = se_policy/jobber.fc \
            se_policy/jobber.if \
@@ -66,6 +75,7 @@ all : lib ${GO_WKSPC}/bin/${CLIENT} ${GO_WKSPC}/bin/${DAEMON}
 .PHONY : check
 check : ${FINAL_LIB_TEST_SOURCES} ${FINAL_CLIENT_TEST_SOURCES} ${FINAL_DAEMON_TEST_SOURCES}
 	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobberd
+	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobfile
 
 .PHONY : installcheck
 installcheck :
@@ -99,7 +109,8 @@ dist : ${ALL_SOURCES}
 
 .PHONY : clean
 clean :
-	-go clean -i github.com/dshearer/jobber
+	-go clean -i github.com/dshearer/jobber/common
+	-go clean -i github.com/dshearer/jobber/jobfile
 	-go clean -i "github.com/dshearer/jobber/${CLIENT}"
 	-go clean -i "github.com/dshearer/jobber/${DAEMON}"
 	rm -f "${DESTDIR}${DIST_PKG_NAME}.tgz"
@@ -108,7 +119,8 @@ clean :
 
 .PHONY : lib
 lib : ${FINAL_LIB_SOURCES}
-	go install ${LDFLAGS} "github.com/dshearer/jobber"
+	go install ${LDFLAGS} "github.com/dshearer/jobber/common"
+	go install ${LDFLAGS} "github.com/dshearer/jobber/jobfile"
 
 ${GO_WKSPC}/bin/${CLIENT} : ${FINAL_CLIENT_SOURCES} lib
 	go install ${LDFLAGS} ${GO_EXE_BUILD_ARGS} "github.com/dshearer/jobber/${CLIENT}"

@@ -1,6 +1,7 @@
 package main
 
 import (
+    "github.com/dshearer/jobber/common"
     "os"
     "os/signal"
     "syscall"
@@ -33,8 +34,8 @@ func main() {
     infoSyslogWriter, _ := syslog.New(syslog.LOG_NOTICE | syslog.LOG_CRON, "")
     errSyslogWriter, _ := syslog.New(syslog.LOG_ERR | syslog.LOG_CRON, "")
     if infoSyslogWriter != nil {
-        Logger = log.New(io.MultiWriter(infoSyslogWriter, os.Stdout), "", 0)
-        ErrLogger = log.New(io.MultiWriter(errSyslogWriter, os.Stderr), "", 0)
+        common.Logger = log.New(io.MultiWriter(infoSyslogWriter, os.Stdout), "", 0)
+        common.ErrLogger = log.New(io.MultiWriter(errSyslogWriter, os.Stderr), "", 0)
     }
     
     // run them

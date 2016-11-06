@@ -1,6 +1,7 @@
 package main
 
 import (
+    "github.com/dshearer/jobber/jobfile"
 	"fmt"
 	"github.com/dshearer/jobber/Godeps/_workspace/src/github.com/stretchr/testify/require"
 	"testing"
@@ -112,8 +113,8 @@ func TestNextRunTime(t *testing.T) {
 		/*
 		 * Set up
 		 */
-		var job *Job = NewJob("JobA", "blah", "dude")
-		timeSpec, _ := parseFullTimeSpec(testCase.timeSpec)
+		var job *jobfile.Job = jobfile.NewJob("JobA", "blah", "dude")
+		timeSpec, _ := jobfile.ParseFullTimeSpec(testCase.timeSpec)
 		job.FullTimeSpec = *timeSpec
 
 		var now time.Time = testCase.startTime

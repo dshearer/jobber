@@ -1,4 +1,4 @@
-package jobber
+package common
 
 type IpcArg struct {
     User string

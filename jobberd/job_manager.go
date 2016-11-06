@@ -1,32 +1,23 @@
 package main
 
 import (
+    "github.com/dshearer/jobber/common"
+    "github.com/dshearer/jobber/jobfile"
     "time"
     "fmt"
     "strings"
     "sort"
     "text/tabwriter"
     "bytes"
+    "bufio"
+    "os"
 )
 
-type JobberError struct {
-    What  string
-    Cause error
-}
-
-func (e *JobberError) Error() string {
-    if e.Cause == nil {
-        return e.What
-    } else {
-        return e.What + ":" + e.Cause.Error()
-    }
-}
-
 type RunLogEntry struct {
-    Job        *Job
+    Job        *jobfile.Job
     Time       time.Time
     Succeeded  bool
-    Result     JobStatus
+    Result     jobfile.JobStatus
 }
 
 /* For sorting RunLogEntries: */
@@ -50,8 +41,8 @@ func (s *runLogEntrySorter) Less(i, j int) bool {
 }
 
 type JobManager struct {
-    userPrefs             map[string]UserPrefs
-    jobs                  []*Job
+    userPrefs             map[string]jobfile.UserPrefs
+    jobs                  []*jobfile.Job
     loadedJobs            bool
     runLog                []RunLogEntry
     cmdChan               chan ICmd
@@ -63,14 +54,47 @@ type JobManager struct {
 
 func NewJobManager() (*JobManager, error) {
     jm := JobManager{Shell: "/bin/sh"}
-    jm.userPrefs = make(map[string]UserPrefs)
+    jm.userPrefs = make(map[string]jobfile.UserPrefs)
     jm.loadedJobs = false
     jm.jobRunner = NewJobRunnerThread()
     return &jm, nil
 }
 
-func (m *JobManager) jobsForUser(username string) []*Job {
-    jobs := make([]*Job, 0)
+func (m *JobManager) Launch() (chan<- ICmd, error) {
+    if m.mainThreadCtx != nil {
+        return nil, &common.Error{"Already launched.", nil}
+    }
+    
+    common.Logger.Println("Launching.")
+    if !m.loadedJobs {
+        _, err := m.loadAllJobs()
+        if err != nil {
+            common.ErrLogger.Printf("Failed to load jobs: %v.\n", err)
+            return nil, err
+        }
+    }
+    
+    // make main thread
+    m.cmdChan = make(chan ICmd)
+    m.runMainThread()
+    return m.cmdChan, nil
+}
+
+func (m *JobManager) Cancel() {
+    if m.mainThreadCtl.Cancel != nil {
+        common.Logger.Printf("JobManager canceling\n")
+        m.mainThreadCtl.Cancel()
+    }
+}
+
+func (m *JobManager) Wait() {
+    if m.mainThreadCtl.Wait != nil {
+        m.mainThreadCtl.Wait()
+    }
+}
+
+func (m *JobManager) jobsForUser(username string) []*jobfile.Job {
+    jobs := make([]*jobfile.Job, 0)
     for _, job := range m.jobs {
         if username == job.User {
             jobs = append(jobs, job)
@@ -89,42 +113,98 @@ func (m *JobManager) runLogEntriesForUser(username string) []RunLogEntry {
     return entries
 }
 
-func (m *JobManager) Launch() (chan<- ICmd, error) {
-    if m.mainThreadCtx != nil {
-        return nil, &JobberError{"Already launched.", nil}
+func (m *JobManager) loadAllJobs() (int, error) {
+	// get all users by reading passwd
+	f, err := os.Open("/etc/passwd")
+	if err != nil {
+		common.ErrLogger.Printf("Failed to open /etc/passwd: %v\n", err)
+		return 0, err
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	totalJobs := 0
+	for scanner.Scan() {
+		parts := strings.Split(scanner.Text(), ":")
+		if len(parts) > 0 {
+			user := parts[0]
+			nbr, err := m.loadJobsForUser(user)
+			totalJobs += nbr
+			if err != nil {
+				common.ErrLogger.Printf("Failed to load jobs for %s: %v\n", err, user)
+			}
+		}
+	}
+
+	common.ErrLogger.Printf("totalJobs: %v; len(m.jobs): %v", totalJobs, len(m.jobs))
+
+	return len(m.jobs), nil
+}
+
+func (m *JobManager) reloadAllJobs() (int, error) {
+	// stop job-runner thread and wait for current runs to end
+	m.jobRunner.Cancel()
+	for rec := range m.jobRunner.RunRecChan() {
+		m.handleRunRec(rec)
+	}
+	m.jobRunner.Wait()
+
+	// remove jobs
+	amt := len(m.jobs)
+	m.jobs = make([]*jobfile.Job, 0)
+	common.Logger.Printf("Removed %v jobs.\n", amt)
+
+	// reload jobs
+	amt, err := m.loadAllJobs()
+
+	// restart job-runner thread
+	m.jobRunner.Start(m.jobs, m.Shell, m.mainThreadCtx)
+
+	return amt, err
+}
+
+func (m *JobManager) reloadJobsForUser(username string) (int, error) {
+	// stop job-runner thread and wait for current runs to end
+	m.jobRunner.Cancel()
+	for rec := range m.jobRunner.RunRecChan() {
+		m.handleRunRec(rec)
+	}
+	m.jobRunner.Wait()
+
+	// remove user's jobs
+	newJobList := make([]*jobfile.Job, 0)
+	for _, job := range m.jobs {
+		if job.User != username {
+			newJobList = append(newJobList, job)
+		}
+	}
+	common.Logger.Printf("Removed %v jobs.\n", len(m.jobs)-len(newJobList))
+	m.jobs = newJobList
+
+	// reload user's jobs
+	amt, err := m.loadJobsForUser(username)
+
+	// restart job-runner thread
+	m.jobRunner.Start(m.jobs, m.Shell, m.mainThreadCtx)
+
+	return amt, err
+}
+
+func (m *JobManager) loadJobsForUser(username string) (int, error) {
+    // read .jobber file
+    jobberFile, err := jobfile.LoadJobberFileForUser(username)
+    if err != nil {
+        return -1, err
     }
+    m.userPrefs[username] = jobberFile.Prefs
+    m.jobs = append(m.jobs, jobberFile.Jobs...)
+    common.Logger.Printf("Loaded %v new jobs for %s.\n", len(jobberFile.Jobs), username)
     
-    Logger.Println("Launching.")
-    if !m.loadedJobs {
-        _, err := m.LoadAllJobs()
-        if err != nil {
-            ErrLogger.Printf("Failed to load jobs: %v.\n", err)
-            return nil, err
-        }
-    }
-    
-    // make main thread
-    m.cmdChan = make(chan ICmd)
-    m.runMainThread()
-    return m.cmdChan, nil
+    return len(jobberFile.Jobs), nil
 }
 
-func (m *JobManager) Cancel() {
-    if m.mainThreadCtl.Cancel != nil {
-        Logger.Printf("JobManager canceling\n")
-        m.mainThreadCtl.Cancel()
-    }
-}
-
-func (m *JobManager) Wait() {
-    if m.mainThreadCtl.Wait != nil {
-        m.mainThreadCtl.Wait()
-    }
-}
-
-func (m *JobManager) handleRunRec(rec *RunRec) {
+func (m *JobManager) handleRunRec(rec *jobfile.RunRec) {
     if rec.Err != nil {
-        ErrLogger.Panicln(rec.Err)
+        common.ErrLogger.Panicln(rec.Err)
     }
     
     m.runLog = append(m.runLog, 
@@ -133,7 +213,7 @@ func (m *JobManager) handleRunRec(rec *RunRec) {
     /* NOTE: error-handler was already applied by the job, if necessary. */
     
     if (!rec.Succeeded && rec.Job.NotifyOnError) ||
-        (rec.Job.NotifyOnFailure && rec.NewStatus == JobFailed) {
+        (rec.Job.NotifyOnFailure && rec.NewStatus == jobfile.JobFailed) {
         // notify user
         m.userPrefs[rec.Job.User].Notifier(rec);
     }
@@ -141,7 +221,7 @@ func (m *JobManager) handleRunRec(rec *RunRec) {
 
 func (m *JobManager) runMainThread() {
     m.mainThreadCtx, m.mainThreadCtl = NewJobberContext(BackgroundJobberContext())
-    Logger.Printf("Main thread context: %v\n", m.mainThreadCtx.Name)
+    common.Logger.Printf("Main thread context: %v\n", m.mainThreadCtx.Name)
     
     go func() {
         /*
@@ -154,14 +234,14 @@ func (m *JobManager) runMainThread() {
         Loop: for {
             select {
             case <-m.mainThreadCtx.Done():
-                Logger.Printf("Main thread got 'stop'\n")
+                common.Logger.Printf("Main thread got 'stop'\n")
                 break Loop
                 
             case rec, ok := <-m.jobRunner.RunRecChan():
                 if ok {
                     m.handleRunRec(rec)
                 } else {
-                    ErrLogger.Printf("Job-runner thread ended prematurely.\n")
+                    common.ErrLogger.Printf("jobfile.Job-runner thread ended prematurely.\n")
                     break Loop
                 }
     
@@ -173,7 +253,7 @@ func (m *JobManager) runMainThread() {
                         break Loop
                     }
                 } else {
-                    ErrLogger.Printf("Command channel was closed.\n")
+                    common.ErrLogger.Printf("Command channel was closed.\n")
                     break Loop
                 }
             }
@@ -190,7 +270,7 @@ func (m *JobManager) runMainThread() {
         // finish up (and wait for job-runner thread to finish)
         m.mainThreadCtx.Finish()
         
-        Logger.Printf("Main Thread done.\n")
+        common.Logger.Printf("Main Thread done.\n")
     }()
 }
 
@@ -214,20 +294,20 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         var amt int
         if cmd.(*ReloadCmd).ForAllUsers {
             if cmd.RequestingUser() != "root" {
-                cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+                cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: "You must be root."}}
                 break
             }
             
-            Logger.Printf("Reloading jobs for all users.\n")
-            amt, err = m.ReloadAllJobs()
+            common.Logger.Printf("Reloading jobs for all users.\n")
+            amt, err = m.reloadAllJobs()
         } else {
-            Logger.Printf("Reloading jobs for %v.\n", cmd.RequestingUser())
-            amt, err = m.ReloadJobsForUser(cmd.RequestingUser())
+            common.Logger.Printf("Reloading jobs for %v.\n", cmd.RequestingUser())
+            amt, err = m.reloadJobsForUser(cmd.RequestingUser())
         }
         
         // send response
         if err != nil {
-            ErrLogger.Printf("Failed to load jobs: %v.\n", err)
+            common.ErrLogger.Printf("Failed to load jobs: %v.\n", err)
             cmd.RespChan() <- &ErrorCmdResp{err}
         } else {
             cmd.RespChan() <- &SuccessCmdResp{fmt.Sprintf("Loaded %v jobs.", amt)}
@@ -242,12 +322,12 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         
         // enforce policy
         if catCmd.jobUser != catCmd.RequestingUser() && catCmd.RequestingUser() != "root" {
-            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+            cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: "You must be root."}}
             break
         }
     
         // find job to cat
-        var job_p *Job
+        var job_p *jobfile.Job
         for _, job := range m.jobsForUser(catCmd.jobUser) {
             if job.Name == catCmd.job {
                 job_p = job
@@ -256,7 +336,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         }
         if job_p == nil {
             msg := fmt.Sprintf("No job named \"%v\".", catCmd.job)
-            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: msg}}
+            cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: msg}}
             break
         }
         
@@ -269,10 +349,10 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         /* Policy: Only root can list other users' jobs. */
         
         // get jobs
-        var jobs []*Job
+        var jobs []*jobfile.Job
         if cmd.(*ListJobsCmd).ForAllUsers {
             if cmd.RequestingUser() != "root" {
-                cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+                cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: "You must be root."}}
                 break
             }
             
@@ -327,7 +407,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         var entries []RunLogEntry
         if cmd.(*ListHistoryCmd).ForAllUsers {
             if cmd.RequestingUser() != "root" {
-                cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+                cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: "You must be root."}}
                 break
             }
             
@@ -358,11 +438,11 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         /* Policy: Only root can stop jobberd. */
         
         if cmd.RequestingUser() != "root" {
-            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+            cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: "You must be root."}}
             break
         }
         
-        Logger.Println("Stopping.")
+        common.Logger.Println("Stopping.")
         return true
     
     case *TestCmd:
@@ -372,12 +452,12 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         
         // enforce policy
         if testCmd.jobUser != testCmd.RequestingUser() && testCmd.RequestingUser() != "root" {
-            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "You must be root."}}
+            cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: "You must be root."}}
             break
         }
     
         // find job to test
-        var job_p *Job
+        var job_p *jobfile.Job
         for _, job := range m.jobsForUser(testCmd.jobUser) {
             if job.Name == testCmd.job {
                 job_p = job
@@ -386,12 +466,12 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         }
         if job_p == nil {
             msg := fmt.Sprintf("No job named \"%v\".", testCmd.job)
-            cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: msg}}
+            cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: msg}}
             break
         }
         
         // run the job in this thread
-        runRec := job_p.Run(nil, m.Shell, true)
+        runRec := RunJob(job_p, nil, m.Shell, true)
         
         // send response
         if runRec.Err != nil {
@@ -408,8 +488,8 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         var pauseCmd *PauseCmd = cmd.(*PauseCmd)
         
         // look up jobs to pause
-        var usersJobs []*Job = m.jobsForUser(pauseCmd.RequestingUser())
-        jobsToPause := make([]*Job, 0)
+        var usersJobs []*jobfile.Job = m.jobsForUser(pauseCmd.RequestingUser())
+        jobsToPause := make([]*jobfile.Job, 0)
         if len(pauseCmd.jobs) > 0 {
             for _, jobName := range pauseCmd.jobs {
                 foundJob := false
@@ -422,7 +502,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
                 }
                 if !foundJob {
                     msg := fmt.Sprintf("No job named \"%v\".", jobName)
-                    cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: msg}}
+                    cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: msg}}
                     return false
                 }
             }
@@ -449,8 +529,8 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         var resumeCmd *ResumeCmd = cmd.(*ResumeCmd)
         
         // look up jobs to pause
-        var usersJobs []*Job = m.jobsForUser(resumeCmd.RequestingUser())
-        jobsToResume := make([]*Job, 0)
+        var usersJobs []*jobfile.Job = m.jobsForUser(resumeCmd.RequestingUser())
+        jobsToResume := make([]*jobfile.Job, 0)
         if len(resumeCmd.jobs) > 0 {
             for _, jobName := range resumeCmd.jobs {
                 foundJob := false
@@ -463,7 +543,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
                 }
                 if !foundJob {
                     msg := fmt.Sprintf("No job named \"%v\".", jobName)
-                    cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: msg}}
+                    cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: msg}}
                     return false
                 }
             }
@@ -485,7 +565,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
         return false
     
     default:
-        cmd.RespChan() <- &ErrorCmdResp{&JobberError{What: "Unknown command."}}
+        cmd.RespChan() <- &ErrorCmdResp{&common.Error{What: "Unknown command."}}
         return false
     }
     

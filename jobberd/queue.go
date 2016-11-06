@@ -1,6 +1,7 @@
 package main
 
 import (
+    "github.com/dshearer/jobber/jobfile"
 	"container/heap"
 	"github.com/dshearer/jobber/Godeps/_workspace/src/golang.org/x/net/context"
 	"time"
@@ -54,7 +55,7 @@ func weekdayToInt(d time.Weekday) int {
 	}
 }
 
-func nextRunTime(job *Job, now time.Time) *time.Time {
+func nextRunTime(job *jobfile.Job, now time.Time) *time.Time {
 	/*
 	 * We test every second from now till 2 years from now,
 	 * looking for a time that satisfies the job's schedule
@@ -82,7 +83,7 @@ func nextRunTime(job *Job, now time.Time) *time.Time {
  * jobQueueImpl is a priority queue containing Jobs that sorts
  * them by next run time.
  */
-type jobQueueImpl []*Job // implements heap.Interface
+type jobQueueImpl []*jobfile.Job // implements heap.Interface
 
 func (q jobQueueImpl) Len() int {
 	return len(q)
@@ -97,7 +98,7 @@ func (q jobQueueImpl) Swap(i, j int) {
 }
 
 func (q *jobQueueImpl) Push(x interface{}) {
-	*q = append(*q, x.(*Job))
+	*q = append(*q, x.(*jobfile.Job))
 }
 
 func (q *jobQueueImpl) Pop() interface{} {
@@ -119,12 +120,12 @@ type JobQueue struct {
 	q jobQueueImpl
 }
 
-func (jq *JobQueue) SetJobs(now time.Time, jobs []*Job) {
+func (jq *JobQueue) SetJobs(now time.Time, jobs []*jobfile.Job) {
 	jq.q = make(jobQueueImpl, 0)
 	heap.Init(&jq.q)
 
 	for i := 0; i < len(jobs); i++ {
-		var job *Job = jobs[i]
+		var job *jobfile.Job = jobs[i]
 		job.NextRunTime = nextRunTime(job, now)
 		if job.NextRunTime != nil {
 			heap.Push(&jq.q, job)
@@ -142,7 +143,7 @@ func (jq *JobQueue) Empty() bool {
  *
  * @return The next job to run, or nil if the context has been canceled.
  */
-func (jq *JobQueue) Pop(now time.Time, ctx context.Context) *Job {
+func (jq *JobQueue) Pop(now time.Time, ctx context.Context) *jobfile.Job {
 	if jq.Empty() {
 		// just wait till the context has been canceled
 		<-ctx.Done()
@@ -150,7 +151,7 @@ func (jq *JobQueue) Pop(now time.Time, ctx context.Context) *Job {
 
 	} else {
 		// get next-scheduled job
-		job := heap.Pop(&jq.q).(*Job)
+		job := heap.Pop(&jq.q).(*jobfile.Job)
 
 		// sleep till it's time to run it
 		if now.Before(*job.NextRunTime) {
