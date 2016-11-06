@@ -77,30 +77,41 @@ func TestParseFullTimeSpec(t *testing.T) {
 		str  string
 		spec FullTimeSpec
 	}{
-		{"0 0 14", FullTimeSpec{OneValTimeSpec{0},
+		{"0 0 14", FullTimeSpec{
+		    OneValTimeSpec{0},
 			OneValTimeSpec{0},
 			OneValTimeSpec{14},
 			WildcardTimeSpec{},
 			WildcardTimeSpec{},
 			WildcardTimeSpec{}}},
-		{"0 0 14 * * 1", FullTimeSpec{OneValTimeSpec{0},
+		{"0 0 14 * * 1", FullTimeSpec{
+		    OneValTimeSpec{0},
 			OneValTimeSpec{0},
 			OneValTimeSpec{14},
 			WildcardTimeSpec{},
 			WildcardTimeSpec{},
 			OneValTimeSpec{1}}},
-		{"0 0 */2 * * 1", FullTimeSpec{OneValTimeSpec{0},
+		{"0 0 */2 * * 1", FullTimeSpec{
+		    OneValTimeSpec{0},
 			OneValTimeSpec{0},
 			SetTimeSpec{"*/2", evens},
 			WildcardTimeSpec{},
 			WildcardTimeSpec{},
 			OneValTimeSpec{1}}},
-		{"0 0 1,4,7,10,13,16,19,22 * * 1", FullTimeSpec{OneValTimeSpec{0},
+		{"0 0 1,4,7,10,13,16,19,22 * * 1", FullTimeSpec{
+		    OneValTimeSpec{0},
 			OneValTimeSpec{0},
 			SetTimeSpec{"1,4,7,10,13,16,19,22", threes},
 			WildcardTimeSpec{},
 			WildcardTimeSpec{},
 			OneValTimeSpec{1}}},
+		{"10,20 0 14 1 8 0-5", FullTimeSpec{
+    		SetTimeSpec{"10,20", []int{10,20}},
+			OneValTimeSpec{0},
+			OneValTimeSpec{14},
+			OneValTimeSpec{1},
+			OneValTimeSpec{8},
+			SetTimeSpec{"0-5", []int{0,1,2,3,4,5}}}},
 	}
 
 	for _, c := range cases {
