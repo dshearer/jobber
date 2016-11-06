@@ -70,7 +70,6 @@ func (t *JobRunnerThread) Start(jobs []*jobfile.Job, shell string, ctx *JobberCo
 
 func (t *JobRunnerThread) Cancel() {
     if t.running {
-        common.Logger.Printf("JobRunnerThread: Canceling\n")
         t.ctl.Cancel()
         t.running = false
     }

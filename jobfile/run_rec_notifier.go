@@ -76,7 +76,6 @@ func MakeProgramNotifier(program string) RunRecNotifier {
 		}
 
 		// call program
-		common.Logger.Printf("Calling notify program %v\n", program)
 		sudoResult, err2 := common.Sudo(rec.Job.User, program, "/bin/sh", &recJsonStr)
 		if err2 != nil {
 			common.ErrLogger.Printf("Failed to call %v: %v\n", program, err2)

@@ -82,7 +82,6 @@ func (m *JobManager) Launch() (chan<- ICmd, error) {
 
 func (m *JobManager) Cancel() {
     if m.mainThreadCtl.Cancel != nil {
-        common.Logger.Printf("JobManager canceling\n")
         m.mainThreadCtl.Cancel()
     }
 }
@@ -151,7 +150,6 @@ func (m *JobManager) reloadAllJobs() (int, error) {
 	// remove jobs
 	amt := len(m.jobs)
 	m.jobs = make([]*jobfile.Job, 0)
-	common.Logger.Printf("Removed %v jobs.\n", amt)
 
 	// reload jobs
 	amt, err := m.loadAllJobs()
@@ -177,7 +175,6 @@ func (m *JobManager) reloadJobsForUser(username string) (int, error) {
 			newJobList = append(newJobList, job)
 		}
 	}
-	common.Logger.Printf("Removed %v jobs.\n", len(m.jobs)-len(newJobList))
 	m.jobs = newJobList
 
 	// reload user's jobs
@@ -197,7 +194,6 @@ func (m *JobManager) loadJobsForUser(username string) (int, error) {
     }
     m.userPrefs[username] = jobberFile.Prefs
     m.jobs = append(m.jobs, jobberFile.Jobs...)
-    common.Logger.Printf("Loaded %v new jobs for %s.\n", len(jobberFile.Jobs), username)
     
     return len(jobberFile.Jobs), nil
 }
@@ -221,7 +217,6 @@ func (m *JobManager) handleRunRec(rec *jobfile.RunRec) {
 
 func (m *JobManager) runMainThread() {
     m.mainThreadCtx, m.mainThreadCtl = NewJobberContext(BackgroundJobberContext())
-    common.Logger.Printf("Main thread context: %v\n", m.mainThreadCtx.Name)
     
     go func() {
         /*
@@ -234,7 +229,6 @@ func (m *JobManager) runMainThread() {
         Loop: for {
             select {
             case <-m.mainThreadCtx.Done():
-                common.Logger.Printf("Main thread got 'stop'\n")
                 break Loop
                 
             case rec, ok := <-m.jobRunner.RunRecChan():
@@ -269,8 +263,6 @@ func (m *JobManager) runMainThread() {
         
         // finish up (and wait for job-runner thread to finish)
         m.mainThreadCtx.Finish()
-        
-        common.Logger.Printf("Main Thread done.\n")
     }()
 }
 
@@ -298,10 +290,8 @@ func (m *JobManager) doCmd(cmd ICmd) bool {  // runs in main thread
                 break
             }
             
-            common.Logger.Printf("Reloading jobs for all users.\n")
             amt, err = m.reloadAllJobs()
         } else {
-            common.Logger.Printf("Reloading jobs for %v.\n", cmd.RequestingUser())
             amt, err = m.reloadJobsForUser(cmd.RequestingUser())
         }
         
