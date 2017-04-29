@@ -35,6 +35,7 @@ export GOPATH=/opt/go
 ## Compile Jobber
 ```
 $ go get github.com/dshearer/jobber
+can't load package: package github.com/dshearer/jobber: no buildable Go source files in /opt/go/src/github.com/dshearer/jobber
 $ cd /opt/go/src/github.com/dshearer/jobber
 $ make
 ```
