@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="jobberSite">
+<html lang="en">
 
 <head>
 <meta charset='utf-8' />
@@ -25,21 +25,10 @@
   integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
   crossorigin="anonymous" type="text/javascript"></script>
 
-<script
-  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"
-  type="text/javascript"></script>
-
-<script
-  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular-cookies.js"
-  type="text/javascript"></script>
-
-<script src="../app/app.js" type="text/javascript"></script>
-
 <title>Download Jobber</title>
 </head>
 
-<body ng-controller="JobberSiteController" data-spy="scroll"
-  data-target="#toc-container" data-offset="100">
+<body data-spy="scroll" data-target="#toc-container" data-offset="100">
 
   <!-- NAV BAR -->
   <nav class="navbar navbar-default">
@@ -50,8 +39,10 @@
       <li><a href="../doc/v1.1/">How to Use</a></li>
     </ul>
   </nav>
-  
-  <header class="container"><h1>Download Jobber</h1></header>
+
+  <header class="container">
+    <h1>Download Jobber</h1>
+  </header>
 
   <!-- MAIN CONTENT -->
   <div class="container">
@@ -61,7 +52,7 @@
 
       <p>
         Jobber's source code is copyright &#0169; <span itemprop="copyrightYear">
-          2014&ndash;2016</span> <span itemprop="copyrightHolder" itemscope
+          2014&ndash;2017</span> <span itemprop="copyrightHolder" itemscope
           itemtype="http://schema.org/Person"><span itemprop="name">Charles
             Dylan Shearer</span></span>. It is licensed according to the MIT License:
       </p>
@@ -93,30 +84,21 @@
     </section>
 
     <!-- Downloading -->
-    <section id="downloading" ng-if="latestRelease === null">
-      <h2>Downloading</h2>
-      <p>
-        Releases can be downloaded from <a
-          href="https://github.com/dshearer/jobber/releases">the Jobber
-          releases page</a>.
-      </p>
-    </section>
-
-    <section id="downloading" ng-if="latestRelease !== null">
+    <section id="downloading">
       <h2>Downloading</h2>
 
-      <p>
-        The latest release is <a href="{{latestRelease.html_url}}">
-          {{latestRelease.name}}</a>, which was made on {{latestRelease.created_at |
-        date : 'd MMMM yyyy'}}.
-      </p>
+      <p>The latest release is v1.2, which was made on 3 May 2017.</p>
 
       <table class="table">
         <caption>Source</caption>
-        <tr
-          ng-repeat="artifact in latestRelease.sourceArtifacts track by $index">
-          <td><a href="{{artifact.browser_download_url}}"> <span
-              class="fa fa-download" aria-hidden="true">&nbsp;</span>{{artifact.name}}
+        <tr>
+          <td><a
+            href="https://api.github.com/repos/dshearer/jobber/tarball/v1.2">
+              <span class="fa fa-download" aria-hidden="true">&nbsp;</span>v1.2.tar
+          </a></td>
+          <td><a
+            href="https://api.github.com/repos/dshearer/jobber/zipball/v1.2">
+              <span class="fa fa-download" aria-hidden="true">&nbsp;</span>v1.2.zip
           </a></td>
         </tr>
       </table>
@@ -133,14 +115,41 @@
         </thead>
         <tfoot></tfoot>
         <tbody>
-          <tr
-            ng-repeat="artifact in latestRelease.binaryArtifacts track by $index">
-            <td><a href="{{artifact.browser_download_url}}"> <span
-                class="fa fa-download" aria-hidden="true">&nbsp;</span>{{artifact.name}}
+          <tr>
+            <td><a
+              href="https://github.com/dshearer/jobber/releases/download/v1.2/jobber-1.2-1.el6.centos.x86_64.rpm">
+                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.2-1.el6.centos.x86_64.rpm
             </a></td>
-            <td>{{artifact.os}}</td>
-            <td>{{artifact.platform}}</td>
-            <td>{{artifact.size | bytes}}</td>
+            <td>RHEL/CentOS/Fedora</td>
+            <td>x86_64</td>
+            <td>3.3 MB</td>
+          </tr>
+          <tr>
+            <td><a
+              href="https://github.com/dshearer/jobber/releases/download/v1.2/jobber-1.2-1.el7.centos.x86_64.rpm">
+                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.2-1.el7.centos.x86_64.rpm
+            </a></td>
+            <td>RHEL/CentOS/Fedora</td>
+            <td>x86_64</td>
+            <td>3.7 MB</td>
+          </tr>
+          <tr>
+            <td><a
+              href="https://github.com/dshearer/jobber/releases/download/v1.2/jobber-1.2-r0.apk">
+                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.2-r0.apk
+            </a></td>
+            <td>Alpine Linux</td>
+            <td>x86_64</td>
+            <td>7.4 MB</td>
+          </tr>
+          <tr>
+            <td><a
+              href="https://github.com/dshearer/jobber/releases/download/v1.2/jobber_1.2-1_amd64.deb">
+                <span class="fa fa-download" aria-hidden="true">&nbsp;</span> jobber_1.2-1_amd64.deb
+            </a></td>
+            <td>Debian/Ubuntu</td>
+            <td>x86_64</td>
+            <td>1.6 MB</td>
           </tr>
         </tbody>
       </table>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="jobberSite">
+<html lang="en">
 
 <head>
 <meta charset='utf-8' />
@@ -25,21 +25,22 @@
   integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
   crossorigin="anonymous" type="text/javascript"></script>
 
-<script
-  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"
-  type="text/javascript"></script>
-
-<script
-  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular-cookies.js"
-  type="text/javascript"></script>
-
-<script src="../../app/app.js" type="text/javascript"></script>
-
 <title>How to Use Jobber</title>
+
+<script lang="test/javascript">
+	function loadParts() {
+		$("#deployment").load("partials/deployment.html");
+		$("#defining-jobs").load("partials/jobber-file.html");
+		$("#loading-jobs").load("partials/loading-jobs.html");
+		$("#listing-jobs").load("partials/listing-jobs.html");
+		$("#listing-runs").load("partials/listing-runs.html");
+		$("#testing-jobs").load("partials/testing-jobs.html");
+	}
+</script>
 </head>
 
-<body ng-controller="JobberSiteController" data-spy="scroll"
-  data-target="#toc-container" data-offset="100">
+<body onload="loadParts()" data-spy="scroll" data-target="#toc-container"
+  data-offset="100">
 
   <!-- NAV BAR -->
   <nav class="navbar navbar-default">
@@ -88,12 +89,12 @@
       <!-- col -->
 
       <section class="col-md-10 main" role="main">
-        <div id="deployment" ng-include="'partials/deployment.html'"></div>
-        <div id="defining-jobs" ng-include="'partials/jobber-file.html'"></div>
-        <div id="loading-jobs" ng-include="'partials/loading-jobs.html'"></div>
-        <div id="listing-jobs" ng-include="'partials/listing-jobs.html'"></div>
-        <div id="listing-runs" ng-include="'partials/listing-runs.html'"></div>
-        <div id="testing-jobs" ng-include="'partials/testing-jobs.html'"></div>
+        <div id="deployment"></div>
+        <div id="defining-jobs"></div>
+        <div id="loading-jobs"></div>
+        <div id="listing-jobs"></div>
+        <div id="listing-runs"></div>
+        <div id="testing-jobs"></div>
       </section>
     </div>
   </div>

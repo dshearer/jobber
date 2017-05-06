@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="jobberSite">
+<html lang="en">
 
 <head>
 <meta charset='utf-8' />
@@ -25,22 +25,11 @@
   integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
   crossorigin="anonymous" type="text/javascript"></script>
 
-<script
-  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"
-  type="text/javascript"></script>
-
-<script
-  src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular-cookies.js"
-  type="text/javascript"></script>
-
-<script src="app/app.js" type="text/javascript"></script>
-
 <title>Jobber: A replacement for cron, with sophisticated
   status-reporting and error-handling.</title>
 </head>
 
-<body itemscope itemtype="http://schema.org/SoftwareApplication"
-  ng-controller="JobberSiteController">
+<body itemscope itemtype="http://schema.org/SoftwareApplication">
 
   <!-- HEADER -->
   <header class="container">
@@ -49,14 +38,12 @@
     </div>
 
     <div class="banner-btn hidden-print pull-right"
-      style="margin-top:1em;margin-bottom:1em;"
-      ng-if="latestRelease !== null">
+      style="margin-top: 1em; margin-bottom: 1em;">
       <a href="download/" class="btn btn-lg btn-default">
         <div class="fa fa-arrow-circle-o-down fa-2x pull-left"
           aria-hidden="true"></div>
         <div class="pull-right">
-          Get Jobber <span class="banner-btn-details">{{latestRelease.name}}
-            | {{latestRelease.created_at | date : 'd MMMM yyyy'}}</span>
+          Get Jobber <span class="banner-btn-details">1.2 | 3 May 2017</span>
         </div>
       </a>
     </div>
@@ -156,7 +143,7 @@
 
   <!-- FOOTER  -->
   <footer class="small">
-    <p>Copyright &#0169; 2014&ndash;2016 Charles Dylan Shearer</p>
+    <p>Copyright &#0169; 2014&ndash;2017 Charles Dylan Shearer</p>
   </footer>
 
   <!-- Google Analytics -->
