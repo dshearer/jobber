@@ -4,14 +4,23 @@
   <p itemprop="requirements">
     Jobber is written in <a href="http://golang.org/">Go</a>, and it should be
     possible to compile and run it on <span itemprop="operatingSystem">any
-      Linux system</span>. However, we currently only make packages for RHEL-like
-    systems and Alpine Linux.
+      Unix/Linux system</span>.
   </p>
 
   <p>Note that, although Jobber can be used instead of cron, it is certainly
     possible to run both at the same time.</p>
 
+  <h3>Installation from a Package</h3>
+
+  <p>
+    The easiest way to install Jobber is via <a href="../../download">a
+      binary package</a>.
+  </p>
+
   <h3>Compilation and Installation from Source</h3>
+
+  <p>Instead of installing a binary package, you can certainly compile and
+    install Jobber yourself.</p>
 
   <p>You need a recent version of Go to compile Jobber. So, install Go, pick
     a place for your workspace (say, /path/to/your/workspace), and ensure that
@@ -21,7 +30,7 @@
   <pre>cd /path/to/your/workspace
 go get github.com/dshearer/jobber
 cd src/github.com/dshearer/jobber
-git checkout v1.1
+git checkout v1.2
 make GO_WKSPC=/path/to/your/workspace</pre>
 
   <p>Jobber consists of two binaries: jobber and jobberd. jobberd is a
