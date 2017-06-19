@@ -3,11 +3,18 @@ body {
 }
 section.main {
 	max-width:700px;
-	margin-left: 5em;
 }
+
+@media (min-width: 769px) {
+	section.main {
+	    margin-left: 5em;
+	}
+}
+	
 footer {
   text-align: center;
 }
+
 .nobr,
 code {
   white-space: nowrap;
