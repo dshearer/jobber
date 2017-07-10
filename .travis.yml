@@ -7,5 +7,6 @@ services:
 
 script:
   - make check
+  - jobber -v
   - make -C platform_tests
 
