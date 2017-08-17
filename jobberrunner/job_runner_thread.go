@@ -1,17 +1,16 @@
 package main
 
 import (
-	"github.com/dshearer/jobber/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/jobfile"
+	"os/exec"
 	"time"
 )
 
 type JobRunnerThread struct {
 	running    bool
 	runRecChan chan *jobfile.RunRec
-	ctx        *JobberContext
-	ctl        JobberCtl
+	ctx        *common.NewContext
 }
 
 func NewJobRunnerThread() *JobRunnerThread {
@@ -20,34 +19,37 @@ func NewJobRunnerThread() *JobRunnerThread {
 	}
 }
 
-func (t *JobRunnerThread) RunRecChan() <-chan *jobfile.RunRec {
-	return t.runRecChan
+func (self *JobRunnerThread) RunRecChan() <-chan *jobfile.RunRec {
+	return self.runRecChan
 }
 
-func (t *JobRunnerThread) Start(jobs []*jobfile.Job, shell string, ctx *JobberContext) {
-	if t.running {
+func (self *JobRunnerThread) Start(
+	jobs []*jobfile.Job,
+	shell string,
+	ctx *common.NewContext) {
+
+	if self.running {
 		panic("JobRunnerThread already running.")
 	}
-	t.running = true
+	self.running = true
 
-	t.runRecChan = make(chan *jobfile.RunRec)
+	self.runRecChan = make(chan *jobfile.RunRec)
 	var jobQ JobQueue
 	jobQ.SetJobs(time.Now(), jobs)
 
 	// make subcontext
-	t.ctx, t.ctl = NewJobberContext(ctx)
-	//Logger.Printf("Job Runner thread context: %v\n", t.ctx.Name)
+	self.ctx = ctx.MakeChild()
 
 	go func() {
 		for {
-			var job *jobfile.Job = jobQ.Pop(time.Now(), t.ctx) // sleeps
+			var job *jobfile.Job = jobQ.Pop(time.Now(), self.ctx) // sleeps
 
 			if job != nil && !job.Paused {
 				// launch thread to run this job
 				common.Logger.Printf("%v: %v\n", job.User, job.Cmd)
-				subsubctx, _ := NewJobberContext(t.ctx)
+				subsubctx := self.ctx.MakeChild()
 				go func(job *jobfile.Job) {
-					t.runRecChan <- RunJob(job, subsubctx, shell, false)
+					self.runRecChan <- RunJob(job, shell, false)
 					subsubctx.Finish()
 				}(job)
 
@@ -60,47 +62,51 @@ func (t *JobRunnerThread) Start(jobs []*jobfile.Job, shell string, ctx *JobberCo
 
 		// wait for run threads to stop
 		//Logger.Printf("JobRunner: cleaning up...\n")
-		t.ctx.Finish()
+		self.ctx.Finish()
 
 		// close run-rec channel
-		close(t.runRecChan)
+		close(self.runRecChan)
 		//Logger.Printf("JobRunner done\n")
 	}()
 }
 
-func (t *JobRunnerThread) Cancel() {
-	if t.running {
-		t.ctl.Cancel()
-		t.running = false
-	}
+func (self *JobRunnerThread) Cancel() {
+	self.ctx.Cancel()
+	self.running = false
 }
 
-func (t *JobRunnerThread) Wait() {
-	t.ctl.Wait()
+func (self *JobRunnerThread) Wait() {
+	self.ctx.Wait()
 }
 
-func RunJob(job *jobfile.Job, ctx context.Context, shell string, testing bool) *jobfile.RunRec {
+func RunJob(
+	job *jobfile.Job,
+	shell string,
+	testing bool) *jobfile.RunRec {
+
 	rec := &jobfile.RunRec{Job: job, RunTime: time.Now()}
 
 	// run
-	var sudoResult *common.SudoResult
-	sudoResult, err := common.Sudo(job.User, job.Cmd, shell, nil)
+	var execResult *common.ExecResult
+	execResult, err :=
+		common.ExecAndWait(exec.Command(shell, "-c", job.Cmd), nil)
 
 	if err != nil {
 		/* unexpected error while trying to run job */
+		common.Logger.Printf("RunJob: %v", err)
 		rec.Err = err
 		return rec
 	}
 
 	// update run rec
-	rec.Succeeded = sudoResult.Succeeded
+	rec.Succeeded = execResult.Succeeded
 	rec.NewStatus = jobfile.JobGood
-	rec.Stdout = &sudoResult.Stdout
-	rec.Stderr = &sudoResult.Stderr
+	rec.Stdout = &execResult.Stdout
+	rec.Stderr = &execResult.Stderr
 
 	if !testing {
 		// update job
-		if sudoResult.Succeeded {
+		if execResult.Succeeded {
 			/* job succeeded */
 			job.Status = jobfile.JobGood
 		} else {

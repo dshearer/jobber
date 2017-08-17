@@ -17,6 +17,7 @@ DIST_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
 # read lists of source files
 include common/sources.mk \
 		jobbermaster/sources.mk \
+		jobberrunner/sources.mk \
 		jobfile/sources.mk \
 		packaging/sources.mk
 FINAL_LIB_SOURCES := \
@@ -27,17 +28,22 @@ FINAL_LIB_TEST_SOURCES := \
 	$(JOBFILE_TEST_SOURCES:%=jobfile/%)
 FINAL_MASTER_SOURCES := $(MASTER_SOURCES:%=jobbermaster/%)
 FINAL_MASTER_TEST_SOURCES := $(MASTER_TEST_SOURCES:%=jobbermaster/%)
+FINAL_RUNNER_SOURCES := $(RUNNER_SOURCES:%=jobberrunner/%)
+FINAL_RUNNER_TEST_SOURCES := $(RUNNER_TEST_SOURCES:%=jobberrunner/%)
 FINAL_PACKAGING_SOURCES := $(PACKAGING_SOURCES:%=packaging/%)
 
 GO_SOURCES := \
 	${FINAL_LIB_SOURCES} \
 	${FINAL_LIB_TEST_SOURCES} \
 	${FINAL_MASTER_SOURCES} \
-	${FINAL_MASTER_TEST_SOURCES}
+	${FINAL_MASTER_TEST_SOURCES} \
+	${FINAL_RUNNER_SOURCES} \
+	${FINAL_RUNNER_TEST_SOURCES}
 OTHER_SOURCES := \
 	Makefile \
 	common/sources.mk \
 	jobbermaster/sources.mk \
+	jobberrunner/sources.mk \
 	jobfile/sources.mk \
 	packaging/sources.mk \
 	buildtools \
@@ -61,10 +67,10 @@ SE_FILES = se_policy/jobber.fc \
            se_policy/policygentool
 
 .PHONY : all
-all : lib ${GO_WKSPC}/bin/jobbermaster
+all : lib ${GO_WKSPC}/bin/jobbermaster ${GO_WKSPC}/bin/jobberrunner
 
 .PHONY : check
-check : ${FINAL_LIB_TEST_SOURCES} ${FINAL_MASTER_TEST_SOURCES}
+check : ${FINAL_LIB_TEST_SOURCES} ${FINAL_MASTER_TEST_SOURCES} ${FINAL_RUNNER_TEST_SOURCES}
 	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobfile
 
 .PHONY : installcheck
@@ -76,13 +82,15 @@ installdirs :
 	"${srcdir}/buildtools/mkinstalldirs" "${DESTDIR}${bindir}" "${DESTDIR}${libexecdir}"
 
 .PHONY : install
-install : installdirs ${GO_WKSPC}/bin/jobbermaster
+install : installdirs all
 	# install files
 	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobbermaster" "${DESTDIR}${libexecdir}"
+	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobberrunner" "${DESTDIR}${libexecdir}"
 
 .PHONY : uninstall
 uninstall :
 	-rm "${DESTDIR}${libexecdir}/jobbermaster"
+	-rm "${DESTDIR}${libexecdir}/jobberrunner"
 
 dist : ${ALL_SOURCES}
 	mkdir -p "dist-tmp/${DIST_PKG_NAME}" `dirname "${DESTDIR}${DIST_PKG_NAME}.tgz"`
@@ -94,7 +102,8 @@ dist : ${ALL_SOURCES}
 clean :
 	-go clean -i github.com/dshearer/jobber/common
 	-go clean -i github.com/dshearer/jobber/jobfile
-	-go clean -i "github.com/dshearer/jobber/jobbermaster"
+	-go clean -i github.com/dshearer/jobber/jobbermaster
+	-go clean -i github.com/dshearer/jobber/jobberrunner
 	rm -f "${DESTDIR}${DIST_PKG_NAME}.tgz"
 	
 
@@ -106,6 +115,9 @@ lib : ${FINAL_LIB_SOURCES}
 
 ${GO_WKSPC}/bin/jobbermaster : ${FINAL_MASTER_SOURCES} lib
 	go install ${LDFLAGS} ${GO_EXE_BUILD_ARGS} github.com/dshearer/jobber/jobbermaster
+
+${GO_WKSPC}/bin/jobberrunner : ${FINAL_RUNNER_SOURCES} lib
+	go install ${LDFLAGS} ${GO_EXE_BUILD_ARGS} github.com/dshearer/jobber/jobberrunner
 
 
 ## OLD:

@@ -5,23 +5,18 @@ import (
 	"fmt"
 	"github.com/dshearer/jobber/Godeps/_workspace/src/gopkg.in/yaml.v2"
 	"github.com/dshearer/jobber/common"
-	"io"
 	"os"
-	"os/user"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
-	"syscall"
 )
 
 const (
-	JobberFileName = ".jobber"
-	PrefsSectName  = "prefs"
-	JobsSectName   = "jobs"
+	JobFileName   = ".jobber"
+	PrefsSectName = "prefs"
+	JobsSectName  = "jobs"
 )
 
-type JobberFile struct {
+type JobFile struct {
 	Prefs UserPrefs
 	Jobs  []*Job
 }
@@ -39,63 +34,7 @@ type JobConfigEntry struct {
 	NotifyOnFailure *bool   "notifyOnFailure,omitempty"
 }
 
-func LoadJobberFileForUser(username string) (*JobberFile, error) {
-	f, err := openUsersJobberFile(username)
-	if err != nil {
-		if os.IsNotExist(err) {
-			var jobberFile JobberFile
-			jobberFile.Jobs = make([]*Job, 0)
-			return &jobberFile, nil
-		} else {
-			return nil, err
-		}
-	} else {
-		defer f.Close()
-		return readJobberFile(f, username)
-	}
-}
-
-func openUsersJobberFile(username string) (*os.File, error) {
-	/*
-	 * Not all users listed in /etc/passwd have their own
-	 * jobber file.  E.g., some of them may share a home dir.
-	 * When this happens, we say that the jobber file belongs
-	 * to the user who owns that file.
-	 */
-
-	// make path to jobber file
-	user, err := user.Lookup(username)
-	if err != nil {
-		return nil, err
-	}
-	jobberFilePath := filepath.Join(user.HomeDir, JobberFileName)
-
-	// open it
-	f, err := os.Open(jobberFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// check owner
-	info, err := f.Stat()
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-	uid, err := strconv.Atoi(user.Uid)
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-	if uint32(uid) != info.Sys().(*syscall.Stat_t).Uid {
-		f.Close()
-		return nil, os.ErrNotExist
-	}
-
-	return f, nil
-}
-
-func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
+func LoadJobFile(path string, username string) (*JobFile, error) {
 	/*
 	   Jobber files have two sections: one begins with "[prefs]" on a line, and
 	   the other begins with "[jobs]".  Both contain a YAML document.  The "prefs"
@@ -105,6 +44,12 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 	   Legacy format: no section beginnings; whole file is YAML doc for "jobs"
 	   section.
 	*/
+
+	r, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
 
 	// iterate over lines
 	scanner := bufio.NewScanner(r)
@@ -250,7 +195,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 		jobs = append(jobs, job)
 	}
 
-	return &JobberFile{userPrefs, jobs}, nil
+	return &JobFile{userPrefs, jobs}, nil
 }
 
 func getErrorHandler(name string) (*ErrorHandler, error) {

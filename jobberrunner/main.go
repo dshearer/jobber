@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/dshearer/jobber/common"
 	"io"
 	"log"
@@ -9,8 +11,6 @@ import (
 	"os/signal"
 	"syscall"
 )
-
-var g_err_logger, _ = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_CRON, 0)
 
 func stopServerOnSignal(server *IpcServer, jm *JobManager) {
 	// Set up channel on which to send signal notifications.
@@ -27,8 +27,34 @@ func stopServerOnSignal(server *IpcServer, jm *JobManager) {
 	os.Exit(0)
 }
 
+func usage() {
+	fmt.Printf("Usage: %v [flags] SOCKET_PATH JOBFILE_PATH\n\n", os.Args[0])
+
+	fmt.Printf("Flags:\n")
+	flag.PrintDefaults()
+	fmt.Printf("\n")
+}
+
 func main() {
-	var err error
+	// parse args
+	flag.Usage = usage
+	var helpFlag_p = flag.Bool("h", false, "help")
+	var versionFlag_p = flag.Bool("v", false, "version")
+	flag.Parse()
+
+	if *helpFlag_p {
+		usage()
+		os.Exit(0)
+	} else if *versionFlag_p {
+		fmt.Printf("%v\n", common.LongVersionStr())
+		os.Exit(0)
+	}
+
+	if len(flag.Args()) != 2 {
+		usage()
+		os.Exit(1)
+	}
+	sockPath, jobfilePath := flag.Args()[0], flag.Args()[1]
 
 	// make loggers
 	infoSyslogWriter, _ := syslog.New(syslog.LOG_NOTICE|syslog.LOG_CRON, "")
@@ -38,33 +64,25 @@ func main() {
 		common.ErrLogger = log.New(io.MultiWriter(errSyslogWriter, os.Stderr), "", 0)
 	}
 
-	// run them
-	manager, err := NewJobManager()
-	if err != nil {
-		if g_err_logger != nil {
-			g_err_logger.Printf("Error: %v\n", err)
-		}
-		os.Exit(1)
-	}
-	cmdChan, err := manager.Launch()
-	if err != nil {
-		if g_err_logger != nil {
-			g_err_logger.Printf("Error: %v\n", err)
-		}
+	// run job manager
+	manager := NewJobManager(jobfilePath)
+	if err := manager.Launch(); err != nil {
+		common.ErrLogger.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
 
 	// make IPC server
-	ipcServer := NewIpcServer(cmdChan)
-	go stopServerOnSignal(ipcServer, manager)
-	err = ipcServer.Launch()
-	if err != nil {
-		if g_err_logger != nil {
-			g_err_logger.Printf("Error: %v\n", err)
-		}
+	ipcServer := NewIpcServer(
+		sockPath,
+		manager.CmdChan,
+		manager.CmdRespChan)
+	if err := ipcServer.Launch(); err != nil {
+		common.ErrLogger.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
-	defer ipcServer.Stop()
+
+	go stopServerOnSignal(ipcServer, manager)
 
 	manager.Wait()
+	ipcServer.Stop()
 }

@@ -37,20 +37,37 @@ func runnerThread(ctx *common.NewContext,
 
 	common.Logger.Printf("Entered thread for %v", usr.Username)
 
+	// look for jobberrunner
+	runnerName := "jobberrunner"
+	runnerPath, err := common.FindLibexecProgram(runnerName)
+	if err != nil {
+		common.ErrLogger.Printf("%v", err)
+		ctx.Finish()
+		return
+	}
+
 Loop:
 	for {
 		// spawn runner process
-		// jobberrunner synopsis:  jobberrunner SOCKET_PATH JOBFILE_PATH
-		cmdline := fmt.Sprintf("jobberrunner \"%v\" \"%v\"",
+		common.Logger.Println("Launching runner")
+		cmd := fmt.Sprintf(
+			"%v \"%v\" \"%v\"",
+			runnerPath,
 			common.SocketPath(usr),
-			jobfilePath)
-		proc := common.Sudo(usr.Username, cmdline, "/bin/sh")
+			jobfilePath,
+		)
+		proc := common.Sudo(*usr, cmd)
+		proc.Stdout = os.Stdout
+		proc.Stderr = os.Stderr
 		if err := proc.Start(); err != nil {
-			common.ErrLogger.Printf("Failed to run: %v", cmdline)
+			common.ErrLogger.Printf(
+				"Failed to run %v: %v",
+				runnerName,
+				err)
 			break
 		}
 
-		procChan := make(chan error, 1)
+		procChan := make(chan error)
 		go func() {
 			procChan <- proc.Wait()
 		}()
@@ -58,17 +75,17 @@ Loop:
 		select {
 		case err := <-procChan:
 			if err != nil {
-				common.ErrLogger.Printf("sudo: %v", err)
+				common.ErrLogger.Printf("%v: %v", runnerName, err)
 				if _, flag := err.(*exec.ExitError); !flag {
-					common.ErrLogger.Printf("Failed to run: %v", cmdline)
 					break Loop
 				}
 			}
-			common.Logger.Printf("Restarting jobberrunner")
+			common.Logger.Printf("Restarting %v", runnerName)
 
 		case <-ctx.CancelledChan():
-			common.Logger.Printf("Jobberrunner thread cancelled")
-			proc.Process.Kill()
+			common.Logger.Printf("%v thread cancelled", runnerName)
+			proc.Process.Signal(os.Kill)
+			proc.Wait()
 			break Loop
 		}
 	}
@@ -104,7 +121,7 @@ func jobfileForUser(user *user.User) *string {
 	 */
 
 	// make path to jobber file
-	jobfilePath := filepath.Join(user.HomeDir, jobfile.JobberFileName)
+	jobfilePath := filepath.Join(user.HomeDir, jobfile.JobFileName)
 
 	// open it
 	f, err := os.Open(jobfilePath)

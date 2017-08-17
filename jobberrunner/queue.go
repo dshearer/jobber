@@ -2,7 +2,7 @@ package main
 
 import (
 	"container/heap"
-	"github.com/dshearer/jobber/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/jobfile"
 	"time"
 )
@@ -143,10 +143,10 @@ func (jq *JobQueue) Empty() bool {
  *
  * @return The next job to run, or nil if the context has been canceled.
  */
-func (jq *JobQueue) Pop(now time.Time, ctx context.Context) *jobfile.Job {
+func (jq *JobQueue) Pop(now time.Time, ctx *common.NewContext) *jobfile.Job {
 	if jq.Empty() {
 		// just wait till the context has been canceled
-		<-ctx.Done()
+		<-ctx.CancelledChan()
 		return nil
 
 	} else {
@@ -158,7 +158,7 @@ func (jq *JobQueue) Pop(now time.Time, ctx context.Context) *jobfile.Job {
 			afterChan := time.After(job.NextRunTime.Sub(now))
 			select {
 			case now = <-afterChan:
-			case <-ctx.Done():
+			case <-ctx.CancelledChan():
 				// abort!
 				heap.Push(&jq.q, job)
 				return nil

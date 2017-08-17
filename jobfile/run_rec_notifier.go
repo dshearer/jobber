@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dshearer/jobber/common"
+	"os/exec"
 )
 
 type RunRecNotifier func(rec *RunRec)
@@ -16,15 +17,15 @@ func MakeMailNotifier() RunRecNotifier {
 			rec.Job.Name)
 		body := rec.Describe()
 		msg := fmt.Sprintf("%s\r\n\r\n%s.\r\n", headers, body)
-		sendmailCmd := fmt.Sprintf("sendmail %v", rec.Job.User)
 
 		// run sendmail
 		msgBytes := []byte(msg)
-		sudoResult, err := common.SudoAndWait(rec.Job.User, sendmailCmd, "/bin/sh", &msgBytes)
+		cmd := exec.Command("sendmail", rec.Job.User)
+		execResult, err := common.ExecAndWait(cmd, &msgBytes)
 		if err != nil {
 			common.ErrLogger.Printf("Failed to send mail: %v\n", err)
-		} else if !sudoResult.Succeeded {
-			errMsg, _ := common.SafeBytesToStr(sudoResult.Stderr)
+		} else if !execResult.Succeeded {
+			errMsg, _ := common.SafeBytesToStr(execResult.Stderr)
 			common.ErrLogger.Printf("Failed to send mail: %v\n", errMsg)
 		}
 	}
@@ -76,11 +77,12 @@ func MakeProgramNotifier(program string) RunRecNotifier {
 		}
 
 		// call program
-		sudoResult, err2 := common.SudoAndWait(rec.Job.User, program, "/bin/sh", &recJsonStr)
+		execResult, err2 := common.ExecAndWait(exec.Command(program),
+			&recJsonStr)
 		if err2 != nil {
 			common.ErrLogger.Printf("Failed to call %v: %v\n", program, err2)
-		} else if !sudoResult.Succeeded {
-			errMsg, _ := common.SafeBytesToStr(sudoResult.Stderr)
+		} else if !execResult.Succeeded {
+			errMsg, _ := common.SafeBytesToStr(execResult.Stderr)
 			common.ErrLogger.Printf("%v failed: %v\n",
 				program,
 				errMsg)
