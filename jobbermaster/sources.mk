@@ -1,0 +1,4 @@
+MASTER_SOURCES := \
+	main.go
+
+MASTER_TEST_SOURCES :=

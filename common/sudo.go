@@ -11,8 +11,12 @@ type SudoResult struct {
 	Succeeded bool
 }
 
-func Sudo(user string, cmdStr string, shell string, input *[]byte) (*SudoResult, *Error) {
-	var cmd *exec.Cmd = sudo_cmd(user, cmdStr, shell)
+func Sudo(user string, cmdStr string, shell string) *exec.Cmd {
+	return sudo_cmd(user, cmdStr, shell)
+}
+
+func SudoAndWait(user string, cmdStr string, shell string, input *[]byte) (*SudoResult, *Error) {
+	var cmd *exec.Cmd = Sudo(user, cmdStr, shell)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, &Error{"Failed to get pipe to stdout.", err}

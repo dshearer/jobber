@@ -80,8 +80,15 @@ func main() {
 			os.Exit(1)
 		}
 
+		// get current user
+		user, err := user.Current()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to get current user: %v\n", err)
+			os.Exit(1)
+		}
+
 		// make sure the daemon is running
-		if _, err := os.Stat(common.DaemonSocketAddr); os.IsNotExist(err) {
+		if _, err := os.Stat(common.RunnerSockPath(user)); os.IsNotExist(err) {
 			if flag.Arg(0) == StopCmdStr {
 				os.Exit(0)
 			} else {
@@ -91,7 +98,7 @@ func main() {
 		}
 
 		// connect to daemon
-		addr, err := net.ResolveUnixAddr("unix", common.DaemonSocketAddr)
+		addr, err := net.ResolveUnixAddr("unix", common.RunnerSockPath(user))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't resolve Unix addr: %v\n", err)
 			os.Exit(1)
@@ -112,13 +119,6 @@ func main() {
 		err = syscall.Setreuid(syscall.Getuid(), syscall.Getuid())
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't drop privileges: %v\n", err)
-			os.Exit(1)
-		}
-
-		// get current username
-		user, err := user.Current()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't get current user: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -217,21 +217,28 @@ func doReloadCmd(args []string, rpcClient *rpc.Client, user *user.User) {
 	flagSet := flag.NewFlagSet(ReloadCmdStr, flag.ExitOnError)
 	flagSet.Usage = subcmdUsage(ReloadCmdStr, flagSet)
 	var help_p = flagSet.Bool("h", false, "help")
-	var allUsers_p = flagSet.Bool("a", false, "all-users")
 	flagSet.Parse(args)
 
 	if *help_p {
 		flagSet.Usage()
 		os.Exit(0)
 	} else {
-		var result string
-		arg := common.IpcArg{User: user.Username, ForAllUsers: *allUsers_p}
-		err := rpcClient.Call("RealIpcServer.Reload", arg, &result)
+		var result common.ReloadCmdResp
+		err := rpcClient.Call(
+			"NewIpcService.Reload",
+			common.ReloadNewCmd{},
+			&result,
+		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("%v\n", result)
+		if result.Err == nil {
+			fmt.Printf("Loaded %v jobs.\n", result.NumJobs)
+		} else {
+			fmt.Fprintf(os.Stderr, "%v", result.Err)
+			os.Exit(1)
+		}
 	}
 }
 

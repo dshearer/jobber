@@ -20,7 +20,7 @@ func MakeMailNotifier() RunRecNotifier {
 
 		// run sendmail
 		msgBytes := []byte(msg)
-		sudoResult, err := common.Sudo(rec.Job.User, sendmailCmd, "/bin/sh", &msgBytes)
+		sudoResult, err := common.SudoAndWait(rec.Job.User, sendmailCmd, "/bin/sh", &msgBytes)
 		if err != nil {
 			common.ErrLogger.Printf("Failed to send mail: %v\n", err)
 		} else if !sudoResult.Succeeded {
@@ -76,7 +76,7 @@ func MakeProgramNotifier(program string) RunRecNotifier {
 		}
 
 		// call program
-		sudoResult, err2 := common.Sudo(rec.Job.User, program, "/bin/sh", &recJsonStr)
+		sudoResult, err2 := common.SudoAndWait(rec.Job.User, program, "/bin/sh", &recJsonStr)
 		if err2 != nil {
 			common.ErrLogger.Printf("Failed to call %v: %v\n", program, err2)
 		} else if !sudoResult.Succeeded {

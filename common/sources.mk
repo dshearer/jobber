@@ -3,6 +3,8 @@ COMMON_SOURCES := \
 	error.go \
 	ipc_arg.go \
 	logging.go \
+	new_context.go \
+	path.go \
 	safe_bytes_to_str.go \
 	sudo_cmd_linux.go \
 	sudo_cmd_freebsd.go \
