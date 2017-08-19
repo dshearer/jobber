@@ -24,6 +24,10 @@ func SocketPath(usr *user.User) string {
 	return filepath.Join(PerUserDirPath(usr), "socket")
 }
 
+func RunnerPidFilePath(usr *user.User) string {
+	return filepath.Join(PerUserDirPath(usr), "runner_pid")
+}
+
 func FindLibexecProgram(name string) (string, *Error) {
 	for _, dir := range libexecPaths {
 		path := filepath.Join(dir, name)

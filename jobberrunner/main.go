@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"github.com/dshearer/jobber/common"
 	"io"
+	"io/ioutil"
 	"log"
 	"log/syslog"
 	"os"
 	"os/signal"
+	"os/user"
 	"syscall"
 )
 
@@ -28,33 +30,56 @@ func stopServerOnSignal(server *IpcServer, jm *JobManager) {
 }
 
 func usage() {
-	fmt.Printf("Usage: %v [flags] SOCKET_PATH JOBFILE_PATH\n\n", os.Args[0])
+	fmt.Printf("Usage: %v [flags] JOBFILE_PATH\n\n", os.Args[0])
 
 	fmt.Printf("Flags:\n")
 	flag.PrintDefaults()
 	fmt.Printf("\n")
 }
 
-func main() {
-	// parse args
-	flag.Usage = usage
-	var helpFlag_p = flag.Bool("h", false, "help")
-	var versionFlag_p = flag.Bool("v", false, "version")
-	flag.Parse()
-
-	if *helpFlag_p {
-		usage()
-		os.Exit(0)
-	} else if *versionFlag_p {
-		fmt.Printf("%v\n", common.LongVersionStr())
-		os.Exit(0)
-	}
-
-	if len(flag.Args()) != 2 {
-		usage()
+func recordPid(usr *user.User) {
+	// write to temp file
+	pidTmp, err := ioutil.TempFile(common.PerUserDirPath(usr), "temp-")
+	if err != nil {
+		common.ErrLogger.Printf("Failed to make temp file: %v", err)
 		os.Exit(1)
 	}
-	sockPath, jobfilePath := flag.Args()[0], flag.Args()[1]
+	_, err = pidTmp.WriteString(fmt.Sprintf("%v", os.Getpid()))
+	if err != nil {
+		common.ErrLogger.Printf("Failed to write to %v: %v", pidTmp.Name(),
+			err)
+		pidTmp.Close()
+		os.Remove(pidTmp.Name())
+		os.Exit(1)
+	}
+	pidTmp.Close()
+
+	// rename it
+	pidPath := common.RunnerPidFilePath(usr)
+	if err = os.Rename(pidTmp.Name(), pidPath); err != nil {
+		common.ErrLogger.Printf(
+			"Failed to rename %v to %v: %v",
+			pidTmp.Name(),
+			pidPath,
+			err,
+		)
+		os.Remove(pidTmp.Name())
+		os.Exit(1)
+	}
+}
+
+func daemonMain(usr *user.User) int {
+	/*
+	   IMPORTANT: Do not use os.Exit in here (or any called functions).
+	   There's cleanup to do in main.
+	*/
+
+	// get args
+	if len(flag.Args()) != 1 {
+		usage()
+		return 1
+	}
+	jobfilePath := flag.Args()[0]
 
 	// make loggers
 	infoSyslogWriter, _ := syslog.New(syslog.LOG_NOTICE|syslog.LOG_CRON, "")
@@ -68,21 +93,61 @@ func main() {
 	manager := NewJobManager(jobfilePath)
 	if err := manager.Launch(); err != nil {
 		common.ErrLogger.Printf("Error: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// make IPC server
 	ipcServer := NewIpcServer(
-		sockPath,
+		common.SocketPath(usr),
 		manager.CmdChan,
 		manager.CmdRespChan)
 	if err := ipcServer.Launch(); err != nil {
-		common.ErrLogger.Printf("Error: %v\n", err)
-		os.Exit(1)
+		common.ErrLogger.Printf("Error: %v", err)
+		return 1
 	}
 
 	go stopServerOnSignal(ipcServer, manager)
 
 	manager.Wait()
 	ipcServer.Stop()
+	return 0
+}
+
+func main() {
+
+	// parse args
+	flag.Usage = usage
+	var helpFlag_p = flag.Bool("h", false, "help")
+	var versionFlag_p = flag.Bool("v", false, "version")
+	flag.Parse()
+
+	// handle flags
+	if *helpFlag_p {
+		usage()
+		os.Exit(0)
+	} else if *versionFlag_p {
+		fmt.Printf("%v\n", common.LongVersionStr())
+		os.Exit(0)
+	}
+
+	// set umask
+	syscall.Umask(0177)
+
+	// get current user
+	usr, err := user.Current()
+	if err != nil {
+		common.ErrLogger.Printf("Failed to get current user: %v", err)
+		os.Exit(1)
+	}
+
+	// record PID in file (for jobbermaster)
+	recordPid(usr)
+
+	// run main logic
+	retcode := daemonMain(usr)
+
+	// remove PID file
+	os.Remove(common.RunnerPidFilePath(usr))
+
+	os.Exit(retcode)
 }

@@ -1,4 +1,5 @@
 MASTER_SOURCES := \
-	main.go
+	main.go \
+	runner_proc.go
 
 MASTER_TEST_SOURCES :=

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/jobfile"
 	"os"
@@ -37,55 +36,41 @@ func runnerThread(ctx *common.NewContext,
 
 	common.Logger.Printf("Entered thread for %v", usr.Username)
 
-	// look for jobberrunner
-	runnerName := "jobberrunner"
-	runnerPath, err := common.FindLibexecProgram(runnerName)
-	if err != nil {
-		common.ErrLogger.Printf("%v", err)
-		ctx.Finish()
-		return
-	}
-
 Loop:
 	for {
 		// spawn runner process
 		common.Logger.Println("Launching runner")
-		cmd := fmt.Sprintf(
-			"%v \"%v\" \"%v\"",
-			runnerPath,
-			common.SocketPath(usr),
-			jobfilePath,
-		)
-		proc := common.Sudo(*usr, cmd)
-		proc.Stdout = os.Stdout
-		proc.Stderr = os.Stderr
-		if err := proc.Start(); err != nil {
+		proc, err := LaunchRunner(usr, jobfilePath)
+		if err != nil {
 			common.ErrLogger.Printf(
-				"Failed to run %v: %v",
-				runnerName,
-				err)
-			break
+				"Failed to launch runner for %v: %v",
+				usr.Username,
+				err,
+			)
+			return
 		}
 
-		procChan := make(chan error)
-		go func() {
-			procChan <- proc.Wait()
-		}()
-
+		// wait for process to exit or context to be cancelled
 		select {
-		case err := <-procChan:
+		case err := <-proc.ExitedChan:
 			if err != nil {
-				common.ErrLogger.Printf("%v: %v", runnerName, err)
+				common.ErrLogger.Printf(
+					"Runner for %v exited with error: %v",
+					usr.Username,
+					err,
+				)
 				if _, flag := err.(*exec.ExitError); !flag {
 					break Loop
 				}
 			}
-			common.Logger.Printf("Restarting %v", runnerName)
+			common.Logger.Printf(
+				"Restarting runner for %v",
+				usr.Username,
+			)
 
 		case <-ctx.CancelledChan():
-			common.Logger.Printf("%v thread cancelled", runnerName)
-			proc.Process.Signal(os.Kill)
-			proc.Wait()
+			common.Logger.Printf("%v thread cancelled", usr.Username)
+			proc.Kill()
 			break Loop
 		}
 	}

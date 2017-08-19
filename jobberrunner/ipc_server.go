@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/rpc"
 	"os"
-	"syscall"
 )
 
 type NewIpcService struct {
@@ -121,24 +120,16 @@ func NewIpcServer(sockPath string,
 func (self *IpcServer) Launch() error {
 	var err error
 
-	// set umask
-	oldUmask := syscall.Umask(0177)
-
 	// make socket
 	os.Remove(self.sockPath)
 	addr, err := net.ResolveUnixAddr("unix", self.sockPath)
 	if err != nil {
-		syscall.Umask(oldUmask)
 		return err
 	}
 	self.listener, err = net.ListenUnix("unix", addr)
 	if err != nil {
-		syscall.Umask(oldUmask)
 		return err
 	}
-
-	// restore umask
-	syscall.Umask(oldUmask)
 
 	// make RPC server
 	rpcServer := rpc.NewServer()
