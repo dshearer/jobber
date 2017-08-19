@@ -1,8 +1,10 @@
 package jobfile
 
 import (
-	"bytes"
+	"fmt"
 	"github.com/dshearer/jobber/Godeps/_workspace/src/github.com/stretchr/testify/require"
+	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -136,13 +138,19 @@ func TestReadNewJobberFile(t *testing.T) {
 	/*
 	 * Set up
 	 */
-	buf := bytes.NewBufferString(NewJobFileEx)
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.Write([]byte(NewJobFileEx))
+	f.Close()
 
 	/*
 	 * Call
 	 */
-	var file *JobberFile
-	file, err := readJobberFile(buf, UsernameEx)
+	var file *JobFile
+	file, err = LoadJobFile(f.Name(), UsernameEx)
 
 	/*
 	 * Test
@@ -184,13 +192,19 @@ func TestReadLegacyJobberFile(t *testing.T) {
 	/*
 	 * Set up
 	 */
-	buf := bytes.NewBufferString(LegacyJobFileEx)
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.Write([]byte(LegacyJobFileEx))
+	f.Close()
 
 	/*
 	 * Call
 	 */
-	var file *JobberFile
-	file, err := readJobberFile(buf, UsernameEx)
+	var file *JobFile
+	file, err = LoadJobFile(f.Name(), UsernameEx)
 
 	/*
 	 * Test

@@ -35,15 +35,22 @@ FINAL_RUNNER_SOURCES := $(RUNNER_SOURCES:%=jobberrunner/%)
 FINAL_RUNNER_TEST_SOURCES := $(RUNNER_TEST_SOURCES:%=jobberrunner/%)
 FINAL_PACKAGING_SOURCES := $(PACKAGING_SOURCES:%=packaging/%)
 
-GO_SOURCES := \
+MAIN_SOURCES := \
 	${FINAL_LIB_SOURCES} \
-	${FINAL_LIB_TEST_SOURCES} \
 	${FINAL_CLIENT_SOURCES} \
-	${FINAL_CLIENT_TEST_SOURCES} \
 	${FINAL_MASTER_SOURCES} \
+	${FINAL_RUNNER_SOURCES}
+	
+TEST_SOURCES := \
+	${FINAL_LIB_TEST_SOURCES} \
+	${FINAL_CLIENT_TEST_SOURCES} \
 	${FINAL_MASTER_TEST_SOURCES} \
-	${FINAL_RUNNER_SOURCES} \
 	${FINAL_RUNNER_TEST_SOURCES}
+
+GO_SOURCES := \
+	${MAIN_SOURCES} \
+	${TEST_SOURCES}
+	
 OTHER_SOURCES := \
 	Makefile \
 	common/sources.mk \
@@ -76,8 +83,13 @@ SE_FILES = se_policy/jobber.fc \
 all : lib ${GO_WKSPC}/bin/jobber ${GO_WKSPC}/bin/jobbermaster ${GO_WKSPC}/bin/jobberrunner
 
 .PHONY : check
-check : ${FINAL_LIB_TEST_SOURCES} ${FINAL_CLIENT_TEST_SOURCES} ${FINAL_MASTER_TEST_SOURCES} ${FINAL_RUNNER_TEST_SOURCES}
-	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobfile
+check : ${TEST_SOURCES}
+	TMPDIR="${TEST_TMPDIR}" go test \
+		github.com/dshearer/jobber/common \
+		github.com/dshearer/jobber/jobber \
+		github.com/dshearer/jobber/jobfile \
+		github.com/dshearer/jobber/jobbermaster \
+		github.com/dshearer/jobber/jobberrunner \
 
 .PHONY : installcheck
 installcheck :

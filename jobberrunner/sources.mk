@@ -5,4 +5,5 @@ RUNNER_SOURCES := \
 	main.go \
 	queue.go
 
-RUNNER_TEST_SOURCES :=
+RUNNER_TEST_SOURCES := \
+	next_run_time_test.go
