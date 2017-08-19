@@ -1,5 +1,5 @@
 CLIENT_SOURCES := \
-	jobber.go
+	main.go
 
 CLIENT_TEST_SOURCES :=
 

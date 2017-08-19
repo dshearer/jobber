@@ -5,6 +5,7 @@ import (
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/jobfile"
 	"os/user"
+	"strings"
 	"time"
 )
 
@@ -13,26 +14,6 @@ type RunLogEntry struct {
 	Time      time.Time
 	Succeeded bool
 	Result    jobfile.JobStatus
-}
-
-/* For sorting RunLogEntries: */
-type runLogEntrySorter struct {
-	entries []RunLogEntry
-}
-
-/* For sorting RunLogEntries: */
-func (s *runLogEntrySorter) Len() int {
-	return len(s.entries)
-}
-
-/* For sorting RunLogEntries: */
-func (s *runLogEntrySorter) Swap(i, j int) {
-	s.entries[i], s.entries[j] = s.entries[j], s.entries[i]
-}
-
-/* For sorting RunLogEntries: */
-func (s *runLogEntrySorter) Less(i, j int) bool {
-	return s.entries[i].Time.After(s.entries[j].Time)
 }
 
 type JobManager struct {
@@ -59,13 +40,6 @@ func (self *JobManager) Launch() error {
 		return &common.Error{"Already launched.", nil}
 	}
 
-	if err := self.loadJobs(); err != nil {
-		return &common.Error{
-			fmt.Sprintf("Failed to read jobfile %v", self.jobfilePath),
-			err,
-		}
-	}
-
 	// run main thread
 	self.CmdChan = make(chan common.ICmd)
 	self.CmdRespChan = make(chan common.ICmdResp)
@@ -84,34 +58,58 @@ func (self *JobManager) Wait() {
 	self.mainThreadCtx.Wait()
 }
 
-func (self *JobManager) loadJobs() error {
-	// read jobfile
-	user, err := user.Current()
-	if err != nil {
-		return &common.Error{"Failed to get current user.", err}
+func (self *JobManager) findJob(name string) *jobfile.Job {
+	for _, job := range self.jfile.Jobs {
+		if job.Name == name {
+			return job
+		}
 	}
-	jfile, err := jobfile.LoadJobFile(self.jobfilePath, user.Username)
-	self.jfile = jfile
-	return err
+	return nil
 }
 
-func (self *JobManager) reloadJobs() error {
-	// stop job-runner thread and wait for current runs to end
-	self.jobRunner.Cancel()
-	for rec := range self.jobRunner.RunRecChan() {
-		self.handleRunRec(rec)
+func (self *JobManager) findJobs(names []string) ([]*jobfile.Job, error) {
+	foundJobs := make([]*jobfile.Job, 0, len(names))
+	missingJobNames := make([]string, 0)
+	for _, name := range names {
+		job := self.findJob(name)
+		if job != nil {
+			foundJobs = append(foundJobs, job)
+		} else {
+			missingJobNames = append(missingJobNames, name)
+		}
 	}
-	self.jobRunner.Wait()
 
-	// reload jobs
-	if err := self.loadJobs(); err != nil {
-		return err
+	if len(missingJobNames) > 0 {
+		msg := fmt.Sprintf(
+			"No such jobs: %v",
+			strings.Join(missingJobNames, ", "),
+		)
+		return foundJobs, &common.Error{What: msg}
+	} else {
+		return foundJobs, nil
+	}
+}
+
+func (self *JobManager) loadJobFile() (*jobfile.JobFile, error) {
+	// get current user
+	user, err := user.Current()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get current user.", err))
 	}
 
-	// restart job-runner thread
-	self.jobRunner.Start(self.jfile.Jobs, self.Shell, self.mainThreadCtx)
-
-	return nil
+	// read jobfile
+	jfile, err := jobfile.LoadJobFile(self.jobfilePath, user.Username)
+	if err == nil {
+		return jfile, nil
+	} else {
+		return nil, &common.Error{
+			What: fmt.Sprintf(
+				"Failed to read jobfile %v",
+				self.jobfilePath,
+			),
+			Cause: err,
+		}
+	}
 }
 
 func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
@@ -140,6 +138,15 @@ func (self *JobManager) runMainThread() {
 		*/
 		common.Logger.Println("In job manager main thread")
 
+		// load job file
+		jfile, err := self.loadJobFile()
+		if err == nil {
+			self.jfile = jfile
+		} else {
+			common.ErrLogger.Printf("%v", err)
+			self.jfile = jobfile.NewEmptyJobFile()
+		}
+
 		// start job-runner thread
 		self.jobRunner.Start(self.jfile.Jobs, self.Shell, self.mainThreadCtx)
 
@@ -160,8 +167,9 @@ func (self *JobManager) runMainThread() {
 
 			case cmd, ok := <-self.CmdChan:
 				if ok {
-					shouldStop := self.doCmd(cmd)
-					if shouldStop {
+					var shouldExit bool
+					self.doCmd(cmd, &shouldExit)
+					if shouldExit {
 						break Loop
 					}
 				} else {
@@ -184,26 +192,190 @@ func (self *JobManager) runMainThread() {
 	}()
 }
 
-func (self *JobManager) doCmd(cmd common.ICmd) bool { // runs in main thread
-	switch cmd.(type) {
+func (self *JobManager) doCmd(
+	tmpCmd common.ICmd,
+	shouldExit *bool) { // runs in main thread
+
+	*shouldExit = false
+
+	switch cmd := tmpCmd.(type) {
 	case common.ReloadCmd:
-		// load jobs
-		err := self.reloadJobs()
-
-		// send response
-		var resp common.ReloadCmdResp
-		if err == nil {
-			resp.NumJobs = len(self.jfile.Jobs)
-		} else {
-			resp.Err = err
+		// read job file
+		newJfile, err := self.loadJobFile()
+		if err != nil {
+			cmd.RespChan <- &common.ReloadCmdResp{Err: err}
+			close(cmd.RespChan)
+			return
 		}
-		self.CmdRespChan <- &resp
 
-		return false
+		// stop job-runner thread and wait for current runs to end
+		self.jobRunner.Cancel()
+		for rec := range self.jobRunner.RunRecChan() {
+			self.handleRunRec(rec)
+		}
+		self.jobRunner.Wait()
+
+		// set new job file
+		self.jfile = newJfile
+
+		// restart job-runner thread
+		self.jobRunner.Start(self.jfile.Jobs, self.Shell, self.mainThreadCtx)
+
+		// make response
+		cmd.RespChan <- &common.ReloadCmdResp{NumJobs: len(self.jfile.Jobs)}
+		close(cmd.RespChan)
+		return
+
+	case common.ListJobsCmd:
+		// make job list
+		jobDescs := make([]common.JobDesc, 0)
+		for _, j := range self.jfile.Jobs {
+			jobDesc := common.JobDesc{
+				Name:   j.Name,
+				Status: j.Status.String(),
+				Schedule: fmt.Sprintf(
+					"%v %v %v %v %v %v",
+					j.FullTimeSpec.Sec,
+					j.FullTimeSpec.Min,
+					j.FullTimeSpec.Hour,
+					j.FullTimeSpec.Mday,
+					j.FullTimeSpec.Mon,
+					j.FullTimeSpec.Wday),
+				NextRunTime:  j.NextRunTime,
+				NotifyOnErr:  j.NotifyOnError,
+				NotifyOnFail: j.NotifyOnFailure,
+				ErrHandler:   j.ErrorHandler.String(),
+			}
+			if j.Paused {
+				jobDesc.Status += " (Paused)"
+				jobDesc.NextRunTime = nil
+			}
+
+			jobDescs = append(jobDescs, jobDesc)
+		}
+
+		// make response
+		cmd.RespChan <- &common.ListJobsCmdResp{Jobs: jobDescs}
+		close(cmd.RespChan)
+		return
+
+	case common.LogCmd:
+		// make log list
+		logDescs := make([]common.LogDesc, 0)
+		for _, l := range self.runLog {
+			logDesc := common.LogDesc{
+				l.Time,
+				l.Job.Name,
+				l.Succeeded,
+				l.Result.String(),
+			}
+			logDescs = append(logDescs, logDesc)
+		}
+
+		// make response
+		cmd.RespChan <- &common.LogCmdResp{Logs: logDescs}
+		close(cmd.RespChan)
+		return
+
+	case common.TestCmd:
+		// find job
+		job := self.findJob(cmd.Job)
+		if job == nil {
+			cmd.RespChan <- &common.TestCmdResp{
+				Err: &common.Error{What: "No such job."},
+			}
+			close(cmd.RespChan)
+			return
+		}
+
+		// run the job in this thread
+		runRec := RunJob(job, self.Shell, true)
+
+		// make response
+		if runRec.Err == nil {
+			cmd.RespChan <- &common.TestCmdResp{Result: runRec.Describe()}
+		} else {
+			cmd.RespChan <- &common.TestCmdResp{Err: runRec.Err}
+		}
+		close(cmd.RespChan)
+		return
+
+	case common.CatCmd:
+		// find job
+		job := self.findJob(cmd.Job)
+		if job == nil {
+			cmd.RespChan <- &common.CatCmdResp{
+				Err: &common.Error{What: "No such job."},
+			}
+			close(cmd.RespChan)
+			return
+		}
+
+		// make response
+		cmd.RespChan <- &common.CatCmdResp{Result: job.Cmd}
+		close(cmd.RespChan)
+		return
+
+	case common.PauseCmd:
+		// look up jobs to pause
+		var jobsToPause []*jobfile.Job
+		if len(cmd.Jobs) > 0 {
+			var err error
+			jobsToPause, err = self.findJobs(cmd.Jobs)
+			if err != nil {
+				cmd.RespChan <- &common.PauseCmdResp{Err: err}
+				close(cmd.RespChan)
+				return
+			}
+		} else {
+			jobsToPause = self.jfile.Jobs
+		}
+
+		// pause them
+		amtPaused := 0
+		for _, job := range jobsToPause {
+			if !job.Paused {
+				job.Paused = true
+				amtPaused += 1
+			}
+		}
+
+		// make response
+		cmd.RespChan <- &common.PauseCmdResp{AmtPaused: amtPaused}
+		close(cmd.RespChan)
+		return
+
+	case common.ResumeCmd:
+		// look up jobs to resume
+		var jobsToResume []*jobfile.Job
+		if len(cmd.Jobs) > 0 {
+			var err error
+			jobsToResume, err = self.findJobs(cmd.Jobs)
+			if err != nil {
+				cmd.RespChan <- &common.ResumeCmdResp{Err: err}
+				close(cmd.RespChan)
+				return
+			}
+		} else {
+			jobsToResume = self.jfile.Jobs
+		}
+
+		// pause them
+		amtResumed := 0
+		for _, job := range jobsToResume {
+			if job.Paused {
+				job.Paused = false
+				amtResumed += 1
+			}
+		}
+
+		// make response
+		cmd.RespChan <- &common.ResumeCmdResp{AmtResumed: amtResumed}
+		close(cmd.RespChan)
+		return
 
 	default:
-		resp := common.ReloadCmdResp{Err: &common.Error{What: "Unknown command."}}
-		self.CmdRespChan <- &resp
-		return false
+		common.ErrLogger.Printf("Unknown command: %v", cmd)
+		return
 	}
 }

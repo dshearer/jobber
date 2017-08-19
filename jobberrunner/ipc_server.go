@@ -9,8 +9,7 @@ import (
 )
 
 type NewIpcService struct {
-	cmdChan  chan<- common.ICmd
-	respChan <-chan common.ICmdResp
+	cmdChan chan<- common.ICmd
 }
 
 func (self *NewIpcService) Reload(
@@ -18,11 +17,89 @@ func (self *NewIpcService) Reload(
 	resp *common.ReloadCmdResp) error {
 
 	// send command
+	cmd.RespChan = make(chan *common.ReloadCmdResp, 1)
 	self.cmdChan <- cmd
 
 	// get response
-	var tmp common.ICmdResp = <-self.respChan
-	*resp = *tmp.(*common.ReloadCmdResp)
+	*resp = *<-cmd.RespChan
+	return resp.Err
+}
+
+func (self *NewIpcService) ListJobs(
+	cmd common.ListJobsCmd,
+	resp *common.ListJobsCmdResp) error {
+
+	// send command
+	cmd.RespChan = make(chan *common.ListJobsCmdResp, 1)
+	self.cmdChan <- cmd
+
+	// get response
+	*resp = *<-cmd.RespChan
+	return resp.Err
+}
+
+func (self *NewIpcService) Log(
+	cmd common.LogCmd,
+	resp *common.LogCmdResp) error {
+
+	// send command
+	cmd.RespChan = make(chan *common.LogCmdResp, 1)
+	self.cmdChan <- cmd
+
+	// get response
+	*resp = *<-cmd.RespChan
+	return resp.Err
+}
+
+func (self *NewIpcService) Test(
+	cmd common.TestCmd,
+	resp *common.TestCmdResp) error {
+
+	// send command
+	cmd.RespChan = make(chan *common.TestCmdResp, 1)
+	self.cmdChan <- cmd
+
+	// get response
+	*resp = *<-cmd.RespChan
+	return resp.Err
+}
+
+func (self *NewIpcService) Cat(
+	cmd common.CatCmd,
+	resp *common.CatCmdResp) error {
+
+	// send command
+	cmd.RespChan = make(chan *common.CatCmdResp, 1)
+	self.cmdChan <- cmd
+
+	// get response
+	*resp = *<-cmd.RespChan
+	return resp.Err
+}
+
+func (self *NewIpcService) Pause(
+	cmd common.PauseCmd,
+	resp *common.PauseCmdResp) error {
+
+	// send command
+	cmd.RespChan = make(chan *common.PauseCmdResp, 1)
+	self.cmdChan <- cmd
+
+	// get response
+	*resp = *<-cmd.RespChan
+	return resp.Err
+}
+
+func (self *NewIpcService) Resume(
+	cmd common.ResumeCmd,
+	resp *common.ResumeCmdResp) error {
+
+	// send command
+	cmd.RespChan = make(chan *common.ResumeCmdResp, 1)
+	self.cmdChan <- cmd
+
+	// get response
+	*resp = *<-cmd.RespChan
 	return resp.Err
 }
 
@@ -38,7 +115,6 @@ func NewIpcServer(sockPath string,
 
 	server := &IpcServer{sockPath: sockPath}
 	server.service.cmdChan = cmdChan
-	server.service.respChan = respChan
 	return server
 }
 

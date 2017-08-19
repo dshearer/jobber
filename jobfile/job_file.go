@@ -34,6 +34,10 @@ type JobConfigEntry struct {
 	NotifyOnFailure *bool   "notifyOnFailure,omitempty"
 }
 
+func NewEmptyJobFile() *JobFile {
+	return &JobFile{Jobs: make([]*Job, 0)}
+}
+
 func LoadJobFile(path string, username string) (*JobFile, error) {
 	/*
 	   Jobber files have two sections: one begins with "[prefs]" on a line, and
