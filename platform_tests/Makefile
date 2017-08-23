@@ -1,4 +1,4 @@
-PLATFORMS = centos_6.7 alpine_3.3 debian_8.5 ubuntu_16.04 centos_7.2.1511
+PLATFORMS = centos_6.7 alpine_3.3 debian_8.5 ubuntu_16.04 centos_7
 
 .PHONY : test
 test :
