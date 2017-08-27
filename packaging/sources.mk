@@ -15,17 +15,17 @@ PACKAGING_SOURCES := \
 	alpine_3.3/jobber.pre-deinstall \
 	alpine_3.3/Makefile \
 	alpine_3.3/pkgrel \
-	debian_8.5/debian-pkg/source/format \
-	debian_8.5/debian-pkg/changelog \
-	debian_8.5/debian-pkg/compat \
-	debian_8.5/debian-pkg/control \
-	debian_8.5/debian-pkg/copyright \
-	debian_8.5/debian-pkg/docs \
-	debian_8.5/debian-pkg/jobber.init \
-	debian_8.5/debian-pkg/jobber.service \
-	debian_8.5/debian-pkg/postinst \
-	debian_8.5/debian-pkg/rules \
-	debian_8.5/Makefile \
+	debian_8/debian-pkg/source/format \
+	debian_8/debian-pkg/changelog \
+	debian_8/debian-pkg/compat \
+	debian_8/debian-pkg/control \
+	debian_8/debian-pkg/copyright \
+	debian_8/debian-pkg/docs \
+	debian_8/debian-pkg/jobber.init \
+	debian_8/debian-pkg/jobber.service \
+	debian_8/debian-pkg/postinst \
+	debian_8/debian-pkg/rules \
+	debian_8/Makefile \
 	centos_7/jobber.service \
 	centos_7/jobber.spec \
 	centos_7/Makefile \

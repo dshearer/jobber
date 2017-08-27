@@ -1,6 +1,6 @@
 _JOBBER_FILE="${HOME}/.jobber"
 
-JOBBER=$(rpm -ql jobber | grep bin/jobber)
+JOBBER=$(find /usr -name jobber -type f)
 
 test_init() {
     if [ "${_INITED}" = "true" ]; then

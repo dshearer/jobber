@@ -1,4 +1,4 @@
-PLATFORMS = centos_6.7 alpine_3.3 debian_8.5 centos_7
+PLATFORMS = centos_6.7 alpine_3.3 debian_8 centos_7
 
 .PHONY : pkg-docker
 pkg-docker :
