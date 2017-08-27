@@ -12,10 +12,10 @@ test_scripts.tar : ${TEST_SCRIPTS}
 	tar -C .. -cf $@ test_scripts
 
 .made_pkgs :
-	make -C "${SRC_ROOT}/packaging/debian_8.5" pkg-docker "DESTDIR=$(abspath .)/"
+	make -C "${SRC_ROOT}/packaging/debian_8" pkg-docker "DESTDIR=$(abspath .)/"
 	touch "$@"
 
 .PHONY : clean
 clean :
 	rm -f *.deb test_scripts.tar docker_output .made_pkgs
-	make -C "${SRC_ROOT}/packaging/debian_8.5" clean
+	make -C "${SRC_ROOT}/packaging/debian_8" clean
