@@ -10,6 +10,7 @@ HANDLER_OUTPUT="handler called"
 OUTPUT_FILE=`mk_temp_file`
 HANDLER=`mk_temp_file`
 cat > "${HANDLER}" <<EOF
+#!/bin/sh
     echo "${HANDLER_OUTPUT}" > "${OUTPUT_FILE}"
 EOF
 chmod a+x "${HANDLER}"
@@ -32,10 +33,11 @@ install_jobber_file "${TMP}"
 sleep 3
 
 # check handler was called
+OUTPUT_FILE_CONTENTS=`cat "${OUTPUT_FILE}"`
 if [ ! -f "${OUTPUT_FILE}" ]; then
     fail "Error handler was not called.  (${OUTPUT_FILE} doesn't exist.)"
-elif [ "`cat "${OUTPUT_FILE}"`" != "${HANDLER_OUTPUT}" ]; then
-    fail "Error handler was not called.  (${OUTPUT_FILE} has wrong contents.)"
+elif [ "${OUTPUT_FILE_CONTENTS}" != "${HANDLER_OUTPUT}" ]; then
+    fail "Error handler was not called.  (${OUTPUT_FILE} has wrong contents: \"${OUTPUT_FILE_CONTENTS}\")"
 else
     pass "Error handler was called."
 fi
