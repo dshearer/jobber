@@ -79,22 +79,37 @@ Loop:
 	common.Logger.Printf("Exiting thread for %v", usr.Username)
 }
 
-func listUsers() ([]string, error) {
-	usernames := make([]string, 0)
+/*
+Get all users that have home dirs.
+*/
+func listUsers() ([]*user.User, error) {
+	users := make([]*user.User, 0)
+
+	// open passwd
 	f, err := os.Open("/etc/passwd")
 	if err != nil {
 		common.ErrLogger.Printf("Failed to open /etc/passwd: %v\n", err)
-		return usernames, err
+		return users, err
 	}
 	defer f.Close()
+
+	// look for users with home dirs
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		parts := strings.Split(scanner.Text(), ":")
-		if len(parts) > 0 {
-			usernames = append(usernames, parts[0])
+		if len(parts) == 0 {
+			continue
 		}
+		usr, err := user.Lookup(parts[0])
+		if err != nil {
+			continue
+		}
+		if len(usr.HomeDir) == 0 {
+			continue
+		}
+		users = append(users, usr)
 	}
-	return usernames, nil
+	return users, nil
 }
 
 func jobfileForUser(user *user.User) *string {
@@ -152,26 +167,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	// get all users and jobfiles by reading passwd
-	usernames, err := listUsers()
+	// get all users
+	users, err := listUsers()
 	if err != nil {
 		os.Exit(1)
 	}
 
 	mainCtx := common.BackgroundContext().MakeChild()
-	for _, username := range usernames {
-		// look up user
-		usr, err := user.Lookup(username)
-		if err != nil {
-			continue
-		}
-
+	for _, usr := range users {
 		// look for jobfile
-		jobfilePath := jobfileForUser(usr)
-		if jobfilePath == nil {
-			// no jobfile for this user
-			continue
-		}
+		jobfilePath := filepath.Join(usr.HomeDir, jobfile.JobFileName)
 
 		// make dir that will contain socket
 		dirPath := common.PerUserDirPath(usr)
@@ -196,7 +201,7 @@ func main() {
 
 		// launch thread to monitor runner process
 		subctx := mainCtx.MakeChild()
-		go runnerThread(subctx, usr, *jobfilePath)
+		go runnerThread(subctx, usr, jobfilePath)
 	}
 
 	// Set up channel on which to send signal notifications.
