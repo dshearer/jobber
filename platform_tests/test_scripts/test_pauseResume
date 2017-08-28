@@ -24,7 +24,7 @@ install_jobber_file "${TMP}"
 sleep 3
 
 # pause it
-jobber pause TestJob >/dev/null
+"${JOBBER}" pause TestJob >/dev/null
 sleep 1
 
 # get latest output
@@ -38,7 +38,7 @@ OUTPUT_2=`cat "${OUTPUT_FILE}"`
 assert_equal "${OUTPUT_1}" "${OUTPUT_2}" "Job wasn't paused."
 
 # resume it
-jobber resume TestJob >/dev/null
+"${JOBBER}" resume TestJob >/dev/null
 
 # wait a little
 sleep 5

@@ -12,5 +12,5 @@ COPY src.tgz /
 RUN tar -xzmf /src.tgz
 
 CMD cd /jobber-* && \
-    make -C packaging/debian_8.5 pkg-local DESTDIR=/pkgs && \
+    make -C packaging/debian_8 pkg-local DESTDIR=/pkgs && \
     cd /pkgs && tar -cf /pkgs.tar ./*
