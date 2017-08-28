@@ -109,8 +109,8 @@ install : installdirs all
 .PHONY : uninstall
 uninstall :
 	-rm "${DESTDIR}${libexecdir}/jobbermaster"
-	-rm "${DESTDIR}${libexecdir}jobberrunner"
-	-rm "${DESTDIR}${bindir}jobber"
+	-rm "${DESTDIR}${libexecdir}/jobberrunner"
+	-rm "${DESTDIR}${bindir}/jobber"
 
 dist : ${ALL_SOURCES}
 	mkdir -p "dist-tmp/${DIST_PKG_NAME}" `dirname "${DESTDIR}${DIST_PKG_NAME}.tgz"`
