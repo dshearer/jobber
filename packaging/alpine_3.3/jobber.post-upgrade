@@ -1,13 +1,10 @@
 #!/bin/sh
 
-JOBBER=/usr/bin/jobber
-JOBBERD=/usr/libexec/jobberd
+DAEMON=/usr/libexec/jobbermaster
 
 # set owner and perms of binaries
-chown jobber_client:root "${JOBBER}"
-chmod 4755 "${JOBBER}"
-chown root:root "${JOBBERD}"
-chmod 0755 "${JOBBERD}"
+chown root:root "${DAEMON}"
+chmod 0755 "${DAEMON}"
 
 # restart jobber
 service jobber condrestart
