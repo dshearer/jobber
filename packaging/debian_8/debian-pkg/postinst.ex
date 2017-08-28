@@ -19,14 +19,7 @@ set -e
 
 
 case "$1" in
-    configure)
-        adduser --system --no-create-home jobber_client
-        echo "Setting owners/permissions..."
-        chown jobber_client:root /usr/bin/jobber
-        chmod 04755 /usr/bin/jobber
-    ;;
-    
-    abort-upgrade|abort-deconfigure|abort-remove)
+    configure|abort-upgrade|abort-deconfigure|abort-remove)
     ;;
 
     *)

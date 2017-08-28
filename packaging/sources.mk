@@ -23,7 +23,6 @@ PACKAGING_SOURCES := \
 	debian_8/debian-pkg/docs \
 	debian_8/debian-pkg/jobber.init \
 	debian_8/debian-pkg/jobber.service \
-	debian_8/debian-pkg/postinst \
 	debian_8/debian-pkg/rules \
 	debian_8/Makefile \
 	centos_7/jobber.service \

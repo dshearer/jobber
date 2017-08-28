@@ -4,7 +4,7 @@ After=syslog.target
 
 [Service]
 Type=simple
-ExecStart=/usr/libexec/jobberd
+ExecStart=/usr/libexec/jobbermaster
 
 [Install]
 WantedBy=multi-user.target
