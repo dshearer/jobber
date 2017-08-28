@@ -1,5 +1,7 @@
 _JOBBER_FILE="${HOME}/.jobber"
 
+JOBBER=$(find /usr -name jobber -type f)
+
 test_init() {
     if [ "${_INITED}" = "true" ]; then
         return 0
@@ -21,7 +23,7 @@ _next_tmp_idx() {
 test_cleanup() {
     if [ -f "${_TMPDIR}/.delete_jobber_file" ]; then
         rm -f "${_JOBBER_FILE}"
-        jobber reload
+        "${JOBBER}" reload >/dev/null
     fi
     
     if [ -n "${_TMPDIR}" ]; then
@@ -67,7 +69,7 @@ install_jobber_file() {
     
     mv "${1}" "${_JOBBER_FILE}"
     touch "${_TMPDIR}/.delete_jobber_file"
-    jobber reload >/dev/null
+    "${JOBBER}" reload >/dev/null
 }
 
 log_info() {
