@@ -12,6 +12,6 @@ COPY test_scripts.tar "${TEST_SCRIPTS}"
 
 CMD yum -y install "${RPM_DIR}"/*.rpm && \
     systemctl is-enabled jobber.service && \
-    (/usr/local/libexec/jobberd >/dev/null 2>&1 &) && \
+    (/usr/local/libexec/jobbermaster >/dev/null 2>&1 &) && \
     tar xf "${TEST_SCRIPTS}" && \
     test_scripts/run_tests
