@@ -5,7 +5,6 @@ SRC_TARFILE = "jobber-${VERSION}.tgz"
 VERSION := $(shell cat ${SRC_ROOT}/version)
 PKGREL := $(shell cat pkgrel)
 PLATFORM = x86_64
-RPMFILE = jobber-${VERSION}-${PKGREL}.${PLATFORM}.rpm
 DOCKER_IMAGE_NAME = jobber/centos6.7_build_rpm
 
 VM_NAME := jobber-test-centos-6.9
@@ -44,7 +43,8 @@ pkg-vm : jobber.spec ${WORK_DIR}/${SRC_TARFILE}
 	# copy package out of VM
 	${VMCMD} copyfrom \
 		--target-directory \
-		${abspath ${DESTDIR}/${RPMFILE}} /home/build/rpms/${RPMFILE}
+		${abspath ${DESTDIR}/jobber-${VERSION}-${PKGREL}.el6.centos.${PLATFORM}.rpm} \
+		/home/build/rpms/jobber-${VERSION}-${PKGREL}.${PLATFORM}.rpm
 	
 	# stop VM
 	VBoxManage controlvm "${VM_NAME}" savestate

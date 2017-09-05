@@ -2,7 +2,7 @@ SRC_ROOT = ../..
 IMAGE_NAME = jobber/ubuntu16.04_test_pkg
 TEST_SCRIPTS := $(wildcard ../test_scripts/*)
 VERSION := $(shell cat ${SRC_ROOT}/version)
-PKG_NAME := jobber_${VERSION}-1_amd64.deb
+PKG_NAME := jobber_${VERSION}-1_ubuntu17_amd64.deb
 
 VM_NAME := jobber-test-ubuntu-17
 VMCMD := VBoxManage guestcontrol "${VM_NAME}" \
@@ -46,10 +46,10 @@ test_scripts.tar : ${TEST_SCRIPTS}
 	tar -C .. -cf $@ test_scripts
 
 .made_pkgs_vm :
-	make -C "${SRC_ROOT}/packaging/debian_8" pkg-vm "DESTDIR=$(abspath .)/"
+	make -C "${SRC_ROOT}/packaging/ubuntu_17" pkg-vm "DESTDIR=$(abspath .)/"
 	touch "$@"
 
 .PHONY : clean
 clean :
 	rm -f *.deb test_scripts.tar docker_output .made_pkgs_vm
-	make -C "${SRC_ROOT}/packaging/debian_8" clean
+	make -C "${SRC_ROOT}/packaging/ubuntu_17" clean

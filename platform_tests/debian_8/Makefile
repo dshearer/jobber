@@ -2,7 +2,7 @@ SRC_ROOT = ../..
 IMAGE_NAME = jobber/debian8.5_test_pkg
 TEST_SCRIPTS := $(wildcard ../test_scripts/*)
 VERSION := $(shell cat ${SRC_ROOT}/version)
-PKG_NAME := jobber_${VERSION}-1_amd64.deb
+PKG_NAME := jobber_${VERSION}-1_debian8_amd64.deb
 
 VM_NAME := jobber-test-debian-8
 VMCMD := VBoxManage guestcontrol "${VM_NAME}" \

@@ -3,15 +3,14 @@ WORK_DIR ?= work
 SRC_ROOT := $(abspath ../..)
 SRC_TARFILE = jobber-${VERSION}.tgz
 VERSION := $(shell cat ${SRC_ROOT}/version)
-DOCKER_IMAGE_NAME = jobber/debian8.5_build_pkg
 
-VM_NAME := jobber-test-debian-8
+VM_NAME := jobber-test-ubuntu-17
 VMCMD := VBoxManage guestcontrol "${VM_NAME}" \
 		--username build --password pw
 
 .PHONY : main
 main :
-	@echo "Choose pkg-local or pkg-docker or pkg-vm"
+	@echo "Choose pkg-local or pkg-vm"
 
 .PHONY : ${WORK_DIR}/${SRC_TARFILE}
 ${WORK_DIR}/${SRC_TARFILE} :
@@ -33,30 +32,18 @@ pkg-vm : ${WORK_DIR}/${SRC_TARFILE}
 	${VMCMD} run -- /bin/tar -C /home/build -xzmf \
 		"/home/build/${SRC_TARFILE}"
 	${VMCMD} run -- /usr/bin/make -C \
-		/home/build/jobber-${VERSION}/packaging/debian_8 \
+		/home/build/jobber-${VERSION}/packaging/ubuntu_17 \
 		pkg-local DESTDIR=/home/build/pkgs
 	${VMCMD} run -- /bin/ls -l /home/build/pkgs
 	
 	# copy package out of VM
 	${VMCMD} copyfrom \
 		--target-directory \
-		"${abspath ${DESTDIR}/jobber_${VERSION}-1_debian8_amd64.deb}" \
+		"${abspath ${DESTDIR}/jobber_${VERSION}-1_ubuntu17_amd64.deb}" \
 		"/home/build/pkgs/jobber_${VERSION}-1_amd64.deb"
 	
 	# stop VM
 	VBoxManage controlvm "${VM_NAME}" savestate
-
-.PHONY : pkg-docker
-pkg-docker : ${WORK_DIR}/${SRC_TARFILE} docker/Dockerfile
-	# bundle source
-	mv "${WORK_DIR}/${SRC_TARFILE}" docker/src.tgz
-	
-	# run docker image
-	docker build -t "${DOCKER_IMAGE_NAME}" docker
-	docker run "${DOCKER_IMAGE_NAME}"
-	docker cp "`docker ps -alq`:/pkgs.tar" "${DESTDIR}/"
-	tar -C "${DESTDIR}/" -xmf "${DESTDIR}/pkgs.tar"
-	rm -f "${DESTDIR}/pkgs.tar"
 
 .PHONY : pkg-local
 pkg-local : ${WORK_DIR}/${SRC_TARFILE}
@@ -69,5 +56,5 @@ pkg-local : ${WORK_DIR}/${SRC_TARFILE}
 
 .PHONY : clean
 clean :
-	rm -rf "${WORK_DIR}" docker/src.tgz *.deb
+	rm -rf "${WORK_DIR}" *.deb
 

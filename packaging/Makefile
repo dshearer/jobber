@@ -1,5 +1,5 @@
 PLATFORMS_DOCKER = centos_6 alpine_3.3 debian_8 centos_7
-PLATFORMS_VM = centos_6 debian_8 centos_7
+PLATFORMS_VM = centos_6 debian_8 centos_7 ubuntu_17
 
 .PHONY : main
 main :

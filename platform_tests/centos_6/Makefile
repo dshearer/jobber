@@ -4,7 +4,7 @@ TEST_SCRIPTS = $(wildcard ../test_scripts/*)
 VERSION := $(shell cat ${SRC_ROOT}/version)
 PKGREL := $(shell cat ../../packaging/centos_6/pkgrel)
 PLATFORM = x86_64
-RPMFILE = jobber-${VERSION}-${PKGREL}.${PLATFORM}.rpm
+RPMFILE = jobber-${VERSION}-${PKGREL}.el6.centos.${PLATFORM}.rpm
 
 VM_NAME := jobber-test-centos-6.9
 VMCMD := VBoxManage guestcontrol "${VM_NAME}" \
