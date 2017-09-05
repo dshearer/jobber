@@ -25,6 +25,17 @@ PACKAGING_SOURCES := \
 	debian_8/debian-pkg/jobber.service \
 	debian_8/debian-pkg/rules \
 	debian_8/Makefile \
+	ubuntu_17/debian-pkg/source/format \
+	ubuntu_17/debian-pkg/changelog \
+	ubuntu_17/debian-pkg/compat \
+	ubuntu_17/debian-pkg/control \
+	ubuntu_17/debian-pkg/copyright \
+	ubuntu_17/debian-pkg/docs \
+	ubuntu_17/debian-pkg/jobber.init \
+	ubuntu_17/debian-pkg/jobber.service \
+	ubuntu_17/debian-pkg/postinst \
+	ubuntu_17/debian-pkg/rules \
+	ubuntu_17/Makefile \
 	centos_7/jobber.service \
 	centos_7/jobber.spec \
 	centos_7/Makefile \

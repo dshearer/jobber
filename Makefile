@@ -113,10 +113,12 @@ uninstall :
 	-rm "${DESTDIR}${bindir}/jobber"
 
 dist : ${ALL_SOURCES}
-	mkdir -p "dist-tmp/${DIST_PKG_NAME}" `dirname "${DESTDIR}${DIST_PKG_NAME}.tgz"`
-	"${srcdir}/buildtools/srcsync" ${ALL_SOURCES} "dist-tmp/${DIST_PKG_NAME}"
-	tar -C dist-tmp -czf "${DESTDIR}${DIST_PKG_NAME}.tgz" "${DIST_PKG_NAME}"
-	rm -rf dist-tmp
+	mkdir -p "${DESTDIR}dist-tmp"
+	"${srcdir}/buildtools/srcsync" ${ALL_SOURCES} \
+		"${DESTDIR}dist-tmp/${DIST_PKG_NAME}"
+	tar -C "${DESTDIR}dist-tmp" -czf "${DESTDIR}${DIST_PKG_NAME}.tgz" \
+		"${DIST_PKG_NAME}"
+	rm -rf "${DESTDIR}dist-tmp"
 
 .PHONY : clean
 clean :
