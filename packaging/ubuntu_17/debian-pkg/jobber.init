@@ -16,8 +16,8 @@
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/bin
 DESC="jobber"
-NAME=jobberd
-DAEMON=/usr/libexec/jobberd
+NAME=jobbermaster
+DAEMON=/usr/libexec/jobbermaster
 DAEMON_ARGS=""
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME

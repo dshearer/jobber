@@ -33,7 +33,6 @@ PACKAGING_SOURCES := \
 	ubuntu_17/debian-pkg/docs \
 	ubuntu_17/debian-pkg/jobber.init \
 	ubuntu_17/debian-pkg/jobber.service \
-	ubuntu_17/debian-pkg/postinst \
 	ubuntu_17/debian-pkg/rules \
 	ubuntu_17/Makefile \
 	centos_7/jobber.service \
