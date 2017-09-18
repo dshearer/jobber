@@ -1,0 +1,15 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+
+  config.vm.provision "shell", inline: <<-SHELL
+    yum update -y
+    yum install -y epel-release rpm-build
+    yum install -y golang python-pip
+    yum upgrade -y
+    pip install --upgrade pip
+    pip install robotframework
+  SHELL
+end

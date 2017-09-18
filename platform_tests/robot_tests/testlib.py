@@ -15,7 +15,7 @@ class testlib(object):
 
     def __init__(self):
         # get paths to stuff
-        self._jobfile_path = os.path.expanduser('~/.jobber')
+        self._jobfile_path = os.path.expanduser('/root/.jobber')
         self._jobber_path = \
             sp_check_output(['find', '/usr', '-name', \
                              'jobber', '-type', 'f']).strip()

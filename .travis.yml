@@ -7,5 +7,5 @@ services:
 
 script:
   - make check
-  - make -C platform_tests test-docker
+  - make -C smoke_tests
 

@@ -1,19 +1,37 @@
-PLATFORMS_DOCKER = centos_6 alpine_3.3 debian_8 centos_7
-PLATFORMS_VM = centos_6 debian_8 centos_7 ubuntu_17
+PLATFORMS = centos_6 debian_8 centos_7 ubuntu_16
 
 .PHONY : main
 main :
-	@echo "Choose pkg-docker or pkg-vm or clean"
+	@echo "Choose pkg-vm or test-vm or clean or deepclean"
 
-.PHONY : pkg-docker
-pkg-docker :
-	for P in ${PLATFORMS_DOCKER}; do make -C "$${P}" pkg-docker; done
+define RECIPES
+.PHONY : pkg-vm-${platform}
+pkg-vm-${platform} :
+	mkdir -p "results/${platform}"
+	$${MAKE} -C ${platform} pkg-vm "DESTDIR=$(abspath results/${platform})/"
+
+test-vm-${platform} :
+	mkdir -p "results/${platform}"
+	$${MAKE} -C ${platform} test-vm "DESTDIR=$(abspath results/${platform})/"
+
+clean-${platform} :
+	$${MAKE} -C ${platform} clean
+
+deepclean-${platform} :
+	$${MAKE} -C ${platform} deepclean
+endef
+
+$(foreach platform,${PLATFORMS}, $(eval ${RECIPES}))
 
 .PHONY : pkg-vm
-pkg-vm :
-	for P in ${PLATFORMS_VM}; do make -C "$${P}" pkg-vm; done
+pkg-vm : $(patsubst %,pkg-vm-%,${PLATFORMS})
+
+.PHONY : test-vm
+test-vm : $(patsubst %,test-vm-%,${PLATFORMS})
 
 .PHONY : clean
-clean :
-	for P in ${PLATFORMS_DOCKER}; do make -C "$${P}" clean; done
-	for P in ${PLATFORMS_VM}; do make -C "$${P}" clean; done
+clean : $(patsubst %,clean-%,${PLATFORMS})
+	rm -rf results
+
+.PHONY : deepclean
+deepclean : $(patsubst %,deepclean-%,${PLATFORMS})

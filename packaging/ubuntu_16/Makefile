@@ -1,11 +1,10 @@
 include ../head.mk
 
-PACKAGING_SUBDIR = debian_8
+PACKAGING_SUBDIR = ubuntu_16
 PKGFILE ?= jobber_${VERSION}-1_amd64.deb
 PKGFILE_DEPS = $(wildcard debian-pkg/**)
 PKGFILE_VM_PATH = jobber_${VERSION}-1_amd64.deb
 INSTALL_PKG_CMD = sudo dpkg -i ${PKGFILE}
-DOCKER_IMAGE_NAME = jobber/debian8.5_build_pkg
 
 .PHONY : pkg-local
 pkg-local : ${WORK_DIR}/${SRC_TARFILE}
