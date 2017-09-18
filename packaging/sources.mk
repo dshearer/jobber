@@ -1,5 +1,7 @@
 PACKAGING_SOURCES := \
 	Makefile \
+	head.mk \
+	tail.mk \
 	centos_6/se_policy/jobber.fc \
 	centos_6/se_policy/jobber.if \
 	centos_6/se_policy/jobber.te \
@@ -25,16 +27,16 @@ PACKAGING_SOURCES := \
 	debian_8/debian-pkg/jobber.service \
 	debian_8/debian-pkg/rules \
 	debian_8/Makefile \
-	ubuntu_17/debian-pkg/source/format \
-	ubuntu_17/debian-pkg/changelog \
-	ubuntu_17/debian-pkg/compat \
-	ubuntu_17/debian-pkg/control \
-	ubuntu_17/debian-pkg/copyright \
-	ubuntu_17/debian-pkg/docs \
-	ubuntu_17/debian-pkg/jobber.init \
-	ubuntu_17/debian-pkg/jobber.service \
-	ubuntu_17/debian-pkg/rules \
-	ubuntu_17/Makefile \
+	ubuntu_16/debian-pkg/source/format \
+	ubuntu_16/debian-pkg/changelog \
+	ubuntu_16/debian-pkg/compat \
+	ubuntu_16/debian-pkg/control \
+	ubuntu_16/debian-pkg/copyright \
+	ubuntu_16/debian-pkg/docs \
+	ubuntu_16/debian-pkg/jobber.init \
+	ubuntu_16/debian-pkg/jobber.service \
+	ubuntu_16/debian-pkg/rules \
+	ubuntu_16/Makefile \
 	centos_7/jobber.service \
 	centos_7/jobber.spec \
 	centos_7/Makefile \
