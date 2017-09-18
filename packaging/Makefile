@@ -1,4 +1,4 @@
-PLATFORMS = centos_6 debian_8 centos_7 ubuntu_16
+PLATFORMS = centos_6 centos_7 debian_8 ubuntu_16
 
 .PHONY : main
 main :
@@ -8,11 +8,15 @@ define RECIPES
 .PHONY : pkg-vm-${platform}
 pkg-vm-${platform} :
 	mkdir -p "results/${platform}"
-	$${MAKE} -C ${platform} pkg-vm "DESTDIR=$(abspath results/${platform})/"
+	$${MAKE} -C ${platform} pkg-vm \
+		"DESTDIR=$(abspath results/${platform})/" \
+	    2>&1 | tee "results/${platform}/pkg-vm.log"
 
 test-vm-${platform} :
 	mkdir -p "results/${platform}"
-	$${MAKE} -C ${platform} test-vm "DESTDIR=$(abspath results/${platform})/"
+	$${MAKE} -C ${platform} test-vm \
+		"DESTDIR=$(abspath results/${platform})/" \
+	    2>&1 | tee "results/${platform}/test-vm.log"
 
 clean-${platform} :
 	$${MAKE} -C ${platform} clean

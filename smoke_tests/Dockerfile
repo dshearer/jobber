@@ -7,18 +7,20 @@ RUN yum -y install tar
 RUN yum -y install systemd
 RUN yum -y install make
 RUN yum -y install python-pip
+RUN yum -y install sudo
 RUN yum clean all
 RUN pip install robotframework
 
-ENV ROBOT_TAR   robot_tests.tar
+ENV TEST_TAR   platform_tests.tar
 ENV SRC_TAR     jobber.tgz
 
-COPY ${ROBOT_TAR}   /
+COPY ${TEST_TAR}   /
 COPY ${SRC_TAR}     /
 
 CMD tar xzf /jobber.tgz && \
     make -C /jobber-*/packaging/centos_7 pkg-local DESTDIR=/ && \
     yum install -y /*.rpm && \
     (/usr/local/libexec/jobberd >/dev/null 2>&1 &) && \
-    tar xf /robot_tests.tar && \
-    robot robot_tests/test.robot
+    useradd normuser --create-home && \
+    tar xf /platform_tests.tar && \
+    robot platform_tests/test.robot
