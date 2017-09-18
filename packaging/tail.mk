@@ -15,10 +15,10 @@ ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
 	
 	# copy Jobber source to VM
 	vagrant scp "${WORK_DIR}/${SRC_TARFILE}" ":${SRC_TARFILE}"
-	vagrant ssh -c "tar -xzmf ${SRC_TARFILE}"
+	vagrant ssh --no-tty -c "tar -xzmf ${SRC_TARFILE}"
 	
 	# make Jobber package
-	vagrant ssh -c "make -C \
+	vagrant ssh --no-tty -c "make -C \
 		jobber-${VERSION}/packaging/${PACKAGING_SUBDIR} pkg-local \
 		DESTDIR=~/"
 	
@@ -31,20 +31,20 @@ ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
 	touch "$@"
 
 .PHONY : test-vm
-test-vm : ${DESTDIR}${PKGFILE} robot_tests.tar
+test-vm : ${DESTDIR}${PKGFILE} platform_tests.tar
 	# restore "Base" snapshot and start VM
 	vagrant snapshot restore Base
 	
 	# install package
 	vagrant scp "${DESTDIR}${PKGFILE}" ":${PKGFILE}"
-	vagrant ssh -c "${INSTALL_PKG_CMD}"
+	vagrant ssh --no-tty -c "${INSTALL_PKG_CMD}"
 	
 	# copy test scripts to VM
-	vagrant scp robot_tests.tar :robot_tests.tar
+	vagrant scp platform_tests.tar :platform_tests.tar
 	
 	# run test scripts
-	vagrant ssh -c "tar xf robot_tests.tar"
-	vagrant ssh -c "sudo robot robot_tests/test.robot ||:" > testlog.txt
+	vagrant ssh --no-tty -c "tar xf platform_tests.tar"
+	vagrant ssh --no-tty -c "sudo robot platform_tests/test.robot ||:" > testlog.txt
 	
 	# retrieve test reports
 	mkdir -p "${DESTDIR}test_report"
@@ -62,13 +62,13 @@ test-vm : ${DESTDIR}${PKGFILE} robot_tests.tar
 ${WORK_DIR}/${SRC_TARFILE} :
 	make -C "${SRC_ROOT}" dist "DESTDIR=${WORK_DIR}/"
 
-robot_tests.tar : ${ROBOT_TESTS}
-	tar -C ${ROBOT_TESTS_DIR}/.. -cf "$@" robot_tests
+platform_tests.tar : $(wildcard ${SRC_ROOT}/platform_tests/**)
+	tar -C "${SRC_ROOT}" -cf "$@" platform_tests
 
 .PHONY : clean
 clean :
 	rm -rf "${WORK_DIR}" "${DESTDIR}${PKGFILE}" docker/src.tgz \
-		testlog.txt "${DESTDIR}test_report" robot_tests.tar
+		testlog.txt "${DESTDIR}test_report" platform_tests.tar
 	-vagrant suspend
 
 .PHONY : deepclean

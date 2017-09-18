@@ -3,21 +3,23 @@ PLATFORM = centos_7
 SRC_ROOT := $(abspath ..)
 VERSION := $(shell cat ${SRC_ROOT}/version)
 SRC_TARFILE = jobber.tgz
-ROBOT_TESTS_DIR = ${SRC_ROOT}/platform_tests/robot_tests
-ROBOT_TESTS = $(wildcard ${ROBOT_TESTS_DIR}/*)
 
 DOCKER_RUN = docker run ${DOCKER_IMAGE_NAME}
 
 .PHONY : test-docker
-test-docker : robot_tests.tar jobber.tgz
+test-docker : platform_tests.tar jobber.tgz
 	docker build -t "${DOCKER_IMAGE_NAME}" .
-	docker run "${DOCKER_IMAGE_NAME}"
+	(docker run "${DOCKER_IMAGE_NAME}" ||:) > testlog.txt
 	mkdir -p test_report
 	docker cp "`docker ps -alq`:/log.html" test_report/
 	docker cp "`docker ps -alq`:/report.html" test_report/
+	
+	@cat testlog.txt
+	@egrep '.* critical tests,.* 0 failed[[:space:]]*$$' testlog.txt\
+		>/dev/null
 
-robot_tests.tar : ${ROBOT_TESTS}
-	tar -C ${ROBOT_TESTS_DIR}/.. -cf "$@" robot_tests
+platform_tests.tar : $(wildcard ${SRC_ROOT}/platform_tests/**)
+	tar -C "${SRC_ROOT}" -cf "$@" platform_tests
 
 jobber.tgz :
 	make -C "${SRC_ROOT}" dist "DESTDIR=$(abspath .)/"
@@ -25,4 +27,4 @@ jobber.tgz :
 
 .PHONY : clean
 clean :
-	rm -rf robot_tests.tar jobber.tgz test_report
+	rm -rf platform_tests.tar jobber.tgz test_report testlog.txt
