@@ -7,12 +7,13 @@ libexecdir = ${exec_prefix}/libexec
 srcdir = .
 INSTALL = install
 INSTALL_PROGRAM = ${INSTALL}
-GO_EXE_BUILD_ARGS=
 
 GO_WKSPC ?= ${abspath ../../../..}
 LIB = jobber.a
 TEST_TMPDIR = ${PWD}
 DIST_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
+
+GO = GOPATH=${GO_WKSPC} go
 
 # read lists of source files
 include common/sources.mk \
@@ -122,26 +123,26 @@ dist : ${ALL_SOURCES}
 
 .PHONY : clean
 clean :
-	-go clean -i github.com/dshearer/jobber/common
-	-go clean -i github.com/dshearer/jobber/jobfile
-	-go clean -i github.com/dshearer/jobber/jobber
-	-go clean -i github.com/dshearer/jobber/jobbermaster
-	-go clean -i github.com/dshearer/jobber/jobberrunner
+	-${GO} clean -i github.com/dshearer/jobber/common
+	-${GO} clean -i github.com/dshearer/jobber/jobfile
+	-${GO} clean -i github.com/dshearer/jobber/jobber
+	-${GO} clean -i github.com/dshearer/jobber/jobbermaster
+	-${GO} clean -i github.com/dshearer/jobber/jobberrunner
 	rm -f "${DESTDIR}${DIST_PKG_NAME}.tgz"
 
 .PHONY : lib
 lib : ${FINAL_LIB_SOURCES}
-	go install ${LDFLAGS} "github.com/dshearer/jobber/common"
-	go install ${LDFLAGS} "github.com/dshearer/jobber/jobfile"
+	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/common"
+	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/jobfile"
 
 ${GO_WKSPC}/bin/jobber : ${FINAL_CLIENT_SOURCES} lib
-	go install ${LDFLAGS} ${GO_EXE_BUILD_ARGS} github.com/dshearer/jobber/jobber
+	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobber
 
 ${GO_WKSPC}/bin/jobbermaster : ${FINAL_MASTER_SOURCES} lib
-	go install ${LDFLAGS} ${GO_EXE_BUILD_ARGS} github.com/dshearer/jobber/jobbermaster
+	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobbermaster
 
 ${GO_WKSPC}/bin/jobberrunner : ${FINAL_RUNNER_SOURCES} lib
-	go install ${LDFLAGS} ${GO_EXE_BUILD_ARGS} github.com/dshearer/jobber/jobberrunner
+	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobberrunner
 
 
 ## OLD:

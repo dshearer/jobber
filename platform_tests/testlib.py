@@ -129,6 +129,10 @@ notifyProgram: {notify_prog}
     
     def _check_jobber_list_output(self, output, exp_job_names):
         lines = output.split("\n")
+        if len(lines) <= 1:
+            msg = "Expected output to have multiple lines: \"{0}\"".\
+                format(output)
+            raise AssertionError(msg)
         listed_jobs = set([line.split()[0] for line in lines[1:]])
         exp_job_names = set(exp_job_names.split(","))
         if listed_jobs != exp_job_names:
@@ -144,6 +148,7 @@ notifyProgram: {notify_prog}
         if all_users:
             args.append('-a')
         output = sp_check_output(args).strip()
+        print(output)
         
         # check output
         self._check_jobber_list_output(output, job_names)
