@@ -6,21 +6,13 @@ import (
 	"github.com/dshearer/jobber/jobfile"
 	"os/user"
 	"strings"
-	"time"
 )
-
-type RunLogEntry struct {
-	Job       *jobfile.Job
-	Time      time.Time
-	Succeeded bool
-	Result    jobfile.JobStatus
-}
 
 type JobManager struct {
 	jobfilePath   string
 	launched      bool
 	jfile         *jobfile.JobFile
-	runLog        []RunLogEntry
+	runLog        RunLog
 	CmdChan       chan common.ICmd
 	CmdRespChan   chan common.ICmdResp
 	mainThreadCtx *common.NewContext
@@ -32,6 +24,7 @@ func NewJobManager(jobfilePath string) *JobManager {
 	jm := JobManager{Shell: "/bin/sh"}
 	jm.jobfilePath = jobfilePath
 	jm.jobRunner = NewJobRunnerThread()
+	jm.runLog = NewMemOnlyRunLog(100)
 	return &jm
 }
 
@@ -117,8 +110,11 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 		common.ErrLogger.Panicln(rec.Err)
 	}
 
-	self.runLog = append(self.runLog,
-		RunLogEntry{rec.Job, rec.RunTime, rec.Succeeded, rec.NewStatus})
+	// record in run log
+	newRunLogEntry := RunLogEntry{
+		rec.Job, rec.RunTime, rec.Succeeded, rec.NewStatus,
+	}
+	self.runLog.Put(newRunLogEntry)
 
 	/* NOTE: error-handler was already applied by the job, if necessary. */
 
@@ -262,7 +258,7 @@ func (self *JobManager) doCmd(
 	case common.LogCmd:
 		// make log list
 		logDescs := make([]common.LogDesc, 0)
-		for _, l := range self.runLog {
+		for _, l := range self.runLog.GetFromIndex() {
 			logDesc := common.LogDesc{
 				l.Time,
 				l.Job.Name,

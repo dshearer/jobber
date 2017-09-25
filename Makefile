@@ -87,7 +87,7 @@ all : lib ${GO_WKSPC}/bin/jobber ${GO_WKSPC}/bin/jobbermaster ${GO_WKSPC}/bin/jo
 
 .PHONY : check
 check : ${TEST_SOURCES}
-	TMPDIR="${TEST_TMPDIR}" go test \
+	TMPDIR="${TEST_TMPDIR}" ${GO} test \
 		github.com/dshearer/jobber/common \
 		github.com/dshearer/jobber/jobber \
 		github.com/dshearer/jobber/jobfile \
