@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/Godeps/_workspace/src/github.com/stretchr/testify/require"
 	"github.com/dshearer/jobber/jobfile"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )

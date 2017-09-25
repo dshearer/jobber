@@ -13,7 +13,8 @@ LIB = jobber.a
 TEST_TMPDIR = ${PWD}
 DIST_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
 
-GO = GOPATH=${GO_WKSPC} go
+GO = GO15VENDOREXPERIMENT=1 GOPATH=${GO_WKSPC} go
+GODEP = GO15VENDOREXPERIMENT=1 GOPATH=${GO_WKSPC} godep
 
 # read lists of source files
 include common/sources.mk \
@@ -65,6 +66,7 @@ OTHER_SOURCES := \
 	LICENSE \
 	version \
 	Godeps \
+	vendor \
 	${FINAL_PACKAGING_SOURCES}
 
 ALL_SOURCES := \
@@ -132,6 +134,7 @@ clean :
 
 .PHONY : lib
 lib : ${FINAL_LIB_SOURCES}
+	@go version
 	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/common"
 	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/jobfile"
 
@@ -144,6 +147,9 @@ ${GO_WKSPC}/bin/jobbermaster : ${FINAL_MASTER_SOURCES} lib
 ${GO_WKSPC}/bin/jobberrunner : ${FINAL_RUNNER_SOURCES} lib
 	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobberrunner
 
+.PHONY : get-deps
+get-deps :
+	${GODEP} save ./...
 
 ## OLD:
 

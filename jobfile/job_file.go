@@ -3,8 +3,8 @@ package jobfile
 import (
 	"bufio"
 	"fmt"
-	"github.com/dshearer/jobber/Godeps/_workspace/src/gopkg.in/yaml.v2"
 	"github.com/dshearer/jobber/common"
+	"gopkg.in/yaml.v2"
 	"os"
 	"regexp"
 	"strings"
