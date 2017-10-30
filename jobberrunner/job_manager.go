@@ -112,7 +112,7 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 
 	// record in run log
 	newRunLogEntry := RunLogEntry{
-		rec.Job, rec.RunTime, rec.Succeeded, rec.NewStatus,
+		rec.Job.Name, rec.RunTime, rec.Succeeded, rec.NewStatus,
 	}
 	self.runLog.Put(newRunLogEntry)
 
@@ -258,10 +258,16 @@ func (self *JobManager) doCmd(
 	case common.LogCmd:
 		// make log list
 		logDescs := make([]common.LogDesc, 0)
-		for _, l := range self.runLog.GetFromIndex() {
+		entries, err := self.runLog.GetFromIndex()
+		if err != nil {
+			cmd.RespChan <- &common.LogCmdResp{Err: err}
+			close(cmd.RespChan)
+			return
+		}
+		for _, l := range entries {
 			logDesc := common.LogDesc{
 				l.Time,
-				l.Job.Name,
+				l.JobName,
 				l.Succeeded,
 				l.Result.String(),
 			}
