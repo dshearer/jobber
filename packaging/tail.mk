@@ -78,4 +78,4 @@ clean :
 
 .PHONY : deepclean
 deepclean : clean
-	vagrant destroy -f
+	-vagrant destroy -f
