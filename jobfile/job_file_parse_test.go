@@ -246,3 +246,91 @@ script
 	require.Equal(t, "JobB", jobB.Name)
 	require.Equal(t, EverySecTimeSpec, jobB.FullTimeSpec)
 }
+
+const JobberFileWithMemOnlyRunLogEx string = `
+[prefs]
+runLog:
+    type: memory
+    maxLen: 10
+`
+
+func TestJobberFileWithMemOnlyRunLog(t *testing.T) {
+	/*
+	 * Set up
+	 */
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.Write([]byte(JobberFileWithMemOnlyRunLogEx))
+	f.Close()
+
+	/*
+	 * Call
+	 */
+	var file *JobFile
+	file, err = LoadJobFile(f.Name(), UsernameEx)
+
+	/*
+	 * Test
+	 */
+	require.Nil(t, err, "%v", err)
+	require.NotNil(t, file)
+	require.NotNil(t, file.Prefs.RunLog)
+
+	// check run log type
+	require.IsType(t, &memOnlyRunLog{}, file.Prefs.RunLog)
+
+	// check max len
+	memRunLog := file.Prefs.RunLog.(*memOnlyRunLog)
+	require.Equal(t, 10, memRunLog.MaxLen())
+}
+
+const JobberFileWithFileRunLogEx string = `
+[prefs]
+runLog:
+    type: file
+    path: /tmp/claudius
+    maxFileLen: 10m
+    maxHistories: 20
+`
+
+func TestJobberFileWithFileRunLog(t *testing.T) {
+	/*
+	 * Set up
+	 */
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.Write([]byte(JobberFileWithFileRunLogEx))
+	f.Close()
+
+	/*
+	 * Call
+	 */
+	var file *JobFile
+	file, err = LoadJobFile(f.Name(), UsernameEx)
+
+	/*
+	 * Test
+	 */
+	require.Nil(t, err, "%v", err)
+	require.NotNil(t, file)
+	require.NotNil(t, file.Prefs.RunLog)
+
+	// check run log type
+	require.IsType(t, &fileRunLog{}, file.Prefs.RunLog)
+
+	// check path
+	fileRunLog := file.Prefs.RunLog.(*fileRunLog)
+	require.Equal(t, "/tmp/claudius", fileRunLog.FilePath())
+
+	// check max file len
+	require.Equal(t, int64(10*(1<<20)), fileRunLog.MaxFileLen())
+
+	// check max histories
+	require.Equal(t, 20, fileRunLog.MaxHistories())
+}

@@ -1,4 +1,4 @@
-package main
+package jobfile
 
 import (
 	"github.com/stretchr/testify/require"

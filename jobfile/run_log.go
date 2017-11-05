@@ -1,7 +1,6 @@
-package main
+package jobfile
 
 import (
-	"github.com/dshearer/jobber/jobfile"
 	"time"
 )
 
@@ -9,7 +8,7 @@ type RunLogEntry struct {
 	JobName   string
 	Time      time.Time
 	Succeeded bool
-	Result    jobfile.JobStatus
+	Result    JobStatus
 }
 
 /*

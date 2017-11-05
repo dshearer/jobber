@@ -7,13 +7,16 @@ import (
 	"gopkg.in/yaml.v2"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 const (
-	JobFileName   = ".jobber"
-	PrefsSectName = "prefs"
-	JobsSectName  = "jobs"
+	JobFileName             = ".jobber"
+	PrefsSectName           = "prefs"
+	JobsSectName            = "jobs"
+	gYamlStarter            = "---"
+	gDefaultMemRunLogMaxLen = 100
 )
 
 type JobFile struct {
@@ -23,6 +26,7 @@ type JobFile struct {
 
 type UserPrefs struct {
 	Notifier RunRecNotifier
+	RunLog   RunLog
 }
 
 type JobConfigEntry struct {
@@ -35,7 +39,13 @@ type JobConfigEntry struct {
 }
 
 func NewEmptyJobFile() *JobFile {
-	return &JobFile{Jobs: make([]*Job, 0)}
+	prefs := UserPrefs{
+		RunLog: NewMemOnlyRunLog(gDefaultMemRunLogMaxLen),
+	}
+	return &JobFile{
+		Prefs: prefs,
+		Jobs:  nil,
+	}
 }
 
 func LoadJobFile(path string, username string) (*JobFile, error) {
@@ -112,31 +122,24 @@ func LoadJobFile(path string, username string) (*JobFile, error) {
 	}
 
 	// parse "prefs" section
-	const yamlStarter string = "---"
-	rawPrefs := map[string]interface{}{}
+	var userPrefs UserPrefs
 	prefsLines, prefsOk := sectionsToLines[PrefsSectName]
 	if prefsOk && len(prefsLines) > 0 {
-		common.Logger.Println("Got prefs section")
 		prefsSection := strings.Join(prefsLines, "\n")
-		if strings.TrimRight(prefsLines[0], " \t") != yamlStarter {
-			prefsSection = yamlStarter + "\n" + prefsSection
-		}
-		err := yaml.Unmarshal([]byte(prefsSection), &rawPrefs)
+		ptr, err := parsePrefsSect(prefsSection)
 		if err != nil {
-			errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
-				PrefsSectName)
-			return nil, &common.Error{errMsg, err}
+			return nil, err
 		}
+		userPrefs = *ptr
 	}
 
 	// parse "jobs" section
 	var jobConfigs []JobConfigEntry
 	jobsLines, jobsOk := sectionsToLines[JobsSectName]
 	if jobsOk && len(jobsLines) > 0 {
-		common.Logger.Println("Got jobs section")
 		jobsSection := strings.Join(jobsLines, "\n")
-		if strings.TrimRight(jobsLines[0], " \t") != yamlStarter {
-			jobsSection = yamlStarter + "\n" + jobsSection
+		if strings.TrimRight(jobsLines[0], " \t") != gYamlStarter {
+			jobsSection = gYamlStarter + "\n" + jobsSection
 		}
 		err := yaml.Unmarshal([]byte(jobsSection), &jobConfigs)
 		if err != nil {
@@ -144,21 +147,6 @@ func LoadJobFile(path string, username string) (*JobFile, error) {
 				JobsSectName)
 			return nil, &common.Error{errMsg, err}
 		}
-	}
-
-	// make prefs
-	var userPrefs UserPrefs
-	noteProgVal, hasNoteProg := rawPrefs["notifyProgram"]
-	if hasNoteProg {
-		noteProgValStr, ok := noteProgVal.(string)
-		if !ok {
-			errMsg := fmt.Sprintf("Invalid value for preference \"notifyProgram\": %v",
-				noteProgVal)
-			return nil, &common.Error{errMsg, nil}
-		}
-		userPrefs.Notifier = MakeProgramNotifier(noteProgValStr)
-	} else {
-		userPrefs.Notifier = MakeMailNotifier()
 	}
 
 	// make jobs
@@ -200,6 +188,127 @@ func LoadJobFile(path string, username string) (*JobFile, error) {
 	}
 
 	return &JobFile{userPrefs, jobs}, nil
+}
+
+func parsePrefsSect(s string) (*UserPrefs, error) {
+	// parse as yaml
+	var rawPrefs map[string]interface{}
+
+	if !strings.HasPrefix(s, gYamlStarter+"\n") {
+		s = gYamlStarter + "\n" + s
+	}
+	err := yaml.Unmarshal([]byte(s), &rawPrefs)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
+			PrefsSectName)
+		return nil, &common.Error{errMsg, err}
+	}
+
+	// parse "notifyProgram"
+	var userPrefs UserPrefs
+	noteProgVal, hasNoteProg := rawPrefs["notifyProgram"]
+	if hasNoteProg {
+		noteProgValStr, ok := noteProgVal.(string)
+		if !ok {
+			errMsg := fmt.Sprintf("Invalid value for preference \"notifyProgram\": %v",
+				noteProgVal)
+			return nil, &common.Error{errMsg, nil}
+		}
+		userPrefs.Notifier = MakeProgramNotifier(noteProgValStr)
+	} else {
+		userPrefs.Notifier = MakeMailNotifier()
+	}
+
+	// parse "runLog"
+	runLogVal, hasRunLog := rawPrefs["runLog"]
+	if hasRunLog {
+		runLogValMap, ok := runLogVal.(map[interface{}]interface{})
+		if !ok {
+			errMsg := fmt.Sprintf("Invalid value for preference \"runLog\": %v",
+				runLogVal)
+			return nil, &common.Error{errMsg, nil}
+		}
+
+		// get type
+		typeVal, ok := runLogValMap["type"].(string)
+		if !ok {
+			errMsg := fmt.Sprintf("Preference \"runLog\" needs \"type\"",
+				runLogVal)
+			return nil, &common.Error{errMsg, nil}
+		}
+
+		if typeVal == "memory" {
+			// make memory run log
+			maxLen := gDefaultMemRunLogMaxLen
+			tmp, ok := runLogValMap["maxLen"].(int)
+			if ok {
+				maxLen = tmp
+			}
+			userPrefs.RunLog = NewMemOnlyRunLog(maxLen)
+		} else if typeVal == "file" {
+			const defaultMaxFileLen int64 = 50 * (1 << 20)
+			const defaultMaxHistories int = 5
+
+			// get file path
+			filePath, ok := runLogValMap["path"].(string)
+			if !ok {
+				msg := fmt.Sprintf("Missing run log path")
+				return nil, &common.Error{msg, nil}
+			}
+
+			// get max file len
+			maxFileLen := defaultMaxFileLen
+			maxFileLenStr, ok := runLogValMap["maxFileLen"].(string)
+			if ok {
+				if len(maxFileLenStr) == 0 {
+					msg := fmt.Sprintf("Invalid max file len: '%v'",
+						maxFileLenStr)
+					return nil, &common.Error{msg, nil}
+				}
+
+				lastChar := maxFileLenStr[len(maxFileLenStr)-1]
+				if lastChar != 'm' && lastChar != 'M' {
+					msg := fmt.Sprintf("Invalid max file len: '%v'",
+						maxFileLenStr)
+					return nil, &common.Error{msg, nil}
+				}
+
+				numPart := maxFileLenStr[:len(maxFileLenStr)-1]
+				tmp, err := strconv.Atoi(numPart)
+				if err != nil {
+					msg := fmt.Sprintf("Invalid max file len: '%v'",
+						maxFileLenStr)
+					return nil, &common.Error{msg, err}
+				}
+				maxFileLen = int64(tmp) * (1 << 20)
+			}
+
+			// get max histories
+			maxHistories := defaultMaxHistories
+			tmp, ok := runLogValMap["maxHistories"].(int)
+			if ok {
+				maxHistories = tmp
+			}
+
+			// make file run log
+			userPrefs.RunLog, err = NewFileRunLog(
+				filePath,
+				maxFileLen,
+				maxHistories,
+			)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			errMsg := fmt.Sprintf("Invalid run log type: %v",
+				typeVal)
+			return nil, &common.Error{errMsg, nil}
+		}
+	} else {
+		userPrefs.RunLog = NewMemOnlyRunLog(gDefaultMemRunLogMaxLen)
+	}
+
+	return &userPrefs, nil
 }
 
 func getErrorHandler(name string) (*ErrorHandler, error) {

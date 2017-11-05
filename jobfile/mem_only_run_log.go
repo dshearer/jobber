@@ -1,4 +1,4 @@
-package main
+package jobfile
 
 import (
 	"fmt"
@@ -34,6 +34,10 @@ func NewMemOnlyRunLog(maxLen int) RunLog {
 		entries: make([]*RunLogEntry, 0, maxLen),
 	}
 	return &log
+}
+
+func (self *memOnlyRunLog) MaxLen() int {
+	return cap(self.entries)
 }
 
 func (self *memOnlyRunLog) Put(newEntry RunLogEntry) error {

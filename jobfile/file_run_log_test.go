@@ -1,7 +1,6 @@
-package main
+package jobfile
 
 import (
-	"github.com/dshearer/jobber/jobfile"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
@@ -18,7 +17,7 @@ var EntryEncodeDecodeTestCases = []EntryEncodeDecodeTestCase{
 			"My\n\nDumb\tJob",
 			time.Unix(1506313655, 0),
 			true,
-			jobfile.JobGood,
+			JobGood,
 		},
 		"My\\n\\nDumb\\tJob\t1506313655000000000\ttrue\tGood                   ",
 	},

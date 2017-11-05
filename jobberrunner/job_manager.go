@@ -12,7 +12,6 @@ type JobManager struct {
 	jobfilePath   string
 	launched      bool
 	jfile         *jobfile.JobFile
-	runLog        RunLog
 	CmdChan       chan common.ICmd
 	CmdRespChan   chan common.ICmdResp
 	mainThreadCtx *common.NewContext
@@ -24,7 +23,6 @@ func NewJobManager(jobfilePath string) *JobManager {
 	jm := JobManager{Shell: "/bin/sh"}
 	jm.jobfilePath = jobfilePath
 	jm.jobRunner = NewJobRunnerThread()
-	jm.runLog = NewMemOnlyRunLog(100)
 	return &jm
 }
 
@@ -111,10 +109,10 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 	}
 
 	// record in run log
-	newRunLogEntry := RunLogEntry{
+	newRunLogEntry := jobfile.RunLogEntry{
 		rec.Job.Name, rec.RunTime, rec.Succeeded, rec.NewStatus,
 	}
-	self.runLog.Put(newRunLogEntry)
+	self.jfile.Prefs.RunLog.Put(newRunLogEntry)
 
 	/* NOTE: error-handler was already applied by the job, if necessary. */
 
@@ -144,7 +142,11 @@ func (self *JobManager) runMainThread() {
 		}
 
 		// start job-runner thread
-		self.jobRunner.Start(self.jfile.Jobs, self.Shell, self.mainThreadCtx)
+		self.jobRunner.Start(
+			self.jfile.Jobs,
+			self.Shell,
+			self.mainThreadCtx,
+		)
 
 	Loop:
 		for {
@@ -157,7 +159,7 @@ func (self *JobManager) runMainThread() {
 				if ok {
 					self.handleRunRec(rec)
 				} else {
-					common.ErrLogger.Println("jobfile.Job-runner thread ended prematurely.")
+					common.ErrLogger.Println("Job-runner thread ended prematurely.")
 					break Loop
 				}
 
@@ -257,8 +259,8 @@ func (self *JobManager) doCmd(
 
 	case common.LogCmd:
 		// make log list
-		logDescs := make([]common.LogDesc, 0)
-		entries, err := self.runLog.GetFromIndex()
+		var logDescs []common.LogDesc
+		entries, err := self.jfile.Prefs.RunLog.GetFromIndex()
 		if err != nil {
 			cmd.RespChan <- &common.LogCmdResp{Err: err}
 			close(cmd.RespChan)

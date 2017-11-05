@@ -1,9 +1,8 @@
-package main
+package jobfile
 
 import (
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"github.com/dshearer/jobber/jobfile"
 	"io"
 	"io/ioutil"
 	"os"
@@ -838,6 +837,18 @@ func (self *fileRunLog) debugInfo() string {
 	return "Contents of current backing file:\n" + string(bytes)
 }
 
+func (self *fileRunLog) FilePath() string {
+	return self.filePath
+}
+
+func (self *fileRunLog) MaxFileLen() int64 {
+	return self.maxFileLen
+}
+
+func (self *fileRunLog) MaxHistories() int {
+	return self.maxHistories
+}
+
 func NewFileRunLog(filePath string, maxFileLen int64,
 	maxHistories int) (RunLog, error) {
 
@@ -920,7 +931,7 @@ func decodeRunLogEntry(s string) (*RunLogEntry, error) {
 
 	// decode result
 	decodedStatus := false
-	for _, status := range jobfile.JobStatuses {
+	for _, status := range JobStatuses {
 		if fields[3] == status.String() {
 			entry.Result = status
 			decodedStatus = true
