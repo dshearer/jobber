@@ -153,6 +153,7 @@ Test Command
 
 *** Keyword ***
 Setup
+    Restart Service
     Make Tempfile Dir
 
 Teardown

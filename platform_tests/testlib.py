@@ -13,6 +13,20 @@ def sp_check_output(args):
         raise sp.CalledProcessError(proc.returncode, args, out)
     return out
 
+def _find_file(name, dir):
+    for dirpath, dirnames, filenames in os.walk(dir):
+        if name in filenames:
+            return os.path.join(dirpath, name)
+    return None
+
+def find_program(name):
+    dirs = ['/bin', '/sbin', '/usr']
+    for dir in dirs:
+        path = _find_file(name, dir)
+        if path is not None:
+            return path
+    raise Exception("Cannot find program {0}".format(name))
+
 class testlib(object):
     ROBOT_LIBRARY_VERSION = 1.0
 
@@ -20,9 +34,7 @@ class testlib(object):
         # get paths to stuff
         self._root_jobfile_path = '/root/.jobber'
         self._normuser_jobfile_path = '/home/' + _NORMUSER + '/.jobber'
-        self._jobber_path = \
-            sp_check_output(['find', '/usr', '-name', \
-                             'jobber', '-type', 'f']).strip()
+        self._jobber_path = find_program('jobber')
         self._tmpfile_dir = '/JobberTestTmp'
 
     def make_tempfile_dir(self):
@@ -38,6 +50,23 @@ class testlib(object):
         os.close(fd)
         os.chmod(path, 0666)
         return path
+    
+    def restart_service(self):
+        # look for systemctl
+        try:
+            systemctl = find_program('systemctl')
+        except:
+            # look for service
+            try:
+                service = find_program('service')
+            except:
+                raise Exception("Don't know how to manage services")
+            else:
+                # use service
+                sp_check_output([systemctl, 'jobber', 'restart'])
+        else:
+            # use systemctl
+            sp_check_output([systemctl, 'restart', 'jobber'])
     
     def make_jobfile(self, job_name, cmd, time="*", notify_prog=None):
         jobs_sect = """[jobs]
