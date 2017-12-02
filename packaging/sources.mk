@@ -17,16 +17,16 @@ PACKAGING_SOURCES := \
 	alpine_3.3/jobber.pre-deinstall \
 	alpine_3.3/Makefile \
 	alpine_3.3/pkgrel \
-	debian_8/debian-pkg/source/format \
-	debian_8/debian-pkg/changelog \
-	debian_8/debian-pkg/compat \
-	debian_8/debian-pkg/control \
-	debian_8/debian-pkg/copyright \
-	debian_8/debian-pkg/docs \
-	debian_8/debian-pkg/jobber.init \
-	debian_8/debian-pkg/jobber.service \
-	debian_8/debian-pkg/rules \
-	debian_8/Makefile \
+	debian_9/debian-pkg/source/format \
+	debian_9/debian-pkg/changelog \
+	debian_9/debian-pkg/compat \
+	debian_9/debian-pkg/control \
+	debian_9/debian-pkg/copyright \
+	debian_9/debian-pkg/docs \
+	debian_9/debian-pkg/jobber.init \
+	debian_9/debian-pkg/jobber.service \
+	debian_9/debian-pkg/rules \
+	debian_9/Makefile \
 	ubuntu_16/debian-pkg/source/format \
 	ubuntu_16/debian-pkg/changelog \
 	ubuntu_16/debian-pkg/compat \

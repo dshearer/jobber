@@ -1,4 +1,4 @@
-PLATFORMS = centos_6 centos_7 debian_8 ubuntu_16
+PLATFORMS = centos_6 centos_7 debian_9 ubuntu_16
 
 .PHONY : main
 main :

@@ -1,3 +1,5 @@
+VAGRANT_SSH = vagrant ssh --no-tty -c
+
 .PHONY : main
 main :
 	@echo "Choose pkg-local or pkg-vm or test-vm"
@@ -15,15 +17,18 @@ ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
 	
 	# copy Jobber source to VM
 	vagrant scp "${WORK_DIR}/${SRC_TARFILE}" ":${SRC_TARFILE}"
-	vagrant ssh --no-tty -c "tar -xzmf ${SRC_TARFILE}"
+	${VAGRANT_SSH} "tar -xzmf ${SRC_TARFILE}"
 	
 	# make Jobber package
-	vagrant ssh --no-tty -c "make -C \
+	${VAGRANT_SSH} "mkdir -p work"
+	${VAGRANT_SSH} "mv ${SRC_TARFILE} work/${SRC_TARFILE}"
+	${VAGRANT_SSH} "mkdir -p dest"
+	${VAGRANT_SSH} "make -C \
 		jobber-${VERSION}/packaging/${PACKAGING_SUBDIR} pkg-local \
-		DESTDIR=~/"
+		DESTDIR=~/dest/ WORK_DIR=~/work"
 	
 	# copy package out of VM
-	vagrant scp :${PKGFILE_VM_PATH} "${DESTDIR}${PKGFILE}"
+	vagrant scp :dest/${PKGFILE_VM_PATH} "${DESTDIR}${PKGFILE}"
 	
 	# stop VM
 	vagrant suspend
@@ -37,14 +42,14 @@ test-vm : ${DESTDIR}${PKGFILE} platform_tests.tar
 	
 	# install package
 	vagrant scp "${DESTDIR}${PKGFILE}" ":${PKGFILE}"
-	vagrant ssh --no-tty -c "${INSTALL_PKG_CMD}"
+	${VAGRANT_SSH} "${INSTALL_PKG_CMD}"
 	
 	# copy test scripts to VM
 	vagrant scp platform_tests.tar :platform_tests.tar
 	
 	# run test scripts
-	vagrant ssh --no-tty -c "tar xf platform_tests.tar"
-	vagrant ssh --no-tty -c "sudo robot platform_tests/test.robot ||:" > testlog.txt
+	${VAGRANT_SSH} "tar xf platform_tests.tar"
+	${VAGRANT_SSH} "sudo robot platform_tests/test.robot ||:" > testlog.txt
 	
 	# retrieve test reports
 	mkdir -p "${DESTDIR}test_report"
