@@ -54,7 +54,7 @@ func RunnerPidFilePath(usr *user.User) string {
 	return filepath.Join(PerUserDirPath(usr), "runner_pid")
 }
 
-func FindLibexecProgram(name string) (string, *Error) {
+func FindLibexecProgram(name string) (string, error) {
 	for _, dir := range libexecPaths {
 		path := filepath.Join(dir, name)
 		if _, err := os.Stat(path); err == nil {

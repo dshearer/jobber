@@ -4,10 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"io"
 	"io/ioutil"
-	"log"
-	"log/syslog"
 	"os"
 	"os/signal"
 	"os/user"
@@ -80,14 +77,6 @@ func daemonMain(usr *user.User) int {
 		return 1
 	}
 	jobfilePath := flag.Args()[0]
-
-	// make loggers
-	infoSyslogWriter, _ := syslog.New(syslog.LOG_NOTICE|syslog.LOG_CRON, "")
-	errSyslogWriter, _ := syslog.New(syslog.LOG_ERR|syslog.LOG_CRON, "")
-	if infoSyslogWriter != nil {
-		common.Logger = log.New(io.MultiWriter(infoSyslogWriter, os.Stdout), "", 0)
-		common.ErrLogger = log.New(io.MultiWriter(errSyslogWriter, os.Stderr), "", 0)
-	}
 
 	// run job manager
 	manager := NewJobManager(jobfilePath)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"path/filepath"
 	"strconv"
 )
 
@@ -39,13 +40,30 @@ func LaunchRunner(usr *user.User,
 		return nil, err
 	}
 
+	// open log file
+	logFilePath := filepath.Join(usr.HomeDir, ".jobber-log")
+	logF, err := os.OpenFile(
+		logFilePath,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
+		0644,
+	)
+	if err != nil {
+		common.ErrLogger.Printf(
+			"Failed to make/open log file %v",
+			logFilePath,
+		)
+		logF = nil
+	} else {
+		defer logF.Close()
+	}
+
 	// launch it
 	cmd := fmt.Sprintf("%v \"%v\"", runnerPath, jobfilePath)
 	runnerProc.proc = common.Sudo(*usr, cmd)
 	// ensure we don't share TTY with the unprivileged process
 	runnerProc.proc.Stdin = nil
-	runnerProc.proc.Stdout = nil
-	runnerProc.proc.Stderr = nil
+	runnerProc.proc.Stdout = logF
+	runnerProc.proc.Stderr = logF
 	if err := runnerProc.proc.Start(); err != nil {
 		return nil, err
 	}
