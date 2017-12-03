@@ -122,7 +122,7 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-	handler(flag.Args()[1:])
+	os.Exit(handler(flag.Args()[1:]))
 }
 
 func doTestCmd(args []string) int {
