@@ -20,12 +20,11 @@ ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
 	${VAGRANT_SSH} "tar -xzmf ${SRC_TARFILE}"
 	
 	# make Jobber package
-	${VAGRANT_SSH} "mkdir -p work"
-	${VAGRANT_SSH} "mv ${SRC_TARFILE} work/${SRC_TARFILE}"
-	${VAGRANT_SSH} "mkdir -p dest"
-	${VAGRANT_SSH} "make -C \
-		jobber-${VERSION}/packaging/${PACKAGING_SUBDIR} pkg-local \
-		DESTDIR=~/dest/ WORK_DIR=~/work"
+	${VAGRANT_SSH} "mkdir -p work && \
+		mv ${SRC_TARFILE} work/${SRC_TARFILE} && \
+		mkdir -p dest && \
+		make -C jobber-${VERSION}/packaging/${PACKAGING_SUBDIR} \
+		pkg-local DESTDIR=~/dest/ WORK_DIR=~/work"
 	
 	# copy package out of VM
 	vagrant scp :dest/${PKGFILE_VM_PATH} "${DESTDIR}${PKGFILE}"
@@ -34,6 +33,21 @@ ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
 	vagrant suspend
 	
 	touch "$@"
+
+.PHONY : test-vm-shell
+test-vm-shell : ${DESTDIR}${PKGFILE} platform_tests.tar
+	# restore "Base" snapshot and start VM
+	vagrant snapshot restore Base
+	
+	# install package
+	vagrant scp "${DESTDIR}${PKGFILE}" ":${PKGFILE}"
+	${VAGRANT_SSH} "${INSTALL_PKG_CMD}"
+	
+	# copy test scripts to VM
+	vagrant scp platform_tests.tar :platform_tests.tar
+	
+	# get shell on VM
+	vagrant ssh
 
 .PHONY : test-vm
 test-vm : ${DESTDIR}${PKGFILE} platform_tests.tar

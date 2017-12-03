@@ -31,11 +31,13 @@ override_dh_auto_build:
 	ln -s "${SRC_DIR}" "${GO_WKSPC}/src/github.com/dshearer/jobber"
 	dh_auto_build -- "GO_WKSPC=${GO_WKSPC}"
 
+override_dh_auto_test:
+	dh_auto_test -- "GO_WKSPC=${GO_WKSPC}"
+
 override_dh_auto_install:
 	dh_auto_install -- "GO_WKSPC=${GO_WKSPC}" prefix=/usr
 
 override_dh_auto_clean:
-	dh_auto_clean -- "GO_WKSPC=${GO_WKSPC}"
 	rm -rf "${GO_WKSPC}"
 
 override_dh_systemd_start:

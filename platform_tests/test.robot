@@ -12,6 +12,7 @@ Basic
     ${cmd}=    Set Variable    echo -n '${root_expected_output}' > ${root_output_file}
     ${jobfile}=    Make Jobfile    TestJob    ${cmd}
     ${num_jobs}=    Install Root Jobfile    ${jobfile}
+    Nothing Has Crashed
     Should Be Equal As Integers    1    ${num_jobs}    msg=Failed to load root's jobs
     
     # make jobfile for normal user
@@ -20,12 +21,14 @@ Basic
     ${cmd}=    Set Variable    echo -n '${normuser_expected_output}' > ${normuser_output_file}
     ${jobfile}=    Make Jobfile    TestJob    ${cmd}
     ${num_jobs}=    Install Normuser Jobfile    ${jobfile}
+    Nothing Has Crashed
     Should Be Equal As Integers    1    ${num_jobs}    msg=Failed to load normuser's jobs
     
     # wait
     Sleep    3s    reason=Wait for job to run
     
     # test
+    Nothing Has Crashed
     ${root_actual_output}=    Get File    ${root_output_file}
     Should Be Equal    ${root_expected_output}    ${root_actual_output}    msg=root's job didn't run
     ${normuser_actual_output}=    Get File    ${normuser_output_file}
@@ -43,12 +46,14 @@ Privilege Separation
     
     # install jobfile
     ${num_jobs}=    Install Normuser Jobfile    ${jobfile}
+    Nothing Has Crashed
     Should Be Equal As Integers    1    ${num_jobs}    msg=Failed to load normuser's jobs
     
     # give it time to run
     Sleep    3s    reason=Wait for job to run
     
     # test
+    Nothing Has Crashed
     ${tmp}=    Get File    ${output_file}
     Length Should Be    ${tmp}    0    msg=Normuser was able to modify root's file
 
@@ -63,11 +68,13 @@ Notify On Error
     # make & install jobfile
     ${jobfile}=    Make Jobfile    TestJob    exit 1    notify_prog=${notify_prog}
     Install Root Jobfile    ${jobfile}
+    Nothing Has Crashed
     
     # wait
     Sleep    3s    reason=Wait for job to run
     
     # test
+    Nothing Has Crashed
     ${actual_output}=    Get File    ${output_file}
     Should Be Equal    ${expected_output}    ${actual_output}
 
@@ -75,33 +82,40 @@ List Command
     # make jobfile for root
     ${jobfile}=    Make Jobfile    TestJob1    exit 0
     ${num_jobs}=    Install Root Jobfile    ${jobfile}
+    Nothing Has Crashed
     Should Be Equal as Integers    1    ${num_jobs}    msg=Failed to load root's jobs
     
     # make jobfile for normal user
     ${jobfile}=    Make Jobfile    TestJob2    exit 0
     ${num_jobs}=    Install Normuser Jobfile    ${jobfile}
+    Nothing Has Crashed
     Should Be Equal as Integers    1    ${num_jobs}    msg=Failed to load normuser's jobs
     
     # test 'jobber list' as root
     Jobber List as Root Should Return    TestJob1
+    Nothing Has Crashed
     
     # test 'jobber list' as normuser
     Jobber List as Normuser Should Return    TestJob2
+    Nothing Has Crashed
     
     # test 'jobber list -a' as root
     Jobber List as Root Should Return    TestJob1,TestJob2    all_users=True
+    Nothing Has Crashed
 
 Pause And Resume Commands
     # make & install jobfile
     ${output_file}=    Make Tempfile
     ${jobfile}=    Make Jobfile    TestJob    date > ${output_file}
     Install Root Jobfile    ${jobfile}
+    Nothing Has Crashed
     
     # wait
     Sleep    3s    reason=Wait for job to run
     
     # pause it
     Pause Job    TestJob
+    Nothing Has Crashed
     
     # It's possible that the job is running at this very moment, so
     # wait a second to let it finish.
@@ -119,6 +133,7 @@ Pause And Resume Commands
     
     # resume it
     Resume Job    TestJob
+    Nothing Has Crashed
     
     # wait
     Sleep    5s    reason=See if job will run again
@@ -132,9 +147,11 @@ Test Command
     ${output_file}=    Make Tempfile
     ${jobfile}=    Make Jobfile    TestJob    date > ${output_file}
     Install Root Jobfile    ${jobfile}
+    Nothing Has Crashed
     
     # pause it
     Pause Job    TestJob
+    Nothing Has Crashed
     
     # It's possible that the job is running at this very moment, so
     # wait a second to let it finish.
@@ -145,6 +162,7 @@ Test Command
     
     # call 'jobber test'
     Test Job    TestJob
+    Nothing Has Crashed
     
     # check whether it ran again
     ${output_2}=    Get File    ${output_file}
@@ -159,3 +177,9 @@ Setup
 Teardown
     Rm Tempfile Dir
     Rm Jobfiles
+    Run Keyword If Test Failed    Print Debug Info
+
+Nothing Has Crashed
+    jobbermaster Has Not Crashed
+    jobberrunner for Root Has Not Crashed
+    jobberrunner for Normuser Has Not Crashed
