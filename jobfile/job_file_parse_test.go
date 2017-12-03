@@ -164,6 +164,7 @@ func TestReadNewJobberFile(t *testing.T) {
 
 	// test prefs
 	require.NotNil(t, file.Prefs.Notifier)
+	require.NotNil(t, file.Prefs.RunLog)
 
 	// test jobs
 	require.Equal(t, 2, len(file.Jobs))
@@ -247,6 +248,43 @@ script
 	require.Equal(t, EverySecTimeSpec, jobB.FullTimeSpec)
 }
 
+const JobberFileWithNoPrefsEx string = `
+[jobs]
+- name: DailyBackup
+  cmd: backup daily
+  time: 0 0 14
+  onError: Stop
+  notifyOnError: false
+  notifyOnFailure: true
+`
+
+func TestJobberFileWithNoPrefs(t *testing.T) {
+	/*
+	 * Set up
+	 */
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.Write([]byte(JobberFileWithNoPrefsEx))
+	f.Close()
+
+	/*
+	 * Call
+	 */
+	var file *JobFile
+	file, err = LoadJobFile(f.Name(), UsernameEx)
+
+	/*
+	 * Test
+	 */
+	require.Nil(t, err, "%v", err)
+	require.NotNil(t, file)
+	require.NotNil(t, file.Prefs.RunLog)
+	require.NotNil(t, file.Prefs.Notifier)
+}
+
 const JobberFileWithMemOnlyRunLogEx string = `
 [prefs]
 runLog:
@@ -277,6 +315,7 @@ func TestJobberFileWithMemOnlyRunLog(t *testing.T) {
 	 */
 	require.Nil(t, err, "%v", err)
 	require.NotNil(t, file)
+	require.NotNil(t, file.Prefs.Notifier)
 	require.NotNil(t, file.Prefs.RunLog)
 
 	// check run log type
@@ -319,6 +358,7 @@ func TestJobberFileWithFileRunLog(t *testing.T) {
 	 */
 	require.Nil(t, err, "%v", err)
 	require.NotNil(t, file)
+	require.NotNil(t, file.Prefs.Notifier)
 	require.NotNil(t, file.Prefs.RunLog)
 
 	// check run log type
@@ -333,4 +373,18 @@ func TestJobberFileWithFileRunLog(t *testing.T) {
 
 	// check max histories
 	require.Equal(t, 20, fileRunLog.MaxHistories())
+}
+
+func TestLoadJobFileWithMissingJobberFile(t *testing.T) {
+	/*
+	 * Call
+	 */
+	file, err := LoadJobFile("/invalid/path", UsernameEx)
+
+	/*
+	 * Test
+	 */
+	require.Nil(t, file)
+	require.NotNil(t, err)
+	require.True(t, os.IsNotExist(err))
 }

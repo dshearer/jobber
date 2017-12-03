@@ -50,15 +50,58 @@ func NewEmptyJobFile() *JobFile {
 
 func LoadJobFile(path string, username string) (*JobFile, error) {
 	/*
-	   Jobber files have two sections: one begins with "[prefs]" on a line, and
-	   the other begins with "[jobs]".  Both contain a YAML document.  The "prefs"
-	   section can be parsed with struct UserPrefs, and the "jobs" section is a
-	   YAML array of records that can be parsed with struct JobConfigEntry.
+	   Jobber files have two sections: one begins with "[prefs]" on a
+	   line, and the other begins with "[jobs]".  Both contain a YAML
+	   document.  The "prefs" section can be parsed with struct
+	   UserPrefs, and the "jobs" section is a YAML array of records
+	   that can be parsed with struct JobConfigEntry.
 
-	   Legacy format: no section beginnings; whole file is YAML doc for "jobs"
-	   section.
+	   Legacy format: no section beginnings; whole file is YAML doc
+	   for "jobs" section.
 	*/
 
+	// parse file into sections
+	sections, err := findSections(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var jfile JobFile = JobFile{
+		Prefs: UserPrefs{
+			Notifier: MakeMailNotifier(),
+			RunLog:   NewMemOnlyRunLog(100),
+		},
+	}
+
+	// parse "prefs" section
+	prefsSection, prefsOk := sections[PrefsSectName]
+	if prefsOk && len(prefsSection) > 0 {
+		ptr, err := parsePrefsSect(prefsSection)
+		if err != nil {
+			return nil, err
+		}
+		jfile.Prefs = *ptr
+	}
+
+	// parse "jobs" section
+	jobsSection, jobsOk := sections[JobsSectName]
+	if jobsOk {
+		jobs, err := parseJobsSect(jobsSection, username)
+		if err != nil {
+			return nil, err
+		}
+		jfile.Jobs = jobs
+	}
+
+	return &jfile, nil
+}
+
+/*
+Find the sections of a jobfile.
+
+Returns a map from a section name to the contents of that section.
+*/
+func findSections(path string) (map[string]string, error) {
 	r, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -121,73 +164,12 @@ func LoadJobFile(path string, username string) (*JobFile, error) {
 		}
 	}
 
-	// parse "prefs" section
-	var userPrefs UserPrefs
-	prefsLines, prefsOk := sectionsToLines[PrefsSectName]
-	if prefsOk && len(prefsLines) > 0 {
-		prefsSection := strings.Join(prefsLines, "\n")
-		ptr, err := parsePrefsSect(prefsSection)
-		if err != nil {
-			return nil, err
-		}
-		userPrefs = *ptr
+	// make return value
+	retval := make(map[string]string)
+	for sectName, lines := range sectionsToLines {
+		retval[sectName] = strings.Join(lines, "\n")
 	}
-
-	// parse "jobs" section
-	var jobConfigs []JobConfigEntry
-	jobsLines, jobsOk := sectionsToLines[JobsSectName]
-	if jobsOk && len(jobsLines) > 0 {
-		jobsSection := strings.Join(jobsLines, "\n")
-		if strings.TrimRight(jobsLines[0], " \t") != gYamlStarter {
-			jobsSection = gYamlStarter + "\n" + jobsSection
-		}
-		err := yaml.Unmarshal([]byte(jobsSection), &jobConfigs)
-		if err != nil {
-			errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
-				JobsSectName)
-			return nil, &common.Error{errMsg, err}
-		}
-	}
-
-	// make jobs
-	jobs := make([]*Job, 0, len(jobConfigs))
-	for _, config := range jobConfigs {
-		job := NewJob(config.Name, config.Cmd, username)
-		var err error = nil
-
-		// check name
-		if len(config.Name) == 0 {
-			return nil, &common.Error{"Job name cannot be empty.", nil}
-		}
-
-		// set failure-handler
-		if config.OnError != nil {
-			job.ErrorHandler, err = getErrorHandler(*config.OnError)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// set notify prefs
-		if config.NotifyOnError != nil {
-			job.NotifyOnError = *config.NotifyOnError
-		}
-		if config.NotifyOnFailure != nil {
-			job.NotifyOnFailure = *config.NotifyOnFailure
-		}
-
-		// parse time spec
-		var tmp *FullTimeSpec
-		tmp, err = ParseFullTimeSpec(config.Time)
-		if err != nil {
-			return nil, err
-		}
-		job.FullTimeSpec = *tmp
-
-		jobs = append(jobs, job)
-	}
-
-	return &JobFile{userPrefs, jobs}, nil
+	return retval, nil
 }
 
 func parsePrefsSect(s string) (*UserPrefs, error) {
@@ -309,6 +291,60 @@ func parsePrefsSect(s string) (*UserPrefs, error) {
 	}
 
 	return &userPrefs, nil
+}
+
+func parseJobsSect(s string, username string) ([]*Job, error) {
+	// parse "jobs" section
+	var jobConfigs []JobConfigEntry
+	if !strings.HasPrefix(s, gYamlStarter+"\n") {
+		s = gYamlStarter + "\n" + s
+	}
+	err := yaml.Unmarshal([]byte(s), &jobConfigs)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
+			JobsSectName)
+		return nil, &common.Error{errMsg, err}
+	}
+
+	// make jobs
+	var jobs []*Job
+	for _, config := range jobConfigs {
+		job := NewJob(config.Name, config.Cmd, username)
+		var err error = nil
+
+		// check name
+		if len(config.Name) == 0 {
+			return nil, &common.Error{"Job name cannot be empty.", nil}
+		}
+
+		// set failure-handler
+		if config.OnError != nil {
+			job.ErrorHandler, err = getErrorHandler(*config.OnError)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// set notify prefs
+		if config.NotifyOnError != nil {
+			job.NotifyOnError = *config.NotifyOnError
+		}
+		if config.NotifyOnFailure != nil {
+			job.NotifyOnFailure = *config.NotifyOnFailure
+		}
+
+		// parse time spec
+		var tmp *FullTimeSpec
+		tmp, err = ParseFullTimeSpec(config.Time)
+		if err != nil {
+			return nil, err
+		}
+		job.FullTimeSpec = *tmp
+
+		jobs = append(jobs, job)
+	}
+
+	return jobs, nil
 }
 
 func getErrorHandler(name string) (*ErrorHandler, error) {

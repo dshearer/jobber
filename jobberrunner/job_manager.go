@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/jobfile"
+	"os"
 	"os/user"
 	"strings"
 )
@@ -93,12 +94,17 @@ func (self *JobManager) loadJobFile() (*jobfile.JobFile, error) {
 	if err == nil {
 		return jfile, nil
 	} else {
-		return nil, &common.Error{
-			What: fmt.Sprintf(
-				"Failed to read jobfile %v",
-				self.jobfilePath,
-			),
-			Cause: err,
+		jfile = jobfile.NewEmptyJobFile()
+		if os.IsNotExist(err) {
+			return jfile, err
+		} else {
+			return jfile, &common.Error{
+				What: fmt.Sprintf(
+					"Failed to read jobfile %v",
+					self.jobfilePath,
+				),
+				Cause: err,
+			}
 		}
 	}
 }
@@ -134,11 +140,9 @@ func (self *JobManager) runMainThread() {
 
 		// load job file
 		jfile, err := self.loadJobFile()
-		if err == nil {
-			self.jfile = jfile
-		} else {
+		self.jfile = jfile
+		if err != nil && !os.IsNotExist(err) {
 			common.ErrLogger.Printf("%v", err)
-			self.jfile = jobfile.NewEmptyJobFile()
 		}
 
 		// start job-runner thread
@@ -200,7 +204,7 @@ func (self *JobManager) doCmd(
 	case common.ReloadCmd:
 		// read job file
 		newJfile, err := self.loadJobFile()
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			cmd.RespChan <- &common.ReloadCmdResp{Err: err}
 			close(cmd.RespChan)
 			return
@@ -217,15 +221,19 @@ func (self *JobManager) doCmd(
 		self.jfile = newJfile
 
 		// restart job-runner thread
-		self.jobRunner.Start(self.jfile.Jobs, self.Shell, self.mainThreadCtx)
+		self.jobRunner.Start(self.jfile.Jobs, self.Shell,
+			self.mainThreadCtx)
 
 		// make response
-		cmd.RespChan <- &common.ReloadCmdResp{NumJobs: len(self.jfile.Jobs)}
+		cmd.RespChan <- &common.ReloadCmdResp{
+			NumJobs: len(self.jfile.Jobs),
+		}
 		close(cmd.RespChan)
 		return
 
 	case common.ListJobsCmd:
 		// make job list
+		common.Logger.Printf("Got list jobs cmd\n")
 		jobDescs := make([]common.JobDesc, 0)
 		for _, j := range self.jfile.Jobs {
 			jobDesc := common.JobDesc{
