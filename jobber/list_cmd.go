@@ -32,7 +32,18 @@ func sendListCmd(usr *user.User) (*common.ListJobsCmdResp, error) {
 		return nil, err
 	}
 
+	//	fmt.Printf("User: %v; socket: %v, num jobs: %v\n",
+	//		usr,
+	//		common.SocketPath(usr),
+	//		len(result.Jobs),
+	//	)
+
 	return &result, nil
+}
+
+type ListRespRec struct {
+	usr  *user.User
+	resp *common.ListJobsCmdResp
 }
 
 func doListCmd_allUsers() int {
@@ -46,7 +57,7 @@ func doListCmd_allUsers() int {
 	}
 
 	// send cmd
-	respMap := make(map[string]*common.ListJobsCmdResp, 0)
+	var responses []ListRespRec
 	for _, usr := range users {
 		resp, err := sendListCmd(usr)
 		if err != nil {
@@ -54,7 +65,8 @@ func doListCmd_allUsers() int {
 				"Failed to list jobs for %v: %v\n", usr.Name, err)
 			continue
 		}
-		respMap[usr.Name] = resp
+		rec := ListRespRec{usr: usr, resp: resp}
+		responses = append(responses, rec)
 	}
 
 	// make table header
@@ -73,10 +85,16 @@ func doListCmd_allUsers() int {
 	}
 	fmt.Fprintf(writer, "%v\n", strings.Join(headers[:], "\t"))
 
-	// handle responses
-	rows := make([]string, 0)
-	for usrName, resp := range respMap {
-		for _, j := range resp.Jobs {
+	// make table rows
+	var rows []string
+	for _, respRec := range responses {
+		var userName string
+		if len(respRec.usr.Name) > 0 {
+			userName = respRec.usr.Name
+		} else {
+			userName = respRec.usr.Username
+		}
+		for _, j := range respRec.resp.Jobs {
 			nextRunTime := "none"
 			if j.NextRunTime != nil {
 				nextRunTime =
@@ -92,7 +110,7 @@ func doListCmd_allUsers() int {
 				j.NotifyOnErr,
 				j.NotifyOnFail,
 				j.ErrHandler,
-				usrName)
+				userName)
 			rows = append(rows, s)
 		}
 	}
