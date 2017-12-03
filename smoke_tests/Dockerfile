@@ -1,13 +1,14 @@
-FROM centos:7.2.1511
+FROM centos:6
 
 RUN yum -y install epel-release
 RUN yum -y install rpm-build
 RUN yum -y install golang
 RUN yum -y install tar
-RUN yum -y install systemd
 RUN yum -y install make
 RUN yum -y install python-pip
 RUN yum -y install sudo
+RUN yum -y install checkpolicy
+RUN yum -y install selinux-policy-devel
 RUN yum clean all
 RUN pip install robotframework
 
@@ -18,7 +19,7 @@ COPY ${TEST_TAR}   /
 COPY ${SRC_TAR}     /
 
 CMD tar xzf /jobber.tgz && \
-    make -C /jobber-*/packaging/centos_7 pkg-local DESTDIR=/ && \
+    make -C /jobber-*/packaging/centos_6 pkg-local DESTDIR=/ && \
     yum install -y /*.rpm && \
     useradd normuser --create-home && \
     (/usr/local/libexec/jobbermaster >/dev/null 2>&1 &) && \
