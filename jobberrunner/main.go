@@ -94,6 +94,7 @@ func daemonMain(usr *user.User) int {
 		common.ErrLogger.Printf("Error: %v", err)
 		return 1
 	}
+	common.Logger.Printf("Listening on %v", common.SocketPath(usr))
 
 	go stopServerOnSignal(ipcServer, manager)
 

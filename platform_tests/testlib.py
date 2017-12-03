@@ -95,7 +95,7 @@ class testlib(object):
         stop_time = time.time() + 10
         while time.time() < stop_time and not started:
             args = [self._jobber_path, 'list']
-            proc = sp.Popen(args, stderr=sp.PIPE)
+            proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
             _, err = proc.communicate()
             if proc.returncode == 0:
                 started = True
