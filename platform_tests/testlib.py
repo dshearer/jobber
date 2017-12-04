@@ -222,9 +222,20 @@ notifyProgram: {notify_prog}
         pwnam = pwd.getpwnam(user)
         os.chown(path, pwnam.pw_uid, pwnam.pw_gid)
 
+    def kill_master_proc(self):
+        # get pid of jobbermaster
+        master_pid = sp_check_output(['pgrep', 'jobbermaster']).strip()
+        if len(master_pid) == 0:
+            raise AssertionError("jobbermaster isn't running")
+        
+        # kill it
+        sp_check_output(['kill', '-9', master_pid])
+        time.sleep(1)
+
     def runner_proc_info(self):
         args = ['ps', '-C', 'jobberrunner', '-o', 'uid,tty']
-        output = sp_check_output(args)
+        proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
+        output, _ = proc.communicate()
         records = [line for line in output.split('\n')[1:] \
                    if len(line.strip()) > 0]
         records.sort()
@@ -250,6 +261,12 @@ notifyProgram: {notify_prog}
             if tty != '?':
                 print("Runner procs:\n{0}".format(proc_info))
                 raise AssertionError("A runner proc has a controlling tty")
+    
+    def there_should_be_no_runner_procs(self):
+        proc_info = self.runner_proc_info()
+        if len(proc_info) > 0:
+            print("Runner procs:\n{0}".format(proc_info))
+            raise AssertionError("There are still runner procs")
     
     def _check_jobber_list_output(self, output, exp_job_names):
         lines = output.split("\n")

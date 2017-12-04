@@ -168,11 +168,20 @@ Test Command
     ${output_2}=    Get File    ${output_file}
     Should Not Be Equal    ${output_1}    ${output_2}    msg=Job did not run
     
+Kill Master Process
+    # kill it
+    Kill Master Proc
+    
+    # check whether there are still runner processes
+    There Should Be No Runner Procs
+
+    # restart jobber service so that Teardown doesn't fail
+    Restart Service
 
 *** Keyword ***
 Setup
     Restart Service
-    Runner Procs Should Not Have Tty
+    Runner Procs Should Not Have TTY
     Make Tempfile Dir
     ${runner_procs}=    Runner Proc Info
     Set Test Variable    ${runner_procs}
