@@ -11,7 +11,7 @@ import (
 
 func sendReloadCmd(usr *user.User) (*common.ReloadCmdResp, error) {
 	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.SocketPath(usr))
+	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
 	if err != nil {
 		return nil, err
 	}

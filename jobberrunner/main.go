@@ -5,13 +5,33 @@ import (
 	"fmt"
 	"github.com/dshearer/jobber/common"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/signal"
 	"os/user"
 	"syscall"
 )
 
-func stopServerOnSignal(server *IpcServer, jm *JobManager) {
+var gUser *user.User
+var gIpcServer *IpcServer
+var gJobManager *JobManager
+
+func quit(exitCode int) {
+	common.Logger.Printf("Jobberrunner Quitting")
+	if gIpcServer != nil {
+		gIpcServer.Stop()
+	}
+	if gJobManager != nil {
+		gJobManager.Cancel()
+		gJobManager.Wait()
+	}
+	if gUser != nil {
+		os.Remove(common.RunnerPidFilePath(gUser))
+	}
+	os.Exit(exitCode)
+}
+
+func quitOnSignal() {
 	// Set up channel on which to send signal notifications.
 	// We must use a buffered channel or risk missing the signal
 	// if we're not ready to receive when the signal is sent.
@@ -20,10 +40,56 @@ func stopServerOnSignal(server *IpcServer, jm *JobManager) {
 
 	// Block until a signal is received.
 	<-c
-	server.Stop()
-	jm.Cancel()
-	jm.Wait()
-	os.Exit(0)
+	quit(0)
+}
+
+func quitOnJobbermasterDiscon() {
+	/*
+	   Jobbermaster launched us and gave us a path to a Unix socket.
+	   When jobbermaster wants us to quit, it will close that socket.
+	*/
+
+	common.Logger.Printf(
+		"jobbermaster quit socket: %v",
+		common.QuitSocketPath(gUser),
+	)
+
+	// open socket
+	addr, err := net.ResolveUnixAddr("unix",
+		common.QuitSocketPath(gUser))
+	if err != nil {
+		common.ErrLogger.Printf(
+			"ResolveUnixAddr failed on %v: %v",
+			common.QuitSocketPath(gUser),
+			err,
+		)
+		quit(1)
+		return
+	}
+	conn, err := net.DialUnix("unix", nil, addr)
+	if err != nil {
+		common.ErrLogger.Printf(
+			"DialUnix failed on %v: %v",
+			common.QuitSocketPath(gUser),
+			err,
+		)
+		quit(1)
+		return
+	}
+	defer conn.Close()
+
+	// read from it -- this will block until jobbermaster close the cxn
+	var buf [1]byte
+	_, err = conn.Read(buf[:])
+	common.Logger.Printf("Finished reading from quit socket")
+	if err != nil {
+		common.Logger.Printf("read: %v", err)
+	}
+
+	/*
+	   As conn.Read has returned, jobbermaster must have closed the cxn.
+	*/
+	quit(0)
 }
 
 func usage() {
@@ -39,7 +105,7 @@ func recordPid(usr *user.User) {
 	pidTmp, err := ioutil.TempFile(common.PerUserDirPath(usr), "temp-")
 	if err != nil {
 		common.ErrLogger.Printf("Failed to make temp file: %v", err)
-		os.Exit(1)
+		quit(1)
 	}
 	_, err = pidTmp.WriteString(fmt.Sprintf("%v", os.Getpid()))
 	if err != nil {
@@ -47,7 +113,7 @@ func recordPid(usr *user.User) {
 			err)
 		pidTmp.Close()
 		os.Remove(pidTmp.Name())
-		os.Exit(1)
+		quit(1)
 	}
 	pidTmp.Close()
 
@@ -61,83 +127,83 @@ func recordPid(usr *user.User) {
 			err,
 		)
 		os.Remove(pidTmp.Name())
-		os.Exit(1)
+		quit(1)
 	}
-}
-
-func daemonMain(usr *user.User) int {
-	/*
-	   IMPORTANT: Do not use os.Exit in here (or any called functions).
-	   There's cleanup to do in main.
-	*/
-
-	// get args
-	if len(flag.Args()) != 1 {
-		usage()
-		return 1
-	}
-	jobfilePath := flag.Args()[0]
-
-	// run job manager
-	manager := NewJobManager(jobfilePath)
-	if err := manager.Launch(); err != nil {
-		common.ErrLogger.Printf("Error: %v\n", err)
-		return 1
-	}
-
-	// make IPC server
-	ipcServer := NewIpcServer(
-		common.SocketPath(usr),
-		manager.CmdChan,
-		manager.CmdRespChan)
-	if err := ipcServer.Launch(); err != nil {
-		common.ErrLogger.Printf("Error: %v", err)
-		return 1
-	}
-	common.Logger.Printf("Listening on %v", common.SocketPath(usr))
-
-	go stopServerOnSignal(ipcServer, manager)
-
-	manager.Wait()
-	ipcServer.Stop()
-	return 0
 }
 
 func main() {
-
 	// parse args
 	flag.Usage = usage
 	var helpFlag_p = flag.Bool("h", false, "help")
 	var versionFlag_p = flag.Bool("v", false, "version")
+	var childFlag_p = flag.Bool("c",
+		false,
+		"run as child of jobbermaster",
+	)
 	flag.Parse()
 
 	// handle flags
 	if *helpFlag_p {
 		usage()
-		os.Exit(0)
+		quit(0)
 	} else if *versionFlag_p {
 		fmt.Printf("%v\n", common.LongVersionStr())
-		os.Exit(0)
+		quit(0)
 	}
+
+	// get args
+	if len(flag.Args()) != 1 {
+		usage()
+		quit(1)
+	}
+	jobfilePath := flag.Args()[0]
 
 	// set umask
 	syscall.Umask(0177)
 
 	// get current user
-	usr, err := user.Current()
+	var err error
+	gUser, err = user.Current()
 	if err != nil {
 		common.ErrLogger.Printf("Failed to get current user: %v", err)
-		os.Exit(1)
+		quit(1)
 	}
 
 	// record PID in file (for jobbermaster)
-	recordPid(usr)
+	recordPid(gUser)
 
-	// run main logic
-	retcode := daemonMain(usr)
+	// run job manager
+	gJobManager = NewJobManager(jobfilePath)
+	if err := gJobManager.Launch(); err != nil {
+		common.ErrLogger.Printf("Error: %v\n", err)
+		quit(1)
+	}
 
-	// remove PID file
-	os.Remove(common.RunnerPidFilePath(usr))
+	// make IPC server
+	gIpcServer = NewIpcServer(
+		common.CmdSocketPath(gUser),
+		gJobManager.CmdChan,
+		gJobManager.CmdRespChan,
+	)
+	if err := gIpcServer.Launch(); err != nil {
+		common.ErrLogger.Printf("Error: %v", err)
+		quit(1)
+	}
+	common.Logger.Printf(
+		"Listening for commands on %v",
+		common.CmdSocketPath(gUser),
+	)
 
-	os.Exit(retcode)
+	if *childFlag_p {
+		// listen for jobbermaster to tell us to quit
+		go quitOnJobbermasterDiscon()
+	}
+
+	// listen for signals
+	go quitOnSignal()
+
+	// wait for job manager
+	gJobManager.Wait()
+
+	quit(0)
 }

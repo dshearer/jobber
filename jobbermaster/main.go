@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"os/user"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 )
@@ -35,6 +34,7 @@ func runnerThread(ctx *common.NewContext,
 	jobfilePath string) {
 
 	common.Logger.Printf("Entered thread for %v", usr.Username)
+	defer ctx.Finish()
 
 Loop:
 	for {
@@ -70,12 +70,11 @@ Loop:
 
 		case <-ctx.CancelledChan():
 			common.Logger.Printf("%v thread cancelled", usr.Username)
-			proc.Kill()
+			/* No need to kill the child procs. */
 			break Loop
 		}
 	}
 
-	ctx.Finish()
 	common.Logger.Printf("Exiting thread for %v", usr.Username)
 }
 
@@ -131,16 +130,8 @@ func jobfileForUser(user *user.User) *string {
 	defer f.Close()
 
 	// check owner
-	info, err := f.Stat()
-	if err != nil {
-		f.Close()
-		return nil
-	}
-	uid, err := strconv.Atoi(user.Uid)
-	if err != nil {
-		return nil
-	}
-	if uint32(uid) != info.Sys().(*syscall.Stat_t).Uid {
+	owns, err := common.UserOwnsFile(user, jobfilePath)
+	if !owns || err != nil {
 		return nil
 	}
 
@@ -189,9 +180,7 @@ func main() {
 		}
 
 		// set its owner
-		uid, _ := strconv.Atoi(usr.Uid)
-		gid, _ := strconv.Atoi(usr.Gid)
-		if err := os.Chown(dirPath, uid, gid); err != nil {
+		if err := common.Chown(dirPath, usr); err != nil {
 			common.ErrLogger.Printf(
 				"Failed to chown dir at %v: %t",
 				dirPath,

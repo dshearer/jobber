@@ -32,6 +32,18 @@ type ExecResult struct {
 	return proc
 }*/
 
+func MakeCmdExitedChan(cmd *exec.Cmd) <-chan error {
+	c := make(chan error, 1)
+	go func() {
+		c <- cmd.Wait()
+		close(c)
+	}()
+	return c
+}
+
+/*
+Returns an unstarted process descriptor.
+*/
 func Sudo(usr user.User, cmdStr string) *exec.Cmd {
 	return sudo_cmd(usr.Username, cmdStr, "/bin/sh")
 }

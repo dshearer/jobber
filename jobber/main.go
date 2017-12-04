@@ -74,7 +74,7 @@ func connectToDaemon(socketPath string) (net.Conn, error) {
 	_, err := os.Stat(socketPath)
 	if os.IsNotExist(err) {
 		msg := fmt.Sprintf(
-			"jobberrunner isn't running.",
+			"jobberrunner isn't running (%v)",
 			socketPath,
 		)
 		return nil, &common.Error{What: msg, Cause: err}
@@ -155,7 +155,7 @@ func doTestCmd(args []string) int {
 	}
 
 	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.SocketPath(usr))
+	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -211,7 +211,7 @@ func doCatCmd(args []string) int {
 	}
 
 	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.SocketPath(usr))
+	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -261,7 +261,7 @@ func doPauseCmd(args []string) int {
 	}
 
 	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.SocketPath(usr))
+	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -311,7 +311,7 @@ func doResumeCmd(args []string) int {
 	}
 
 	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.SocketPath(usr))
+	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1

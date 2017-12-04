@@ -46,7 +46,7 @@ func (self *JobManager) Cancel() {
 }
 
 func (self *JobManager) Wait() {
-	common.Logger.Printf("Waiting")
+	common.Logger.Printf("JobManager Waiting")
 	self.mainThreadCtx.Wait()
 }
 

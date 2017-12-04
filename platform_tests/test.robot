@@ -172,12 +172,17 @@ Test Command
 *** Keyword ***
 Setup
     Restart Service
+    Runner Procs Should Not Have Tty
     Make Tempfile Dir
+    ${runner_procs}=    Runner Proc Info
+    Set Test Variable    ${runner_procs}
 
 Teardown
     Rm Tempfile Dir
     Rm Jobfiles
     Run Keyword If Test Failed    Print Debug Info
+    Remove Files    /root/.jobber-log    /home/normuser/.jobber-log
+    Nbr Of Runner Procs Should Be Same    ${runner_procs}
 
 Nothing Has Crashed
     jobbermaster Has Not Crashed

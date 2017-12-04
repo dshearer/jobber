@@ -103,7 +103,8 @@ class testlib(object):
                 time.sleep(1)
         if not started:
             msg = "Failed to start jobber service!"
-            msg += " ('jobber list' returned '{0}')".format(err)
+            msg += " ('jobber list' returned '{0}')".\
+                format(err.strip())
             raise AssertionError(msg)
     
     def print_debug_info(self):
@@ -117,15 +118,15 @@ class testlib(object):
             args = ['service', 'jobber', 'status']
         try:
             log += sp_check_output(args)
-        except:
-            log += "[N/A]"
+        except Exception as e:
+            log += "[{0}]".format(e)
             
         # get syslog msgs
         log += "\n\njobbermaster logs:\n"
         try:
             log += get_jobbermaster_logs()
-        except:
-            log += "[N/A]"
+        except Exception as e:
+            log += "[{0}]".format(e)
         
         # get jobberrunner logs
         log_files = [
@@ -136,9 +137,9 @@ class testlib(object):
             log += "\n\n{0}:\n".format(lf)
             try:
                 with open(lf) as f:
-                    log += lf.read()
-            except:
-                log += "[N/A]"
+                    log += f.read()
+            except Exception as e:
+                log += "[{0}]".format(e)
         
         print(log)
     
@@ -220,6 +221,35 @@ notifyProgram: {notify_prog}
     def chown(self, path, user):
         pwnam = pwd.getpwnam(user)
         os.chown(path, pwnam.pw_uid, pwnam.pw_gid)
+
+    def runner_proc_info(self):
+        args = ['ps', '-C', 'jobberrunner', '-o', 'uid,tty']
+        output = sp_check_output(args)
+        records = [line for line in output.split('\n')[1:] \
+                   if len(line.strip()) > 0]
+        records.sort()
+        return '\n'.join(records)
+    
+    def nbr_of_runner_procs_should_be_same(self, orig_proc_info):
+        new_proc_info = self.runner_proc_info()
+        if orig_proc_info != new_proc_info:
+            print("Original runner procs:\n{0}".format(orig_proc_info))
+            print("New runner procs:\n{0}".format(new_proc_info))
+            raise AssertionError("Number of runner procs has changed!")
+    
+    def runner_procs_should_not_have_tty(self):
+        # This is to avoid a particular vulnerability
+        # (http://www.halfdog.net/Security/2012/TtyPushbackPrivilegeEscalation/)
+        proc_info = self.runner_proc_info()
+        for line in proc_info.split('\n'):
+            try:
+                tty = line.split()[1]
+            except IndexError as _:
+                print("Error: " + line)
+                raise
+            if tty != '?':
+                print("Runner procs:\n{0}".format(proc_info))
+                raise AssertionError("A runner proc has a controlling tty")
     
     def _check_jobber_list_output(self, output, exp_job_names):
         lines = output.split("\n")

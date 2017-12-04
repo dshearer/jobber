@@ -3,18 +3,35 @@ package main
 import (
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"strconv"
+	"syscall"
 )
 
 type RunnerProc struct {
-	proc       *exec.Cmd
-	usr        *user.User
-	ExitedChan <-chan error
+	proc             *exec.Cmd
+	usr              *user.User
+	quitSockListener net.Listener
+	quitSockConn     net.Conn
+	ExitedChan       <-chan error
+}
+
+type acceptResult struct {
+	conn net.Conn
+	err  error
+}
+
+func makeAcceptedChan(listener net.Listener) <-chan acceptResult {
+	c := make(chan acceptResult, 1)
+	go func() {
+		conn, err := listener.Accept()
+		c <- acceptResult{conn: conn, err: err}
+		close(c)
+	}()
+	return c
 }
 
 func LaunchRunner(usr *user.User,
@@ -29,6 +46,17 @@ func LaunchRunner(usr *user.User,
 		we must avoid the possibility that the jobbermaster process
 		(running as root) shares a controlling terminal with any
 		unprivileged child process, such as the jobberrunner process.
+	*/
+
+	/*
+		Normally, the runner process will continue indefinitely.
+
+		Before launching the runner process, we make a unix socket and
+		connect to it as a server.  When the runner process gets going,
+		it connects to this socket and then tries to read from the
+		connection.  The runner process will continue as long as this
+		read does not return, and so we can get the runner process to
+		quit by closing our connection to the socket.
 	*/
 
 	var runnerProc = RunnerProc{usr: usr}
@@ -57,8 +85,26 @@ func LaunchRunner(usr *user.User,
 		defer logF.Close()
 	}
 
+	// set umask
+	oldUmask := syscall.Umask(0077)
+	defer syscall.Umask(oldUmask)
+
+	// make quit socket
+	os.Remove(common.QuitSocketPath(usr))
+	addr, err := net.ResolveUnixAddr("unix", common.QuitSocketPath(usr))
+	if err != nil {
+		return nil, err
+	}
+	runnerProc.quitSockListener, err = net.ListenUnix("unix", addr)
+	if err != nil {
+		return nil, err
+	}
+	if err = common.Chown(common.QuitSocketPath(usr), usr); err != nil {
+		return nil, err
+	}
+
 	// launch it
-	cmd := fmt.Sprintf("%v \"%v\"", runnerPath, jobfilePath)
+	cmd := fmt.Sprintf("%v -c \"%v\"", runnerPath, jobfilePath)
 	runnerProc.proc = common.Sudo(*usr, cmd)
 	// ensure we don't share TTY with the unprivileged process
 	runnerProc.proc.Stdin = nil
@@ -67,14 +113,28 @@ func LaunchRunner(usr *user.User,
 	if err := runnerProc.proc.Start(); err != nil {
 		return nil, err
 	}
+	runnerProc.ExitedChan = common.MakeCmdExitedChan(runnerProc.proc)
 
-	// launch thread that waits for subproc
-	exitedChan := make(chan error)
-	go func() {
-		exitedChan <- runnerProc.proc.Wait()
-		close(exitedChan)
-	}()
-	runnerProc.ExitedChan = exitedChan
+	// wait for it to connect to quit socket (or quit)
+	acceptedChan := makeAcceptedChan(runnerProc.quitSockListener)
+	select {
+	case result := <-acceptedChan:
+		if result.err != nil {
+			runnerProc.Kill()
+			return nil, result.err
+		}
+		common.Logger.Printf("jobberrunner for %v has started.",
+			usr.Username)
+		runnerProc.quitSockConn = result.conn
+
+	case <-runnerProc.ExitedChan:
+		runnerProc.Kill()
+		msg := fmt.Sprintf(
+			"jobberrunner for %v exited prematurely.",
+			usr.Username,
+		)
+		return nil, &common.Error{What: msg}
+	}
 
 	return &runnerProc, nil
 }
@@ -93,27 +153,13 @@ func (self *RunnerProc) Kill() {
 	   So we can use that to kill the jobberrunner process directly.
 	*/
 
-	// kill the su process
-	self.proc.Process.Signal(os.Kill)
-	<-self.ExitedChan
-
-	pidPath := common.RunnerPidFilePath(self.usr)
-	if pidF, err := os.Open(pidPath); err == nil {
-		// kill the jobberrunner process
-		defer pidF.Close()
-		defer os.Remove(pidPath)
-		b, err := ioutil.ReadAll(pidF)
-		if err != nil {
-			return
-		}
-		pid, err := strconv.Atoi(string(b))
-		if err != nil {
-			return
-		}
-		proc, err := os.FindProcess(pid)
-		if err != nil {
-			return
-		}
-		proc.Signal(os.Kill)
+	if self.quitSockConn != nil {
+		self.quitSockConn.Close()
+		self.quitSockConn = nil
 	}
+	if self.quitSockListener != nil {
+		self.quitSockListener.Close()
+		self.quitSockListener = nil
+	}
+	os.Remove(common.QuitSocketPath(self.usr))
 }

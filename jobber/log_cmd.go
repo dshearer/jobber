@@ -56,7 +56,7 @@ func (self LogDescSorter) Less(i, j int) bool {
 
 func sendLogCmd(usr *user.User) (*common.LogCmdResp, error) {
 	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.SocketPath(usr))
+	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
 	if err != nil {
 		return nil, err
 	}
