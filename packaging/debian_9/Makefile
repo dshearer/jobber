@@ -5,6 +5,7 @@ PKGFILE ?= jobber_${VERSION}-1_amd64.deb
 PKGFILE_DEPS = $(wildcard debian-pkg/**)
 PKGFILE_VM_PATH = jobber_${VERSION}-1_amd64.deb
 INSTALL_PKG_CMD = sudo dpkg -i ${PKGFILE}
+UNINSTALL_PKG_CMD = sudo dpkg -r jobber
 
 .PHONY : pkg-local
 pkg-local : ${WORK_DIR}/${SRC_TARFILE}

@@ -5,15 +5,29 @@ main :
 	@echo "Choose pkg-local or pkg-vm or test-vm"
 
 .PHONY : pkg-vm
-pkg-vm : ${DESTDIR}${PKGFILE}
+pkg-vm : .vm-is-pristine ${DESTDIR}${PKGFILE}
+	# stop VM
+	vagrant suspend
 
-${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
-		${PKGFILE_DEPS}
+.vm-is-pristine : .vm-is-running
 	# restore "Base" snapshot and start VM
+	-vagrant suspend
+	vagrant snapshot restore Base
+	touch $@
+	
+.vm-is-running :
 	(vagrant snapshot list | grep Base >/dev/null) || \
 		(vagrant up && vagrant reload && vagrant suspend && \
 			vagrant snapshot save Base)
-	vagrant snapshot restore Base
+	touch $@
+
+${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
+		${PKGFILE_DEPS} .vm-is-running
+	
+	rm -f .vm-is-pristine
+	
+	# make sure VM is running
+	(vagrant status | grep running >/dev/null) || vagrant up
 	
 	# copy Jobber source to VM
 	vagrant scp "${WORK_DIR}/${SRC_TARFILE}" ":${SRC_TARFILE}"
@@ -29,32 +43,22 @@ ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
 	# copy package out of VM
 	vagrant scp :dest/${PKGFILE_VM_PATH} "${DESTDIR}${PKGFILE}"
 	
-	# stop VM
-	vagrant suspend
-	
 	touch "$@"
 
-.PHONY : test-vm-shell
-test-vm-shell : ${DESTDIR}${PKGFILE} platform_tests.tar
-	# restore "Base" snapshot and start VM
-	vagrant snapshot restore Base
-	
-	# install package
-	vagrant scp "${DESTDIR}${PKGFILE}" ":${PKGFILE}"
-	${VAGRANT_SSH} "${INSTALL_PKG_CMD}"
-	
-	# copy test scripts to VM
-	vagrant scp platform_tests.tar :platform_tests.tar
-	
-	# get shell on VM
-	vagrant ssh
-
 .PHONY : test-vm
-test-vm : ${DESTDIR}${PKGFILE} platform_tests.tar
-	# restore "Base" snapshot and start VM
-	vagrant snapshot restore Base
+test-vm : .vm-is-pristine test-vm-dev
+	# stop VM
+	vagrant suspend
+
+.PHONY : test-vm-dev
+test-vm-dev : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
+	rm -f .vm-is-pristine
+	
+	# make sure VM is running
+	(vagrant status | grep running >/dev/null) || vagrant up
 	
 	# install package
+	-${VAGRANT_SSH} "${UNINSTALL_PKG_CMD}"
 	vagrant scp "${DESTDIR}${PKGFILE}" ":${PKGFILE}"
 	${VAGRANT_SSH} "${INSTALL_PKG_CMD}"
 	
@@ -70,9 +74,6 @@ test-vm : ${DESTDIR}${PKGFILE} platform_tests.tar
 	vagrant scp :log.html "${DESTDIR}test_report/"
 	vagrant scp :report.html "${DESTDIR}test_report/"
 	
-	# stop VM
-	vagrant suspend
-	
 	# finish up
 	@cat testlog.txt
 	@egrep '.* critical tests,.* 0 failed[[:space:]]*$$' testlog.txt\
@@ -87,7 +88,8 @@ platform_tests.tar : $(wildcard ${SRC_ROOT}/platform_tests/**)
 .PHONY : clean
 clean :
 	rm -rf "${WORK_DIR}" "${DESTDIR}${PKGFILE}" docker/src.tgz \
-		testlog.txt "${DESTDIR}test_report" platform_tests.tar
+		testlog.txt "${DESTDIR}test_report" platform_tests.tar \
+		.vm-is-running .vm-is-pristine
 	-vagrant suspend
 
 .PHONY : deepclean
