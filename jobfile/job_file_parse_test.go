@@ -2,8 +2,9 @@ package jobfile
 
 import (
 	"bytes"
-	"github.com/dshearer/jobber/Godeps/_workspace/src/github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/dshearer/jobber/Godeps/_workspace/src/github.com/stretchr/testify/require"
 )
 
 const NewJobFileEx string = `
@@ -27,6 +28,17 @@ notifyProgram: ~/handleError
   onError: Backoff
   notifyOnError: true
   notifyOnFailure: false
+
+- name: SuccessReport
+  cmd: |
+    multi-
+    line
+    script
+  time: 0 0 14 * * 1
+  onError: Backoff
+  notifyOnError: false
+  notifyOnFailure: false
+  notifyOnSuccess: true
 `
 
 const LegacyJobFileEx string = `---
@@ -158,7 +170,7 @@ func TestReadNewJobberFile(t *testing.T) {
 	require.NotNil(t, file.Prefs.Notifier)
 
 	// test jobs
-	require.Equal(t, 2, len(file.Jobs))
+	require.Equal(t, 3, len(file.Jobs))
 
 	// test DailyBackup
 	daily := file.Jobs[0]
@@ -167,6 +179,7 @@ func TestReadNewJobberFile(t *testing.T) {
 	require.Equal(t, &ErrorHandlerStop, daily.ErrorHandler)
 	require.Equal(t, false, daily.NotifyOnError)
 	require.Equal(t, true, daily.NotifyOnFailure)
+	require.Equal(t, false, daily.NotifyOnSuccess)
 
 	// test WeeklyBackup
 	weekly := file.Jobs[1]
@@ -178,6 +191,18 @@ script
 	require.Equal(t, &ErrorHandlerBackoff, weekly.ErrorHandler)
 	require.Equal(t, true, weekly.NotifyOnError)
 	require.Equal(t, false, weekly.NotifyOnFailure)
+	require.Equal(t, false, weekly.NotifyOnSuccess)
+
+	notifysuccess := file.Jobs[2]
+	require.Equal(t, "SuccessReport", notifysuccess.Name)
+	require.Equal(t, `multi-
+line
+script
+`, notifysuccess.Cmd)
+	require.Equal(t, &ErrorHandlerBackoff, notifysuccess.ErrorHandler)
+	require.Equal(t, false, notifysuccess.NotifyOnError)
+	require.Equal(t, false, notifysuccess.NotifyOnFailure)
+	require.Equal(t, true, notifysuccess.NotifyOnSuccess)
 }
 
 func TestReadLegacyJobberFile(t *testing.T) {

@@ -2,9 +2,10 @@ package jobfile
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"log"
 	"time"
+
+	"github.com/dshearer/jobber/common"
 )
 
 const (
@@ -104,6 +105,7 @@ type Job struct {
 	ErrorHandler    *ErrorHandler
 	NotifyOnError   bool
 	NotifyOnFailure bool
+	NotifyOnSuccess bool
 	NextRunTime     *time.Time
 
 	// other params
@@ -129,6 +131,7 @@ func NewJob(name string, cmd string, username string) *Job {
 	job.ErrorHandler = &ErrorHandlerContinue
 	job.NotifyOnError = false
 	job.NotifyOnFailure = true
+	job.NotifyOnSuccess = false
 	return job
 }
 

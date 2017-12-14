@@ -3,8 +3,6 @@ package jobfile
 import (
 	"bufio"
 	"fmt"
-	"github.com/dshearer/jobber/Godeps/_workspace/src/gopkg.in/yaml.v2"
-	"github.com/dshearer/jobber/common"
 	"io"
 	"os"
 	"os/user"
@@ -13,6 +11,9 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/dshearer/jobber/common"
+	yaml "gopkg.in/yaml.v1"
 )
 
 const (
@@ -37,6 +38,7 @@ type JobConfigEntry struct {
 	OnError         *string "onError,omitempty"
 	NotifyOnError   *bool   "notifyOnError,omitempty"
 	NotifyOnFailure *bool   "notifyOnFailure,omitempty"
+	NotifyOnSuccess *bool   "notifyOnSuccess,omitempty"
 }
 
 func LoadJobberFileForUser(username string) (*JobberFile, error) {
@@ -237,6 +239,9 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 		}
 		if config.NotifyOnFailure != nil {
 			job.NotifyOnFailure = *config.NotifyOnFailure
+		}
+		if config.NotifyOnSuccess != nil {
+			job.NotifyOnSuccess = *config.NotifyOnSuccess
 		}
 
 		// parse time spec
