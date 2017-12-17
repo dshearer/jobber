@@ -12,8 +12,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/dshearer/jobber/Godeps/_workspace/src/gopkg.in/yaml.v2"
 	"github.com/dshearer/jobber/common"
-	yaml "gopkg.in/yaml.v1"
 )
 
 const (
