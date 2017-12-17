@@ -33,9 +33,9 @@ type JobConfigEntry struct {
 	Name            string
 	Cmd             string
 	Time            string
-	OnError         *string "onError,omitempty"
-	NotifyOnError   *bool   "notifyOnError,omitempty"
-	NotifyOnFailure *bool   "notifyOnFailure,omitempty"
+	OnError         *string `yaml:"onError,omitempty"`
+	NotifyOnError   *bool   `yaml:"notifyOnError,omitempty"`
+	NotifyOnFailure *bool   `yaml:"notifyOnFailure,omitempty"`
 }
 
 func NewEmptyJobFile() *JobFile {
@@ -214,8 +214,7 @@ func parsePrefsSect(s string) (*UserPrefs, error) {
 		// get type
 		typeVal, ok := runLogValMap["type"].(string)
 		if !ok {
-			errMsg := fmt.Sprintf("Preference \"runLog\" needs \"type\"",
-				runLogVal)
+			errMsg := fmt.Sprintf("Preference \"runLog\" needs \"type\"")
 			return nil, &common.Error{errMsg, nil}
 		}
 

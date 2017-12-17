@@ -91,7 +91,7 @@ func (self *JobManager) loadJobFile() (*jobfile.JobFile, error) {
 	// get current user
 	user, err := user.Current()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to get current user.", err))
+		panic(fmt.Sprintf("Failed to get current user: %v", err))
 	}
 
 	// read jobfile
