@@ -15,7 +15,7 @@ function makeVersionsSelect(currVersion) {
 		var version = opts[opts.selectedIndex].text;
 
 		// go to documentation for that version
-		document.location = "../v" + version;
+		window.location.pathname = "/jobber/doc/v" + version;
 	});
 
 	// add option elements
@@ -50,6 +50,7 @@ function addSections(navUl, sectionContainer, sections) {
 		// load section
 		var div = $("<div></div>").appendTo(sectionContainer);
 		div.attr("id", sectId);
-		div.load("../" + section.version + "/partials/" + section.page);
+		div.load("/jobber/doc/" + section.version + "/partials/" + 
+				section.page);
 	}
 }
