@@ -87,9 +87,18 @@ all : lib ${GO_WKSPC}/bin/jobber ${GO_WKSPC}/bin/jobbermaster ${GO_WKSPC}/bin/jo
 
 .PHONY : check
 check : ${TEST_SOURCES}
-	${GO} vet github.com/dshearer/jobber/...
+	${GO} vet \
+		github.com/dshearer/jobber/common \
+		github.com/dshearer/jobber/jobber \
+		github.com/dshearer/jobber/jobbermaster \
+		github.com/dshearer/jobber/jobberrunner \
+		github.com/dshearer/jobber/jobfile
 	TMPDIR="${TEST_TMPDIR}" ${GO} test \
-		github.com/dshearer/jobber/...
+		github.com/dshearer/jobber/common \
+		github.com/dshearer/jobber/jobber \
+		github.com/dshearer/jobber/jobbermaster \
+		github.com/dshearer/jobber/jobberrunner \
+		github.com/dshearer/jobber/jobfile
 
 .PHONY : installcheck
 installcheck :
