@@ -153,7 +153,7 @@ func main() {
 	if err := mkdirp(common.VarDirPath, 0775); err != nil {
 		// already exists
 		common.ErrLogger.Printf(
-			"Failed to make dir at %v: %t",
+			"Failed to make dir at %v: %v",
 			common.VarDirPath,
 			err)
 		os.Exit(1)
@@ -175,7 +175,7 @@ func main() {
 		dirPath := common.PerUserDirPath(usr)
 		if err := mkdirp(dirPath, 0770); err != nil {
 			common.ErrLogger.Printf(
-				"Failed to make dir at %v: %t",
+				"Failed to make dir at %v: %v",
 				dirPath,
 				err)
 			continue
@@ -184,7 +184,7 @@ func main() {
 		// set its owner
 		if err := common.Chown(dirPath, usr); err != nil {
 			common.ErrLogger.Printf(
-				"Failed to chown dir at %v: %t",
+				"Failed to chown dir at %v: %v",
 				dirPath,
 				err)
 			continue
