@@ -25,9 +25,11 @@
   integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
   crossorigin="anonymous" type="text/javascript"></script>
 
-<title>How to Use Jobber</title>
+<title>Jobber Security</title>
 </head>
-<body>
+
+<body data-spy="scroll" data-target="#toc-container" data-offset="100">
+
   <!-- NAV BAR -->
   <nav class="navbar navbar-default">
     <div class="container-fluid">
@@ -44,19 +46,43 @@
       <div class="collapse navbar-collapse" id="navbar-collapse">
         <ul class="nav navbar-nav">
           <li><a href="/jobber/download/">Download</a></li>
-          <li class="active"><a href="#">How to Use</a></li>
-          <li><a href="/jobber/security/">Security</a></li>
+          <li><a href="/jobber/doc/v1.2/">How to Use</a></li>
+          <li class="active"><a href="#">Security</a></li>
         </ul>
       </div>
     </div>
   </nav>
 
+  <header class="container">
+    <h1>Jobber Security</h1>
+  </header>
+
   <!-- MAIN CONTENT -->
   <div class="container">
-    <h1>How to Use Jobber</h1>
+    <p>Like cron, Jobber enables different users to run their own sets of
+      jobs. The main security requirement is that Jobber does not enable users
+      to do something they otherwise would not be allowed to do. In particular,
+      the set of commands that a user can execute via Jobber must be a subset of
+      the set of commands that the user can execute in the shell.</p>
 
-    <a href="/jobber/doc/v1.1/" class="btn btn-primary">v1.1</a> <a
-      href="/jobber/doc/v1.2/" class="btn btn-primary">v1.2</a>
+    <p>
+      Note that Jobber has <em>not</em> been thoroughly and expertly reviewed
+      with regard to security. (Of course, neither has most software....)
+      Meeting its security requirements is indeed a goal, but, as made clear in
+      <a href="https://github.com/dshearer/jobber/blob/master/LICENSE">the license</a>, the authors make no guarantee that
+      there are no vulnerabilities in Jobber.
+    </p>
+    
+    <h2>Reporting Vulnerabilities</h2>
+    
+    <p>If you discover a vulnerability in Jobber, please send a
+    description of it to jobber-security@nekonya.info.</p>
+    
+    <p><em>Please,</em> do <strong>NOT</strong> discuss it on the
+    Jobber mailing list or in a GitHub issue &mdash; or, really,
+    anywhere.  If you do, you are a bad person.</p>
   </div>
+  <!-- main content -->
 </body>
+
 </html>
