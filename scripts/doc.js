@@ -15,7 +15,7 @@ function makeVersionsSelect(currVersion) {
 		var version = opts[opts.selectedIndex].text;
 
 		// go to documentation for that version
-		window.location.pathname = "/jobber/doc/v" + version;
+		window.location.pathname = "/jobber/doc/v" + version + "/";
 	});
 
 	// add option elements
