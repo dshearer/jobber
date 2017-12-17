@@ -11,6 +11,13 @@
   <p>Note that, although Jobber can be used instead of cron, it is certainly
     possible to run both at the same time.</p>
 
+  <aside class="alert alert-warning">
+    <h4 class="alert-heading">Warning</h4>
+    Privilege-escalation is possible if the OS on which Jobber runs allows
+    non-root users to change the owner of a file to another user. Fortunately,
+    this is not possible in Linux and is not common in other kinds of Unix.
+  </aside>
+
   <h3>Compilation and Installation from Source</h3>
 
   <p>You need a recent version of Go to compile Jobber. So, install Go, pick

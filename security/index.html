@@ -69,18 +69,28 @@
       Note that Jobber has <em>not</em> been thoroughly and expertly reviewed
       with regard to security. (Of course, neither has most software....)
       Meeting its security requirements is indeed a goal, but, as made clear in
-      <a href="https://github.com/dshearer/jobber/blob/master/LICENSE">the license</a>, the authors make no guarantee that
-      there are no vulnerabilities in Jobber.
+      <a href="https://github.com/dshearer/jobber/blob/master/LICENSE">the
+        license</a>, the authors make no guarantee that there are no vulnerabilities
+      in Jobber.
     </p>
-    
+
+    <aside class="alert alert-warning">
+      <h4 class="alert-heading">Warning</h4>
+      Privilege-escalation is possible if the OS on which Jobber runs allows
+      non-root users to change the owner of a file to another user. Fortunately,
+      this is not possible in Linux and is not common in other kinds of Unix.
+    </aside>
+
     <h2>Reporting Vulnerabilities</h2>
-    
-    <p>If you discover a vulnerability in Jobber, please send a
-    description of it to jobber-security@nekonya.info.</p>
-    
-    <p><em>Please,</em> do <strong>NOT</strong> discuss it on the
-    Jobber mailing list or in a GitHub issue &mdash; or, really,
-    anywhere.  If you do, you are a bad person.</p>
+
+    <p>If you discover a vulnerability in Jobber, please send a description
+      of it to jobber-security@nekonya.info.</p>
+
+    <p>
+      <em>Please,</em> do <strong>NOT</strong> discuss it on the Jobber mailing
+      list or in a GitHub issue &mdash; or, really, anywhere. If you do, you are
+      a bad person.
+    </p>
   </div>
   <!-- main content -->
 </body>
