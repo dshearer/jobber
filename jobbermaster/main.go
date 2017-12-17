@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/jobfile"
 	"os"
@@ -29,7 +30,7 @@ type RunnerProcInfo struct {
 	proc        *exec.Cmd
 }
 
-func runnerThread(ctx *common.NewContext,
+func runnerThread(ctx common.BetterContext,
 	usr *user.User,
 	jobfilePath string) {
 
@@ -68,7 +69,7 @@ Loop:
 				usr.Username,
 			)
 
-		case <-ctx.CancelledChan():
+		case <-ctx.Done():
 			common.Logger.Printf("%v thread cancelled", usr.Username)
 			/* No need to kill the child procs. */
 			break Loop
@@ -164,7 +165,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	mainCtx := common.BackgroundContext().MakeChild()
+	mainCtx, mainCtxCtl :=
+		common.MakeChildContext(context.Background())
 	for _, usr := range users {
 		// look for jobfile
 		jobfilePath := filepath.Join(usr.HomeDir, jobfile.JobFileName)
@@ -189,7 +191,7 @@ func main() {
 		}
 
 		// launch thread to monitor runner process
-		subctx := mainCtx.MakeChild()
+		subctx, _ := common.MakeChildContext(mainCtx)
 		go runnerThread(subctx, usr, jobfilePath)
 	}
 
@@ -202,8 +204,8 @@ func main() {
 
 	// kill threads
 	common.Logger.Printf("Killing threads")
-	mainCtx.Cancel()
+	mainCtxCtl.Cancel()
 	common.Logger.Printf("Waiting for threads")
-	mainCtx.Finish()
+	mainCtx.WaitForChildren()
 	common.Logger.Printf("Done waiting for threads")
 }

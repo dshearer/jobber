@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/jobfile"
@@ -10,14 +11,15 @@ import (
 )
 
 type JobManager struct {
-	jobfilePath   string
-	launched      bool
-	jfile         *jobfile.JobFile
-	CmdChan       chan common.ICmd
-	CmdRespChan   chan common.ICmdResp
-	mainThreadCtx *common.NewContext
-	jobRunner     *JobRunnerThread
-	Shell         string
+	jobfilePath      string
+	launched         bool
+	jfile            *jobfile.JobFile
+	CmdChan          chan common.ICmd
+	CmdRespChan      chan common.ICmdResp
+	mainThreadCtx    common.BetterContext
+	mainThreadCtxCtl common.BetterContextCtl
+	jobRunner        *JobRunnerThread
+	Shell            string
 }
 
 func NewJobManager(jobfilePath string) *JobManager {
@@ -32,6 +34,9 @@ func (self *JobManager) Launch() error {
 		return &common.Error{"Already launched.", nil}
 	}
 
+	self.mainThreadCtx, self.mainThreadCtxCtl =
+		common.MakeChildContext(context.Background())
+
 	// run main thread
 	self.CmdChan = make(chan common.ICmd)
 	self.CmdRespChan = make(chan common.ICmdResp)
@@ -42,12 +47,12 @@ func (self *JobManager) Launch() error {
 }
 
 func (self *JobManager) Cancel() {
-	self.mainThreadCtx.Cancel()
+	self.mainThreadCtxCtl.Cancel()
 }
 
 func (self *JobManager) Wait() {
 	common.Logger.Printf("JobManager Waiting")
-	self.mainThreadCtx.Wait()
+	self.mainThreadCtxCtl.WaitForFinish()
 }
 
 func (self *JobManager) findJob(name string) *jobfile.Job {
@@ -130,13 +135,12 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 }
 
 func (self *JobManager) runMainThread() {
-	self.mainThreadCtx = common.BackgroundContext().MakeChild()
-
 	go func() {
 		/*
 		   All modifications to the job manager's state occur here.
 		*/
 		common.Logger.Println("In job manager main thread")
+		defer self.mainThreadCtx.Finish()
 
 		// load job file
 		jfile, err := self.loadJobFile()
@@ -155,7 +159,7 @@ func (self *JobManager) runMainThread() {
 	Loop:
 		for {
 			select {
-			case <-self.mainThreadCtx.CancelledChan():
+			case <-self.mainThreadCtx.Done():
 				common.Logger.Println("Main thread cancelled")
 				break Loop
 
@@ -164,6 +168,7 @@ func (self *JobManager) runMainThread() {
 					self.handleRunRec(rec)
 				} else {
 					common.ErrLogger.Println("Job-runner thread ended prematurely.")
+					self.mainThreadCtxCtl.Cancel()
 					break Loop
 				}
 
@@ -172,25 +177,21 @@ func (self *JobManager) runMainThread() {
 					var shouldExit bool
 					self.doCmd(cmd, &shouldExit)
 					if shouldExit {
+						self.mainThreadCtxCtl.Cancel()
 						break Loop
 					}
 				} else {
 					common.ErrLogger.Println("Command channel was closed.")
+					self.mainThreadCtxCtl.Cancel()
 					break Loop
 				}
 			}
 		}
 
-		// cancel main thread
-		self.mainThreadCtx.Cancel()
-
 		// consume all run-records
 		for rec := range self.jobRunner.RunRecChan() {
 			self.handleRunRec(rec)
 		}
-
-		// wait for job-runner thread to finish
-		self.mainThreadCtx.Finish()
 	}()
 }
 

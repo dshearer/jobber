@@ -10,7 +10,8 @@ import (
 type JobRunnerThread struct {
 	running    bool
 	runRecChan chan *jobfile.RunRec
-	ctx        *common.NewContext
+	ctx        common.BetterContext
+	ctxCtl     common.BetterContextCtl
 }
 
 func NewJobRunnerThread() *JobRunnerThread {
@@ -26,7 +27,7 @@ func (self *JobRunnerThread) RunRecChan() <-chan *jobfile.RunRec {
 func (self *JobRunnerThread) Start(
 	jobs []*jobfile.Job,
 	shell string,
-	ctx *common.NewContext) {
+	ctx common.BetterContext) {
 
 	if self.running {
 		panic("JobRunnerThread already running.")
@@ -38,19 +39,21 @@ func (self *JobRunnerThread) Start(
 	jobQ.SetJobs(time.Now(), jobs)
 
 	// make subcontext
-	self.ctx = ctx.MakeChild()
+	self.ctx, self.ctxCtl = common.MakeChildContext(ctx)
 
 	go func() {
+		defer self.ctx.Finish()
+
 		for {
-			var job *jobfile.Job = jobQ.Pop(time.Now(), self.ctx) // sleeps
+			var job *jobfile.Job = jobQ.Pop(self.ctx, time.Now()) // sleeps
 
 			if job != nil && !job.Paused {
 				// launch thread to run this job
 				common.Logger.Printf("%v: %v\n", job.User, job.Cmd)
-				subsubctx := self.ctx.MakeChild()
+				subctx, _ := common.MakeChildContext(self.ctx)
 				go func(job *jobfile.Job) {
+					defer subctx.Finish()
 					self.runRecChan <- RunJob(job, shell, false)
-					subsubctx.Finish()
 				}(job)
 
 			} else if job == nil {
@@ -62,7 +65,7 @@ func (self *JobRunnerThread) Start(
 
 		// wait for run threads to stop
 		//Logger.Printf("JobRunner: cleaning up...\n")
-		self.ctx.Finish()
+		self.ctx.WaitForChildren()
 
 		// close run-rec channel
 		close(self.runRecChan)
@@ -71,12 +74,12 @@ func (self *JobRunnerThread) Start(
 }
 
 func (self *JobRunnerThread) Cancel() {
-	self.ctx.Cancel()
+	self.ctxCtl.Cancel()
 	self.running = false
 }
 
 func (self *JobRunnerThread) Wait() {
-	self.ctx.Wait()
+	self.ctxCtl.WaitForFinish()
 }
 
 func RunJob(

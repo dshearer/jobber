@@ -106,6 +106,9 @@ class testlib(object):
             msg += " ('jobber list' returned '{0}')".\
                 format(err.strip())
             raise AssertionError(msg)
+        
+        # sometimes not all jobberrunner procs have started yet
+        time.sleep(2)
     
     def print_debug_info(self):
         log = ''

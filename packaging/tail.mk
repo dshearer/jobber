@@ -5,29 +5,29 @@ main :
 	@echo "Choose pkg-local or pkg-vm or test-vm"
 
 .PHONY : pkg-vm
-pkg-vm : .vm-is-pristine ${DESTDIR}${PKGFILE}
+pkg-vm : .vm-is-pristine ${DESTDIR}${PKGFILE}	
 	# stop VM
 	vagrant suspend
 
-.vm-is-pristine : .vm-is-running
+.vm-is-created :
+	@# NOTE: We do 'vagrant reload' b/c some packages may need a restart
+	(vagrant snapshot list | grep Base >/dev/null) || \
+		(vagrant up && vagrant reload && vagrant snapshot save Base)
+	touch $@
+
+.vm-is-pristine : .vm-is-created
 	# restore "Base" snapshot and start VM
-	-vagrant suspend
 	vagrant snapshot restore Base
 	touch $@
 	
-.vm-is-running :
-	(vagrant snapshot list | grep Base >/dev/null) || \
-		(vagrant up && vagrant reload && vagrant suspend && \
-			vagrant snapshot save Base)
+.vm-is-running : .vm-is-created
+	vagrant up
 	touch $@
 
 ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
 		${PKGFILE_DEPS} .vm-is-running
 	
 	rm -f .vm-is-pristine
-	
-	# make sure VM is running
-	(vagrant status | grep running >/dev/null) || vagrant up
 	
 	# copy Jobber source to VM
 	vagrant scp "${WORK_DIR}/${SRC_TARFILE}" ":${SRC_TARFILE}"
@@ -53,9 +53,6 @@ test-vm : .vm-is-pristine test-vm-dev
 .PHONY : test-vm-dev
 test-vm-dev : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
 	rm -f .vm-is-pristine
-	
-	# make sure VM is running
-	(vagrant status | grep running >/dev/null) || vagrant up
 	
 	# install package
 	-${VAGRANT_SSH} "${UNINSTALL_PKG_CMD}"
@@ -95,3 +92,4 @@ clean :
 .PHONY : deepclean
 deepclean : clean
 	-vagrant destroy -f
+	rm -f .vm-is-created

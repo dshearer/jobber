@@ -2,7 +2,7 @@ package main
 
 import (
 	"container/heap"
-	"github.com/dshearer/jobber/common"
+	"context"
 	"github.com/dshearer/jobber/jobfile"
 	"time"
 )
@@ -143,10 +143,10 @@ func (jq *JobQueue) Empty() bool {
  *
  * @return The next job to run, or nil if the context has been canceled.
  */
-func (jq *JobQueue) Pop(now time.Time, ctx *common.NewContext) *jobfile.Job {
+func (jq *JobQueue) Pop(ctx context.Context, now time.Time) *jobfile.Job {
 	if jq.Empty() {
 		// just wait till the context has been canceled
-		<-ctx.CancelledChan()
+		<-ctx.Done()
 		return nil
 
 	} else {
@@ -158,7 +158,7 @@ func (jq *JobQueue) Pop(now time.Time, ctx *common.NewContext) *jobfile.Job {
 			afterChan := time.After(job.NextRunTime.Sub(now))
 			select {
 			case now = <-afterChan:
-			case <-ctx.CancelledChan():
+			case <-ctx.Done():
 				// abort!
 				heap.Push(&jq.q, job)
 				return nil
@@ -176,7 +176,7 @@ func (jq *JobQueue) Pop(now time.Time, ctx *common.NewContext) *jobfile.Job {
 			return job
 		} else {
 			// skip this job
-			return jq.Pop(now, ctx)
+			return jq.Pop(ctx, now)
 		}
 	}
 }
