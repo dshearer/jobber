@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/dshearer/jobber/common"
-	"github.com/dshearer/jobber/jobfile"
 	"os"
 	"sort"
 	"strings"
 	"text/tabwriter"
 	"time"
+
+	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/jobfile"
 )
 
 type RunLogEntry struct {
@@ -209,7 +210,7 @@ func (m *JobManager) handleRunRec(rec *jobfile.RunRec) {
 	/* NOTE: error-handler was already applied by the job, if necessary. */
 
 	if (!rec.Succeeded && rec.Job.NotifyOnError) ||
-		(rec.Job.NotifyOnFailure && rec.NewStatus == jobfile.JobFailed) {
+		(rec.Job.NotifyOnFailure && rec.NewStatus == jobfile.JobFailed) || (rec.Succeeded && rec.Job.NotifyOnSuccess) {
 		// notify user
 		m.userPrefs[rec.Job.User].Notifier(rec)
 	}
@@ -355,7 +356,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool { // runs in main thread
 		// make response
 		var buffer bytes.Buffer
 		var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5, 0, 2, ' ', 0)
-		fmt.Fprintf(writer, "NAME\tSTATUS\tSEC/MIN/HR/MDAY/MTH/WDAY\tNEXT RUN TIME\tNOTIFY ON ERR\tNOTIFY ON FAIL\tERR HANDLER\n")
+		fmt.Fprintf(writer, "NAME\tSTATUS\tSEC/MIN/HR/MDAY/MTH/WDAY\tNEXT RUN TIME\tNOTIFY ON ERR\tNOTIFY ON FAIL\tNOTIFY ON SUCCESS\tERR HANDLER\n")
 		strs := make([]string, 0, len(m.jobs))
 		for _, j := range jobs {
 			schedStr := fmt.Sprintf("%v %v %v %v %v %v",
@@ -380,6 +381,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool { // runs in main thread
 				runTimeStr,
 				j.NotifyOnError,
 				j.NotifyOnFailure,
+				j.NotifyOnSuccess,
 				j.ErrorHandler)
 			strs = append(strs, s)
 		}

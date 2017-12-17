@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"net"
 	"net/rpc"
 	"os"
 	"os/user"
 	"syscall"
+
+	"github.com/dshearer/jobber/common"
 )
 
 const (
