@@ -22,6 +22,5 @@ CMD tar xzf /jobber.tgz && \
     make -C /jobber-*/packaging/centos_6 pkg-local DESTDIR=/ && \
     yum install -y /*.rpm && \
     useradd normuser --create-home && \
-    (/usr/local/libexec/jobbermaster >/dev/null 2>&1 &) && \
     tar xf /platform_tests.tar && \
     robot platform_tests/test.robot
