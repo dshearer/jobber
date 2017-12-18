@@ -3,6 +3,7 @@ package jobfile
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/dshearer/jobber/common"
 	"os/exec"
 )
@@ -48,6 +49,7 @@ func MakeProgramNotifier(program string) RunRecNotifier {
 			"onError":         rec.Job.ErrorHandler.String(),
 			"notifyOnError":   rec.Job.NotifyOnError,
 			"notifyOnFailure": rec.Job.NotifyOnFailure,
+			"notifyOnSuccess": rec.Job.NotifyOnSuccess,
 			"status":          rec.NewStatus.String()}
 
 		// make rec JSON

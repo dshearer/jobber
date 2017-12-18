@@ -17,13 +17,14 @@ type ReloadCmdResp struct {
 }
 
 type JobDesc struct {
-	Name         string
-	Status       string
-	Schedule     string
-	NextRunTime  *time.Time
-	NotifyOnErr  bool
-	NotifyOnFail bool
-	ErrHandler   string
+	Name            string
+	Status          string
+	Schedule        string
+	NextRunTime     *time.Time
+	NotifyOnSuccess bool
+	NotifyOnErr     bool
+	NotifyOnFail    bool
+	ErrHandler      string
 }
 
 type ListJobsCmd struct {

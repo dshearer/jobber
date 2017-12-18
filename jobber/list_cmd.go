@@ -78,6 +78,7 @@ func doListCmd_allUsers() int {
 		"STATUS",
 		"SEC/MIN/HR/MDAY/MTH/WDAY",
 		"NEXT RUN TIME",
+		"NOTIFY ON SUCCESS",
 		"NOTIFY ON ERR",
 		"NOTIFY ON FAIL",
 		"ERR HANDLER",
@@ -102,11 +103,12 @@ func doListCmd_allUsers() int {
 			}
 			var s string
 			s = fmt.Sprintf(
-				"%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
+				"%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
 				j.Name,
 				j.Status,
 				j.Schedule,
 				nextRunTime,
+				j.NotifyOnSuccess,
 				j.NotifyOnErr,
 				j.NotifyOnFail,
 				j.ErrHandler,

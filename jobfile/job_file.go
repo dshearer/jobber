@@ -34,6 +34,7 @@ type JobConfigEntry struct {
 	Cmd             string
 	Time            string
 	OnError         *string `yaml:"onError,omitempty"`
+	NotifyOnSuccess *bool   `yaml:"notifyOnSuccess,omitempty"`
 	NotifyOnError   *bool   `yaml:"notifyOnError,omitempty"`
 	NotifyOnFailure *bool   `yaml:"notifyOnFailure,omitempty"`
 }
@@ -330,6 +331,9 @@ func parseJobsSect(s string, username string) ([]*Job, error) {
 		}
 		if config.NotifyOnFailure != nil {
 			job.NotifyOnFailure = *config.NotifyOnFailure
+		}
+		if config.NotifyOnSuccess != nil {
+			job.NotifyOnSuccess = *config.NotifyOnSuccess
 		}
 
 		// parse time spec
