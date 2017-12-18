@@ -8,6 +8,8 @@ PKGFILE_DEPS = jobber.spec
 PKGFILE_VM_PATH = jobber-${VERSION}-${PKGREL}.el7.centos.${PLATFORM}.rpm
 INSTALL_PKG_CMD = sudo yum install -y ${PKGFILE} && \
 	sudo systemctl start jobber
+UNINSTALL_PKG_CMD = sudo systemctl stop jobber && \
+	sudo yum remove -y jobber
 DOCKER_IMAGE_NAME = jobber/centos7.2.1511_build_rpm
 
 .PHONY : pkg-local

@@ -15,10 +15,16 @@ const (
 type JobStatus uint8
 
 const (
-	JobGood    JobStatus = 0
-	JobFailed            = 1
-	JobBackoff           = 2
+	JobGood JobStatus = iota
+	JobFailed
+	JobBackoff
 )
+
+var JobStatuses = [...]JobStatus{
+	JobGood,
+	JobFailed,
+	JobBackoff,
+}
 
 func (s JobStatus) String() string {
 	switch s {

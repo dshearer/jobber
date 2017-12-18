@@ -1,8 +1,8 @@
 #!/sbin/openrc-run
 
 name="jobber"
-command="/usr/libexec/jobberd"
-pidfile="/var/run/jobberd.pid"
+command="/usr/libexec/jobbermaster"
+pidfile="/var/run/jobbermaster.pid"
 command_args=""
 
 depend() {

@@ -1,7 +1,4 @@
 #!/bin/sh
 
-# delete client user
-deluser jobber_client
-
 # remove service
 rc-update del jobber

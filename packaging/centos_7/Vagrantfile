@@ -13,6 +13,6 @@ Vagrant.configure("2") do |config|
     yum upgrade -y
     pip install --upgrade pip
     pip install robotframework
-    useradd normuser -m
+    grep normuser /etc/passwd >/dev/null || useradd normuser -m
   SHELL
 end

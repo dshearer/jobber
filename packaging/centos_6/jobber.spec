@@ -38,8 +38,9 @@ An SELinux policy for Jobber.
 
 
 %files
-%attr(4755,jobber_client,root) /usr/local/bin/jobber
-%attr(0755,root,root) /usr/local/libexec/jobberd
+%attr(0755,root,root) /usr/local/bin/jobber
+%attr(0755,root,root) /usr/local/libexec/jobbermaster
+%attr(0755,root,root) /usr/local/libexec/jobberrunner
 %attr(0755,root,root) /etc/init.d/jobber
 
 %files selinux
@@ -102,13 +103,6 @@ do
 done
 
 
-%pre
-if [ "$1" -gt 1 ]; then
-    userdel jobber_client 2>/dev/null ||:
-fi
-useradd --home / -M --system --shell /sbin/nologin jobber_client
-
-
 %post
 if [ "$1" -eq 1 ]; then
     /sbin/service jobber start
@@ -129,7 +123,6 @@ fi
 if [ "$1" -eq 0 ]; then
     /sbin/chkconfig jobber off
     /sbin/chkconfig --del jobber
-    userdel jobber_client
 fi
 
 

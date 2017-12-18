@@ -8,8 +8,8 @@
 # Description: An alternative to cron.
 ### END INIT INFO
 
-prog=jobberd
-exec=/usr/local/libexec/jobberd
+prog=jobbermaster
+exec=/usr/local/libexec/${prog}
 lockfile=/var/lock/subsys/jobber
 pidfile=/var/run/jobber.pid
 

@@ -11,7 +11,6 @@ makedepends="$depends_dev openrc go"
 install="${pkgname}.post-install ${pkgname}.pre-deinstall ${pkgname}.post-deinstall ${pkgname}.post-upgrade"
 #subpackages="$pkgname-dev $pkgname-doc"
 source="${pkgname}.initd ${pkgname}.tgz"
-pkgusers=jobber_client
 
 _builddir="${startdir}/build"
 
@@ -35,9 +34,6 @@ package() {
     export GO_WKSPC="${_builddir}"
 	make -C "${_builddir}/src/github.com/dshearer/${pkgname}" \
 	   install "DESTDIR=${pkgdir}/" prefix=/usr
-	
-	# get around abuild's check for non-PIE SUID programs
-	chmod 0755 "${pkgdir}/usr/bin/jobber"
 
     # install init script
 	local INITD=${pkgdir}/etc/init.d

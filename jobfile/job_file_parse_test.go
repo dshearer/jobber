@@ -1,10 +1,11 @@
 package jobfile
 
 import (
-	"bytes"
+	"fmt"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
+	"os"
 	"testing"
-
-	"github.com/dshearer/jobber/Godeps/_workspace/src/github.com/stretchr/testify/require"
 )
 
 const NewJobFileEx string = `
@@ -148,13 +149,19 @@ func TestReadNewJobberFile(t *testing.T) {
 	/*
 	 * Set up
 	 */
-	buf := bytes.NewBufferString(NewJobFileEx)
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.Write([]byte(NewJobFileEx))
+	f.Close()
 
 	/*
 	 * Call
 	 */
-	var file *JobberFile
-	file, err := readJobberFile(buf, UsernameEx)
+	var file *JobFile
+	file, err = LoadJobFile(f.Name(), UsernameEx)
 
 	/*
 	 * Test
@@ -168,6 +175,7 @@ func TestReadNewJobberFile(t *testing.T) {
 
 	// test prefs
 	require.NotNil(t, file.Prefs.Notifier)
+	require.NotNil(t, file.Prefs.RunLog)
 
 	// test jobs
 	require.Equal(t, 3, len(file.Jobs))
@@ -209,13 +217,19 @@ func TestReadLegacyJobberFile(t *testing.T) {
 	/*
 	 * Set up
 	 */
-	buf := bytes.NewBufferString(LegacyJobFileEx)
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.Write([]byte(LegacyJobFileEx))
+	f.Close()
 
 	/*
 	 * Call
 	 */
-	var file *JobberFile
-	file, err := readJobberFile(buf, UsernameEx)
+	var file *JobFile
+	file, err = LoadJobFile(f.Name(), UsernameEx)
 
 	/*
 	 * Test
@@ -256,4 +270,145 @@ script
 	jobB := file.Jobs[3]
 	require.Equal(t, "JobB", jobB.Name)
 	require.Equal(t, EverySecTimeSpec, jobB.FullTimeSpec)
+}
+
+const JobberFileWithNoPrefsEx string = `
+[jobs]
+- name: DailyBackup
+  cmd: backup daily
+  time: 0 0 14
+  onError: Stop
+  notifyOnError: false
+  notifyOnFailure: true
+`
+
+func TestJobberFileWithNoPrefs(t *testing.T) {
+	/*
+	 * Set up
+	 */
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.Write([]byte(JobberFileWithNoPrefsEx))
+	f.Close()
+
+	/*
+	 * Call
+	 */
+	var file *JobFile
+	file, err = LoadJobFile(f.Name(), UsernameEx)
+
+	/*
+	 * Test
+	 */
+	require.Nil(t, err, "%v", err)
+	require.NotNil(t, file)
+	require.NotNil(t, file.Prefs.RunLog)
+	require.NotNil(t, file.Prefs.Notifier)
+}
+
+const JobberFileWithMemOnlyRunLogEx string = `
+[prefs]
+runLog:
+    type: memory
+    maxLen: 10
+`
+
+func TestJobberFileWithMemOnlyRunLog(t *testing.T) {
+	/*
+	 * Set up
+	 */
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.Write([]byte(JobberFileWithMemOnlyRunLogEx))
+	f.Close()
+
+	/*
+	 * Call
+	 */
+	var file *JobFile
+	file, err = LoadJobFile(f.Name(), UsernameEx)
+
+	/*
+	 * Test
+	 */
+	require.Nil(t, err, "%v", err)
+	require.NotNil(t, file)
+	require.NotNil(t, file.Prefs.Notifier)
+	require.NotNil(t, file.Prefs.RunLog)
+
+	// check run log type
+	require.IsType(t, &memOnlyRunLog{}, file.Prefs.RunLog)
+
+	// check max len
+	memRunLog := file.Prefs.RunLog.(*memOnlyRunLog)
+	require.Equal(t, 10, memRunLog.MaxLen())
+}
+
+const JobberFileWithFileRunLogEx string = `
+[prefs]
+runLog:
+    type: file
+    path: /tmp/claudius
+    maxFileLen: 10m
+    maxHistories: 20
+`
+
+func TestJobberFileWithFileRunLog(t *testing.T) {
+	/*
+	 * Set up
+	 */
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.Write([]byte(JobberFileWithFileRunLogEx))
+	f.Close()
+
+	/*
+	 * Call
+	 */
+	var file *JobFile
+	file, err = LoadJobFile(f.Name(), UsernameEx)
+
+	/*
+	 * Test
+	 */
+	require.Nil(t, err, "%v", err)
+	require.NotNil(t, file)
+	require.NotNil(t, file.Prefs.Notifier)
+	require.NotNil(t, file.Prefs.RunLog)
+
+	// check run log type
+	require.IsType(t, &fileRunLog{}, file.Prefs.RunLog)
+
+	// check path
+	fileRunLog := file.Prefs.RunLog.(*fileRunLog)
+	require.Equal(t, "/tmp/claudius", fileRunLog.FilePath())
+
+	// check max file len
+	require.Equal(t, int64(10*(1<<20)), fileRunLog.MaxFileLen())
+
+	// check max histories
+	require.Equal(t, 20, fileRunLog.MaxHistories())
+}
+
+func TestLoadJobFileWithMissingJobberFile(t *testing.T) {
+	/*
+	 * Call
+	 */
+	file, err := LoadJobFile("/invalid/path", UsernameEx)
+
+	/*
+	 * Test
+	 */
+	require.Nil(t, file)
+	require.NotNil(t, err)
+	require.True(t, os.IsNotExist(err))
 }
