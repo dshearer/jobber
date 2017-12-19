@@ -374,7 +374,7 @@ func (m *JobManager) doCmd(cmd ICmd) bool { // runs in main thread
 			if j.Paused {
 				statusStr += " (Paused)"
 			}
-			s := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v",
+			s := fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
 				j.Name,
 				statusStr,
 				schedStr,
