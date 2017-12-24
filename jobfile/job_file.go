@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	JobFileName             = ".jobber"
 	PrefsSectName           = "prefs"
 	JobsSectName            = "jobs"
 	gYamlStarter            = "---"
@@ -112,11 +111,47 @@ func findSections(path string) (map[string]string, error) {
 	// iterate over lines
 	scanner := bufio.NewScanner(r)
 	sectionsToLines := make(map[string][]string)
-	var currSection *string
 	lineNbr := 0
 	sectNameRegexp := regexp.MustCompile("^\\[(\\w*)\\]\\s*$")
-	legacyFormat := false
 	scanner.Split(bufio.ScanLines)
+
+	// to determine legacy vs new format, get first non-empty,
+	// non-comment line
+	legacyFormat := false
+	var currSection *string
+	for scanner.Scan() {
+		lineNbr++
+		line := scanner.Text()
+		trimmedLine := strings.TrimSpace(line)
+		if len(trimmedLine) == 0 || trimmedLine[0] == '#' {
+			// skip empty line or comment
+			//fmt.Printf("Skipping: [%v]\n", line)
+			continue
+		} else {
+			var matches []string = sectNameRegexp.FindStringSubmatch(line)
+			if matches != nil {
+				/*
+				   New format
+				*/
+				sectName := matches[1]
+				sectionsToLines[sectName] = make([]string, 0)
+				currSection = &sectName
+			} else {
+				/*
+				   With legacy format, we treat the whole file as
+				   belonging to the "jobs" section.
+				*/
+				legacyFormat = true
+				tmp := JobsSectName
+				currSection = &tmp
+				sectionsToLines[JobsSectName] = make([]string, 1)
+				sectionsToLines[JobsSectName][0] = line
+			}
+			break
+		}
+	}
+
+	// handle rest of lines
 	for scanner.Scan() {
 		lineNbr++
 		line := scanner.Text()
@@ -132,31 +167,17 @@ func findSections(path string) (map[string]string, error) {
 			if matches != nil {
 				// we are entering a (new) section
 				sectName := matches[1]
+				fmt.Printf("Section: %v\n", sectName)
 				_, ok := sectionsToLines[sectName]
 				if ok {
 					errMsg :=
 						fmt.Sprintf("Line %v: another section called \"%v\".",
 							lineNbr,
 							sectName)
-					return nil, &common.Error{errMsg, nil}
+					return nil, &common.Error{What: errMsg}
 				}
 				sectionsToLines[sectName] = make([]string, 0)
 				currSection = &sectName
-
-			} else if currSection == nil {
-				if len(strings.TrimSpace(line)) > 0 {
-					/*
-					   To support legacy format, treat whole file as YAML doc
-					   for "jobs" section.
-					*/
-					common.Logger.Println("Using legacy jobber file format.")
-					legacyFormat = true
-					tmp := JobsSectName
-					currSection = &tmp
-					sectionsToLines[JobsSectName] = make([]string, 1)
-					sectionsToLines[JobsSectName][0] = line
-				}
-
 			} else {
 				// save line
 				sectionsToLines[*currSection] =
@@ -169,6 +190,7 @@ func findSections(path string) (map[string]string, error) {
 	retval := make(map[string]string)
 	for sectName, lines := range sectionsToLines {
 		retval[sectName] = strings.Join(lines, "\n")
+		fmt.Printf("%v: %v\n", sectName, retval[sectName])
 	}
 	return retval, nil
 }
@@ -184,7 +206,7 @@ func parsePrefsSect(s string) (*UserPrefs, error) {
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
 			PrefsSectName)
-		return nil, &common.Error{errMsg, err}
+		return nil, &common.Error{What: errMsg, Cause: err}
 	}
 
 	// parse "notifyProgram"
@@ -195,7 +217,7 @@ func parsePrefsSect(s string) (*UserPrefs, error) {
 		if !ok {
 			errMsg := fmt.Sprintf("Invalid value for preference \"notifyProgram\": %v",
 				noteProgVal)
-			return nil, &common.Error{errMsg, nil}
+			return nil, &common.Error{What: errMsg}
 		}
 		userPrefs.Notifier = MakeProgramNotifier(noteProgValStr)
 	} else {
@@ -209,14 +231,14 @@ func parsePrefsSect(s string) (*UserPrefs, error) {
 		if !ok {
 			errMsg := fmt.Sprintf("Invalid value for preference \"runLog\": %v",
 				runLogVal)
-			return nil, &common.Error{errMsg, nil}
+			return nil, &common.Error{What: errMsg}
 		}
 
 		// get type
 		typeVal, ok := runLogValMap["type"].(string)
 		if !ok {
 			errMsg := fmt.Sprintf("Preference \"runLog\" needs \"type\"")
-			return nil, &common.Error{errMsg, nil}
+			return nil, &common.Error{What: errMsg}
 		}
 
 		if typeVal == "memory" {
@@ -235,7 +257,7 @@ func parsePrefsSect(s string) (*UserPrefs, error) {
 			filePath, ok := runLogValMap["path"].(string)
 			if !ok {
 				msg := fmt.Sprintf("Missing run log path")
-				return nil, &common.Error{msg, nil}
+				return nil, &common.Error{What: msg}
 			}
 
 			// get max file len
@@ -245,14 +267,14 @@ func parsePrefsSect(s string) (*UserPrefs, error) {
 				if len(maxFileLenStr) == 0 {
 					msg := fmt.Sprintf("Invalid max file len: '%v'",
 						maxFileLenStr)
-					return nil, &common.Error{msg, nil}
+					return nil, &common.Error{What: msg}
 				}
 
 				lastChar := maxFileLenStr[len(maxFileLenStr)-1]
 				if lastChar != 'm' && lastChar != 'M' {
 					msg := fmt.Sprintf("Invalid max file len: '%v'",
 						maxFileLenStr)
-					return nil, &common.Error{msg, nil}
+					return nil, &common.Error{What: msg}
 				}
 
 				numPart := maxFileLenStr[:len(maxFileLenStr)-1]
@@ -260,7 +282,7 @@ func parsePrefsSect(s string) (*UserPrefs, error) {
 				if err != nil {
 					msg := fmt.Sprintf("Invalid max file len: '%v'",
 						maxFileLenStr)
-					return nil, &common.Error{msg, err}
+					return nil, &common.Error{What: msg, Cause: err}
 				}
 				maxFileLen = int64(tmp) * (1 << 20)
 			}
@@ -282,9 +304,9 @@ func parsePrefsSect(s string) (*UserPrefs, error) {
 				return nil, err
 			}
 		} else {
-			errMsg := fmt.Sprintf("Invalid run log type: %v",
+			msg := fmt.Sprintf("Invalid run log type: %v",
 				typeVal)
-			return nil, &common.Error{errMsg, nil}
+			return nil, &common.Error{What: msg}
 		}
 	} else {
 		userPrefs.RunLog = NewMemOnlyRunLog(gDefaultMemRunLogMaxLen)
@@ -303,7 +325,7 @@ func parseJobsSect(s string, username string) ([]*Job, error) {
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
 			JobsSectName)
-		return nil, &common.Error{errMsg, err}
+		return nil, &common.Error{What: errMsg, Cause: err}
 	}
 
 	// make jobs
@@ -314,7 +336,7 @@ func parseJobsSect(s string, username string) ([]*Job, error) {
 
 		// check name
 		if len(config.Name) == 0 {
-			return nil, &common.Error{"Job name cannot be empty.", nil}
+			return nil, &common.Error{What: "Job name cannot be empty."}
 		}
 
 		// set failure-handler
@@ -359,6 +381,6 @@ func getErrorHandler(name string) (*ErrorHandler, error) {
 	case ErrorHandlerContinueName:
 		return &ErrorHandlerContinue, nil
 	default:
-		return nil, &common.Error{"Invalid error handler: " + name, nil}
+		return nil, &common.Error{What: "Invalid error handler: " + name}
 	}
 }

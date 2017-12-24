@@ -142,7 +142,7 @@ func ParseFullTimeSpec(s string) (*FullTimeSpec, error) {
 	}
 
 	if len(timeParts) > 6 {
-		return nil, &common.Error{"Excess elements in 'time' field.", nil}
+		return nil, &common.Error{What: "Excess elements in 'time' field."}
 	}
 
 	return &fullSpec, nil
@@ -158,7 +158,7 @@ func parseTimeSpec(s string, fieldName string, min int, max int) (TimeSpec, erro
 		stepStr := s[2:]
 		step, err := strconv.Atoi(stepStr)
 		if err != nil {
-			return nil, &common.Error{errMsg, err}
+			return nil, &common.Error{What: errMsg, Cause: err}
 		}
 
 		// make set of valid values
@@ -180,7 +180,7 @@ func parseTimeSpec(s string, fieldName string, min int, max int) (TimeSpec, erro
 		for _, stepStr := range stepStrs {
 			step, err := strconv.Atoi(stepStr)
 			if err != nil {
-				return nil, &common.Error{errMsg, err}
+				return nil, &common.Error{What: errMsg, Cause: err}
 			}
 			vals = append(vals, step)
 		}
@@ -194,13 +194,13 @@ func parseTimeSpec(s string, fieldName string, min int, max int) (TimeSpec, erro
 		begin, err := strconv.Atoi(extremes[0])
 
 		if err != nil {
-			return nil, &common.Error{errMsg, err}
+			return nil, &common.Error{What: errMsg, Cause: err}
 		}
 
 		end, err := strconv.Atoi(extremes[1])
 
 		if err != nil {
-			return nil, &common.Error{errMsg, err}
+			return nil, &common.Error{What: errMsg, Cause: err}
 		}
 
 		// make set of valid values
@@ -217,7 +217,7 @@ func parseTimeSpec(s string, fieldName string, min int, max int) (TimeSpec, erro
 		// convert to int
 		val, err := strconv.Atoi(s)
 		if err != nil {
-			return nil, &common.Error{errMsg, err}
+			return nil, &common.Error{What: errMsg, Cause: err}
 		}
 
 		// make TimeSpec
@@ -226,10 +226,10 @@ func parseTimeSpec(s string, fieldName string, min int, max int) (TimeSpec, erro
 		// check range
 		if val < min {
 			errMsg := fmt.Sprintf("%s: cannot be less than %v.", errMsg, min)
-			return nil, &common.Error{errMsg, nil}
+			return nil, &common.Error{What: errMsg}
 		} else if val > max {
 			errMsg := fmt.Sprintf("%s: cannot be greater than %v.", errMsg, max)
-			return nil, &common.Error{errMsg, nil}
+			return nil, &common.Error{What: errMsg}
 		}
 
 		return spec, nil

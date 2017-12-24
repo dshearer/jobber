@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"github.com/dshearer/jobber/common"
-	"github.com/dshearer/jobber/jobfile"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -121,7 +120,7 @@ func jobfileForUser(user *user.User) *string {
 	 */
 
 	// make path to jobber file
-	jobfilePath := filepath.Join(user.HomeDir, jobfile.JobFileName)
+	jobfilePath := common.JobfilePath(user)
 
 	// open it
 	f, err := os.Open(jobfilePath)
@@ -169,7 +168,7 @@ func main() {
 		common.MakeChildContext(context.Background())
 	for _, usr := range users {
 		// look for jobfile
-		jobfilePath := filepath.Join(usr.HomeDir, jobfile.JobFileName)
+		jobfilePath := filepath.Join(usr.HomeDir, common.JobFileName)
 
 		// make dir that will contain socket
 		dirPath := common.PerUserDirPath(usr)

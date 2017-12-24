@@ -2,12 +2,13 @@ VAGRANT_SSH = vagrant ssh --no-tty -c
 
 .PHONY : main
 main :
-	@echo "Choose pkg-local or pkg-vm or test-vm"
+	@echo "Choose pkg-local or pkg-vm or test-vm or play-vm"
 
 .PHONY : pkg-vm
 pkg-vm : .vm-is-pristine ${DESTDIR}${PKGFILE}	
 	# stop VM
 	vagrant suspend
+	rm -f .vm-is-running
 
 .vm-is-created :
 	@# NOTE: We do 'vagrant reload' b/c some packages may need a restart
@@ -49,6 +50,7 @@ ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
 test-vm : .vm-is-pristine test-vm-dev
 	# stop VM
 	vagrant suspend
+	rm .vm-is-running
 
 .PHONY : test-vm-dev
 test-vm-dev : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
@@ -75,6 +77,21 @@ test-vm-dev : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
 	@cat testlog.txt
 	@egrep '.* critical tests,.* 0 failed[[:space:]]*$$' testlog.txt\
 		>/dev/null
+
+.PHONY : play-vm
+play-vm : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
+	rm -f .vm-is-pristine
+	
+	# install package
+	-${VAGRANT_SSH} "${UNINSTALL_PKG_CMD}"
+	vagrant scp "${DESTDIR}${PKGFILE}" ":${PKGFILE}"
+	${VAGRANT_SSH} "${INSTALL_PKG_CMD}"
+	
+	# copy test scripts to VM
+	vagrant scp platform_tests.tar :platform_tests.tar
+	
+	# SSH into VM
+	vagrant ssh
 
 ${WORK_DIR}/${SRC_TARFILE} :
 	make -C "${SRC_ROOT}" dist "DESTDIR=${WORK_DIR}/"

@@ -9,24 +9,30 @@ import (
 )
 
 const NewJobFileEx string = `
+# Must be able
+# to deal with comments.
 [prefs]
+# Which could be (almost) anywhere.
 notifyProgram: ~/handleError
+
+# Even here!
 
 [jobs]
 - name: DailyBackup
   cmd: backup daily
+# And here
   time: 0 0 14
   onError: Stop
   notifyOnError: false
   notifyOnFailure: true
 
 - name: WeeklyBackup
-  cmd: |
+  cmd: | # And even here
     multi-
     line
     script
   time: 0 0 14 * * 1
-  onError: Backoff
+  onError: Backoff  # Here
   notifyOnError: true
   notifyOnFailure: false
 
@@ -40,6 +46,8 @@ notifyProgram: ~/handleError
   notifyOnError: false
   notifyOnFailure: false
   notifyOnSuccess: true
+  
+# So many comments...
 `
 
 const LegacyJobFileEx string = `---

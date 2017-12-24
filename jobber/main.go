@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"github.com/dshearer/jobber/common"
 	"net"
-	"net/rpc"
 	"os"
-	"os/user"
 )
 
 const (
@@ -19,6 +17,7 @@ const (
 	CatCmdStr    = "cat"
 	PauseCmdStr  = "pause"
 	ResumeCmdStr = "resume"
+	InitCmdStr   = "init"
 )
 
 var CmdStrs = [...]string{
@@ -30,6 +29,7 @@ var CmdStrs = [...]string{
 	CatCmdStr,
 	PauseCmdStr,
 	ResumeCmdStr,
+	InitCmdStr,
 }
 
 type CmdHandler func([]string) int
@@ -42,6 +42,7 @@ var CmdHandlers = map[string]CmdHandler{
 	CatCmdStr:    doCatCmd,
 	PauseCmdStr:  doPauseCmd,
 	ResumeCmdStr: doResumeCmd,
+	InitCmdStr:   doInitCmd,
 }
 
 func usage() {
@@ -123,215 +124,4 @@ func main() {
 		os.Exit(1)
 	}
 	os.Exit(handler(flag.Args()[1:]))
-}
-
-func doTestCmd(args []string) int {
-	// parse flags
-	flagSet := flag.NewFlagSet(TestCmdStr, flag.ExitOnError)
-	flagSet.Usage = subcmdUsage(TestCmdStr, "JOB", flagSet)
-	var help_p *bool = flagSet.Bool("h", false, "help")
-	//	var jobUser_p *string = flagSet.String("u", user.Username, "user")
-	flagSet.Parse(args)
-
-	if *help_p {
-		flagSet.Usage()
-		return 0
-	}
-
-	// get job to test
-	if len(flagSet.Args()) == 0 {
-		fmt.Fprintf(os.Stderr, "You must specify a job.\n")
-		return 1
-	}
-	var job string = flagSet.Args()[0]
-
-	// get current user
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Fprintf(
-			os.Stderr, "Failed to get current user: %v\n", err,
-		)
-		return 1
-	}
-
-	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-	defer daemonConn.Close()
-	daemonClient := rpc.NewClient(daemonConn)
-
-	// send command
-	var resp common.TestCmdResp
-	fmt.Printf("Running job \"%v\"...\n", job)
-	err = daemonClient.Call(
-		"NewIpcService.Test",
-		common.TestCmd{Job: job},
-		&resp,
-	)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-
-	// handle response
-	fmt.Printf("%v\n", resp.Result)
-	return 0
-}
-
-func doCatCmd(args []string) int {
-	// parse flags
-	flagSet := flag.NewFlagSet(CatCmdStr, flag.ExitOnError)
-	flagSet.Usage = subcmdUsage(CatCmdStr, "JOB", flagSet)
-	var help_p *bool = flagSet.Bool("h", false, "help")
-	//	var jobUser_p *string = flagSet.String("u", user.Username, "user")
-	flagSet.Parse(args)
-
-	if *help_p {
-		flagSet.Usage()
-		return 0
-	}
-
-	// get job to cat
-	if len(flagSet.Args()) == 0 {
-		fmt.Fprintf(os.Stderr, "You must specify a job.\n")
-		return 1
-	}
-	var job string = flagSet.Args()[0]
-
-	// get current user
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Fprintf(
-			os.Stderr, "Failed to get current user: %v\n", err,
-		)
-		return 1
-	}
-
-	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-	defer daemonConn.Close()
-	daemonClient := rpc.NewClient(daemonConn)
-
-	// send command
-	var resp common.CatCmdResp
-	err = daemonClient.Call(
-		"NewIpcService.Cat",
-		common.CatCmd{Job: job},
-		&resp,
-	)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-
-	// handle response
-	fmt.Printf("%v\n", resp.Result)
-	return 0
-}
-
-func doPauseCmd(args []string) int {
-	// parse flags
-	flagSet := flag.NewFlagSet(PauseCmdStr, flag.ExitOnError)
-	flagSet.Usage = subcmdUsage(PauseCmdStr, "[JOBS...]", flagSet)
-	var help_p *bool = flagSet.Bool("h", false, "help")
-	flagSet.Parse(args)
-
-	if *help_p {
-		flagSet.Usage()
-		return 0
-	}
-
-	// get jobs
-	var jobs []string = flagSet.Args()
-
-	// get current user
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Fprintf(
-			os.Stderr, "Failed to get current user: %v\n", err,
-		)
-		return 1
-	}
-
-	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-	defer daemonConn.Close()
-	daemonClient := rpc.NewClient(daemonConn)
-
-	// send command
-	var resp common.PauseCmdResp
-	err = daemonClient.Call(
-		"NewIpcService.Pause",
-		common.PauseCmd{Jobs: jobs},
-		&resp,
-	)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-
-	// handle response
-	fmt.Printf("Paused %v jobs.\n", resp.AmtPaused)
-	return 0
-}
-
-func doResumeCmd(args []string) int {
-	// parse flags
-	flagSet := flag.NewFlagSet(ResumeCmdStr, flag.ExitOnError)
-	flagSet.Usage = subcmdUsage(ResumeCmdStr, "[JOBS...]", flagSet)
-	var help_p *bool = flagSet.Bool("h", false, "help")
-	flagSet.Parse(args)
-
-	if *help_p {
-		flagSet.Usage()
-		return 0
-	}
-
-	// get jobs
-	var jobs []string = flagSet.Args()
-
-	// get current user
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Fprintf(
-			os.Stderr, "Failed to get current user: %v\n", err,
-		)
-		return 1
-	}
-
-	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-	defer daemonConn.Close()
-	daemonClient := rpc.NewClient(daemonConn)
-
-	// send command
-	var resp common.ResumeCmdResp
-	err = daemonClient.Call(
-		"NewIpcService.Resume",
-		common.ResumeCmd{Jobs: jobs},
-		&resp,
-	)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-
-	// handle response
-	fmt.Printf("Resumed %v jobs.\n", resp.AmtResumed)
-	return 0
 }
