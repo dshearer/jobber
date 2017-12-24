@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	JobFileName        = ".jobber"
 	VarDirPath         = "/var/jobber"
 	CmdSocketFileName  = "cmd.sock"
 	QuitSocketFileName = "quit.sock"
@@ -17,6 +18,10 @@ const (
 var libexecPaths []string = []string{
 	"/usr/libexec",
 	"/usr/local/libexec",
+}
+
+func JobfilePath(usr *user.User) string {
+	return filepath.Join(usr.HomeDir, JobFileName)
 }
 
 func PerUserDirPath(usr *user.User) string {

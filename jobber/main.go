@@ -17,6 +17,7 @@ const (
 	CatCmdStr    = "cat"
 	PauseCmdStr  = "pause"
 	ResumeCmdStr = "resume"
+	InitCmdStr   = "init"
 )
 
 var CmdStrs = [...]string{
@@ -28,6 +29,7 @@ var CmdStrs = [...]string{
 	CatCmdStr,
 	PauseCmdStr,
 	ResumeCmdStr,
+	InitCmdStr,
 }
 
 type CmdHandler func([]string) int
@@ -40,6 +42,7 @@ var CmdHandlers = map[string]CmdHandler{
 	CatCmdStr:    doCatCmd,
 	PauseCmdStr:  doPauseCmd,
 	ResumeCmdStr: doResumeCmd,
+	InitCmdStr:   doInitCmd,
 }
 
 func usage() {
