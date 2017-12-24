@@ -31,7 +31,7 @@ func NewJobManager(jobfilePath string) *JobManager {
 
 func (self *JobManager) Launch() error {
 	if self.launched {
-		return &common.Error{"Already launched.", nil}
+		return &common.Error{What: "Already launched."}
 	}
 
 	self.mainThreadCtx, self.mainThreadCtxCtl =
@@ -121,7 +121,10 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 
 	// record in run log
 	newRunLogEntry := jobfile.RunLogEntry{
-		rec.Job.Name, rec.RunTime, rec.Succeeded, rec.NewStatus,
+		JobName:   rec.Job.Name,
+		Time:      rec.RunTime,
+		Succeeded: rec.Succeeded,
+		Result:    rec.NewStatus,
 	}
 	self.jfile.Prefs.RunLog.Put(newRunLogEntry)
 
@@ -280,10 +283,10 @@ func (self *JobManager) doCmd(
 		}
 		for _, l := range entries {
 			logDesc := common.LogDesc{
-				l.Time,
-				l.JobName,
-				l.Succeeded,
-				l.Result.String(),
+				Time:      l.Time,
+				Job:       l.JobName,
+				Succeeded: l.Succeeded,
+				Result:    l.Result.String(),
 			}
 			logDescs = append(logDescs, logDesc)
 		}
