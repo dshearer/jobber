@@ -5,10 +5,110 @@ import (
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
+	"os/user"
+	"path/filepath"
 	"testing"
 )
 
-const NewJobFileEx string = `
+var gUserEx = user.User{Username: "bob", HomeDir: "/home/bob"}
+
+var gDailyBackup = Job{
+	Name: "DailyBackup",
+	Cmd:  "backup daily",
+	User: gUserEx.Username,
+	FullTimeSpec: FullTimeSpec{
+		Sec:  OneValTimeSpec{0},
+		Min:  OneValTimeSpec{0},
+		Hour: OneValTimeSpec{14},
+		Mday: WildcardTimeSpec{},
+		Mon:  WildcardTimeSpec{},
+		Wday: WildcardTimeSpec{},
+	},
+	ErrorHandler:    &ErrorHandlerStop,
+	NotifyOnError:   false,
+	NotifyOnFailure: true,
+	NotifyOnSuccess: false,
+}
+
+var gWeeklyBackup = Job{
+	Name: "WeeklyBackup",
+	Cmd: `multi-
+line
+script
+`,
+	User: gUserEx.Username,
+	FullTimeSpec: FullTimeSpec{
+		Sec:  OneValTimeSpec{0},
+		Min:  OneValTimeSpec{0},
+		Hour: OneValTimeSpec{14},
+		Mday: WildcardTimeSpec{},
+		Mon:  WildcardTimeSpec{},
+		Wday: OneValTimeSpec{1},
+	},
+	ErrorHandler:    &ErrorHandlerBackoff,
+	NotifyOnError:   true,
+	NotifyOnFailure: false,
+	NotifyOnSuccess: false,
+}
+
+var gSuccessReport = Job{
+	Name: "SuccessReport",
+	Cmd: `multi-
+line
+script
+`,
+	User: gUserEx.Username,
+	FullTimeSpec: FullTimeSpec{
+		Sec:  OneValTimeSpec{0},
+		Min:  OneValTimeSpec{0},
+		Hour: OneValTimeSpec{14},
+		Mday: WildcardTimeSpec{},
+		Mon:  WildcardTimeSpec{},
+		Wday: OneValTimeSpec{1},
+	},
+	ErrorHandler:    &ErrorHandlerBackoff,
+	NotifyOnError:   false,
+	NotifyOnFailure: false,
+	NotifyOnSuccess: true,
+}
+
+var gJobA = Job{
+	Name: "JobA",
+	Cmd:  "whatever",
+	User: gUserEx.Username,
+	FullTimeSpec: FullTimeSpec{
+		Sec:  WildcardTimeSpec{},
+		Min:  WildcardTimeSpec{},
+		Hour: WildcardTimeSpec{},
+		Mday: WildcardTimeSpec{},
+		Mon:  WildcardTimeSpec{},
+		Wday: WildcardTimeSpec{},
+	},
+	ErrorHandler:    &ErrorHandlerBackoff,
+	NotifyOnError:   true,
+	NotifyOnFailure: false,
+	NotifyOnSuccess: false,
+}
+
+var gJobB = Job{
+	Name: "JobB",
+	Cmd:  "whatever",
+	User: gUserEx.Username,
+	FullTimeSpec: FullTimeSpec{
+		Sec:  WildcardTimeSpec{},
+		Min:  WildcardTimeSpec{},
+		Hour: WildcardTimeSpec{},
+		Mday: WildcardTimeSpec{},
+		Mon:  WildcardTimeSpec{},
+		Wday: WildcardTimeSpec{},
+	},
+	ErrorHandler:    &ErrorHandlerBackoff,
+	NotifyOnError:   true,
+	NotifyOnFailure: false,
+	NotifyOnSuccess: false,
+}
+
+const gNewJobFileContents = `
 # Must be able
 # to deal with comments.
 [prefs]
@@ -50,7 +150,18 @@ notifyProgram: ~/handleError
 # So many comments...
 `
 
-const LegacyJobFileEx string = `---
+var gNewJobFile = JobFile{
+	Prefs: UserPrefs{
+		RunLog: NewMemOnlyRunLog(100),
+	},
+	Jobs: []*Job{
+		&gDailyBackup,
+		&gWeeklyBackup,
+		&gSuccessReport,
+	},
+}
+
+const gLegacyJobFileContents = `---
 - name: DailyBackup
   cmd: backup daily
   time: 0 0 14
@@ -82,7 +193,118 @@ const LegacyJobFileEx string = `---
   notifyOnError: true
   notifyOnFailure: false`
 
-const UsernameEx string = "bob"
+var gLegacyJobFile = JobFile{
+	Prefs: UserPrefs{
+		RunLog: NewMemOnlyRunLog(100),
+	},
+	Jobs: []*Job{
+		&gDailyBackup,
+		&gWeeklyBackup,
+		&gJobA,
+		&gJobB,
+	},
+}
+
+type JobFileTestCase struct {
+	Input  string
+	Output JobFile
+}
+
+var gFileRunLog, _ = NewFileRunLog(
+	"/tmp/claudius",
+	int64(10*(1<<20)),
+	20,
+)
+
+var gTestCases = []JobFileTestCase{
+	{
+		Input:  gNewJobFileContents,
+		Output: gNewJobFile,
+	},
+	{
+		Input:  gLegacyJobFileContents,
+		Output: gLegacyJobFile,
+	},
+	{
+		Input: `
+[jobs]
+- name: DailyBackup
+  cmd: backup daily
+  time: 0 0 14
+  onError: Stop
+  notifyOnError: false
+  notifyOnFailure: true
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				RunLog: NewMemOnlyRunLog(100),
+			},
+			Jobs: []*Job{&gDailyBackup},
+		},
+	},
+	{
+		Input: `
+[prefs]
+runLog:
+    type: memory
+    maxLen: 10
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				RunLog: NewMemOnlyRunLog(10),
+			},
+			Jobs: nil,
+		},
+	},
+	{
+		Input: `
+[prefs]
+runLog:
+    type: file
+    path: /tmp/claudius
+    maxFileLen: 10m
+    maxHistories: 20
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				RunLog: gFileRunLog,
+			},
+			Jobs: nil,
+		},
+	},
+	{
+		Input: `[prefs]
+logPath: /my/log/path
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				RunLog:  NewMemOnlyRunLog(100),
+				LogPath: "/my/log/path",
+			},
+		},
+	},
+	{
+		Input: `[prefs]
+logPath: my/log/path
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				RunLog:  NewMemOnlyRunLog(100),
+				LogPath: filepath.Join(gUserEx.HomeDir, "my/log/path"),
+			},
+		},
+	},
+	{
+		Input: `[prefs]
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				RunLog:  NewMemOnlyRunLog(100),
+				LogPath: "",
+			},
+		},
+	},
+}
 
 var EverySecTimeSpec FullTimeSpec = FullTimeSpec{WildcardTimeSpec{},
 	WildcardTimeSpec{},
@@ -153,265 +375,61 @@ func TestParseFullTimeSpec(t *testing.T) {
 	}
 }
 
-func TestReadNewJobberFile(t *testing.T) {
-	/*
-	 * Set up
-	 */
-	f, err := ioutil.TempFile("", "Testing")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+func TestLoadJobFile(t *testing.T) {
+	for _, testCase := range gTestCases {
+		/*
+		 * Set up
+		 */
+
+		fmt.Printf("Input:\n%v\n", testCase.Input)
+
+		// make jobfile
+		f, err := ioutil.TempFile("", "Testing")
+		if err != nil {
+			panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+		}
+		defer os.Remove(f.Name())
+		f.WriteString(testCase.Input)
+		f.Close()
+
+		/*
+		 * Call
+		 */
+		var file *JobFile
+		file, err = LoadJobFile(f.Name(), &gUserEx)
+
+		/*
+		 * Test
+		 */
+
+		require.Nil(t, err, "%v", err)
+		require.NotNil(t, file)
+		require.NotNil(t, file.Prefs.Notifier)
+
+		// can't compare functions
+		testCase.Output.Prefs.Notifier = nil
+		file.Prefs.Notifier = nil
+		for _, job := range testCase.Output.Jobs {
+			job.ErrorHandler.Apply = nil
+		}
+		for _, job := range file.Jobs {
+			require.NotNil(t, job.ErrorHandler)
+			job.ErrorHandler.Apply = nil
+		}
+
+		require.Equal(t, testCase.Output.Prefs, file.Prefs)
+		require.Equal(t, len(testCase.Output.Jobs), len(file.Jobs))
+		for i := 0; i < len(file.Jobs); i++ {
+			require.Equal(t, testCase.Output.Jobs[i], file.Jobs[i])
+		}
 	}
-	defer os.Remove(f.Name())
-	f.Write([]byte(NewJobFileEx))
-	f.Close()
-
-	/*
-	 * Call
-	 */
-	var file *JobFile
-	file, err = LoadJobFile(f.Name(), UsernameEx)
-
-	/*
-	 * Test
-	 */
-	if err != nil {
-		t.Fatalf("Got error: %v", err)
-	}
-	if file == nil {
-		t.Fatalf("jobs == nil")
-	}
-
-	// test prefs
-	require.NotNil(t, file.Prefs.Notifier)
-	require.NotNil(t, file.Prefs.RunLog)
-
-	// test jobs
-	require.Equal(t, 3, len(file.Jobs))
-
-	// test DailyBackup
-	daily := file.Jobs[0]
-	require.Equal(t, "DailyBackup", daily.Name)
-	require.Equal(t, "backup daily", daily.Cmd)
-	require.Equal(t, &ErrorHandlerStop, daily.ErrorHandler)
-	require.Equal(t, false, daily.NotifyOnError)
-	require.Equal(t, true, daily.NotifyOnFailure)
-	require.Equal(t, false, daily.NotifyOnSuccess)
-
-	// test WeeklyBackup
-	weekly := file.Jobs[1]
-	require.Equal(t, "WeeklyBackup", weekly.Name)
-	require.Equal(t, `multi-
-line
-script
-`, weekly.Cmd)
-	require.Equal(t, &ErrorHandlerBackoff, weekly.ErrorHandler)
-	require.Equal(t, true, weekly.NotifyOnError)
-	require.Equal(t, false, weekly.NotifyOnFailure)
-	require.Equal(t, false, weekly.NotifyOnSuccess)
-
-	notifysuccess := file.Jobs[2]
-	require.Equal(t, "SuccessReport", notifysuccess.Name)
-	require.Equal(t, `multi-
-line
-script
-`, notifysuccess.Cmd)
-	require.Equal(t, &ErrorHandlerBackoff, notifysuccess.ErrorHandler)
-	require.Equal(t, false, notifysuccess.NotifyOnError)
-	require.Equal(t, false, notifysuccess.NotifyOnFailure)
-	require.Equal(t, true, notifysuccess.NotifyOnSuccess)
-}
-
-func TestReadLegacyJobberFile(t *testing.T) {
-	/*
-	 * Set up
-	 */
-	f, err := ioutil.TempFile("", "Testing")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
-	}
-	defer os.Remove(f.Name())
-	f.Write([]byte(LegacyJobFileEx))
-	f.Close()
-
-	/*
-	 * Call
-	 */
-	var file *JobFile
-	file, err = LoadJobFile(f.Name(), UsernameEx)
-
-	/*
-	 * Test
-	 */
-	if err != nil {
-		t.Fatalf("Got error: %v", err)
-	}
-	if file == nil {
-		t.Fatalf("jobs == nil")
-	}
-	require.Equal(t, 4, len(file.Jobs))
-
-	// test DailyBackup
-	daily := file.Jobs[0]
-	require.Equal(t, "DailyBackup", daily.Name)
-	require.Equal(t, "backup daily", daily.Cmd)
-	require.Equal(t, &ErrorHandlerStop, daily.ErrorHandler)
-	require.Equal(t, false, daily.NotifyOnError)
-	require.Equal(t, true, daily.NotifyOnFailure)
-
-	// test WeeklyBackup
-	weekly := file.Jobs[1]
-	require.Equal(t, "WeeklyBackup", weekly.Name)
-	require.Equal(t, `multi-
-line
-script
-`, weekly.Cmd)
-	require.Equal(t, &ErrorHandlerBackoff, weekly.ErrorHandler)
-	require.Equal(t, true, weekly.NotifyOnError)
-	require.Equal(t, false, weekly.NotifyOnFailure)
-
-	// test JobA
-	jobA := file.Jobs[2]
-	require.Equal(t, "JobA", jobA.Name)
-	require.Equal(t, EverySecTimeSpec, jobA.FullTimeSpec)
-
-	// test JobB
-	jobB := file.Jobs[3]
-	require.Equal(t, "JobB", jobB.Name)
-	require.Equal(t, EverySecTimeSpec, jobB.FullTimeSpec)
-}
-
-const JobberFileWithNoPrefsEx string = `
-[jobs]
-- name: DailyBackup
-  cmd: backup daily
-  time: 0 0 14
-  onError: Stop
-  notifyOnError: false
-  notifyOnFailure: true
-`
-
-func TestJobberFileWithNoPrefs(t *testing.T) {
-	/*
-	 * Set up
-	 */
-	f, err := ioutil.TempFile("", "Testing")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
-	}
-	defer os.Remove(f.Name())
-	f.Write([]byte(JobberFileWithNoPrefsEx))
-	f.Close()
-
-	/*
-	 * Call
-	 */
-	var file *JobFile
-	file, err = LoadJobFile(f.Name(), UsernameEx)
-
-	/*
-	 * Test
-	 */
-	require.Nil(t, err, "%v", err)
-	require.NotNil(t, file)
-	require.NotNil(t, file.Prefs.RunLog)
-	require.NotNil(t, file.Prefs.Notifier)
-}
-
-const JobberFileWithMemOnlyRunLogEx string = `
-[prefs]
-runLog:
-    type: memory
-    maxLen: 10
-`
-
-func TestJobberFileWithMemOnlyRunLog(t *testing.T) {
-	/*
-	 * Set up
-	 */
-	f, err := ioutil.TempFile("", "Testing")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
-	}
-	defer os.Remove(f.Name())
-	f.Write([]byte(JobberFileWithMemOnlyRunLogEx))
-	f.Close()
-
-	/*
-	 * Call
-	 */
-	var file *JobFile
-	file, err = LoadJobFile(f.Name(), UsernameEx)
-
-	/*
-	 * Test
-	 */
-	require.Nil(t, err, "%v", err)
-	require.NotNil(t, file)
-	require.NotNil(t, file.Prefs.Notifier)
-	require.NotNil(t, file.Prefs.RunLog)
-
-	// check run log type
-	require.IsType(t, &memOnlyRunLog{}, file.Prefs.RunLog)
-
-	// check max len
-	memRunLog := file.Prefs.RunLog.(*memOnlyRunLog)
-	require.Equal(t, 10, memRunLog.MaxLen())
-}
-
-const JobberFileWithFileRunLogEx string = `
-[prefs]
-runLog:
-    type: file
-    path: /tmp/claudius
-    maxFileLen: 10m
-    maxHistories: 20
-`
-
-func TestJobberFileWithFileRunLog(t *testing.T) {
-	/*
-	 * Set up
-	 */
-	f, err := ioutil.TempFile("", "Testing")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
-	}
-	defer os.Remove(f.Name())
-	f.Write([]byte(JobberFileWithFileRunLogEx))
-	f.Close()
-
-	/*
-	 * Call
-	 */
-	var file *JobFile
-	file, err = LoadJobFile(f.Name(), UsernameEx)
-
-	/*
-	 * Test
-	 */
-	require.Nil(t, err, "%v", err)
-	require.NotNil(t, file)
-	require.NotNil(t, file.Prefs.Notifier)
-	require.NotNil(t, file.Prefs.RunLog)
-
-	// check run log type
-	require.IsType(t, &fileRunLog{}, file.Prefs.RunLog)
-
-	// check path
-	fileRunLog := file.Prefs.RunLog.(*fileRunLog)
-	require.Equal(t, "/tmp/claudius", fileRunLog.FilePath())
-
-	// check max file len
-	require.Equal(t, int64(10*(1<<20)), fileRunLog.MaxFileLen())
-
-	// check max histories
-	require.Equal(t, 20, fileRunLog.MaxHistories())
 }
 
 func TestLoadJobFileWithMissingJobberFile(t *testing.T) {
 	/*
 	 * Call
 	 */
-	file, err := LoadJobFile("/invalid/path", UsernameEx)
+	file, err := LoadJobFile("/invalid/path", &gUserEx)
 
 	/*
 	 * Test

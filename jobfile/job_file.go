@@ -6,6 +6,8 @@ import (
 	"github.com/dshearer/jobber/common"
 	"gopkg.in/yaml.v2"
 	"os"
+	"os/user"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,6 +28,7 @@ type JobFile struct {
 type UserPrefs struct {
 	Notifier RunRecNotifier
 	RunLog   RunLog
+	LogPath  string // for error msgs etc.  May be "".
 }
 
 type JobConfigEntry struct {
@@ -48,7 +51,7 @@ func NewEmptyJobFile() *JobFile {
 	}
 }
 
-func LoadJobFile(path string, username string) (*JobFile, error) {
+func LoadJobFile(path string, usr *user.User) (*JobFile, error) {
 	/*
 	   Jobber files have two sections: one begins with "[prefs]" on a
 	   line, and the other begins with "[jobs]".  Both contain a YAML
@@ -76,7 +79,7 @@ func LoadJobFile(path string, username string) (*JobFile, error) {
 	// parse "prefs" section
 	prefsSection, prefsOk := sections[PrefsSectName]
 	if prefsOk && len(prefsSection) > 0 {
-		ptr, err := parsePrefsSect(prefsSection)
+		ptr, err := parsePrefsSect(prefsSection, usr)
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +89,7 @@ func LoadJobFile(path string, username string) (*JobFile, error) {
 	// parse "jobs" section
 	jobsSection, jobsOk := sections[JobsSectName]
 	if jobsOk {
-		jobs, err := parseJobsSect(jobsSection, username)
+		jobs, err := parseJobsSect(jobsSection, usr)
 		if err != nil {
 			return nil, err
 		}
@@ -195,7 +198,7 @@ func findSections(path string) (map[string]string, error) {
 	return retval, nil
 }
 
-func parsePrefsSect(s string) (*UserPrefs, error) {
+func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 	// parse as yaml
 	var rawPrefs map[string]interface{}
 
@@ -312,10 +315,38 @@ func parsePrefsSect(s string) (*UserPrefs, error) {
 		userPrefs.RunLog = NewMemOnlyRunLog(gDefaultMemRunLogMaxLen)
 	}
 
+	// parse LogPath
+	logPathVal, hasLogPath := rawPrefs["logPath"]
+	if hasLogPath && logPathVal != nil {
+		// ensure it's a string
+		logPath, ok := logPathVal.(string)
+		if !ok {
+			errMsg := fmt.Sprintf("Invalid value for preference "+
+				"\"logPath\": %v", logPathVal)
+			return nil, &common.Error{What: errMsg}
+		}
+
+		/*
+		   Relative paths are interpreted as relative to the user's
+		   home dir.
+		*/
+		if filepath.IsAbs(logPath) {
+			userPrefs.LogPath = logPath
+		} else {
+			if len(usr.HomeDir) == 0 {
+				errMsg := fmt.Sprintf("User has no home directory, so "+
+					"cannot interpret relative log file path %v",
+					logPath)
+				return nil, &common.Error{What: errMsg}
+			}
+			userPrefs.LogPath = filepath.Join(usr.HomeDir, logPath)
+		}
+	}
+
 	return &userPrefs, nil
 }
 
-func parseJobsSect(s string, username string) ([]*Job, error) {
+func parseJobsSect(s string, usr *user.User) ([]*Job, error) {
 	// parse "jobs" section
 	var jobConfigs []JobConfigEntry
 	if !strings.HasPrefix(s, gYamlStarter+"\n") {
@@ -331,7 +362,7 @@ func parseJobsSect(s string, username string) ([]*Job, error) {
 	// make jobs
 	var jobs []*Job
 	for _, config := range jobConfigs {
-		job := NewJob(config.Name, config.Cmd, username)
+		job := NewJob(config.Name, config.Cmd, usr.Username)
 		var err error = nil
 
 		// check name

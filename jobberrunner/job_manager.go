@@ -89,14 +89,19 @@ func (self *JobManager) findJobs(names []string) ([]*jobfile.Job, error) {
 
 func (self *JobManager) loadJobFile() (*jobfile.JobFile, error) {
 	// get current user
-	user, err := user.Current()
+	usr, err := user.Current()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to get current user: %v", err))
 	}
 
 	// read jobfile
-	jfile, err := jobfile.LoadJobFile(self.jobfilePath, user.Username)
+	jfile, err := jobfile.LoadJobFile(self.jobfilePath, usr)
 	if err == nil {
+		// set loggers
+		if len(jfile.Prefs.LogPath) > 0 {
+			common.SetLogFile(jfile.Prefs.LogPath)
+		}
+
 		return jfile, nil
 	} else {
 		jfile = jobfile.NewEmptyJobFile()

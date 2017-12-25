@@ -147,20 +147,22 @@ class testlib(object):
         print(log)
     
     def make_jobfile(self, job_name, cmd, time="*", notify_prog=None):
+        # make jobs section
         jobs_sect = """[jobs]
 - name: {job_name}
   cmd: {cmd}
   time: '{time}'
   notifyOnError: true
 """.format(job_name=job_name, cmd=cmd, time=time)
-        if notify_prog is None:
-            return jobs_sect
-        else:
-            prefs_sect = """[prefs]
-notifyProgram: {notify_prog}
 
-""".format(notify_prog=notify_prog)
-            return prefs_sect + jobs_sect
+        # make prefs section
+        prefs_sect = """[prefs]
+logPath: .jobber-log
+"""
+        if notify_prog is not None:
+            prefs_sect += "notifyProgram: {0}\n".format(notify_prog)
+        
+        return prefs_sect + jobs_sect
 
     def install_root_jobfile(self, contents):
         '''
