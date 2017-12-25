@@ -71,7 +71,11 @@ func doInitCmd(args []string) int {
 	}
 
 	// open file for writing
-	path := common.JobfilePath(usr)
+	path, err := common.JobfilePath(usr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
+		return 1
+	}
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		if strings.Contains(err.Error(), "file exists") {
