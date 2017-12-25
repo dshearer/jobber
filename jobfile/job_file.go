@@ -128,7 +128,6 @@ func findSections(path string) (map[string]string, error) {
 		trimmedLine := strings.TrimSpace(line)
 		if len(trimmedLine) == 0 || trimmedLine[0] == '#' {
 			// skip empty line or comment
-			//fmt.Printf("Skipping: [%v]\n", line)
 			continue
 		} else {
 			var matches []string = sectNameRegexp.FindStringSubmatch(line)
@@ -170,7 +169,6 @@ func findSections(path string) (map[string]string, error) {
 			if matches != nil {
 				// we are entering a (new) section
 				sectName := matches[1]
-				fmt.Printf("Section: %v\n", sectName)
 				_, ok := sectionsToLines[sectName]
 				if ok {
 					errMsg :=
@@ -193,7 +191,6 @@ func findSections(path string) (map[string]string, error) {
 	retval := make(map[string]string)
 	for sectName, lines := range sectionsToLines {
 		retval[sectName] = strings.Join(lines, "\n")
-		fmt.Printf("%v: %v\n", sectName, retval[sectName])
 	}
 	return retval, nil
 }
