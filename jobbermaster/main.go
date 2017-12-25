@@ -120,7 +120,11 @@ func jobfileForUser(user *user.User) *string {
 	 */
 
 	// make path to jobber file
-	jobfilePath := common.JobfilePath(user)
+	jobfilePath, err := common.JobfilePath(user)
+	if err != nil {
+		common.ErrLogger.Printf("%v", err)
+		return nil
+	}
 
 	// open it
 	f, err := os.Open(jobfilePath)

@@ -20,8 +20,17 @@ var libexecPaths []string = []string{
 	"/usr/local/libexec",
 }
 
-func JobfilePath(usr *user.User) string {
-	return filepath.Join(usr.HomeDir, JobFileName)
+func JobfilePath(usr *user.User) (string, error) {
+	if len(usr.HomeDir) == 0 {
+		msg := fmt.Sprintf("User %v has no home directory",
+			usr.Username)
+		return "", &Error{What: msg}
+	} else if !filepath.IsAbs(usr.HomeDir) {
+		msg := fmt.Sprintf("User %v's home directory path is not "+
+			"absolute: %v", usr.Username, usr.HomeDir)
+		return "", &Error{What: msg}
+	}
+	return filepath.Join(usr.HomeDir, JobFileName), nil
 }
 
 func PerUserDirPath(usr *user.User) string {
