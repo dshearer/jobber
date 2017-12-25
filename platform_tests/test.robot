@@ -34,6 +34,23 @@ Basic
     ${normuser_actual_output}=    Get File    ${normuser_output_file}
     Should Be Equal    ${normuser_expected_output}    ${normuser_actual_output}    msg=Normuser's job didn't run
 
+Log Path Preference
+    ${log_path}=    Set Variable    /home/normuser/.jobber-log
+    File Should Not Exist    ${log_path}
+    
+    # make jobfile for normal user
+    ${jobfile}=    Make Jobfile    TestJob    exit 0
+    ${num_jobs}=    Install Normuser Jobfile    ${jobfile}
+    Nothing Has Crashed
+    Should Be Equal As Integers    1    ${num_jobs}    msg=Failed to load normuser's jobs
+    
+    # wait
+    Sleep    3s    reason=Wait for job to run
+    
+    # test
+    File Should Exist    ${log_path}    msg=Log file was not created
+    File Should Not Be Empty    ${log_path}    msg=Log file is empty
+
 Privilege Separation
     # make jobfile for normal user
     ${output_file}=    Make Tempfile

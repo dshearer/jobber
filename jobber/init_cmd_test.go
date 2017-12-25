@@ -6,11 +6,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"strings"
 	"testing"
 )
 
-const UsernameEx string = "bob"
+var gUserEx = user.User{Username: "bob", HomeDir: "/home/bob"}
 
 func TestParseDefaultJobfile(t *testing.T) {
 	/*
@@ -28,7 +29,7 @@ func TestParseDefaultJobfile(t *testing.T) {
 	 * Call
 	 */
 	var file *jobfile.JobFile
-	file, err = jobfile.LoadJobFile(f.Name(), UsernameEx)
+	file, err = jobfile.LoadJobFile(f.Name(), &gUserEx)
 
 	/*
 	 * Test
@@ -59,7 +60,7 @@ func TestParseDefaultJobfileAfterUncommenting(t *testing.T) {
 	 * Call
 	 */
 	var file *jobfile.JobFile
-	file, err = jobfile.LoadJobFile(f.Name(), UsernameEx)
+	file, err = jobfile.LoadJobFile(f.Name(), &gUserEx)
 
 	/*
 	 * Test

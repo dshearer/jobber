@@ -5,6 +5,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
+	"os/user"
+	"path/filepath"
 	"testing"
 )
 
@@ -82,7 +84,7 @@ const LegacyJobFileEx string = `---
   notifyOnError: true
   notifyOnFailure: false`
 
-const UsernameEx string = "bob"
+var gUserEx = user.User{Username: "bob", HomeDir: "/home/bob"}
 
 var EverySecTimeSpec FullTimeSpec = FullTimeSpec{WildcardTimeSpec{},
 	WildcardTimeSpec{},
@@ -169,7 +171,7 @@ func TestReadNewJobberFile(t *testing.T) {
 	 * Call
 	 */
 	var file *JobFile
-	file, err = LoadJobFile(f.Name(), UsernameEx)
+	file, err = LoadJobFile(f.Name(), &gUserEx)
 
 	/*
 	 * Test
@@ -237,7 +239,7 @@ func TestReadLegacyJobberFile(t *testing.T) {
 	 * Call
 	 */
 	var file *JobFile
-	file, err = LoadJobFile(f.Name(), UsernameEx)
+	file, err = LoadJobFile(f.Name(), &gUserEx)
 
 	/*
 	 * Test
@@ -306,7 +308,7 @@ func TestJobberFileWithNoPrefs(t *testing.T) {
 	 * Call
 	 */
 	var file *JobFile
-	file, err = LoadJobFile(f.Name(), UsernameEx)
+	file, err = LoadJobFile(f.Name(), &gUserEx)
 
 	/*
 	 * Test
@@ -340,7 +342,7 @@ func TestJobberFileWithMemOnlyRunLog(t *testing.T) {
 	 * Call
 	 */
 	var file *JobFile
-	file, err = LoadJobFile(f.Name(), UsernameEx)
+	file, err = LoadJobFile(f.Name(), &gUserEx)
 
 	/*
 	 * Test
@@ -383,7 +385,7 @@ func TestJobberFileWithFileRunLog(t *testing.T) {
 	 * Call
 	 */
 	var file *JobFile
-	file, err = LoadJobFile(f.Name(), UsernameEx)
+	file, err = LoadJobFile(f.Name(), &gUserEx)
 
 	/*
 	 * Test
@@ -407,11 +409,83 @@ func TestJobberFileWithFileRunLog(t *testing.T) {
 	require.Equal(t, 20, fileRunLog.MaxHistories())
 }
 
+type LogPathTestCase struct {
+	Input  string
+	Output JobFile
+}
+
+var gLogPathTestCases = [...]LogPathTestCase{
+	{
+		Input: `[prefs]
+logPath: /my/log/path
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				LogPath: "/my/log/path",
+			},
+		},
+	}, // end TestCase
+	{
+		Input: `[prefs]
+logPath: my/log/path
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				LogPath: filepath.Join(gUserEx.HomeDir, "my/log/path"),
+			},
+		},
+	}, // end TestCase
+	{
+		Input: `[prefs]
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				LogPath: "",
+			},
+		},
+	}, // end TestCase
+}
+
+func TestLoadJobFileWithLogPath(t *testing.T) {
+	for _, testCase := range gLogPathTestCases {
+		/*
+		 * Set up
+		 */
+
+		fmt.Printf("Input:\n%v\n", testCase.Input)
+
+		// make jobfile
+		f, err := ioutil.TempFile("", "Testing")
+		if err != nil {
+			panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+		}
+		defer os.Remove(f.Name())
+		f.WriteString(testCase.Input)
+		f.Close()
+
+		/*
+		 * Call
+		 */
+		var file *JobFile
+		file, err = LoadJobFile(f.Name(), &gUserEx)
+
+		/*
+		 * Test
+		 */
+		require.Nil(t, err, "%v", err)
+		require.NotNil(t, file)
+
+		file.Prefs.Notifier = nil // ignore this attr
+		file.Prefs.RunLog = nil   // ignore this attr
+		require.Equal(t, testCase.Output, *file)
+	}
+}
+
 func TestLoadJobFileWithMissingJobberFile(t *testing.T) {
 	/*
 	 * Call
 	 */
-	file, err := LoadJobFile("/invalid/path", UsernameEx)
+	file, err := LoadJobFile("/invalid/path", &gUserEx)
 
 	/*
 	 * Test

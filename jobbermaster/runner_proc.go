@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"path/filepath"
 	"syscall"
 )
 
@@ -68,23 +67,6 @@ func LaunchRunner(usr *user.User,
 		return nil, err
 	}
 
-	// open log file
-	logFilePath := filepath.Join(usr.HomeDir, ".jobber-log")
-	logF, err := os.OpenFile(
-		logFilePath,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
-		0644,
-	)
-	if err != nil {
-		common.ErrLogger.Printf(
-			"Failed to make/open log file %v",
-			logFilePath,
-		)
-		logF = nil
-	} else {
-		defer logF.Close()
-	}
-
 	// set umask
 	oldUmask := syscall.Umask(0077)
 	defer syscall.Umask(oldUmask)
@@ -108,8 +90,8 @@ func LaunchRunner(usr *user.User,
 	runnerProc.proc = common.Sudo(*usr, cmd)
 	// ensure we don't share TTY with the unprivileged process
 	runnerProc.proc.Stdin = nil
-	runnerProc.proc.Stdout = logF
-	runnerProc.proc.Stderr = logF
+	runnerProc.proc.Stdout = nil
+	runnerProc.proc.Stderr = nil
 	if err := runnerProc.proc.Start(); err != nil {
 		return nil, err
 	}
