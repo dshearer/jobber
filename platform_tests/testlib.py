@@ -230,6 +230,9 @@ logPath: .jobber-log
     def test_job(self, job):
         sp_check_output([self._jobber_path, 'test', job])
     
+    def jobber_init(self):
+        sp_check_output([self._jobber_path, 'init'])
+    
     def chmod(self, path, mode):
         os.chmod(path, int(mode, base=8))
         stat = os.stat(path)
@@ -407,3 +410,20 @@ logPath: .jobber-log
                 print("Prefs:\n{0}".format(f.read()))
             raise AssertionError("jobberrunner is running for {0}".\
                                  format(username))
+    
+    def jobfile_for_root_should_exist(self):
+        try:
+            os.stat(self._root_jobfile_path)
+        except OSError as e:
+            if e.errno == 2:
+                raise AssertionError("Jobfile for root does not exist")
+            else:
+                raise e
+    
+    def jobfile_for_root_should_not_exist(self):
+        try:
+            os.stat(self._root_jobfile_path)
+            raise AssertionError("Jobfile for root exists")
+        except OSError as e:
+            if e.errno != 2:
+                raise e
