@@ -224,193 +224,30 @@ func (self *JobManager) doCmd(
 
 	switch cmd := tmpCmd.(type) {
 	case common.ReloadCmd:
-		// read job file
-		newJfile, err := self.loadJobFile()
-		if err != nil && !os.IsNotExist(err) {
-			cmd.RespChan <- &common.ReloadCmdResp{Err: err}
-			close(cmd.RespChan)
-			return
-		}
-
-		// stop job-runner thread and wait for current runs to end
-		self.jobRunner.Cancel()
-		for rec := range self.jobRunner.RunRecChan() {
-			self.handleRunRec(rec)
-		}
-		self.jobRunner.Wait()
-
-		// set new job file
-		self.jfile = newJfile
-
-		// restart job-runner thread
-		self.jobRunner.Start(self.jfile.Jobs, self.Shell,
-			self.mainThreadCtx)
-
-		// make response
-		cmd.RespChan <- &common.ReloadCmdResp{
-			NumJobs: len(self.jfile.Jobs),
-		}
-		close(cmd.RespChan)
-		return
+		self.doReloadCmd(cmd)
 
 	case common.ListJobsCmd:
-		// make job list
-		common.Logger.Printf("Got list jobs cmd\n")
-		jobDescs := make([]common.JobDesc, 0)
-		for _, j := range self.jfile.Jobs {
-			jobDesc := common.JobDesc{
-				Name:   j.Name,
-				Status: j.Status.String(),
-				Schedule: fmt.Sprintf(
-					"%v %v %v %v %v %v",
-					j.FullTimeSpec.Sec,
-					j.FullTimeSpec.Min,
-					j.FullTimeSpec.Hour,
-					j.FullTimeSpec.Mday,
-					j.FullTimeSpec.Mon,
-					j.FullTimeSpec.Wday),
-				NextRunTime:     j.NextRunTime,
-				NotifyOnSuccess: j.NotifyOnSuccess,
-				NotifyOnErr:     j.NotifyOnError,
-				NotifyOnFail:    j.NotifyOnFailure,
-				ErrHandler:      j.ErrorHandler.String(),
-			}
-			if j.Paused {
-				jobDesc.Status += " (Paused)"
-				jobDesc.NextRunTime = nil
-			}
-
-			jobDescs = append(jobDescs, jobDesc)
-		}
-
-		// make response
-		cmd.RespChan <- &common.ListJobsCmdResp{Jobs: jobDescs}
-		close(cmd.RespChan)
-		return
+		self.doListJobsCmd(cmd)
 
 	case common.LogCmd:
-		// make log list
-		var logDescs []common.LogDesc
-		entries, err := self.jfile.Prefs.RunLog.GetFromIndex()
-		if err != nil {
-			cmd.RespChan <- &common.LogCmdResp{Err: err}
-			close(cmd.RespChan)
-			return
-		}
-		for _, l := range entries {
-			logDesc := common.LogDesc{
-				Time:      l.Time,
-				Job:       l.JobName,
-				Succeeded: l.Succeeded,
-				Result:    l.Result.String(),
-			}
-			logDescs = append(logDescs, logDesc)
-		}
-
-		// make response
-		cmd.RespChan <- &common.LogCmdResp{Logs: logDescs}
-		close(cmd.RespChan)
-		return
+		self.doLogCmd(cmd)
 
 	case common.TestCmd:
-		// find job
-		job := self.findJob(cmd.Job)
-		if job == nil {
-			cmd.RespChan <- &common.TestCmdResp{
-				Err: &common.Error{What: "No such job."},
-			}
-			close(cmd.RespChan)
-			return
-		}
-
-		// run the job in this thread
-		runRec := RunJob(job, self.Shell, true)
-
-		// make response
-		if runRec.Err == nil {
-			cmd.RespChan <- &common.TestCmdResp{Result: runRec.Describe()}
-		} else {
-			cmd.RespChan <- &common.TestCmdResp{Err: runRec.Err}
-		}
-		close(cmd.RespChan)
-		return
+		self.doTestCmd(cmd)
 
 	case common.CatCmd:
-		// find job
-		job := self.findJob(cmd.Job)
-		if job == nil {
-			cmd.RespChan <- &common.CatCmdResp{
-				Err: &common.Error{What: "No such job."},
-			}
-			close(cmd.RespChan)
-			return
-		}
-
-		// make response
-		cmd.RespChan <- &common.CatCmdResp{Result: job.Cmd}
-		close(cmd.RespChan)
-		return
+		self.doCatCmd(cmd)
 
 	case common.PauseCmd:
-		// look up jobs to pause
-		var jobsToPause []*jobfile.Job
-		if len(cmd.Jobs) > 0 {
-			var err error
-			jobsToPause, err = self.findJobs(cmd.Jobs)
-			if err != nil {
-				cmd.RespChan <- &common.PauseCmdResp{Err: err}
-				close(cmd.RespChan)
-				return
-			}
-		} else {
-			jobsToPause = self.jfile.Jobs
-		}
-
-		// pause them
-		amtPaused := 0
-		for _, job := range jobsToPause {
-			if !job.Paused {
-				job.Paused = true
-				amtPaused += 1
-			}
-		}
-
-		// make response
-		cmd.RespChan <- &common.PauseCmdResp{AmtPaused: amtPaused}
-		close(cmd.RespChan)
-		return
+		self.doPauseCmd(cmd)
 
 	case common.ResumeCmd:
-		// look up jobs to resume
-		var jobsToResume []*jobfile.Job
-		if len(cmd.Jobs) > 0 {
-			var err error
-			jobsToResume, err = self.findJobs(cmd.Jobs)
-			if err != nil {
-				cmd.RespChan <- &common.ResumeCmdResp{Err: err}
-				close(cmd.RespChan)
-				return
-			}
-		} else {
-			jobsToResume = self.jfile.Jobs
-		}
+		self.doResumeCmd(cmd)
 
-		// pause them
-		amtResumed := 0
-		for _, job := range jobsToResume {
-			if job.Paused {
-				job.Paused = false
-				amtResumed += 1
-			}
-		}
-
-		// make response
-		cmd.RespChan <- &common.ResumeCmdResp{AmtResumed: amtResumed}
-		close(cmd.RespChan)
-		return
+	case common.InitCmd:
+		self.doInitCmd(cmd)
 
 	default:
 		common.ErrLogger.Printf("Unknown command: %v", cmd)
-		return
 	}
 }

@@ -87,3 +87,13 @@ type ResumeCmdResp struct {
 	AmtResumed int
 	Err        error
 }
+
+type InitCmd struct {
+	Dummy    int // this is here just to make RPC work
+	RespChan chan *InitCmdResp
+}
+
+type InitCmdResp struct {
+	JobfilePath string
+	Err         error
+}

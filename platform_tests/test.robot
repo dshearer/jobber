@@ -184,7 +184,17 @@ Test Command
     # check whether it ran again
     ${output_2}=    Get File    ${output_file}
     Should Not Be Equal    ${output_1}    ${output_2}    msg=Job did not run
+
+Init Command
+    # check initial condition
+    Jobfile For Root Should Not Exist
     
+    # do command
+    Jobber Init
+    
+    # check for jobfile
+    Jobfile For Root Should Exist
+
 Kill Master Process
     # kill it
     Kill Master Proc

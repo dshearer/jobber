@@ -9,6 +9,5 @@ CLIENT_SOURCES := \
 	resume_cmd.go \
 	test_cmd.go
 
-CLIENT_TEST_SOURCES := \
-	init_cmd_test.go
+CLIENT_TEST_SOURCES := 
 

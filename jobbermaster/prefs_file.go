@@ -46,7 +46,7 @@ func LoadPrefs() (*Prefs, error) {
 			return nil, err
 		}
 	}
-	common.Logger.Println("Loaded prefs from %v", gPrefsPath)
+	common.Logger.Printf("Loaded prefs from %v", gPrefsPath)
 	defer f.Close()
 	return loadPrefs(f)
 }
