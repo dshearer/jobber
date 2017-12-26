@@ -102,6 +102,19 @@ func (self *NewIpcService) Resume(
 	return resp.Err
 }
 
+func (self *NewIpcService) Init(
+	cmd common.InitCmd,
+	resp *common.InitCmdResp) error {
+
+	// send command
+	cmd.RespChan = make(chan *common.InitCmdResp, 1)
+	self.cmdChan <- cmd
+
+	// get response
+	*resp = *<-cmd.RespChan
+	return resp.Err
+}
+
 type IpcServer struct {
 	service  NewIpcService
 	listener *net.UnixListener

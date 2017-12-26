@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"github.com/dshearer/jobber/common"
 	"os"
 	"os/exec"
@@ -21,6 +22,8 @@ import (
 4. Monitor jobberrunner processes.
 
 */
+
+const gJobFileName = ".jobber"
 
 type RunnerProcInfo struct {
 	user        *user.User
@@ -105,10 +108,16 @@ func listUsers(prefs *Prefs) ([]*user.User, error) {
 		}
 
 		// check for reasons to exclude
-		_, err = common.JobfilePath(usr)
-		if err != nil {
-			common.Logger.Printf("Excluding %v: %v", usr.Username, err)
+		if len(usr.HomeDir) == 0 || usr.HomeDir == "/dev/null" {
+			fmt.Printf("Excluding %v: has no home directory",
+				usr.Username)
 			continue
+
+		} else if !filepath.IsAbs(usr.HomeDir) {
+			fmt.Printf("Excluding %v: home directory path is not "+
+				"absolute: %v", usr.Username, usr.HomeDir)
+			continue
+
 		}
 		if !prefs.ShouldIncludeUser(usr) {
 			common.Logger.Printf("Excluding %v according to prefs",
@@ -119,37 +128,6 @@ func listUsers(prefs *Prefs) ([]*user.User, error) {
 		users = append(users, usr)
 	}
 	return users, nil
-}
-
-func jobfileForUser(user *user.User) *string {
-	/*
-	 * Not all users listed in /etc/passwd have their own
-	 * jobber file.  E.g., some of them may share a home dir.
-	 * When this happens, we say that the jobber file belongs
-	 * to the user who owns that file.
-	 */
-
-	// make path to jobber file
-	jobfilePath, err := common.JobfilePath(user)
-	if err != nil {
-		common.ErrLogger.Printf("%v", err)
-		return nil
-	}
-
-	// open it
-	f, err := os.Open(jobfilePath)
-	if err != nil {
-		return nil
-	}
-	defer f.Close()
-
-	// check owner
-	owns, err := common.UserOwnsFile(user, jobfilePath)
-	if !owns || err != nil {
-		return nil
-	}
-
-	return &jobfilePath
 }
 
 func mkdirp(path string, perm os.FileMode) error {
@@ -192,7 +170,7 @@ func main() {
 		common.MakeChildContext(context.Background())
 	for _, usr := range users {
 		// look for jobfile
-		jobfilePath := filepath.Join(usr.HomeDir, common.JobFileName)
+		jobfilePath := filepath.Join(usr.HomeDir, gJobFileName)
 
 		// make dir that will contain socket
 		dirPath := common.PerUserDirPath(usr)
