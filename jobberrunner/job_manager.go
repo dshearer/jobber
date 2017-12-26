@@ -94,6 +94,18 @@ func (self *JobManager) loadJobFile() (*jobfile.JobFile, error) {
 		panic(fmt.Sprintf("Failed to get current user: %v", err))
 	}
 
+	// check jobfile
+	flag, err := jobfile.ShouldLoadJobfile(self.jobfilePath, usr)
+	if !flag {
+		return jobfile.NewEmptyJobFile(), &common.Error{
+			What: fmt.Sprintf(
+				"Failed to read jobfile %v",
+				self.jobfilePath,
+			),
+			Cause: err,
+		}
+	}
+
 	// read jobfile
 	jfile, err := jobfile.LoadJobFile(self.jobfilePath, usr)
 	if err == nil {
@@ -104,11 +116,10 @@ func (self *JobManager) loadJobFile() (*jobfile.JobFile, error) {
 
 		return jfile, nil
 	} else {
-		jfile = jobfile.NewEmptyJobFile()
 		if os.IsNotExist(err) {
-			return jfile, err
+			return jobfile.NewEmptyJobFile(), err
 		} else {
-			return jfile, &common.Error{
+			return jobfile.NewEmptyJobFile(), &common.Error{
 				What: fmt.Sprintf(
 					"Failed to read jobfile %v",
 					self.jobfilePath,

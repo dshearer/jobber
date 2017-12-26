@@ -30,6 +30,8 @@ func JobfilePath(usr *user.User) (string, error) {
 		msg := fmt.Sprintf("User %v's home directory path is not "+
 			"absolute: %v", usr.Username, usr.HomeDir)
 		return "", &Error{What: msg}
+
+	} else {
 	}
 
 	return filepath.Join(usr.HomeDir, JobFileName), nil

@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 const (
@@ -49,6 +50,29 @@ func NewEmptyJobFile() *JobFile {
 		Prefs: prefs,
 		Jobs:  nil,
 	}
+}
+
+func ShouldLoadJobfile(jobfilePath string, usr *user.User) (bool, error) {
+	// check jobfile's owner
+	stat, err := os.Stat(jobfilePath)
+	if err != nil {
+		return false, err
+	}
+	ownerUid := fmt.Sprintf("%v", stat.Sys().(*syscall.Stat_t).Uid)
+	if ownerUid != usr.Uid {
+		msg := fmt.Sprintf("User %v doesn't own jobfile %v",
+			usr.Username, jobfilePath)
+		return false, &common.Error{What: msg}
+	}
+
+	// check jobfile's perms
+	if stat.Mode().Perm()&0022 > 0 {
+		msg := fmt.Sprintf("Jobfile %v has bad permissions: %v",
+			jobfilePath, stat.Mode().Perm())
+		return false, &common.Error{What: msg}
+	}
+
+	return true, nil
 }
 
 func LoadJobFile(path string, usr *user.User) (*JobFile, error) {
