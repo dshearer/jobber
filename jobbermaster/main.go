@@ -105,9 +105,9 @@ func listUsers(prefs *Prefs) ([]*user.User, error) {
 		}
 
 		// check for reasons to exclude
-		if len(usr.HomeDir) == 0 {
-			common.Logger.Printf("Excluding %v b/c no home dir",
-				usr.Username)
+		_, err = common.JobfilePath(usr)
+		if err != nil {
+			common.Logger.Printf("Excluding %v: %v", usr.Username, err)
 			continue
 		}
 		if !prefs.ShouldIncludeUser(usr) {
