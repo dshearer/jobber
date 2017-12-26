@@ -195,6 +195,23 @@ Kill Master Process
     # restart jobber service so that Teardown doesn't fail
     Restart Service
 
+Prefs File Excludes User
+    # make prefs that exclude normal user
+    Set Prefs    exclude_users=normuser
+    Restart Service
+    Nothing Has Crashed
+    
+    # so teardown doesn't fail
+    ${runner_procs}=    Runner Proc Info
+    Set Test Variable    ${runner_procs}
+    
+    # make jobfile for normal user
+    ${jobfile}=    Make Jobfile    TestJob    exit 0
+    Install Normuser Jobfile    ${jobfile}    reload=${False}
+    
+    # test
+    Jobberrunner Should Not Be Running For User    normuser
+
 *** Keyword ***
 Setup
     Restart Service
@@ -209,6 +226,7 @@ Teardown
     Run Keyword If Test Failed    Print Debug Info
     Remove Files    /root/.jobber-log    /home/normuser/.jobber-log
     Nbr Of Runner Procs Should Be Same    ${runner_procs}
+    Restore Prefs
 
 Nothing Has Crashed
     jobbermaster Has Not Crashed

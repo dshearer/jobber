@@ -9,6 +9,8 @@ _NORMUSER = 'normuser'
 _RUNNER_LOG_FILE_FOR_ROOT = '/root/.jobber-log'
 _RUNNER_LOG_FILE_FOR_NORMUSER = '/home/{0}/.jobber-log'.\
     format(_NORMUSER) 
+_PREFS_PATH = '/etc/jobber.conf'
+_OLD_PREFS_PATH = '/etc/jobber.conf.old'
 
 def sp_check_output(args):
     proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -144,6 +146,14 @@ class testlib(object):
             except Exception as e:
                 log += "[{0}]".format(e)
         
+        # get prefs file
+        log += "\n\nPrefs:\n"
+        try:
+            with open(_PREFS_PATH) as f:
+                log += f.read()
+        except Exception as e:
+            log += "[{0}]".format(e)
+        
         print(log)
     
     def make_jobfile(self, job_name, cmd, time="*", notify_prog=None):
@@ -177,7 +187,7 @@ logPath: .jobber-log
         output = sp_check_output([self._jobber_path, 'reload'])
         return int(output.split()[1])
 
-    def install_normuser_jobfile(self, contents):
+    def install_normuser_jobfile(self, contents, reload=True):
         '''
         :return: Number of jobs loaded.
         '''
@@ -193,10 +203,13 @@ logPath: .jobber-log
         os.seteuid(0)
         os.setegid(0)
 
+        if reload:
         # reload it
-        output = sp_check_output(['sudo', '-u', _NORMUSER, \
-                                  self._jobber_path, 'reload'])
-        return int(output.split()[1])
+            output = sp_check_output(['sudo', '-u', _NORMUSER, \
+                                      self._jobber_path, 'reload'])
+            return int(output.split()[1])
+        else:
+            return 0
 
     def rm_jobfiles(self):
         # rm jobfile
@@ -226,7 +239,38 @@ logPath: .jobber-log
     def chown(self, path, user):
         pwnam = pwd.getpwnam(user)
         os.chown(path, pwnam.pw_uid, pwnam.pw_gid)
-
+    
+    def set_prefs(self, include_users='', exclude_users=''):
+        # make prefs
+        prefs = "users-include:\n"
+        for user in include_users.split(','):
+            prefs += "    - username: {0}\n".format(user)
+        prefs = "users-exclude:\n"
+        for user in exclude_users.split(','):
+            prefs += "    - username: {0}\n".format(user)
+            
+        # remove old prefs
+        try:
+            os.rename(_PREFS_PATH, _OLD_PREFS_PATH)
+        except OSError as e:
+            if e.errno == 2:
+                pass
+            else:
+                raise e
+            
+        # write to disk
+        with open(_PREFS_PATH, 'w') as f:
+            f.write(prefs)
+    
+    def restore_prefs(self):
+        try:
+            os.rename(_OLD_PREFS_PATH, _PREFS_PATH)
+        except OSError as e:
+            if e.errno == 2:
+                pass
+            else:
+                raise e
+    
     def kill_master_proc(self):
         # get pid of jobbermaster
         master_pid = sp_check_output(['pgrep', 'jobbermaster']).strip()
@@ -238,7 +282,7 @@ logPath: .jobber-log
         time.sleep(1)
 
     def runner_proc_info(self):
-        args = ['ps', '-C', 'jobberrunner', '-o', 'uid,tty']
+        args = ['ps', '-C', 'jobberrunner', '-o', 'user,uid,tty']
         proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
         output, _ = proc.communicate()
         records = [line for line in output.split('\n')[1:] \
@@ -259,7 +303,7 @@ logPath: .jobber-log
         proc_info = self.runner_proc_info()
         for line in proc_info.split('\n'):
             try:
-                tty = line.split()[1]
+                tty = line.split()[2]
             except IndexError as _:
                 print("Error: " + line)
                 raise
@@ -353,3 +397,13 @@ logPath: .jobber-log
             if "panic" in logs:
                 print(logs)
                 raise AssertionError("jobberrunner for normuser crashed")
+    
+    def jobberrunner_should_not_be_running_for_user(self, username):
+        proc_info = self.runner_proc_info()
+        if username in proc_info:
+            print("Runner procs:\n{0}".format(proc_info))
+            print("Logs: \n" + get_jobbermaster_logs())
+            with open(_PREFS_PATH) as f:
+                print("Prefs:\n{0}".format(f.read()))
+            raise AssertionError("jobberrunner is running for {0}".\
+                                 format(username))
