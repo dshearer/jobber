@@ -81,7 +81,7 @@ Loop:
 /*
 Get all users that have home dirs.
 */
-func listUsers() ([]*user.User, error) {
+func listUsers(prefs *Prefs) ([]*user.User, error) {
 	users := make([]*user.User, 0)
 
 	// open passwd
@@ -92,9 +92,9 @@ func listUsers() ([]*user.User, error) {
 	}
 	defer f.Close()
 
-	// look for users with home dirs
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
+		// look up user
 		parts := strings.Split(scanner.Text(), ":")
 		if len(parts) == 0 {
 			continue
@@ -103,9 +103,19 @@ func listUsers() ([]*user.User, error) {
 		if err != nil {
 			continue
 		}
+
+		// check for reasons to exclude
 		if len(usr.HomeDir) == 0 {
+			common.Logger.Printf("Excluding %v b/c no home dir",
+				usr.Username)
 			continue
 		}
+		if !prefs.ShouldIncludeUser(usr) {
+			common.Logger.Printf("Excluding %v according to prefs",
+				usr.Username)
+			continue
+		}
+
 		users = append(users, usr)
 	}
 	return users, nil
@@ -152,6 +162,8 @@ func mkdirp(path string, perm os.FileMode) error {
 }
 
 func main() {
+	common.UseSyslog()
+
 	// make var dir
 	if err := mkdirp(common.VarDirPath, 0775); err != nil {
 		// already exists
@@ -162,8 +174,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// load prefs
+	prefs, err := LoadPrefs()
+	if err != nil {
+		common.ErrLogger.Printf("Invalid prefs file: %v", err)
+		common.Logger.Println("Using default prefs.")
+		prefs = &DefaultPrefs
+	}
+
 	// get all users
-	users, err := listUsers()
+	users, err := listUsers(prefs)
 	if err != nil {
 		os.Exit(1)
 	}

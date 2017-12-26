@@ -3,11 +3,28 @@ package common
 import (
 	"io"
 	"log"
+	"log/syslog"
 	"os"
 )
 
 var Logger *log.Logger = log.New(os.Stdout, "", 0)
 var ErrLogger *log.Logger = log.New(os.Stderr, "", 0)
+
+func UseSyslog() error {
+	logger, err :=
+		syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_DAEMON, 0)
+	if err != nil {
+		return err
+	}
+	errLogger, err :=
+		syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_DAEMON, 0)
+	if err != nil {
+		return err
+	}
+	Logger = logger
+	ErrLogger = errLogger
+	return nil
+}
 
 func SetLogFile(paths ...string) {
 	if len(paths) == 1 {
