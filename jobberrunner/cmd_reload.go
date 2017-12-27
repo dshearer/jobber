@@ -12,7 +12,6 @@ func (self *JobManager) doReloadCmd(cmd common.ReloadCmd) {
 	newJfile, err := self.loadJobFile()
 	if err != nil && !os.IsNotExist(err) {
 		cmd.RespChan <- &common.ReloadCmdResp{Err: err}
-		close(cmd.RespChan)
 		return
 	}
 
