@@ -42,6 +42,7 @@ An SELinux policy for Jobber.
 %attr(0755,root,root) /usr/local/libexec/jobbermaster
 %attr(0755,root,root) /usr/local/libexec/jobberrunner
 %attr(0755,root,root) /etc/init.d/jobber
+%config(noreplace)    /etc/jobber.conf
 
 %files selinux
 %defattr(-,root,root,0755)

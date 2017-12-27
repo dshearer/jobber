@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"github.com/dshearer/jobber/common"
 	"os"
 	"os/exec"
@@ -163,9 +164,7 @@ func mkdirp(path string, perm os.FileMode) error {
 	return nil
 }
 
-func main() {
-	common.UseSyslog()
-
+func doDefault() int {
 	// make var dir
 	if err := mkdirp(common.VarDirPath, 0775); err != nil {
 		// already exists
@@ -173,7 +172,7 @@ func main() {
 			"Failed to make dir at %v: %v",
 			common.VarDirPath,
 			err)
-		os.Exit(1)
+		return 1
 	}
 
 	// load prefs
@@ -181,13 +180,13 @@ func main() {
 	if err != nil {
 		common.ErrLogger.Printf("Invalid prefs file: %v", err)
 		common.Logger.Println("Using default prefs.")
-		prefs = &DefaultPrefs
+		prefs = &EmptyPrefs
 	}
 
 	// get all users
 	users, err := listUsers(prefs)
 	if err != nil {
-		os.Exit(1)
+		return 1
 	}
 
 	mainCtx, mainCtxCtl :=
@@ -233,4 +232,48 @@ func main() {
 	common.Logger.Printf("Waiting for threads")
 	mainCtx.WaitForChildren()
 	common.Logger.Printf("Done waiting for threads")
+
+	return 0
+}
+
+func doDefprefs() int {
+	fmt.Printf("%v", gDefaultPrefsStr)
+	return 0
+}
+
+const gDefprefsCmd = "defprefs"
+
+func usage() {
+	common.ErrLogger.Printf("Usage: %v [%v]\n", os.Args[0],
+		gDefprefsCmd)
+}
+
+func main() {
+	common.UseSyslog()
+
+	// parse args
+	cmd := "default"
+	if len(os.Args) < 1 || len(os.Args) > 2 {
+		usage()
+		os.Exit(1)
+	}
+	if len(os.Args) == 2 {
+		cmd = os.Args[1]
+		if cmd != gDefprefsCmd {
+			usage()
+			os.Exit(1)
+		}
+	}
+
+	// do command
+	var exitval int
+	switch cmd {
+	case gDefprefsCmd:
+		exitval = doDefprefs()
+
+	default:
+		exitval = doDefault()
+	}
+
+	os.Exit(exitval)
 }

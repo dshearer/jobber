@@ -25,6 +25,7 @@ A replacement for cron, with sophisticated status-reporting and error-handling.
 %attr(0755,root,root) /usr/local/libexec/jobbermaster
 %attr(0755,root,root) /usr/local/libexec/jobberrunner
 %attr(0644,root,root) %{_unitdir}/jobber.service
+%config(noreplace)    /etc/jobber.conf
 
 
 %prep

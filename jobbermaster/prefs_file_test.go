@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/user"
+	"strings"
 	"testing"
 )
 
@@ -184,4 +185,60 @@ func TestShouldIncludeUser(t *testing.T) {
 		 */
 		require.Equal(t, testCase.Output, result)
 	}
+}
+
+func TestParseDefaultPrefs(t *testing.T) {
+	/*
+	 * Set up
+	 */
+	// make prefs file
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	f.WriteString(gDefaultPrefsStr)
+	f.Seek(0, 0)
+	defer f.Close()
+
+	/*
+	 * Call
+	 */
+	prefs, err := loadPrefs(f)
+
+	/*
+	 * Test
+	 */
+	require.Nil(t, err)
+	require.NotNil(t, prefs)
+}
+
+func TestParseDefaultPrefsAfterUncommenting(t *testing.T) {
+	/*
+	 * Set up
+	 */
+	f, err := ioutil.TempFile("", "Testing")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
+	}
+	defer os.Remove(f.Name())
+	lines := strings.Split(gDefaultPrefsStr, "\n")
+	for _, line := range lines {
+		if len(line) > 2 && line[0] == '#' && line[1] != '#' {
+			line = line[1:]
+		}
+		f.WriteString(line + "\n")
+	}
+	f.Close()
+
+	/*
+	 * Call
+	 */
+	prefs, err := loadPrefs(f)
+
+	/*
+	 * Test
+	 */
+	require.Nil(t, err)
+	require.NotNil(t, prefs)
 }
