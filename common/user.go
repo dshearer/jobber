@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"os"
 	"os/user"
 	"strconv"
@@ -8,20 +9,15 @@ import (
 )
 
 func UserOwnsFile(usr *user.User, path string) (bool, error) {
-	// convert UID to int
-	userUid, err := strconv.Atoi(usr.Uid)
-	if err != nil {
-		return false, err
-	}
-
 	// get file's owner
 	stat, err := os.Stat(path)
 	if err != nil {
 		return false, err
 	}
 	fileUid := stat.Sys().(*syscall.Stat_t).Uid
+	fileUidStr := fmt.Sprintf("%v", fileUid)
 
-	return uint32(userUid) == fileUid, nil
+	return fileUidStr == usr.Uid, nil
 }
 
 func Chown(path string, usr *user.User) error {

@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"github.com/dshearer/jobber/common"
 	"os"
 	"os/exec"
@@ -81,6 +80,44 @@ Loop:
 	common.Logger.Printf("Exiting thread for %v", usr.Username)
 }
 
+func shouldRunForUser(usr *user.User, prefs *Prefs) bool {
+	// check prefs
+	if !prefs.ShouldIncludeUser(usr) {
+		common.Logger.Printf("Excluding %v according to prefs",
+			usr.Username)
+		return false
+	}
+
+	// check if user has home dir
+	if len(usr.HomeDir) == 0 || usr.HomeDir == "/dev/null" {
+		common.Logger.Printf("Excluding %v: has no home directory",
+			usr.Username)
+		return false
+
+	}
+
+	// check if home dir path is absolute
+	if !filepath.IsAbs(usr.HomeDir) {
+		common.Logger.Printf("Excluding %v: home directory path is "+
+			"not absolute: %v", usr.Username, usr.HomeDir)
+		return false
+	}
+
+	// check if user owns home dir
+	ownsHomeDir, err := common.UserOwnsFile(usr, usr.HomeDir)
+	if err != nil {
+		common.Logger.Printf("Excluding %v: %v", usr.Username, err)
+		return false
+	}
+	if !ownsHomeDir {
+		common.Logger.Printf("Excluding %v: doesn't own home dir",
+			usr.Username)
+		return false
+	}
+
+	return true
+}
+
 /*
 Get all users that have home dirs.
 */
@@ -108,20 +145,7 @@ func listUsers(prefs *Prefs) ([]*user.User, error) {
 		}
 
 		// check for reasons to exclude
-		if len(usr.HomeDir) == 0 || usr.HomeDir == "/dev/null" {
-			fmt.Printf("Excluding %v: has no home directory",
-				usr.Username)
-			continue
-
-		} else if !filepath.IsAbs(usr.HomeDir) {
-			fmt.Printf("Excluding %v: home directory path is not "+
-				"absolute: %v", usr.Username, usr.HomeDir)
-			continue
-
-		}
-		if !prefs.ShouldIncludeUser(usr) {
-			common.Logger.Printf("Excluding %v according to prefs",
-				usr.Username)
+		if !shouldRunForUser(usr, prefs) {
 			continue
 		}
 
