@@ -4,6 +4,7 @@ prefix = /usr/local
 exec_prefix = ${prefix}
 bindir = ${exec_prefix}/bin
 libexecdir = ${exec_prefix}/libexec
+sysconfdir = /etc
 srcdir = .
 INSTALL = install
 INSTALL_PROGRAM = ${INSTALL}
@@ -107,7 +108,9 @@ installcheck :
 
 .PHONY : installdirs
 installdirs :
-	"${srcdir}/buildtools/mkinstalldirs" "${DESTDIR}${bindir}" "${DESTDIR}${libexecdir}"
+	"${srcdir}/buildtools/mkinstalldirs" \
+		"${DESTDIR}${bindir}" "${DESTDIR}${libexecdir}" \
+		"${DESTDIR}${sysconfdir}"
 
 .PHONY : install
 install : installdirs all
@@ -115,12 +118,14 @@ install : installdirs all
 	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobbermaster" "${DESTDIR}${libexecdir}"
 	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobberrunner" "${DESTDIR}${libexecdir}"
 	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobber" "${DESTDIR}${bindir}"
+	"${GO_WKSPC}/bin/jobbermaster" defprefs > "${DESTDIR}${sysconfdir}/jobber.conf"
 
 .PHONY : uninstall
 uninstall :
 	-rm "${DESTDIR}${libexecdir}/jobbermaster"
 	-rm "${DESTDIR}${libexecdir}/jobberrunner"
 	-rm "${DESTDIR}${bindir}/jobber"
+	-rm "${DESTDIR}${sysconfdir}/jobber.conf"
 
 dist : ${ALL_SOURCES}
 	mkdir -p "${DESTDIR}dist-tmp"

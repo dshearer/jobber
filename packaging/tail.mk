@@ -4,6 +4,13 @@ VAGRANT_SSH = vagrant ssh --no-tty -c
 main :
 	@echo "Choose pkg-local or pkg-vm or test-vm or play-vm"
 
+.PHONY : thang
+thang :
+	#(vagrant snapshot list | grep Base >/dev/null) || \
+		(vagrant up && vagrant reload && vagrant snapshot save Base)
+	(vagrant up && vagrant reload && sleep 3 && vagrant snapshot save Base)
+	vagrant snapshot restore Base
+
 .PHONY : pkg-vm
 pkg-vm : .vm-is-pristine ${DESTDIR}${PKGFILE}	
 	# stop VM
@@ -12,8 +19,9 @@ pkg-vm : .vm-is-pristine ${DESTDIR}${PKGFILE}
 
 .vm-is-created :
 	@# NOTE: We do 'vagrant reload' b/c some packages may need a restart
+	@# Why the sleep?  Without it, Debian snapshots were having kernel crashes.
 	(vagrant snapshot list | grep Base >/dev/null) || \
-		(vagrant up && vagrant reload && vagrant snapshot save Base)
+		(vagrant up && vagrant reload && sleep 3 && vagrant snapshot save Base)
 	touch $@
 
 .vm-is-pristine : .vm-is-created

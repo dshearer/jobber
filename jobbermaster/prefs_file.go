@@ -34,14 +34,39 @@ type Prefs struct {
 	UsersExclude []UserSpec `yaml:"users-exclude"`
 }
 
-var DefaultPrefs = Prefs{}
+var EmptyPrefs = Prefs{}
+
+const gDefaultPrefsStr = `## Here, you can control which users can use Jobber to run jobs.  You
+## can either specify which users should be able to use Jobber, or
+## which users should NOT be able to use Jobber --- not both.
+##
+## NOTE: Users without home directories, or who do not own their home
+## directories, will not be able to use Jobber, no matter what you
+## specify in this file.
+
+## EXAMPLE: With the following, the only users that can use jobber are
+## (1) root and (2) all users whose home directories are in 
+## /home/svcusers.
+#users-include:
+#    - username: root
+#    - home: /home/svcusers/*
+
+## EXAMPLE: With the following, the users postfix and mysql and all
+## users whose usernames end with "nobody" cannot use Jobber.  (In the
+## last rule, "*nobody" is quoted because "*" has a special meaning in
+## YAML when unquoted.)
+#users-exclude:
+#    - username: postfix
+#    - username: mysql
+#    - username: '*nobody'
+`
 
 func LoadPrefs() (*Prefs, error) {
 	f, err := os.Open(gPrefsPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			common.Logger.Println("No prefs file.  Using defaults.")
-			return &DefaultPrefs, err
+			return &EmptyPrefs, err
 		} else {
 			return nil, err
 		}

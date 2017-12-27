@@ -222,6 +222,10 @@ Prefs File Excludes User
     # test
     Jobberrunner Should Not Be Running For User    normuser
 
+Default Prefs Is Installed
+    # test
+    Prefs File Should Exist
+
 *** Keyword ***
 Setup
     Restart Service

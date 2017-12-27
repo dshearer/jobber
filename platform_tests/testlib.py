@@ -427,3 +427,12 @@ logPath: .jobber-log
         except OSError as e:
             if e.errno != 2:
                 raise e
+            
+    def prefs_file_should_exist(self):
+        try:
+            os.stat(_PREFS_PATH)
+        except OSError as e:
+            if e.errno == 2:
+                raise AssertionError("Prefs file does not exist")
+            else:
+                raise e
