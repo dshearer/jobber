@@ -51,33 +51,32 @@ func NewEmptyJobFile() *JobFile {
 	}
 }
 
-func ShouldLoadJobfile(jobfilePath string, usr *user.User) (bool, error) {
+func ShouldLoadJobfile(f *os.File, usr *user.User) (bool, error) {
 	// check jobfile's owner
-	ownsFile, err := common.UserOwnsFile(usr, jobfilePath)
+	ownsFile, err := common.UserOwnsFileF(usr, f)
 	if err != nil {
 		return false, err
 	}
 	if !ownsFile {
-		msg := fmt.Sprintf("User %v doesn't own jobfile %v",
-			usr.Username, jobfilePath)
+		msg := fmt.Sprintf("User %v doesn't own jobfile", usr.Username)
 		return false, &common.Error{What: msg}
 	}
 
 	// check jobfile's perms
-	stat, err := os.Stat(jobfilePath)
+	stat, err := f.Stat()
 	if err != nil {
 		return false, err
 	}
 	if stat.Mode().Perm()&0022 > 0 {
-		msg := fmt.Sprintf("Jobfile %v has bad permissions: %v",
-			jobfilePath, stat.Mode().Perm())
+		msg := fmt.Sprintf("Jobfile has bad permissions: %v",
+			stat.Mode().Perm())
 		return false, &common.Error{What: msg}
 	}
 
 	return true, nil
 }
 
-func LoadJobFile(path string, usr *user.User) (*JobFile, error) {
+func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	/*
 	   Jobber files have two sections: one begins with "[prefs]" on a
 	   line, and the other begins with "[jobs]".  Both contain a YAML
@@ -90,7 +89,7 @@ func LoadJobFile(path string, usr *user.User) (*JobFile, error) {
 	*/
 
 	// parse file into sections
-	sections, err := findSections(path)
+	sections, err := findSections(f)
 	if err != nil {
 		return nil, err
 	}
@@ -130,15 +129,9 @@ Find the sections of a jobfile.
 
 Returns a map from a section name to the contents of that section.
 */
-func findSections(path string) (map[string]string, error) {
-	r, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
+func findSections(f *os.File) (map[string]string, error) {
 	// iterate over lines
-	scanner := bufio.NewScanner(r)
+	scanner := bufio.NewScanner(f)
 	sectionsToLines := make(map[string][]string)
 	lineNbr := 0
 	sectNameRegexp := regexp.MustCompile("^\\[(\\w*)\\]\\s*$")

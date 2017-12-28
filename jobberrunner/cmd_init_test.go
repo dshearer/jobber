@@ -21,15 +21,16 @@ func TestParseDefaultJobfile(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
 	}
+	defer f.Close()
 	defer os.Remove(f.Name())
 	f.Write([]byte(gDefaultJobfile))
-	f.Close()
+	f.Seek(0, 0)
 
 	/*
 	 * Call
 	 */
 	var file *jobfile.JobFile
-	file, err = jobfile.LoadJobFile(f.Name(), &gUserEx)
+	file, err = jobfile.LoadJobfile(f, &gUserEx)
 
 	/*
 	 * Test
@@ -46,6 +47,7 @@ func TestParseDefaultJobfileAfterUncommenting(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
 	}
+	defer f.Close()
 	defer os.Remove(f.Name())
 	lines := strings.Split(gDefaultJobfile, "\n")
 	for _, line := range lines {
@@ -54,13 +56,13 @@ func TestParseDefaultJobfileAfterUncommenting(t *testing.T) {
 		}
 		f.WriteString(line + "\n")
 	}
-	f.Close()
+	f.Seek(0, 0)
 
 	/*
 	 * Call
 	 */
 	var file *jobfile.JobFile
-	file, err = jobfile.LoadJobFile(f.Name(), &gUserEx)
+	file, err = jobfile.LoadJobfile(f, &gUserEx)
 
 	/*
 	 * Test

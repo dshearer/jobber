@@ -11,21 +11,24 @@ import (
 )
 
 type JobManager struct {
-	jobfilePath      string
-	launched         bool
-	jfile            *jobfile.JobFile
-	CmdChan          chan common.ICmd
-	CmdRespChan      chan common.ICmdResp
-	mainThreadCtx    common.BetterContext
-	mainThreadCtxCtl common.BetterContextCtl
-	jobRunner        *JobRunnerThread
-	Shell            string
+	jobfilePath         string
+	launched            bool
+	jfile               *jobfile.JobFile
+	CmdChan             chan common.ICmd
+	CmdRespChan         chan common.ICmdResp
+	mainThreadCtx       context.Context
+	mainThreadCtxCancel context.CancelFunc
+	mainThreadDoneChan  chan interface{}
+	jobRunner           *JobRunnerThread
+	Shell               string
 }
 
 func NewJobManager(jobfilePath string) *JobManager {
 	jm := JobManager{Shell: "/bin/sh"}
 	jm.jobfilePath = jobfilePath
 	jm.jobRunner = NewJobRunnerThread()
+	jm.jfile = jobfile.NewEmptyJobFile()
+	common.LogToStdoutStderr()
 	return &jm
 }
 
@@ -33,13 +36,6 @@ func (self *JobManager) Launch() error {
 	if self.launched {
 		return &common.Error{What: "Already launched."}
 	}
-
-	self.mainThreadCtx, self.mainThreadCtxCtl =
-		common.MakeChildContext(context.Background())
-
-	// run main thread
-	self.CmdChan = make(chan common.ICmd)
-	self.CmdRespChan = make(chan common.ICmdResp)
 	self.runMainThread()
 
 	self.launched = true
@@ -47,12 +43,15 @@ func (self *JobManager) Launch() error {
 }
 
 func (self *JobManager) Cancel() {
-	self.mainThreadCtxCtl.Cancel()
+	common.Logger.Println("JobManager cancelling...")
+	self.mainThreadCtxCancel()
+	common.Logger.Println("done")
 }
 
 func (self *JobManager) Wait() {
-	common.Logger.Printf("JobManager Waiting")
-	self.mainThreadCtxCtl.WaitForFinish()
+	common.Logger.Printf("JobManager Waiting...")
+	<-self.mainThreadDoneChan
+	common.Logger.Println("done")
 }
 
 func (self *JobManager) findJob(name string) *jobfile.Job {
@@ -87,47 +86,76 @@ func (self *JobManager) findJobs(names []string) ([]*jobfile.Job, error) {
 	}
 }
 
-func (self *JobManager) loadJobFile() (*jobfile.JobFile, error) {
+/*
+Replaces in-memory jobfile with the current version on disk.  If there
+is no jobfile on disk, sets in-memory jobfile to an empty jobfile.  In
+both cases, restarts the job-runner thread and sets the loggers.
+
+If an error happens when trying to read the on-disk jobfile, does not
+change the in-memory jobfile, and returns that error.
+*/
+func (self *JobManager) loadJobfile() error {
+
 	// get current user
 	usr, err := user.Current()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to get current user: %v", err))
 	}
 
-	// check jobfile
-	flag, err := jobfile.ShouldLoadJobfile(self.jobfilePath, usr)
-	if !flag {
-		return jobfile.NewEmptyJobFile(), &common.Error{
-			What: fmt.Sprintf(
-				"Failed to read jobfile %v",
-				self.jobfilePath,
-			),
-			Cause: err,
-		}
-	}
+	var jfile *jobfile.JobFile
 
-	// read jobfile
-	jfile, err := jobfile.LoadJobFile(self.jobfilePath, usr)
-	if err == nil {
-		// set loggers
-		if len(jfile.Prefs.LogPath) > 0 {
-			common.SetLogFile(jfile.Prefs.LogPath)
-		}
-
-		return jfile, nil
+	// open jobfile
+	f, err := os.Open(self.jobfilePath)
+	if err != nil && os.IsNotExist(err) {
+		/* This is not an error. */
+		jfile = jobfile.NewEmptyJobFile()
 	} else {
-		if os.IsNotExist(err) {
-			return jobfile.NewEmptyJobFile(), err
-		} else {
-			return jobfile.NewEmptyJobFile(), &common.Error{
-				What: fmt.Sprintf(
-					"Failed to read jobfile %v",
-					self.jobfilePath,
-				),
-				Cause: err,
-			}
+		defer f.Close()
+
+		// check jobfile
+		flag, err := jobfile.ShouldLoadJobfile(f, usr)
+		if !flag {
+			/* This is an error. */
+			msg := fmt.Sprintf("Failed to read jobfile %v",
+				self.jobfilePath)
+			return &common.Error{What: msg, Cause: err}
+		}
+
+		// read jobfile
+		jfile, err = jobfile.LoadJobfile(f, usr)
+		if err != nil {
+			/* This is an error */
+			msg := fmt.Sprintf("Failed to read jobfile %v",
+				self.jobfilePath)
+			return &common.Error{What: msg, Cause: err}
 		}
 	}
+
+	// stop job-runner thread and wait for current runs to end
+	common.Logger.Println("Stopping job-runner thread...")
+	self.jobRunner.Cancel()
+	for rec := range self.jobRunner.RunRecChan() {
+		self.handleRunRec(rec)
+	}
+	self.jobRunner.Wait()
+	common.Logger.Println("done")
+
+	// set jobfile
+	self.jfile = jfile
+
+	// set loggers
+	if len(jfile.Prefs.LogPath) > 0 {
+		common.SetLogFile(jfile.Prefs.LogPath)
+	} else {
+		common.LogToStdoutStderr()
+	}
+
+	// restart job-runner thread
+	common.Logger.Println("Starting job-runner thread...")
+	self.jobRunner.Start(self.jfile.Jobs, self.Shell)
+	common.Logger.Println("done")
+
+	return nil
 }
 
 func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
@@ -156,63 +184,73 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 }
 
 func (self *JobManager) runMainThread() {
+	ctx, cancel :=
+		context.WithCancel(context.Background())
+	self.mainThreadCtxCancel = cancel
+
+	self.CmdChan = make(chan common.ICmd)
+	self.CmdRespChan = make(chan common.ICmdResp)
+	self.mainThreadDoneChan = make(chan interface{})
+
 	go func() {
 		/*
 		   All modifications to the job manager's state occur here.
 		*/
 		common.Logger.Println("In job manager main thread")
-		defer self.mainThreadCtx.Finish()
+		defer close(self.mainThreadDoneChan)
+		defer close(self.CmdRespChan)
+		defer close(self.CmdChan)
 
-		// load job file
-		jfile, err := self.loadJobFile()
-		self.jfile = jfile
-		if err != nil && !os.IsNotExist(err) {
+		// load job file & start job-runner thread
+		err := self.loadJobfile()
+		if err != nil {
 			common.ErrLogger.Printf("%v", err)
 		}
-
-		// start job-runner thread
-		self.jobRunner.Start(
-			self.jfile.Jobs,
-			self.Shell,
-			self.mainThreadCtx,
-		)
 
 	Loop:
 		for {
 			select {
-			case <-self.mainThreadCtx.Done():
+			case <-ctx.Done():
 				common.Logger.Println("Main thread cancelled")
 				break Loop
 
 			case rec, ok := <-self.jobRunner.RunRecChan():
-				if ok {
-					self.handleRunRec(rec)
-				} else {
-					common.ErrLogger.Println("Job-runner thread ended prematurely.")
-					self.mainThreadCtxCtl.Cancel()
-					break Loop
+				if !ok {
+					common.ErrLogger.Panic("Job-runner thread " +
+						"ended prematurely.")
 				}
+				self.handleRunRec(rec)
 
 			case cmd, ok := <-self.CmdChan:
 				if ok {
+					common.Logger.Println("Got command")
 					var shouldExit bool
 					self.doCmd(cmd, &shouldExit)
 					if shouldExit {
-						self.mainThreadCtxCtl.Cancel()
+						self.mainThreadCtxCancel()
 						break Loop
 					}
 				} else {
-					common.ErrLogger.Println("Command channel was closed.")
-					self.mainThreadCtxCtl.Cancel()
+					common.ErrLogger.Println("Command channel was " +
+						"closed.")
+					self.mainThreadCtxCancel()
 					break Loop
 				}
 			}
 		}
 
+		// cancel job runner
+		self.jobRunner.Cancel()
+
 		// consume all run-records
+		common.Logger.Println("Consuming remaining run recs...")
 		for rec := range self.jobRunner.RunRecChan() {
 			self.handleRunRec(rec)
 		}
+		common.Logger.Println("Done onsuming remaining run recs")
+
+		// wait for job runner to fully stop
+		self.jobRunner.Wait()
 	}()
 }
 
