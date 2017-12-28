@@ -1,17 +1,19 @@
 package main
 
 import (
+	"context"
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/jobfile"
 	"os/exec"
+	"sync"
 	"time"
 )
 
 type JobRunnerThread struct {
-	running    bool
-	runRecChan chan *jobfile.RunRec
-	ctx        common.BetterContext
-	ctxCtl     common.BetterContextCtl
+	running            bool
+	runRecChan         chan *jobfile.RunRec
+	mainThreadDoneChan chan interface{}
+	ctxCancel          context.CancelFunc
 }
 
 func NewJobRunnerThread() *JobRunnerThread {
@@ -25,34 +27,39 @@ func (self *JobRunnerThread) RunRecChan() <-chan *jobfile.RunRec {
 }
 
 func (self *JobRunnerThread) Start(
+	ctx context.Context,
 	jobs []*jobfile.Job,
-	shell string,
-	ctx common.BetterContext) {
+	shell string) {
 
 	if self.running {
 		panic("JobRunnerThread already running.")
 	}
 	self.running = true
 
+	self.mainThreadDoneChan = make(chan interface{})
+
+	// make subcontext
+	subCtx, cancel := context.WithCancel(ctx)
+	self.ctxCancel = cancel
+
 	self.runRecChan = make(chan *jobfile.RunRec)
 	var jobQ JobQueue
 	jobQ.SetJobs(time.Now(), jobs)
 
-	// make subcontext
-	self.ctx, self.ctxCtl = common.MakeChildContext(ctx)
-
 	go func() {
-		defer self.ctx.Finish()
+		defer close(self.mainThreadDoneChan)
+
+		var jobThreadWaitGroup sync.WaitGroup
 
 		for {
-			var job *jobfile.Job = jobQ.Pop(self.ctx, time.Now()) // sleeps
+			var job *jobfile.Job = jobQ.Pop(subCtx, time.Now()) // sleeps
 
 			if job != nil && !job.Paused {
 				// launch thread to run this job
 				common.Logger.Printf("%v: %v\n", job.User, job.Cmd)
-				subctx, _ := common.MakeChildContext(self.ctx)
+				jobThreadWaitGroup.Add(1)
 				go func(job *jobfile.Job) {
-					defer subctx.Finish()
+					defer jobThreadWaitGroup.Done()
 					self.runRecChan <- RunJob(job, shell, false)
 				}(job)
 
@@ -65,7 +72,7 @@ func (self *JobRunnerThread) Start(
 
 		// wait for run threads to stop
 		//Logger.Printf("JobRunner: cleaning up...\n")
-		self.ctx.WaitForChildren()
+		jobThreadWaitGroup.Wait()
 
 		// close run-rec channel
 		close(self.runRecChan)
@@ -74,12 +81,12 @@ func (self *JobRunnerThread) Start(
 }
 
 func (self *JobRunnerThread) Cancel() {
-	self.ctxCtl.Cancel()
+	self.ctxCancel()
 	self.running = false
 }
 
 func (self *JobRunnerThread) Wait() {
-	self.ctxCtl.WaitForFinish()
+	<-self.mainThreadDoneChan
 }
 
 func RunJob(

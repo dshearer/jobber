@@ -26,8 +26,8 @@ func (self *JobManager) doReloadCmd(cmd common.ReloadCmd) {
 	self.jfile = newJfile
 
 	// restart job-runner thread
-	self.jobRunner.Start(self.jfile.Jobs, self.Shell,
-		self.mainThreadCtx)
+	self.jobRunner.Start(self.mainThreadCtx, self.jfile.Jobs,
+		self.Shell)
 
 	// make response
 	cmd.RespChan <- &common.ReloadCmdResp{

@@ -1,5 +1,4 @@
 COMMON_SOURCES := \
-	better_context.go \
 	consts.go \
 	error.go \
 	exec.go \
