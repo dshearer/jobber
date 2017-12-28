@@ -17,19 +17,19 @@ type JobRunnerThread struct {
 }
 
 func NewJobRunnerThread() *JobRunnerThread {
-	return &JobRunnerThread{
-		running: false,
+	jr := JobRunnerThread{
+		running:    false,
+		runRecChan: make(chan *jobfile.RunRec),
 	}
+	close(jr.runRecChan)
+	return &jr
 }
 
 func (self *JobRunnerThread) RunRecChan() <-chan *jobfile.RunRec {
 	return self.runRecChan
 }
 
-func (self *JobRunnerThread) Start(
-	ctx context.Context,
-	jobs []*jobfile.Job,
-	shell string) {
+func (self *JobRunnerThread) Start(jobs []*jobfile.Job, shell string) {
 
 	if self.running {
 		panic("JobRunnerThread already running.")
@@ -39,20 +39,23 @@ func (self *JobRunnerThread) Start(
 	self.mainThreadDoneChan = make(chan interface{})
 
 	// make subcontext
-	subCtx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	self.ctxCancel = cancel
 
 	self.runRecChan = make(chan *jobfile.RunRec)
+
 	var jobQ JobQueue
 	jobQ.SetJobs(time.Now(), jobs)
 
+	common.Logger.Println("Launching job runner thread")
 	go func() {
 		defer close(self.mainThreadDoneChan)
 
 		var jobThreadWaitGroup sync.WaitGroup
 
 		for {
-			var job *jobfile.Job = jobQ.Pop(subCtx, time.Now()) // sleeps
+			common.Logger.Println("Calling pop")
+			var job *jobfile.Job = jobQ.Pop(ctx, time.Now()) // sleeps
 
 			if job != nil && !job.Paused {
 				// launch thread to run this job
@@ -65,28 +68,33 @@ func (self *JobRunnerThread) Start(
 
 			} else if job == nil {
 				/* We were canceled. */
-				//Logger.Printf("Run thread got 'stop'\n")
+				common.Logger.Printf("Run thread got 'stop'\n")
 				break
 			}
 		}
 
 		// wait for run threads to stop
-		//Logger.Printf("JobRunner: cleaning up...\n")
+		common.Logger.Printf("JobRunner: cleaning up...")
 		jobThreadWaitGroup.Wait()
 
 		// close run-rec channel
 		close(self.runRecChan)
-		//Logger.Printf("JobRunner done\n")
+		common.Logger.Println("JobRunner done")
 	}()
 }
 
 func (self *JobRunnerThread) Cancel() {
-	self.ctxCancel()
-	self.running = false
+	common.Logger.Println("JobRunner: cancelling")
+	if self.ctxCancel != nil {
+		self.ctxCancel()
+		self.running = false
+	}
 }
 
 func (self *JobRunnerThread) Wait() {
-	<-self.mainThreadDoneChan
+	if self.mainThreadDoneChan != nil {
+		<-self.mainThreadDoneChan
+	}
 }
 
 func RunJob(
