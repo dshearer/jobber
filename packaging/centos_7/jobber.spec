@@ -21,9 +21,11 @@ A replacement for cron, with sophisticated status-reporting and error-handling.
 
 
 %files
-%attr(4755,jobber_client,root) /usr/local/bin/jobber
-%attr(0755,root,root) /usr/local/libexec/jobberd
+%attr(0755,root,root) /usr/local/bin/jobber
+%attr(0755,root,root) /usr/local/libexec/jobbermaster
+%attr(0755,root,root) /usr/local/libexec/jobberrunner
 %attr(0644,root,root) %{_unitdir}/jobber.service
+%config(noreplace)    /etc/jobber.conf
 
 
 %prep
@@ -36,7 +38,7 @@ cp "%{_sourcedir}/jobber.service" "%{_builddir}/"
 GO_WKSPC="%{_builddir}/go_workspace"
 GO_SRC_DIR="${GO_WKSPC}/src/github.com/dshearer"
 mkdir -p "${GO_SRC_DIR}"
-ln -fs "%{_builddir}/jobber-%{_pkg_version}" "${GO_SRC_DIR}/jobber"
+cp -R "%{_builddir}/jobber-%{_pkg_version}" "${GO_SRC_DIR}/jobber"
 
 echo "GO_WKSPC=${GO_WKSPC}" > "%{_builddir}/vars"
 echo "GO_SRC_DIR=${GO_SRC_DIR}" >> "%{_builddir}/vars"
@@ -56,13 +58,6 @@ export GOPATH="${GO_WKSPC}"
 %make_install -C "${GO_SRC_DIR}/jobber"
 mkdir -p "%{buildroot}/%{_unitdir}"
 cp "%{_builddir}/jobber.service" "%{buildroot}/%{_unitdir}/"
-
-
-%pre
-if [ "$1" -gt 1 ]; then
-    userdel jobber_client 2>/dev/null ||:
-fi
-useradd --home / -M --system --shell /sbin/nologin jobber_client
 
 
 %post

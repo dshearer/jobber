@@ -121,6 +121,7 @@ $ vi .jobber
   onError: Stop
   notifyOnError: true
   notifyOnFailure: true
+  notifyOnSuccess: false
 ```
 
 Reload jobs

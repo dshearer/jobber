@@ -9,5 +9,4 @@ script:
   - make check
   - make install
   - jobber -v
-  - make -C platform_tests
-
+  - make -C smoke_tests

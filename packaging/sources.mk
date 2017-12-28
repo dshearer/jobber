@@ -1,12 +1,14 @@
 PACKAGING_SOURCES := \
 	Makefile \
-	centos_6.7/se_policy/jobber.fc \
-	centos_6.7/se_policy/jobber.if \
-	centos_6.7/se_policy/jobber.te \
-	centos_6.7/jobber_init \
-	centos_6.7/jobber.spec \
-	centos_6.7/Makefile \
-	centos_6.7/pkgrel \
+	head.mk \
+	tail.mk \
+	centos_6/se_policy/jobber.fc \
+	centos_6/se_policy/jobber.if \
+	centos_6/se_policy/jobber.te \
+	centos_6/jobber_init \
+	centos_6/jobber.spec \
+	centos_6/Makefile \
+	centos_6/pkgrel \
 	alpine_3.3/APKBUILD \
 	alpine_3.3/jobber.initd \
 	alpine_3.3/jobber.post-deinstall \
@@ -15,17 +17,26 @@ PACKAGING_SOURCES := \
 	alpine_3.3/jobber.pre-deinstall \
 	alpine_3.3/Makefile \
 	alpine_3.3/pkgrel \
-	debian_8.5/debian-pkg/source/format \
-	debian_8.5/debian-pkg/changelog \
-	debian_8.5/debian-pkg/compat \
-	debian_8.5/debian-pkg/control \
-	debian_8.5/debian-pkg/copyright \
-	debian_8.5/debian-pkg/docs \
-	debian_8.5/debian-pkg/jobber.init \
-	debian_8.5/debian-pkg/jobber.service \
-	debian_8.5/debian-pkg/postinst \
-	debian_8.5/debian-pkg/rules \
-	debian_8.5/Makefile \
+	debian_9/debian-pkg/source/format \
+	debian_9/debian-pkg/changelog \
+	debian_9/debian-pkg/compat \
+	debian_9/debian-pkg/control \
+	debian_9/debian-pkg/copyright \
+	debian_9/debian-pkg/docs \
+	debian_9/debian-pkg/jobber.init \
+	debian_9/debian-pkg/jobber.service \
+	debian_9/debian-pkg/rules \
+	debian_9/Makefile \
+	ubuntu_16/debian-pkg/source/format \
+	ubuntu_16/debian-pkg/changelog \
+	ubuntu_16/debian-pkg/compat \
+	ubuntu_16/debian-pkg/control \
+	ubuntu_16/debian-pkg/copyright \
+	ubuntu_16/debian-pkg/docs \
+	ubuntu_16/debian-pkg/jobber.init \
+	ubuntu_16/debian-pkg/jobber.service \
+	ubuntu_16/debian-pkg/rules \
+	ubuntu_16/Makefile \
 	centos_7/jobber.service \
 	centos_7/jobber.spec \
 	centos_7/Makefile \

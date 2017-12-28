@@ -4,23 +4,24 @@ prefix = /usr/local
 exec_prefix = ${prefix}
 bindir = ${exec_prefix}/bin
 libexecdir = ${exec_prefix}/libexec
+sysconfdir = /etc
 srcdir = .
 INSTALL = install
 INSTALL_PROGRAM = ${INSTALL}
-GO_EXE_BUILD_ARGS=
 
 GO_WKSPC ?= ${abspath ../../../..}
-CLIENT = jobber
-DAEMON = jobberd
 LIB = jobber.a
-CLIENT_USER = jobber_client
 TEST_TMPDIR = ${PWD}
 DIST_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
+
+GO = GO15VENDOREXPERIMENT=1 GOPATH=${GO_WKSPC} go
+GODEP = GO15VENDOREXPERIMENT=1 GOPATH=${GO_WKSPC} godep
 
 # read lists of source files
 include common/sources.mk \
 		jobber/sources.mk \
-		jobberd/sources.mk \
+		jobbermaster/sources.mk \
+		jobberrunner/sources.mk \
 		jobfile/sources.mk \
 		packaging/sources.mk
 FINAL_LIB_SOURCES := \
@@ -31,22 +32,34 @@ FINAL_LIB_TEST_SOURCES := \
 	$(JOBFILE_TEST_SOURCES:%=jobfile/%)
 FINAL_CLIENT_SOURCES := $(CLIENT_SOURCES:%=jobber/%)
 FINAL_CLIENT_TEST_SOURCES := $(CLIENT_TEST_SOURCES:%=jobber/%)
-FINAL_DAEMON_SOURCES := $(DAEMON_SOURCES:%=jobberd/%)
-FINAL_DAEMON_TEST_SOURCES := $(DAEMON_TEST_SOURCES:%=jobberd/%)
+FINAL_MASTER_SOURCES := $(MASTER_SOURCES:%=jobbermaster/%)
+FINAL_MASTER_TEST_SOURCES := $(MASTER_TEST_SOURCES:%=jobbermaster/%)
+FINAL_RUNNER_SOURCES := $(RUNNER_SOURCES:%=jobberrunner/%)
+FINAL_RUNNER_TEST_SOURCES := $(RUNNER_TEST_SOURCES:%=jobberrunner/%)
 FINAL_PACKAGING_SOURCES := $(PACKAGING_SOURCES:%=packaging/%)
 
-GO_SOURCES := \
+MAIN_SOURCES := \
 	${FINAL_LIB_SOURCES} \
-	${FINAL_LIB_TEST_SOURCES} \
 	${FINAL_CLIENT_SOURCES} \
+	${FINAL_MASTER_SOURCES} \
+	${FINAL_RUNNER_SOURCES}
+	
+TEST_SOURCES := \
+	${FINAL_LIB_TEST_SOURCES} \
 	${FINAL_CLIENT_TEST_SOURCES} \
-	${FINAL_DAEMON_SOURCES} \
-	${FINAL_DAEMON_TEST_SOURCES}
+	${FINAL_MASTER_TEST_SOURCES} \
+	${FINAL_RUNNER_TEST_SOURCES}
+
+GO_SOURCES := \
+	${MAIN_SOURCES} \
+	${TEST_SOURCES}
+	
 OTHER_SOURCES := \
 	Makefile \
 	common/sources.mk \
 	jobber/sources.mk \
-	jobberd/sources.mk \
+	jobbermaster/sources.mk \
+	jobberrunner/sources.mk \
 	jobfile/sources.mk \
 	packaging/sources.mk \
 	buildtools \
@@ -54,6 +67,7 @@ OTHER_SOURCES := \
 	LICENSE \
 	version \
 	Godeps \
+	vendor \
 	${FINAL_PACKAGING_SOURCES}
 
 ALL_SOURCES := \
@@ -70,12 +84,23 @@ SE_FILES = se_policy/jobber.fc \
            se_policy/policygentool
 
 .PHONY : all
-all : lib ${GO_WKSPC}/bin/${CLIENT} ${GO_WKSPC}/bin/${DAEMON}
+all : lib ${GO_WKSPC}/bin/jobber ${GO_WKSPC}/bin/jobbermaster ${GO_WKSPC}/bin/jobberrunner
 
 .PHONY : check
-check : ${FINAL_LIB_TEST_SOURCES} ${FINAL_CLIENT_TEST_SOURCES} ${FINAL_DAEMON_TEST_SOURCES}
-	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobberd
-	TMPDIR="${TEST_TMPDIR}" go test github.com/dshearer/jobber/jobfile
+check : ${TEST_SOURCES}
+	@go version
+	${GO} vet \
+		github.com/dshearer/jobber/common \
+		github.com/dshearer/jobber/jobber \
+		github.com/dshearer/jobber/jobbermaster \
+		github.com/dshearer/jobber/jobberrunner \
+		github.com/dshearer/jobber/jobfile
+	TMPDIR="${TEST_TMPDIR}" ${GO} test \
+		github.com/dshearer/jobber/common \
+		github.com/dshearer/jobber/jobber \
+		github.com/dshearer/jobber/jobbermaster \
+		github.com/dshearer/jobber/jobberrunner \
+		github.com/dshearer/jobber/jobfile
 
 .PHONY : installcheck
 installcheck :
@@ -83,51 +108,60 @@ installcheck :
 
 .PHONY : installdirs
 installdirs :
-	"${srcdir}/buildtools/mkinstalldirs" "${DESTDIR}${bindir}" "${DESTDIR}${libexecdir}"
+	"${srcdir}/buildtools/mkinstalldirs" \
+		"${DESTDIR}${bindir}" "${DESTDIR}${libexecdir}" \
+		"${DESTDIR}${sysconfdir}"
 
 .PHONY : install
-install : installdirs ${GO_WKSPC}/bin/${CLIENT} ${GO_WKSPC}/bin/${DAEMON}
+install : installdirs all
 	# install files
-	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/${CLIENT}" "${DESTDIR}${bindir}"
-	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/${DAEMON}" "${DESTDIR}${libexecdir}"
-	
-	# change owner and perms
-	-chown "${CLIENT_USER}:root" "${DESTDIR}${bindir}/${CLIENT}" && \
-		chmod 4755 "${DESTDIR}${bindir}/${CLIENT}"
-	-chown root:root "${DESTDIR}${libexecdir}/${DAEMON}" && \
-		chmod 0755 "${DESTDIR}${libexecdir}/${DAEMON}"
+	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobbermaster" "${DESTDIR}${libexecdir}"
+	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobberrunner" "${DESTDIR}${libexecdir}"
+	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobber" "${DESTDIR}${bindir}"
+	"${GO_WKSPC}/bin/jobbermaster" defprefs > "${DESTDIR}${sysconfdir}/jobber.conf"
 
 .PHONY : uninstall
 uninstall :
-	-rm "${DESTDIR}${bindir}/${CLIENT}" "${DESTDIR}${bindir}/${DAEMON}"
+	-rm "${DESTDIR}${libexecdir}/jobbermaster"
+	-rm "${DESTDIR}${libexecdir}/jobberrunner"
+	-rm "${DESTDIR}${bindir}/jobber"
+	-rm "${DESTDIR}${sysconfdir}/jobber.conf"
 
 dist : ${ALL_SOURCES}
-	mkdir -p "dist-tmp/${DIST_PKG_NAME}" `dirname "${DESTDIR}${DIST_PKG_NAME}.tgz"`
-	"${srcdir}/buildtools/srcsync" ${ALL_SOURCES} "dist-tmp/${DIST_PKG_NAME}"
-	tar -C dist-tmp -czf "${DESTDIR}${DIST_PKG_NAME}.tgz" "${DIST_PKG_NAME}"
-	rm -rf dist-tmp
+	mkdir -p "${DESTDIR}dist-tmp"
+	"${srcdir}/buildtools/srcsync" ${ALL_SOURCES} \
+		"${DESTDIR}dist-tmp/${DIST_PKG_NAME}"
+	tar -C "${DESTDIR}dist-tmp" -czf "${DESTDIR}${DIST_PKG_NAME}.tgz" \
+		"${DIST_PKG_NAME}"
+	rm -rf "${DESTDIR}dist-tmp"
 
 .PHONY : clean
 clean :
-	-go clean -i github.com/dshearer/jobber/common
-	-go clean -i github.com/dshearer/jobber/jobfile
-	-go clean -i "github.com/dshearer/jobber/${CLIENT}"
-	-go clean -i "github.com/dshearer/jobber/${DAEMON}"
+	-${GO} clean -i github.com/dshearer/jobber/common
+	-${GO} clean -i github.com/dshearer/jobber/jobfile
+	-${GO} clean -i github.com/dshearer/jobber/jobber
+	-${GO} clean -i github.com/dshearer/jobber/jobbermaster
+	-${GO} clean -i github.com/dshearer/jobber/jobberrunner
 	rm -f "${DESTDIR}${DIST_PKG_NAME}.tgz"
-	
-
 
 .PHONY : lib
 lib : ${FINAL_LIB_SOURCES}
-	go install ${LDFLAGS} "github.com/dshearer/jobber/common"
-	go install ${LDFLAGS} "github.com/dshearer/jobber/jobfile"
+	@go version
+	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/common"
+	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/jobfile"
 
-${GO_WKSPC}/bin/${CLIENT} : ${FINAL_CLIENT_SOURCES} lib
-	go install ${LDFLAGS} ${GO_EXE_BUILD_ARGS} "github.com/dshearer/jobber/${CLIENT}"
+${GO_WKSPC}/bin/jobber : ${FINAL_CLIENT_SOURCES} lib
+	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobber
 
-${GO_WKSPC}/bin/${DAEMON} : ${FINAL_DAEMON_SOURCES} lib
-	go install ${LDFLAGS} ${GO_EXE_BUILD_ARGS} "github.com/dshearer/jobber/${DAEMON}"
+${GO_WKSPC}/bin/jobbermaster : ${FINAL_MASTER_SOURCES} lib
+	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobbermaster
 
+${GO_WKSPC}/bin/jobberrunner : ${FINAL_RUNNER_SOURCES} lib
+	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobberrunner
+
+.PHONY : get-deps
+get-deps :
+	${GODEP} save ./...
 
 ## OLD:
 
@@ -146,7 +180,6 @@ se_policy/.installed : ${SE_FILES}
 .PHONY : uninstall-bin
 uninstall-bin :
 	rm -f "${DESTDIR}/bin/${CLIENT}" "${DESTDIR}/sbin/${DAEMON}"
-	-userdel "${CLIENT_USER}"
 
 .PHONY : uninstall-centos
 uninstall-centos :

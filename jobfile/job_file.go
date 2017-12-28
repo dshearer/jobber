@@ -3,117 +3,183 @@ package jobfile
 import (
 	"bufio"
 	"fmt"
-	"github.com/dshearer/jobber/Godeps/_workspace/src/gopkg.in/yaml.v2"
 	"github.com/dshearer/jobber/common"
-	"io"
+	"gopkg.in/yaml.v2"
 	"os"
 	"os/user"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 const (
-	JobberFileName = ".jobber"
-	PrefsSectName  = "prefs"
-	JobsSectName   = "jobs"
+	PrefsSectName           = "prefs"
+	JobsSectName            = "jobs"
+	gYamlStarter            = "---"
+	gDefaultMemRunLogMaxLen = 100
 )
 
-type JobberFile struct {
+type JobFile struct {
 	Prefs UserPrefs
 	Jobs  []*Job
 }
 
 type UserPrefs struct {
 	Notifier RunRecNotifier
+	RunLog   RunLog
+	LogPath  string // for error msgs etc.  May be "".
 }
 
 type JobConfigEntry struct {
 	Name            string
 	Cmd             string
 	Time            string
-	OnError         *string "onError,omitempty"
-	NotifyOnError   *bool   "notifyOnError,omitempty"
-	NotifyOnFailure *bool   "notifyOnFailure,omitempty"
+	OnError         *string `yaml:"onError,omitempty"`
+	NotifyOnSuccess *bool   `yaml:"notifyOnSuccess,omitempty"`
+	NotifyOnError   *bool   `yaml:"notifyOnError,omitempty"`
+	NotifyOnFailure *bool   `yaml:"notifyOnFailure,omitempty"`
 }
 
-func LoadJobberFileForUser(username string) (*JobberFile, error) {
-	f, err := openUsersJobberFile(username)
+func NewEmptyJobFile() *JobFile {
+	prefs := UserPrefs{
+		RunLog: NewMemOnlyRunLog(gDefaultMemRunLogMaxLen),
+	}
+	return &JobFile{
+		Prefs: prefs,
+		Jobs:  nil,
+	}
+}
+
+func ShouldLoadJobfile(jobfilePath string, usr *user.User) (bool, error) {
+	// check jobfile's owner
+	ownsFile, err := common.UserOwnsFile(usr, jobfilePath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			var jobberFile JobberFile
-			jobberFile.Jobs = make([]*Job, 0)
-			return &jobberFile, nil
-		} else {
+		return false, err
+	}
+	if !ownsFile {
+		msg := fmt.Sprintf("User %v doesn't own jobfile %v",
+			usr.Username, jobfilePath)
+		return false, &common.Error{What: msg}
+	}
+
+	// check jobfile's perms
+	stat, err := os.Stat(jobfilePath)
+	if err != nil {
+		return false, err
+	}
+	if stat.Mode().Perm()&0022 > 0 {
+		msg := fmt.Sprintf("Jobfile %v has bad permissions: %v",
+			jobfilePath, stat.Mode().Perm())
+		return false, &common.Error{What: msg}
+	}
+
+	return true, nil
+}
+
+func LoadJobFile(path string, usr *user.User) (*JobFile, error) {
+	/*
+	   Jobber files have two sections: one begins with "[prefs]" on a
+	   line, and the other begins with "[jobs]".  Both contain a YAML
+	   document.  The "prefs" section can be parsed with struct
+	   UserPrefs, and the "jobs" section is a YAML array of records
+	   that can be parsed with struct JobConfigEntry.
+
+	   Legacy format: no section beginnings; whole file is YAML doc
+	   for "jobs" section.
+	*/
+
+	// parse file into sections
+	sections, err := findSections(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var jfile JobFile = JobFile{
+		Prefs: UserPrefs{
+			Notifier: MakeMailNotifier(),
+			RunLog:   NewMemOnlyRunLog(100),
+		},
+	}
+
+	// parse "prefs" section
+	prefsSection, prefsOk := sections[PrefsSectName]
+	if prefsOk && len(prefsSection) > 0 {
+		ptr, err := parsePrefsSect(prefsSection, usr)
+		if err != nil {
 			return nil, err
 		}
-	} else {
-		defer f.Close()
-		return readJobberFile(f, username)
+		jfile.Prefs = *ptr
 	}
+
+	// parse "jobs" section
+	jobsSection, jobsOk := sections[JobsSectName]
+	if jobsOk {
+		jobs, err := parseJobsSect(jobsSection, usr)
+		if err != nil {
+			return nil, err
+		}
+		jfile.Jobs = jobs
+	}
+
+	return &jfile, nil
 }
 
-func openUsersJobberFile(username string) (*os.File, error) {
-	/*
-	 * Not all users listed in /etc/passwd have their own
-	 * jobber file.  E.g., some of them may share a home dir.
-	 * When this happens, we say that the jobber file belongs
-	 * to the user who owns that file.
-	 */
+/*
+Find the sections of a jobfile.
 
-	// make path to jobber file
-	user, err := user.Lookup(username)
+Returns a map from a section name to the contents of that section.
+*/
+func findSections(path string) (map[string]string, error) {
+	r, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	jobberFilePath := filepath.Join(user.HomeDir, JobberFileName)
-
-	// open it
-	f, err := os.Open(jobberFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// check owner
-	info, err := f.Stat()
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-	uid, err := strconv.Atoi(user.Uid)
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-	if uint32(uid) != info.Sys().(*syscall.Stat_t).Uid {
-		f.Close()
-		return nil, os.ErrNotExist
-	}
-
-	return f, nil
-}
-
-func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
-	/*
-	   Jobber files have two sections: one begins with "[prefs]" on a line, and
-	   the other begins with "[jobs]".  Both contain a YAML document.  The "prefs"
-	   section can be parsed with struct UserPrefs, and the "jobs" section is a
-	   YAML array of records that can be parsed with struct JobConfigEntry.
-
-	   Legacy format: no section beginnings; whole file is YAML doc for "jobs"
-	   section.
-	*/
+	defer r.Close()
 
 	// iterate over lines
 	scanner := bufio.NewScanner(r)
 	sectionsToLines := make(map[string][]string)
-	var currSection *string
 	lineNbr := 0
 	sectNameRegexp := regexp.MustCompile("^\\[(\\w*)\\]\\s*$")
-	legacyFormat := false
 	scanner.Split(bufio.ScanLines)
+
+	// to determine legacy vs new format, get first non-empty,
+	// non-comment line
+	legacyFormat := false
+	var currSection *string
+	for scanner.Scan() {
+		lineNbr++
+		line := scanner.Text()
+		trimmedLine := strings.TrimSpace(line)
+		if len(trimmedLine) == 0 || trimmedLine[0] == '#' {
+			// skip empty line or comment
+			continue
+		} else {
+			var matches []string = sectNameRegexp.FindStringSubmatch(line)
+			if matches != nil {
+				/*
+				   New format
+				*/
+				sectName := matches[1]
+				sectionsToLines[sectName] = make([]string, 0)
+				currSection = &sectName
+			} else {
+				/*
+				   With legacy format, we treat the whole file as
+				   belonging to the "jobs" section.
+				*/
+				legacyFormat = true
+				tmp := JobsSectName
+				currSection = &tmp
+				sectionsToLines[JobsSectName] = make([]string, 1)
+				sectionsToLines[JobsSectName][0] = line
+			}
+			break
+		}
+	}
+
+	// handle rest of lines
 	for scanner.Scan() {
 		lineNbr++
 		line := scanner.Text()
@@ -135,25 +201,10 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 						fmt.Sprintf("Line %v: another section called \"%v\".",
 							lineNbr,
 							sectName)
-					return nil, &common.Error{errMsg, nil}
+					return nil, &common.Error{What: errMsg}
 				}
 				sectionsToLines[sectName] = make([]string, 0)
 				currSection = &sectName
-
-			} else if currSection == nil {
-				if len(strings.TrimSpace(line)) > 0 {
-					/*
-					   To support legacy format, treat whole file as YAML doc
-					   for "jobs" section.
-					*/
-					common.Logger.Println("Using legacy jobber file format.")
-					legacyFormat = true
-					tmp := JobsSectName
-					currSection = &tmp
-					sectionsToLines[JobsSectName] = make([]string, 1)
-					sectionsToLines[JobsSectName][0] = line
-				}
-
 			} else {
 				// save line
 				sectionsToLines[*currSection] =
@@ -162,42 +213,29 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 		}
 	}
 
-	// parse "prefs" section
-	const yamlStarter string = "---"
-	rawPrefs := map[string]interface{}{}
-	prefsLines, prefsOk := sectionsToLines[PrefsSectName]
-	if prefsOk && len(prefsLines) > 0 {
-		common.Logger.Println("Got prefs section")
-		prefsSection := strings.Join(prefsLines, "\n")
-		if strings.TrimRight(prefsLines[0], " \t") != yamlStarter {
-			prefsSection = yamlStarter + "\n" + prefsSection
-		}
-		err := yaml.Unmarshal([]byte(prefsSection), &rawPrefs)
-		if err != nil {
-			errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
-				PrefsSectName)
-			return nil, &common.Error{errMsg, err}
-		}
+	// make return value
+	retval := make(map[string]string)
+	for sectName, lines := range sectionsToLines {
+		retval[sectName] = strings.Join(lines, "\n")
+	}
+	return retval, nil
+}
+
+func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
+	// parse as yaml
+	var rawPrefs map[string]interface{}
+
+	if !strings.HasPrefix(s, gYamlStarter+"\n") {
+		s = gYamlStarter + "\n" + s
+	}
+	err := yaml.Unmarshal([]byte(s), &rawPrefs)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
+			PrefsSectName)
+		return nil, &common.Error{What: errMsg, Cause: err}
 	}
 
-	// parse "jobs" section
-	var jobConfigs []JobConfigEntry
-	jobsLines, jobsOk := sectionsToLines[JobsSectName]
-	if jobsOk && len(jobsLines) > 0 {
-		common.Logger.Println("Got jobs section")
-		jobsSection := strings.Join(jobsLines, "\n")
-		if strings.TrimRight(jobsLines[0], " \t") != yamlStarter {
-			jobsSection = yamlStarter + "\n" + jobsSection
-		}
-		err := yaml.Unmarshal([]byte(jobsSection), &jobConfigs)
-		if err != nil {
-			errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
-				JobsSectName)
-			return nil, &common.Error{errMsg, err}
-		}
-	}
-
-	// make prefs
+	// parse "notifyProgram"
 	var userPrefs UserPrefs
 	noteProgVal, hasNoteProg := rawPrefs["notifyProgram"]
 	if hasNoteProg {
@@ -205,22 +243,154 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 		if !ok {
 			errMsg := fmt.Sprintf("Invalid value for preference \"notifyProgram\": %v",
 				noteProgVal)
-			return nil, &common.Error{errMsg, nil}
+			return nil, &common.Error{What: errMsg}
 		}
 		userPrefs.Notifier = MakeProgramNotifier(noteProgValStr)
 	} else {
 		userPrefs.Notifier = MakeMailNotifier()
 	}
 
+	// parse "runLog"
+	runLogVal, hasRunLog := rawPrefs["runLog"]
+	if hasRunLog {
+		runLogValMap, ok := runLogVal.(map[interface{}]interface{})
+		if !ok {
+			errMsg := fmt.Sprintf("Invalid value for preference \"runLog\": %v",
+				runLogVal)
+			return nil, &common.Error{What: errMsg}
+		}
+
+		// get type
+		typeVal, ok := runLogValMap["type"].(string)
+		if !ok {
+			errMsg := fmt.Sprintf("Preference \"runLog\" needs \"type\"")
+			return nil, &common.Error{What: errMsg}
+		}
+
+		if typeVal == "memory" {
+			// make memory run log
+			maxLen := gDefaultMemRunLogMaxLen
+			tmp, ok := runLogValMap["maxLen"].(int)
+			if ok {
+				maxLen = tmp
+			}
+			userPrefs.RunLog = NewMemOnlyRunLog(maxLen)
+		} else if typeVal == "file" {
+			const defaultMaxFileLen int64 = 50 * (1 << 20)
+			const defaultMaxHistories int = 5
+
+			// get file path
+			filePath, ok := runLogValMap["path"].(string)
+			if !ok {
+				msg := fmt.Sprintf("Missing run log path")
+				return nil, &common.Error{What: msg}
+			}
+
+			// get max file len
+			maxFileLen := defaultMaxFileLen
+			maxFileLenStr, ok := runLogValMap["maxFileLen"].(string)
+			if ok {
+				if len(maxFileLenStr) == 0 {
+					msg := fmt.Sprintf("Invalid max file len: '%v'",
+						maxFileLenStr)
+					return nil, &common.Error{What: msg}
+				}
+
+				lastChar := maxFileLenStr[len(maxFileLenStr)-1]
+				if lastChar != 'm' && lastChar != 'M' {
+					msg := fmt.Sprintf("Invalid max file len: '%v'",
+						maxFileLenStr)
+					return nil, &common.Error{What: msg}
+				}
+
+				numPart := maxFileLenStr[:len(maxFileLenStr)-1]
+				tmp, err := strconv.Atoi(numPart)
+				if err != nil {
+					msg := fmt.Sprintf("Invalid max file len: '%v'",
+						maxFileLenStr)
+					return nil, &common.Error{What: msg, Cause: err}
+				}
+				maxFileLen = int64(tmp) * (1 << 20)
+			}
+
+			// get max histories
+			maxHistories := defaultMaxHistories
+			tmp, ok := runLogValMap["maxHistories"].(int)
+			if ok {
+				maxHistories = tmp
+			}
+
+			// make file run log
+			userPrefs.RunLog, err = NewFileRunLog(
+				filePath,
+				maxFileLen,
+				maxHistories,
+			)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			msg := fmt.Sprintf("Invalid run log type: %v",
+				typeVal)
+			return nil, &common.Error{What: msg}
+		}
+	} else {
+		userPrefs.RunLog = NewMemOnlyRunLog(gDefaultMemRunLogMaxLen)
+	}
+
+	// parse LogPath
+	logPathVal, hasLogPath := rawPrefs["logPath"]
+	if hasLogPath && logPathVal != nil {
+		// ensure it's a string
+		logPath, ok := logPathVal.(string)
+		if !ok {
+			errMsg := fmt.Sprintf("Invalid value for preference "+
+				"\"logPath\": %v", logPathVal)
+			return nil, &common.Error{What: errMsg}
+		}
+
+		/*
+		   Relative paths are interpreted as relative to the user's
+		   home dir.
+		*/
+		if filepath.IsAbs(logPath) {
+			userPrefs.LogPath = logPath
+		} else {
+			if len(usr.HomeDir) == 0 {
+				errMsg := fmt.Sprintf("User has no home directory, so "+
+					"cannot interpret relative log file path %v",
+					logPath)
+				return nil, &common.Error{What: errMsg}
+			}
+			userPrefs.LogPath = filepath.Join(usr.HomeDir, logPath)
+		}
+	}
+
+	return &userPrefs, nil
+}
+
+func parseJobsSect(s string, usr *user.User) ([]*Job, error) {
+	// parse "jobs" section
+	var jobConfigs []JobConfigEntry
+	if !strings.HasPrefix(s, gYamlStarter+"\n") {
+		s = gYamlStarter + "\n" + s
+	}
+	err := yaml.Unmarshal([]byte(s), &jobConfigs)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
+			JobsSectName)
+		return nil, &common.Error{What: errMsg, Cause: err}
+	}
+
 	// make jobs
-	jobs := make([]*Job, 0, len(jobConfigs))
+	var jobs []*Job
 	for _, config := range jobConfigs {
-		job := NewJob(config.Name, config.Cmd, username)
+		job := NewJob(config.Name, config.Cmd, usr.Username)
 		var err error = nil
 
 		// check name
 		if len(config.Name) == 0 {
-			return nil, &common.Error{"Job name cannot be empty.", nil}
+			return nil, &common.Error{What: "Job name cannot be empty."}
 		}
 
 		// set failure-handler
@@ -238,6 +408,9 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 		if config.NotifyOnFailure != nil {
 			job.NotifyOnFailure = *config.NotifyOnFailure
 		}
+		if config.NotifyOnSuccess != nil {
+			job.NotifyOnSuccess = *config.NotifyOnSuccess
+		}
 
 		// parse time spec
 		var tmp *FullTimeSpec
@@ -250,7 +423,7 @@ func readJobberFile(r io.Reader, username string) (*JobberFile, error) {
 		jobs = append(jobs, job)
 	}
 
-	return &JobberFile{userPrefs, jobs}, nil
+	return jobs, nil
 }
 
 func getErrorHandler(name string) (*ErrorHandler, error) {
@@ -262,6 +435,6 @@ func getErrorHandler(name string) (*ErrorHandler, error) {
 	case ErrorHandlerContinueName:
 		return &ErrorHandlerContinue, nil
 	default:
-		return nil, &common.Error{"Invalid error handler: " + name, nil}
+		return nil, &common.Error{What: "Invalid error handler: " + name}
 	}
 }
