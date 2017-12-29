@@ -4,33 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"net/rpc"
 	"os"
 	"os/user"
 )
-
-func sendReloadCmd(usr *user.User) (*common.ReloadCmdResp, error) {
-	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
-	if err != nil {
-		return nil, err
-	}
-	defer daemonConn.Close()
-	daemonClient := rpc.NewClient(daemonConn)
-
-	// send command
-	var result common.ReloadCmdResp
-	err = daemonClient.Call(
-		"NewIpcService.Reload",
-		common.ReloadCmd{},
-		&result,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
 
 func doReloadCmd(args []string) int {
 	// parse flags
@@ -57,7 +33,14 @@ func doReloadCmd(args []string) int {
 
 		for _, usr := range users {
 			// send cmd
-			resp, err := sendReloadCmd(usr)
+			var resp common.ReloadCmdResp
+			err = CallDaemon(
+				"NewIpcService.Reload",
+				common.ReloadCmd{},
+				&resp,
+				usr,
+				true,
+			)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				return 1
@@ -80,7 +63,14 @@ func doReloadCmd(args []string) int {
 		}
 
 		// send cmd
-		resp, err := sendReloadCmd(usr)
+		var resp common.ReloadCmdResp
+		err = CallDaemon(
+			"NewIpcService.Reload",
+			common.ReloadCmd{},
+			&resp,
+			usr,
+			true,
+		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			return 1

@@ -101,6 +101,8 @@ play-vm : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
 	# SSH into VM
 	vagrant ssh
 
+.PHONY : ${WORK_DIR}/${SRC_TARFILE}
+
 ${WORK_DIR}/${SRC_TARFILE} :
 	make -C "${SRC_ROOT}" dist "DESTDIR=${WORK_DIR}/"
 
