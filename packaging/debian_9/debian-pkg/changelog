@@ -1,6 +1,12 @@
+jobber (1.2.1-1) UNRELEASED; urgency=low
+
+  * Release 1.2.1
+
+ -- C. Dylan Shearer <dylan@nekonya.info>  Fri, 28 Dec 2017 18:50:00 -0800
+ 
 jobber (1.2-1) UNRELEASED; urgency=low
 
   * Initial release (Closes: #nnnn)
-  * Releave 1.2
+  * Release 1.2
 
  -- C. Dylan Shearer <dylan@nekonya.info>  Wed, 3 May 2017 16:26:07 -0700
