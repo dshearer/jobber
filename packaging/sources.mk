@@ -9,14 +9,14 @@ PACKAGING_SOURCES := \
 	centos_6/jobber.spec \
 	centos_6/Makefile \
 	centos_6/pkgrel \
-	alpine_3.3/APKBUILD \
-	alpine_3.3/jobber.initd \
-	alpine_3.3/jobber.post-deinstall \
-	alpine_3.3/jobber.post-install \
-	alpine_3.3/jobber.post-upgrade \
-	alpine_3.3/jobber.pre-deinstall \
-	alpine_3.3/Makefile \
-	alpine_3.3/pkgrel \
+	alpine_3.6/APKBUILD \
+	alpine_3.6/jobber.initd \
+	alpine_3.6/jobber.post-deinstall \
+	alpine_3.6/jobber.post-install \
+	alpine_3.6/jobber.post-upgrade \
+	alpine_3.6/jobber.pre-deinstall \
+	alpine_3.6/Makefile \
+	alpine_3.6/pkgrel \
 	debian_9/debian-pkg/source/format \
 	debian_9/debian-pkg/changelog \
 	debian_9/debian-pkg/compat \

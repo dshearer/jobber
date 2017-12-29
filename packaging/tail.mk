@@ -21,7 +21,7 @@ pkg-vm : .vm-is-pristine ${DESTDIR}${PKGFILE}
 	@# NOTE: We do 'vagrant reload' b/c some packages may need a restart
 	@# Why the sleep?  Without it, Debian snapshots were having kernel crashes.
 	(vagrant snapshot list | grep Base >/dev/null) || \
-		(vagrant up && vagrant reload && sleep 3 && vagrant snapshot save Base)
+		(vagrant up && vagrant reload && sleep 10 && vagrant snapshot save Base)
 	touch $@
 
 .vm-is-pristine : .vm-is-created
