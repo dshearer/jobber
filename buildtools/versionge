@@ -1,0 +1,58 @@
+#!/bin/sh
+
+version_has_point() {
+    local VERSION=$1
+    echo "${VERSION}" | grep [.] >/dev/null
+}
+
+version_car() {
+    local VERSION=$1
+    version_has_point "${VERSION}"
+    if [ "$?" -ne 0 ]; then
+        echo "${VERSION}"
+        return
+    fi
+    echo "${VERSION}" | cut -f 1 -d '.'
+}
+
+version_cdr() {
+    local VERSION=$1
+    version_has_point "${VERSION}"
+    if [ "$?" -ne 0 ]; then
+        echo ""
+        return
+    fi
+    echo "${VERSION}" | cut -f 2- -d '.'
+}
+
+version_ge() {
+    local V1=$1
+    local V2=$2
+    
+    if [ -z "${V2}" ]; then
+        return 0
+    elif [ -z "${V1}" ]; then
+        return 1
+    else
+        V1_HEAD=$(version_car "${V1}")
+        V2_HEAD=$(version_car "${V2}")
+        
+        if [ "${V1_HEAD}" -gt "${V2_HEAD}" ]; then
+            return 0
+        elif [ "${V1_HEAD}" -lt "${V2_HEAD}" ]; then
+            return 1
+        else
+            V1_TAIL=$(version_cdr "${V1}")
+            V2_TAIL=$(version_cdr "${V2}")
+            version_ge "${V1_TAIL}" "${V2_TAIL}"
+        fi
+    fi
+}
+
+if version_ge "$1" "$2"; then
+    echo "$1" is greater than or equal to "$2"
+    exit 0
+else
+    echo "$1" is less than "$2"
+    exit 1
+fi

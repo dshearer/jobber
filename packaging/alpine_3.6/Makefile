@@ -1,6 +1,6 @@
 DESTDIR ?= ./
 SRC_ROOT := $(abspath ../..)
-DOCKER_IMAGE_NAME = jobber/alpine3.3_build_pkg
+DOCKER_IMAGE_NAME = jobber/alpine3.6_build_pkg
 PLATFORM = $(shell uname -i)
 PKGREL = $(shell cat pkgrel)
 VERSION = $(shell cat "${SRC_ROOT}/version")

@@ -14,8 +14,10 @@ LIB = jobber.a
 TEST_TMPDIR = ${PWD}
 DIST_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
 
-GO = GO15VENDOREXPERIMENT=1 GOPATH=${GO_WKSPC} go
-GODEP = GO15VENDOREXPERIMENT=1 GOPATH=${GO_WKSPC} godep
+GO = GOPATH=${GO_WKSPC} go
+GODEP = GOPATH=${GO_WKSPC} godep
+
+GO_VERSION=1.8
 
 # read lists of source files
 include common/sources.mk \
@@ -87,7 +89,7 @@ SE_FILES = se_policy/jobber.fc \
 all : lib ${GO_WKSPC}/bin/jobber ${GO_WKSPC}/bin/jobbermaster ${GO_WKSPC}/bin/jobberrunner
 
 .PHONY : check
-check : ${TEST_SOURCES}
+check : ${TEST_SOURCES} check-go-version
 	@go version
 	${GO} vet \
 		github.com/dshearer/jobber/common \
@@ -145,23 +147,27 @@ clean :
 	rm -f "${DESTDIR}${DIST_PKG_NAME}.tgz"
 
 .PHONY : lib
-lib : ${FINAL_LIB_SOURCES}
+lib : ${FINAL_LIB_SOURCES} check-go-version
 	@go version
 	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/common"
 	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/jobfile"
 
-${GO_WKSPC}/bin/jobber : ${FINAL_CLIENT_SOURCES} lib
+${GO_WKSPC}/bin/jobber : ${FINAL_CLIENT_SOURCES} lib check-go-version
 	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobber
 
-${GO_WKSPC}/bin/jobbermaster : ${FINAL_MASTER_SOURCES} lib
+${GO_WKSPC}/bin/jobbermaster : ${FINAL_MASTER_SOURCES} lib check-go-version
 	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobbermaster
 
-${GO_WKSPC}/bin/jobberrunner : ${FINAL_RUNNER_SOURCES} lib
+${GO_WKSPC}/bin/jobberrunner : ${FINAL_RUNNER_SOURCES} lib check-go-version
 	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobberrunner
 
 .PHONY : get-deps
 get-deps :
 	${GODEP} save ./...
+	
+.PHONY : check-go-version
+check-go-version :
+	${srcdir}/buildtools/versionge "$$(go version | egrep --only-matching '[[:digit:].]+' | head -n 1)" "${GO_VERSION}"
 
 ## OLD:
 
