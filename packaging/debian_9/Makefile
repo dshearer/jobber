@@ -3,7 +3,7 @@ WORK_DIR ?= work
 SRC_ROOT := $(abspath ../..)
 SRC_TARFILE = "jobber-${VERSION}.tgz"
 VERSION := $(shell cat ${SRC_ROOT}/version)
-DOCKER_IMAGE_NAME = jobber/debian8.5_build_pkg
+DOCKER_IMAGE_NAME = jobber/debian9_build_pkg
 
 .PHONY : main
 main :

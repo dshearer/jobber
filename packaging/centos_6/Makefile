@@ -6,7 +6,7 @@ VERSION := $(shell cat ${SRC_ROOT}/version)
 PKGREL := $(shell cat pkgrel)
 PLATFORM = $(shell uname -i)
 RPMFILE = jobber-${VERSION}-${PKGREL}.${PLATFORM}.rpm
-DOCKER_IMAGE_NAME = jobber/centos6.7_build_rpm
+DOCKER_IMAGE_NAME = jobber/centos6.9_build_rpm
 
 .PHONY : main
 main :

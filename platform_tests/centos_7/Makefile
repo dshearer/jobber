@@ -1,5 +1,5 @@
 SRC_ROOT = ../..
-IMAGE_NAME = jobber/centos7.2.1511_test_rpm
+IMAGE_NAME = jobber/centos7_test_rpm
 TEST_SCRIPTS = $(wildcard ../test_scripts/*)
 
 .PHONY : test

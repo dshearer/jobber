@@ -1,5 +1,5 @@
 SRC_ROOT = ../..
-IMAGE_NAME = jobber/centos6.7_test_rpm
+IMAGE_NAME = jobber/centos6_test_rpm
 TEST_SCRIPTS = $(wildcard ../test_scripts/*)
 
 .PHONY : test
@@ -12,10 +12,10 @@ test_scripts.tar : ${TEST_SCRIPTS}
 	tar -C .. -cf $@ test_scripts
 
 .made_rpms :
-	make -C "${SRC_ROOT}/packaging/centos_6.7" pkg-docker "DESTDIR=$(abspath .)/"
+	make -C "${SRC_ROOT}/packaging/centos_6" pkg-docker "DESTDIR=$(abspath .)/"
 	touch "$@"
 
 .PHONY : clean
 clean :
 	rm -f *.rpm test_scripts.tar docker_output .made_rpms
-	make -C "${SRC_ROOT}/packaging/centos_6.7" clean
+	make -C "${SRC_ROOT}/packaging/centos_6" clean

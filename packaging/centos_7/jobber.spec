@@ -10,7 +10,7 @@ Source0:	jobber-%{_pkg_version}.tgz
 Source1:    jobber.service
 
 %{?systemd_requires}
-BuildRequires:	golang, coreutils, systemd
+BuildRequires:	golang >= 1.8, coreutils, systemd
 
 Prefix:         /usr/local
 

@@ -1,7 +1,7 @@
-FROM alpine:3.3
+FROM alpine:3.6
 RUN apk add --update make
 RUN apk add --update alpine-sdk
-RUN apk add --update go
+RUN apk add --update 'go>=1.8.4'
 RUN apk update
 
 RUN adduser -D -G abuild builder
@@ -13,10 +13,10 @@ RUN chown builder:abuild /output
 USER builder
 WORKDIR /home/builder
 RUN tar -xzmf jobber.tgz
-RUN mv jobber.tgz jobber/packaging/alpine_3.3/
+RUN mv jobber.tgz jobber/packaging/alpine_3.6/
 
 #USER root
 #CMD /bin/sh -i
 
-CMD make -C jobber/packaging/alpine_3.3 pkg-local "DESTDIR=${HOME}/" && \
+CMD make -C jobber/packaging/alpine_3.6 pkg-local "DESTDIR=${HOME}/" && \
     cd "${HOME}" && tar -czf /output/pkgs.tgz ./*.apk
