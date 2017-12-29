@@ -1,4 +1,4 @@
-FROM alpine:3.3
+FROM alpine:3.6
 RUN apk upgrade --update
 
 ENV PKG_DIR      /pkgs

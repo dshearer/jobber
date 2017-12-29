@@ -1,4 +1,4 @@
-FROM centos:6.7
+FROM centos:6.9
 
 RUN yum -y install epel-release
 RUN yum -y install rpm-build
@@ -16,5 +16,5 @@ COPY ${SRC_ARCHIVE} /
 RUN tar -xzmf "${SRC_ARCHIVE}"
 
 CMD cd /jobber-* && \
-    make -C packaging/centos_6.7 pkg-local DESTDIR=/rpms && \
+    make -C packaging/centos_6 pkg-local DESTDIR=/rpms && \
     cd /rpms && tar -cf /rpms.tar ./*

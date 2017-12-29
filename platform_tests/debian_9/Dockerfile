@@ -1,7 +1,7 @@
-FROM debian:8.5
+FROM debian:9.3
 
 RUN apt-get update
-RUN apt-get install -y init-system-helpers
+RUN apt-get install -y init-system-helpers systemd
 
 # This must come after all 'apt-get' lines.
 # It allows services to be started.

@@ -1,4 +1,4 @@
-FROM centos:6.7
+FROM centos:6.9
 
 RUN yum -y install epel-release
 RUN yum -y install tar
