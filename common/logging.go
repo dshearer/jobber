@@ -10,7 +10,32 @@ import (
 var Logger *log.Logger = log.New(os.Stdout, "", 0)
 var ErrLogger *log.Logger = log.New(os.Stderr, "", 0)
 
+var gLogFileHandles []*os.File
+
+func saveLogFileHandles(handles ...*os.File) {
+	// close old handles
+	for _, f := range gLogFileHandles {
+		f.Close()
+	}
+	gLogFileHandles = gLogFileHandles[0:0]
+
+	// save new ones
+	for _, f := range handles {
+		gLogFileHandles = append(gLogFileHandles, f)
+	}
+}
+
+func LogToStdoutStderr() {
+	// close old file handle
+	saveLogFileHandles()
+
+	// make new loggers
+	Logger = log.New(os.Stdout, "", 0)
+	ErrLogger = log.New(os.Stderr, "", 0)
+}
+
 func UseSyslog() error {
+	// make new loggers
 	logger, err :=
 		syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_DAEMON, 0)
 	if err != nil {
@@ -21,6 +46,11 @@ func UseSyslog() error {
 	if err != nil {
 		return err
 	}
+
+	// close log file handles
+	saveLogFileHandles()
+
+	// save new loggers
 	Logger = logger
 	ErrLogger = errLogger
 	return nil
@@ -35,6 +65,9 @@ func SetLogFile(paths ...string) {
 			ErrLogger.Printf("Failed to open log file %v", paths[0])
 			return
 		}
+
+		// save new file handle
+		saveLogFileHandles(f)
 
 		// make loggers
 		stdoutWriter := io.MultiWriter(os.Stdout, f)
@@ -57,6 +90,9 @@ func SetLogFile(paths ...string) {
 			ErrLogger.Printf("Failed to open log file %v", paths[1])
 			return
 		}
+
+		// save new file handles
+		saveLogFileHandles(outF, errF)
 
 		// make loggers
 		stdoutWriter := io.MultiWriter(os.Stdout, outF)

@@ -9,8 +9,17 @@ import (
 )
 
 func UserOwnsFile(usr *user.User, path string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+	return UserOwnsFileF(usr, f)
+}
+
+func UserOwnsFileF(usr *user.User, f *os.File) (bool, error) {
 	// get file's owner
-	stat, err := os.Stat(path)
+	stat, err := f.Stat()
 	if err != nil {
 		return false, err
 	}

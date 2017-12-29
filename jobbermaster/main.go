@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 )
 
@@ -32,12 +33,11 @@ type RunnerProcInfo struct {
 	proc        *exec.Cmd
 }
 
-func runnerThread(ctx common.BetterContext,
+func runnerThread(ctx context.Context,
 	usr *user.User,
 	jobfilePath string) {
 
 	common.Logger.Printf("Entered thread for %v", usr.Username)
-	defer ctx.Finish()
 
 Loop:
 	for {
@@ -189,8 +189,9 @@ func doDefault() int {
 		return 1
 	}
 
-	mainCtx, mainCtxCtl :=
-		common.MakeChildContext(context.Background())
+	ctx, cancelCtx :=
+		context.WithCancel(context.Background())
+	var runnerWaitGroup sync.WaitGroup
 	for _, usr := range users {
 		// look for jobfile
 		jobfilePath := filepath.Join(usr.HomeDir, gJobFileName)
@@ -215,8 +216,11 @@ func doDefault() int {
 		}
 
 		// launch thread to monitor runner process
-		subctx, _ := common.MakeChildContext(mainCtx)
-		go runnerThread(subctx, usr, jobfilePath)
+		runnerWaitGroup.Add(1)
+		go func(u *user.User, p string) {
+			defer runnerWaitGroup.Done()
+			runnerThread(ctx, u, p)
+		}(usr, jobfilePath)
 	}
 
 	// Set up channel on which to send signal notifications.
@@ -228,9 +232,9 @@ func doDefault() int {
 
 	// kill threads
 	common.Logger.Printf("Killing threads")
-	mainCtxCtl.Cancel()
+	cancelCtx()
 	common.Logger.Printf("Waiting for threads")
-	mainCtx.WaitForChildren()
+	runnerWaitGroup.Wait()
 	common.Logger.Printf("Done waiting for threads")
 
 	return 0

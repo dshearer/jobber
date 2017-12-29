@@ -380,7 +380,6 @@ func TestLoadJobFile(t *testing.T) {
 		/*
 		 * Set up
 		 */
-
 		fmt.Printf("Input:\n%v\n", testCase.Input)
 
 		// make jobfile
@@ -388,15 +387,16 @@ func TestLoadJobFile(t *testing.T) {
 		if err != nil {
 			panic(fmt.Sprintf("Failed to make tempfile: %v", err))
 		}
+		defer f.Close()
 		defer os.Remove(f.Name())
 		f.WriteString(testCase.Input)
-		f.Close()
+		f.Seek(0, 0)
 
 		/*
 		 * Call
 		 */
 		var file *JobFile
-		file, err = LoadJobFile(f.Name(), &gUserEx)
+		file, err = LoadJobfile(f, &gUserEx)
 
 		/*
 		 * Test
@@ -423,18 +423,4 @@ func TestLoadJobFile(t *testing.T) {
 			require.Equal(t, testCase.Output.Jobs[i], file.Jobs[i])
 		}
 	}
-}
-
-func TestLoadJobFileWithMissingJobberFile(t *testing.T) {
-	/*
-	 * Call
-	 */
-	file, err := LoadJobFile("/invalid/path", &gUserEx)
-
-	/*
-	 * Test
-	 */
-	require.Nil(t, file)
-	require.NotNil(t, err)
-	require.True(t, os.IsNotExist(err))
 }
