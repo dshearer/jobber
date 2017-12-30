@@ -496,10 +496,10 @@ func (self *fileRunLog) iterAt(idx int) entryIterator {
 	return iter
 }
 
-func (self *fileRunLog) GetFromTime(fromTo ...time.Time) (
-	[]*RunLogEntry, error) {
+func (self *fileRunLog) GetFromTime(maxTime time.Time,
+	timeArr ...time.Time) ([]*RunLogEntry, error) {
 
-	if len(fromTo) > 2 {
+	if len(timeArr) > 1 {
 		panic("Too many args.")
 	}
 
@@ -507,31 +507,23 @@ func (self *fileRunLog) GetFromTime(fromTo ...time.Time) (
 		return []*RunLogEntry{}, nil
 	}
 
-	var to time.Time
-	if len(fromTo) >= 2 {
-		to = fromTo[1]
+	var minTime time.Time
+	if len(timeArr) >= 1 {
+		minTime = timeArr[0]
 	} else {
-		// set *to* to just before the earliest entry's start time
+		// set *minTime* to just before the earliest entry's start time
 		lastDtor := self.index[len(self.index)-1]
-		to = lastDtor.earliestTime.Add(-time.Second)
+		minTime = lastDtor.earliestTime.Add(-time.Second)
 	}
 
-	var from time.Time
-	if len(fromTo) >= 1 {
-		from = fromTo[0]
-	} else {
-		// set *from* to start time of latest entry
-		from = self.index[0].latestTime
-	}
-
-	if from.Before(to) {
-		panic("from is before to")
+	if maxTime.Before(minTime) {
+		panic("maxTime is before minTime")
 	}
 
 	// find index of first (latest) entry we should return
 	startIdx := -1
 	for _, dtor := range self.index {
-		if !dtor.earliestTime.After(from) && !dtor.latestTime.Before(from) {
+		if !dtor.earliestTime.After(maxTime) && !dtor.latestTime.Before(maxTime) {
 			// open file
 			f, err := os.Open(dtor.path)
 			if err != nil {
@@ -540,7 +532,7 @@ func (self *fileRunLog) GetFromTime(fromTo ...time.Time) (
 			defer f.Close()
 
 			// search for first (latest) entry
-			relStartIdx, err := dtor.firstEntryNotAfter(from, f)
+			relStartIdx, err := dtor.firstEntryNotAfter(maxTime, f)
 			if err != nil {
 				return nil, err
 			}
@@ -566,7 +558,7 @@ func (self *fileRunLog) GetFromTime(fromTo ...time.Time) (
 		if err != nil {
 			return nil, err
 		}
-		if entry.Time.After(to) {
+		if entry.Time.After(minTime) {
 			result = append(result, entry)
 		} else {
 			break
@@ -575,39 +567,48 @@ func (self *fileRunLog) GetFromTime(fromTo ...time.Time) (
 	return result, nil
 }
 
-func (self *fileRunLog) GetFromIndex(fromTo ...int) ([]*RunLogEntry, error) {
-	if len(fromTo) > 2 {
+func (self *fileRunLog) GetFromIndex(minIdx int, idxArr ...int) (
+	[]*RunLogEntry, error) {
+
+	if len(idxArr) > 1 {
 		panic("Too many args.")
 	}
 
-	var to int
-	if len(fromTo) >= 2 {
-		to = fromTo[1]
+	var maxIdx int
+	if len(idxArr) >= 1 {
+		maxIdx = idxArr[0]
 	} else {
-		to = self.Len()
+		maxIdx = self.Len()
 	}
 
-	var from int
-	if len(fromTo) >= 1 {
-		from = fromTo[0]
-	} else {
-		from = 0
-	}
-
-	if from > to {
+	if minIdx > maxIdx {
 		panic("from > to")
 	}
-	if from >= self.Len() {
-		panic(fmt.Sprintf("Invalid 'from' index: %v", from))
+	if minIdx >= self.Len() {
+		panic(fmt.Sprintf("Invalid 'minIdx' index: %v", minIdx))
 	}
-	if to > self.Len() {
-		panic(fmt.Sprintf("Invalid 'to' index: %v", to))
+	if maxIdx > self.Len() {
+		panic(fmt.Sprintf("Invalid 'maxIdx' index: %v", maxIdx))
 	}
 
 	// get requested entries
-	iter := self.iterAt(from)
-	result := make([]*RunLogEntry, 0, to-from)
-	for len(result) < to-from {
+	iter := self.iterAt(minIdx)
+	result := make([]*RunLogEntry, 0, maxIdx-minIdx)
+	for len(result) < maxIdx-minIdx {
+		entry, err := iter.next()
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, entry)
+	}
+	return result, nil
+}
+
+func (self *fileRunLog) GetAll() ([]*RunLogEntry, error) {
+	iter := self.iterAt(0)
+	defer iter.close()
+	var result []*RunLogEntry
+	for !iter.done() {
 		entry, err := iter.next()
 		if err != nil {
 			return nil, err

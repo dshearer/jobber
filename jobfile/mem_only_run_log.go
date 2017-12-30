@@ -92,8 +92,8 @@ func reverseEntryArray(array []*RunLogEntry) []*RunLogEntry {
 	return result
 }
 
-func (self *memOnlyRunLog) GetFromTime(fromTo ...time.Time,
-) ([]*RunLogEntry, error) {
+func (self *memOnlyRunLog) GetFromTime(maxTime time.Time,
+	timeArr ...time.Time) ([]*RunLogEntry, error) {
 
 	/*
 	   Let [e_0, ..., e_n] be the (ascending-ordered) list of entries
@@ -107,7 +107,7 @@ func (self *memOnlyRunLog) GetFromTime(fromTo ...time.Time,
 	    	   - e_(i-1).Time < from
 	*/
 
-	if len(fromTo) > 2 {
+	if len(timeArr) > 1 {
 		panic("Too many args.")
 	}
 
@@ -115,29 +115,21 @@ func (self *memOnlyRunLog) GetFromTime(fromTo ...time.Time,
 		return []*RunLogEntry{}, nil
 	}
 
-	var to time.Time
-	if len(fromTo) >= 2 {
-		to = fromTo[1]
+	var minTime time.Time
+	if len(timeArr) >= 1 {
+		minTime = timeArr[0]
 	} else {
-		// set *to* to just before the earliest entry's start time
-		to = self.entries[0].Time.Add(-time.Second)
+		// set *minTime* to just before the earliest entry's start time
+		minTime = self.entries[0].Time.Add(-time.Second)
 	}
 
-	var from time.Time
-	if len(fromTo) >= 1 {
-		from = fromTo[0]
-	} else {
-		// set *from* to start time of latest entry
-		from = self.entries[len(self.entries)-1].Time
-	}
-
-	if from.Before(to) {
-		panic("from is before to")
+	if maxTime.Before(minTime) {
+		panic("maxTime is before minTime")
 	}
 
 	// do binary search to find beginning of range
 	startIdx := sort.Search(len(self.entries), func(i int) bool {
-		return !self.entries[i].Time.Before(from)
+		return !self.entries[i].Time.Before(maxTime)
 	})
 	if startIdx == len(self.entries) {
 		return []*RunLogEntry{}, nil
@@ -145,14 +137,14 @@ func (self *memOnlyRunLog) GetFromTime(fromTo ...time.Time,
 
 	// do binary search to find end of range
 	endIdx := sort.Search(len(self.entries), func(i int) bool {
-		return self.entries[i].Time.After(to)
+		return self.entries[i].Time.After(minTime)
 	})
 
 	// return in reverse order
 	return reverseEntryArray(self.entries[endIdx : startIdx+1]), nil
 }
 
-func (self *memOnlyRunLog) GetFromIndex(fromTo ...int) (
+func (self *memOnlyRunLog) GetFromIndex(minIdx int, idxArr ...int) (
 	[]*RunLogEntry, error) {
 
 	/*
@@ -160,32 +152,25 @@ func (self *memOnlyRunLog) GetFromIndex(fromTo ...int) (
 	   must return in descending order.
 	*/
 
-	if len(fromTo) > 2 {
+	if len(idxArr) > 1 {
 		panic("Too many args.")
 	}
 
-	var to int
-	if len(fromTo) >= 2 {
-		to = fromTo[1]
+	var maxIdx int
+	if len(idxArr) >= 1 {
+		maxIdx = idxArr[0]
 	} else {
-		to = len(self.entries)
+		maxIdx = len(self.entries)
 	}
 
-	var from int
-	if len(fromTo) >= 1 {
-		from = fromTo[0]
-	} else {
-		from = 0
+	if minIdx > maxIdx {
+		panic("minIdx > maxIdx")
 	}
-
-	if from > to {
-		panic("from > to")
+	if minIdx >= len(self.entries) {
+		panic(fmt.Sprintf("Invalid 'minIdx' index: %v", minIdx))
 	}
-	if from >= len(self.entries) {
-		panic(fmt.Sprintf("Invalid 'from' index: %v", from))
-	}
-	if to > len(self.entries) {
-		panic(fmt.Sprintf("Invalid 'to' index: %v", to))
+	if maxIdx > len(self.entries) {
+		panic(fmt.Sprintf("Invalid 'maxIdx' index: %v", maxIdx))
 	}
 
 	/*
@@ -200,11 +185,15 @@ func (self *memOnlyRunLog) GetFromIndex(fromTo ...int) (
 	*/
 
 	// find entries
-	actualTo := len(self.entries) - from
-	actualFrom := len(self.entries) - to
+	actualTo := len(self.entries) - minIdx
+	actualFrom := len(self.entries) - maxIdx
 
 	// reverse them
 	return reverseEntryArray(self.entries[actualFrom:actualTo]), nil
+}
+
+func (self *memOnlyRunLog) GetAll() ([]*RunLogEntry, error) {
+	return reverseEntryArray(self.entries), nil
 }
 
 func (self *memOnlyRunLog) Len() int {

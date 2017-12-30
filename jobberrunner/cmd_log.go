@@ -9,7 +9,7 @@ func (self *JobManager) doLogCmd(cmd common.LogCmd) {
 
 	// make log list
 	var logDescs []common.LogDesc
-	entries, err := self.jfile.Prefs.RunLog.GetFromIndex()
+	entries, err := self.jfile.Prefs.RunLog.GetAll()
 	if err != nil {
 		cmd.RespChan <- &common.LogCmdResp{Err: err}
 		close(cmd.RespChan)

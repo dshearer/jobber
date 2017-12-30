@@ -124,7 +124,7 @@ func (self *RunLogTestSuite) TestGetFromTime() {
 		len(entries),
 	)
 
-	entries, err = self.runLog.GetFromTime()
+	entries, err = self.runLog.GetAll()
 	require.Nil(self.T(), err)
 	require.Equal(
 		self.T(),
@@ -132,7 +132,7 @@ func (self *RunLogTestSuite) TestGetFromTime() {
 		entriesToTimes(entries),
 	)
 
-	entries_1, err := self.runLog.GetFromTime()
+	entries_1, err := self.runLog.GetAll()
 	require.Nil(self.T(), err)
 	entries_2, err := self.runLog.GetFromTime(latestTime)
 	require.Nil(self.T(), err)
@@ -160,7 +160,7 @@ func (self *RunLogTestSuite) TestGetFromIndex() {
 		entries,
 	)
 
-	entries, err = self.runLog.GetFromIndex()
+	entries, err = self.runLog.GetAll()
 	checkEntriesForNil(entries, self.T())
 	require.Nil(self.T(), err)
 	require.Equal(
@@ -169,7 +169,7 @@ func (self *RunLogTestSuite) TestGetFromIndex() {
 		entriesToTimes(entries),
 	)
 
-	entry_1, err := self.runLog.GetFromIndex()
+	entry_1, err := self.runLog.GetAll()
 	require.Nil(self.T(), err)
 	entry_2, err := self.runLog.GetFromIndex(0)
 	require.Nil(self.T(), err)

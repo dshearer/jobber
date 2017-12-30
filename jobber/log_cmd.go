@@ -101,25 +101,31 @@ func doLogCmd_allUsers() int {
 	}
 
 	// handle response
-	sort.Sort(EnhancedLogDescSorter(logDescs))
-	var buffer bytes.Buffer
-	var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5, 0,
-		2, ' ', 0)
-	fmt.Fprintf(writer, "TIME\tJOB\tSUCCEEDED\tRESULT\tUSER\n")
-	strs := make([]string, 0)
-	for _, e := range logDescs {
-		s := fmt.Sprintf(
-			"%v\t%v\t%v\t%v\t%v\t",
-			e.logDesc.Time.Format("Jan _2 15:04:05 2006"),
-			e.logDesc.Job,
-			e.logDesc.Succeeded,
-			e.logDesc.Result,
-			e.userName)
-		strs = append(strs, s)
+	if len(logDescs) == 0 {
+		fmt.Println("No run logs.")
+
+	} else {
+		sort.Sort(EnhancedLogDescSorter(logDescs))
+		var buffer bytes.Buffer
+		var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5,
+			0, 2, ' ', 0)
+		fmt.Fprintf(writer, "TIME\tJOB\tSUCCEEDED\tRESULT\tUSER\n")
+		var strs []string
+		for _, e := range logDescs {
+			s := fmt.Sprintf(
+				"%v\t%v\t%v\t%v\t%v\t",
+				e.logDesc.Time.Format("Jan _2 15:04:05 2006"),
+				e.logDesc.Job,
+				e.logDesc.Succeeded,
+				e.logDesc.Result,
+				e.userName)
+			strs = append(strs, s)
+		}
+		fmt.Fprintf(writer, "%v", strings.Join(strs, "\n"))
+		writer.Flush()
+		fmt.Printf("%v\n", buffer.String())
 	}
-	fmt.Fprintf(writer, "%v", strings.Join(strs, "\n"))
-	writer.Flush()
-	fmt.Printf("%v\n", buffer.String())
+
 	return 0
 }
 
@@ -141,24 +147,30 @@ func doLogCmd_currUser() int {
 	}
 
 	// handle response
-	sort.Sort(LogDescSorter(resp.Logs))
-	var buffer bytes.Buffer
-	var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5, 0,
-		2, ' ', 0)
-	fmt.Fprintf(writer, "TIME\tJOB\tSUCCEEDED\tRESULT\t\n")
-	strs := make([]string, 0)
-	for _, e := range resp.Logs {
-		s := fmt.Sprintf(
-			"%v\t%v\t%v\t%v\t",
-			e.Time.Format("Jan _2 15:04:05 2006"),
-			e.Job,
-			e.Succeeded,
-			e.Result)
-		strs = append(strs, s)
+	if len(resp.Logs) == 0 {
+		fmt.Println("No run logs.")
+
+	} else {
+		sort.Sort(LogDescSorter(resp.Logs))
+		var buffer bytes.Buffer
+		var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5, 0,
+			2, ' ', 0)
+		fmt.Fprintf(writer, "TIME\tJOB\tSUCCEEDED\tRESULT\t\n")
+		strs := make([]string, 0)
+		for _, e := range resp.Logs {
+			s := fmt.Sprintf(
+				"%v\t%v\t%v\t%v\t",
+				e.Time.Format("Jan _2 15:04:05 2006"),
+				e.Job,
+				e.Succeeded,
+				e.Result)
+			strs = append(strs, s)
+		}
+		fmt.Fprintf(writer, "%v", strings.Join(strs, "\n"))
+		writer.Flush()
+		fmt.Printf("%v\n", buffer.String())
 	}
-	fmt.Fprintf(writer, "%v", strings.Join(strs, "\n"))
-	writer.Flush()
-	fmt.Printf("%v\n", buffer.String())
+
 	return 0
 }
 

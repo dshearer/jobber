@@ -17,31 +17,32 @@ not: this depends on the user's preferences specified in the jobfile.
 */
 type RunLog interface {
 	/*
-	    	Get the entries for runs that started no later than fromTo[0]
-	    	and later than fromTo[1].
+	    	There are two ways to use this method.
 
-	    	If len(fromTo) == 1, then fromTo[1] defaults to a time earlier
-	    	than the earliest entry.
+	    	"GetFromTime(t)": Get all entries for runs that started no
+	    	later than t.
 
-	    	If len(fromTo) == 0, then fromTo[0] defaults to the time of
-	    	the latest entry, and fromTo[1] defaults to a time earlier
-	    	than the earliest entry.
+	    	"GetFromTime(t1, t2)": Get all entries that started no later
+	    	than t1 but later than t2.
 
 	   The entries are returned in order of start time, descending.
 	*/
-	GetFromTime(fromTo ...time.Time) ([]*RunLogEntry, error)
+	GetFromTime(maxTime time.Time, minTime ...time.Time) ([]*RunLogEntry, error)
 
 	/*
-		Get the entries between index fromTo[0] (inclusive) and index
-		fromTo[1] (exclusive).  Entries are indexed starting with the
-		latest one.
+		There are two ways to use this method.
 
-		If len(fromTo) == 1, fromTo[1] defaults to Len().
+		"GetFromIndex(i)": Get all entries with index >= i.
 
-		If len(fromTo) == 0, fromTo[0] defaults to 0 and fromTo[1]
-		defaults to Len()
+		"GetFromIndex(i, j)": Get all entries with index >= i but
+		< j.
 	*/
-	GetFromIndex(fromTo ...int) ([]*RunLogEntry, error)
+	GetFromIndex(minIdx int, maxIdx ...int) ([]*RunLogEntry, error)
+
+	/*
+	   Get all entries.
+	*/
+	GetAll() ([]*RunLogEntry, error)
 
 	Len() int
 
