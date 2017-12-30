@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"net/rpc"
 	"os"
 	"os/user"
 )
@@ -38,22 +37,15 @@ func doTestCmd(args []string) int {
 		return 1
 	}
 
-	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-	defer daemonConn.Close()
-	daemonClient := rpc.NewClient(daemonConn)
-
 	// send command
 	var resp common.TestCmdResp
 	fmt.Printf("Running job \"%v\"...\n", job)
-	err = daemonClient.Call(
+	err = CallDaemon(
 		"NewIpcService.Test",
 		common.TestCmd{Job: job},
 		&resp,
+		usr,
+		false,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)

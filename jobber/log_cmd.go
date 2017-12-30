@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"net/rpc"
 	"os"
 	"os/user"
 	"sort"
@@ -54,29 +53,6 @@ func (self LogDescSorter) Less(i, j int) bool {
 	return self[i].Time.After(self[j].Time)
 }
 
-func sendLogCmd(usr *user.User) (*common.LogCmdResp, error) {
-	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
-	if err != nil {
-		return nil, err
-	}
-	defer daemonConn.Close()
-	daemonClient := rpc.NewClient(daemonConn)
-
-	// send command
-	var result common.LogCmdResp
-	err = daemonClient.Call(
-		"NewIpcService.Log",
-		common.LogCmd{},
-		&result,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
 func doLogCmd_allUsers() int {
 	// get all users
 	users, err := common.AllUsersWithSockets()
@@ -90,7 +66,14 @@ func doLogCmd_allUsers() int {
 	// send cmd
 	logDescs := make([]EnhancedLogDesc, 0)
 	for _, usr := range users {
-		resp, err := sendLogCmd(usr)
+		var resp common.LogCmdResp
+		err = CallDaemon(
+			"NewIpcService.Log",
+			common.LogCmd{},
+			&resp,
+			usr,
+			true,
+		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr,
 				"Failed to get log for %v: %v.\n", usr.Name, err)
@@ -134,7 +117,14 @@ func doLogCmd_currUser() int {
 	}
 
 	// send command
-	resp, err := sendLogCmd(usr)
+	var resp common.LogCmdResp
+	err = CallDaemon(
+		"NewIpcService.Log",
+		common.LogCmd{},
+		&resp,
+		usr,
+		true,
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
