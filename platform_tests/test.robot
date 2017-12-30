@@ -120,6 +120,37 @@ List Command
     Jobber List as Root Should Return    TestJob1,TestJob2    all_users=True
     Nothing Has Crashed
 
+Log Command
+    # check initial 'jobber log' output
+    ${logs}=    Jobber Log as Root
+    Nbr of Lines in String Should Be    ${logs}    1
+    ${logs}=    Jobber Log as Normuser
+    Nbr of Lines in String Should Be    ${logs}    1
+    ${logs}=    Jobber Log as Root    all_users=${True}
+    Nbr of Lines in String Should Be    ${logs}    1
+    
+    # make jobfile for root
+    ${jobfile}=    Make Jobfile    TestJob1    exit 0
+    ${num_jobs}=    Install Root Jobfile    ${jobfile}
+    Nothing Has Crashed
+    Should Be Equal as Integers    1    ${num_jobs}    msg=Failed to load root's jobs
+    
+    # make jobfile for normal user
+    ${jobfile}=    Make Jobfile    TestJob2    exit 0
+    ${num_jobs}=    Install Normuser Jobfile    ${jobfile}
+    Nothing Has Crashed
+    Should Be Equal as Integers    1    ${num_jobs}    msg=Failed to load normuser's jobs
+    
+    Sleep    3s    reason=Give jobs time to run
+    
+    # check 'jobber log' output
+    ${logs}=    Jobber Log as Root
+    Nbr of Lines in String Should Be Greater than    ${logs}    1
+    ${logs}=    Jobber Log as Normuser
+    Nbr of Lines in String Should Be Greater than    ${logs}    1
+    ${logs}=    Jobber Log as Root    all_users=${True}
+    Nbr of Lines in String Should Be Greater than    ${logs}    1
+
 Pause And Resume Commands
     # make & install jobfile
     ${output_file}=    Make Tempfile
