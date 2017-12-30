@@ -218,8 +218,17 @@ logPath: .jobber-log
         if os.path.exists(self._normuser_jobfile_path):
             os.unlink(self._normuser_jobfile_path)
     
-    def jobber_log(self):
-        return sp_check_output([self._jobber_path, 'log'])
+    def jobber_log_as_root(self, all_users=False):
+        args = [self._jobber_path, 'log']
+        if all_users:
+            args.append('-a')
+        return sp_check_output(args).strip()
+    
+    def jobber_log_as_normuser(self, all_users=False):
+        args = ['sudo', '-u', _NORMUSER, self._jobber_path, 'log']
+        if all_users:
+            args.append('-a')
+        return sp_check_output(args).strip()
     
     def pause_job(self, job):
         sp_check_output([self._jobber_path, 'pause', job])
@@ -350,8 +359,10 @@ logPath: .jobber-log
     def jobber_list_as_normuser_should_return(self, job_names, \
                                               all_users=False):
         # do 'jobber list'
-        output = sp_check_output(['sudo', '-u', _NORMUSER, \
-                                  self._jobber_path, 'list']).strip()
+        args = ['sudo', '-u', _NORMUSER, self._jobber_path, 'list']
+        if all_users:
+            args.append('-a')
+        output = sp_check_output(args).strip()
         print(output)
         
         # check output
@@ -361,6 +372,19 @@ logPath: .jobber-log
         lines = string.split("\n")
         if len(lines) != int(nbr):
             base_msg = ("Number of lines in string should be {nbr}, " \
+                   "but was {actual}").format(nbr=nbr, 
+                                              actual=len(lines))
+            if msg is None:
+                raise AssertionError(base_msg)
+            else:
+                raise AssertionError("{msg}: {base_msg}".\
+                                    format(msg=msg, base_msg=base_msg))
+    
+    def nbr_of_lines_in_string_should_be_greater_than(self, string, 
+                                                      nbr, msg=None):
+        lines = string.split("\n")
+        if len(lines) <= int(nbr):
+            base_msg = ("Number of lines in string should be > {nbr}, " \
                    "but was {actual}").format(nbr=nbr, 
                                               actual=len(lines))
             if msg is None:
