@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"net/rpc"
 	"os"
 	"os/user"
 )
@@ -38,21 +37,14 @@ func doCatCmd(args []string) int {
 		return 1
 	}
 
-	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-	defer daemonConn.Close()
-	daemonClient := rpc.NewClient(daemonConn)
-
 	// send command
 	var resp common.CatCmdResp
-	err = daemonClient.Call(
+	err = CallDaemon(
 		"NewIpcService.Cat",
 		common.CatCmd{Job: job},
 		&resp,
+		usr,
+		true,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)

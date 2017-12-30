@@ -1,5 +1,6 @@
 CLIENT_SOURCES := \
 	cat_cmd.go \
+	daemon_client.go \
 	init_cmd.go \
 	list_cmd.go \
 	log_cmd.go \

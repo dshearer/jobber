@@ -5,41 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"net/rpc"
 	"os"
 	"os/user"
 	"strings"
 	"text/tabwriter"
 )
-
-func sendListCmd(usr *user.User) (*common.ListJobsCmdResp, error) {
-	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
-	if err != nil {
-		return nil, err
-	}
-	defer daemonConn.Close()
-	daemonClient := rpc.NewClient(daemonConn)
-
-	// send command
-	var result common.ListJobsCmdResp
-	err = daemonClient.Call(
-		"NewIpcService.ListJobs",
-		common.ListJobsCmd{},
-		&result,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	//	fmt.Printf("User: %v; socket: %v, num jobs: %v\n",
-	//		usr,
-	//		common.SocketPath(usr),
-	//		len(result.Jobs),
-	//	)
-
-	return &result, nil
-}
 
 type ListRespRec struct {
 	usr  *user.User
@@ -59,13 +29,20 @@ func doListCmd_allUsers() int {
 	// send cmd
 	var responses []ListRespRec
 	for _, usr := range users {
-		resp, err := sendListCmd(usr)
+		var resp common.ListJobsCmdResp
+		err = CallDaemon(
+			"NewIpcService.ListJobs",
+			common.ListJobsCmd{},
+			&resp,
+			usr,
+			true,
+		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr,
 				"Failed to list jobs for %v: %v\n", usr.Name, err)
 			continue
 		}
-		rec := ListRespRec{usr: usr, resp: resp}
+		rec := ListRespRec{usr: usr, resp: &resp}
 		responses = append(responses, rec)
 	}
 
@@ -133,7 +110,14 @@ func doListCmd_currUser() int {
 	}
 
 	// send cmd
-	resp, err := sendListCmd(usr)
+	var resp common.ListJobsCmdResp
+	err = CallDaemon(
+		"NewIpcService.ListJobs",
+		common.ListJobsCmd{},
+		&resp,
+		usr,
+		true,
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1

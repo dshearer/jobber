@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"net"
 	"os"
 )
 
@@ -68,27 +67,6 @@ func subcmdUsage(subcmd string, posargs string, flagSet *flag.FlagSet) func() {
 		)
 		flagSet.PrintDefaults()
 	}
-}
-
-func connectToDaemon(socketPath string) (net.Conn, error) {
-	// make sure the daemon is running
-	_, err := os.Stat(socketPath)
-	if os.IsNotExist(err) {
-		msg := fmt.Sprintf(
-			"jobberrunner isn't running (%v)",
-			socketPath,
-		)
-		return nil, &common.Error{What: msg, Cause: err}
-	} else if err != nil {
-		return nil, err
-	}
-
-	// connect to daemon
-	addr, err := net.ResolveUnixAddr("unix", socketPath)
-	if err != nil {
-		return nil, err
-	}
-	return net.DialUnix("unix", nil, addr)
 }
 
 func main() {

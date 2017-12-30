@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"net/rpc"
 	"os"
 	"os/user"
 )
@@ -33,21 +32,14 @@ func doPauseCmd(args []string) int {
 		return 1
 	}
 
-	// connect to user's daemon
-	daemonConn, err := connectToDaemon(common.CmdSocketPath(usr))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		return 1
-	}
-	defer daemonConn.Close()
-	daemonClient := rpc.NewClient(daemonConn)
-
 	// send command
 	var resp common.PauseCmdResp
-	err = daemonClient.Call(
+	err = CallDaemon(
 		"NewIpcService.Pause",
 		common.PauseCmd{Jobs: jobs},
 		&resp,
+		usr,
+		true,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
