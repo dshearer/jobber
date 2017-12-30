@@ -7,5 +7,6 @@ services:
 
 script:
   - make check
+  - make install
+  - jobber -v
   - make -C smoke_tests
-
