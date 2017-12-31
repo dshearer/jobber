@@ -65,13 +65,14 @@ func nextRunTime(job *jobfile.Job, now time.Time) *time.Time {
 
 	var year time.Duration = time.Hour * 24 * 365
 	var max time.Time = now.Add(2 * year)
+	timeSpec := job.FullTimeSpec
 	for next := now; next.Before(max); next = next.Add(time.Second) {
-		a := job.FullTimeSpec.Sec.Satisfied(next.Second()) &&
-			job.FullTimeSpec.Min.Satisfied(next.Minute()) &&
-			job.FullTimeSpec.Hour.Satisfied(next.Hour()) &&
-			job.FullTimeSpec.Wday.Satisfied(weekdayToInt(next.Weekday())) &&
-			job.FullTimeSpec.Mday.Satisfied(next.Day()) &&
-			job.FullTimeSpec.Mon.Satisfied(monthToInt(next.Month()))
+		a := timeSpec.Sec.Satisfied(next.Second()) &&
+			timeSpec.Min.Satisfied(next.Minute()) &&
+			timeSpec.Hour.Satisfied(next.Hour()) &&
+			timeSpec.Wday.Satisfied(weekdayToInt(next.Weekday())) &&
+			timeSpec.Mday.Satisfied(next.Day()) &&
+			timeSpec.Mon.Satisfied(monthToInt(next.Month()))
 		if a {
 			return &next
 		}

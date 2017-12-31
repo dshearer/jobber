@@ -9,11 +9,21 @@ import (
 	"os/user"
 	"strings"
 	"text/tabwriter"
+	"time"
 )
 
 type ListRespRec struct {
 	usr  *user.User
 	resp *common.ListJobsCmdResp
+}
+
+func formatTime(t *time.Time) string {
+	if t == nil {
+		return "none"
+	} else {
+		tmp := t.Local()
+		return tmp.Format("Jan _2 15:04:05 -0700 MST")
+	}
 }
 
 func doListCmd_allUsers() int {
@@ -73,18 +83,13 @@ func doListCmd_allUsers() int {
 			userName = respRec.usr.Username
 		}
 		for _, j := range respRec.resp.Jobs {
-			nextRunTime := "none"
-			if j.NextRunTime != nil {
-				nextRunTime =
-					j.NextRunTime.Format("Jan _2 15:04:05 2006")
-			}
 			var s string
 			s = fmt.Sprintf(
 				"%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
 				j.Name,
 				j.Status,
 				j.Schedule,
-				nextRunTime,
+				formatTime(j.NextRunTime),
 				j.NotifyOnSuccess,
 				j.NotifyOnErr,
 				j.NotifyOnFail,
@@ -141,11 +146,6 @@ func doListCmd_currUser() int {
 	// handle response
 	strs := make([]string, 0, len(resp.Jobs))
 	for _, j := range resp.Jobs {
-		nextRunTime := "none"
-		if j.NextRunTime != nil {
-			nextRunTime =
-				j.NextRunTime.Format("Jan _2 15:04:05 2006")
-		}
 		var s string
 		if usr != nil {
 			s = fmt.Sprintf("%v\t", usr.Name)
@@ -155,7 +155,7 @@ func doListCmd_currUser() int {
 			j.Name,
 			j.Status,
 			j.Schedule,
-			nextRunTime,
+			formatTime(j.NextRunTime),
 			j.NotifyOnErr,
 			j.NotifyOnFail,
 			j.ErrHandler)

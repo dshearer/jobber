@@ -13,7 +13,8 @@ func TimeString(t time.Time) string {
 }
 
 func myDate(year int, month time.Month, day, hour, min, sec int) time.Time {
-	return time.Date(year, month, day, hour, min, sec, 0, time.UTC)
+	loc, _ := time.LoadLocation("Local")
+	return time.Date(year, month, day, hour, min, sec, 0, loc)
 }
 
 type TestCase struct {
@@ -131,9 +132,7 @@ func TestNextRunTime(t *testing.T) {
 			 * Test
 			 */
 			require.NotNil(t, actualRunTime)
-			msg := fmt.Sprintf("%v != %v",
-				TimeString(expRunTime),
-				TimeString(*actualRunTime))
+			msg := fmt.Sprintf("Time spec: %v", testCase.timeSpec)
 			require.Equal(t, expRunTime, *actualRunTime, msg)
 
 			now = actualRunTime.Add(time.Second)
