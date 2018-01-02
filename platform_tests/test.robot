@@ -6,6 +6,8 @@ Test Teardown    Teardown
 
 *** Test Cases ***
 Basic
+    [Tags]    test
+    
     # make jobfile for root
     ${root_expected_output}=    Set Variable    Hello
     ${root_output_file}=    Make Tempfile
@@ -35,6 +37,8 @@ Basic
     Should Be Equal    ${normuser_expected_output}    ${normuser_actual_output}    msg=Normuser's job didn't run
 
 Log Path Preference
+    [Tags]    test
+    
     ${log_path}=    Set Variable    /home/normuser/.jobber-log
     File Should Not Exist    ${log_path}
     
@@ -52,6 +56,8 @@ Log Path Preference
     File Should Not Be Empty    ${log_path}    msg=Log file is empty
 
 Privilege Separation
+    [Tags]    test
+    
     # make jobfile for normal user
     ${output_file}=    Make Tempfile
     ${cmd}=    Set Variable    echo -n 'Hello' > ${output_file}
@@ -75,15 +81,16 @@ Privilege Separation
     Length Should Be    ${tmp}    0    msg=Normuser was able to modify root's file
 
 Notify On Error
-    # make notify program
-    ${expected_output}=    Set Variable    Hello
+    [Tags]    test
+    
+    # make notify program's expected output
+    ${expected_output}=    Set Variable    succeeded: False, status: Good
     ${output_file}=    Make Tempfile
-    ${notify_prog}=    Make Tempfile
-    Create File    ${notify_prog}    \#!/bin/sh\necho -n '${expected_output}' > ${output_file}
-    Chmod    ${notify_prog}    0755
     
     # make & install jobfile
-    ${jobfile}=    Make Jobfile    TestJob    exit 1    notify_prog=${notify_prog}
+    ${jobfile}=    Make Jobfile    TestJob    exit 1
+    ...    notify_on_error=${True}
+    ...    notify_output_path=${output_file}
     Install Root Jobfile    ${jobfile}
     Nothing Has Crashed
     
@@ -95,7 +102,71 @@ Notify On Error
     ${actual_output}=    Get File    ${output_file}
     Should Be Equal    ${expected_output}    ${actual_output}
 
+Notify On Success - On, with Success
+    [Tags]    test
+    
+    # make notify program's expected output
+    ${expected_output}=    Set Variable    succeeded: True, status: Good
+    ${output_file}=    Make Tempfile
+    
+    # make & install jobfile
+    ${jobfile}=    Make Jobfile    TestJob    exit 0
+    ...    notify_on_success=${True}
+    ...    notify_output_path=${output_file}
+    Install Root Jobfile    ${jobfile}
+    Nothing Has Crashed
+    
+    # wait
+    Sleep    3s    reason=Wait for job to run
+    
+    # test
+    Nothing Has Crashed
+    ${actual_output}=    Get File    ${output_file}
+    Should Be Equal    ${expected_output}    ${actual_output}
+
+Notify On Success - Off, with Success
+    [Tags]    test
+    
+    # make notify program's expected output
+    ${output_file}=    Make Tempfile
+    
+    # make & install jobfile
+    ${jobfile}=    Make Jobfile    TestJob    exit 0
+    ...    notify_on_success=${False}
+    ...    notify_output_path=${output_file}
+    Install Root Jobfile    ${jobfile}
+    Nothing Has Crashed
+    
+    # wait
+    Sleep    3s    reason=Wait for job to run
+    
+    # test
+    Nothing Has Crashed
+    File Should Be Empty    ${output_file}
+
+Notify On Success - On, with Error
+    [Tags]    test
+    
+    # make notify program's expected output
+    ${output_file}=    Make Tempfile
+    
+    # make & install jobfile
+    ${jobfile}=    Make Jobfile    TestJob    exit 1
+    ...    notify_on_success=${True}
+    ...    notify_output_path=${output_file}
+    Install Root Jobfile    ${jobfile}
+    Nothing Has Crashed
+    
+    # wait
+    Sleep    3s    reason=Wait for job to run
+    
+    # test
+    Nothing Has Crashed
+    File Should Be Empty    ${output_file}
+
 List Command
+    [Tags]    test
+    
     # make jobfile for root
     ${jobfile}=    Make Jobfile    TestJob1    exit 0
     ${num_jobs}=    Install Root Jobfile    ${jobfile}
@@ -121,6 +192,8 @@ List Command
     Nothing Has Crashed
 
 Log Command
+    [Tags]    test
+    
     # check initial 'jobber log' output
     ${logs}=    Jobber Log as Root
     Nbr of Lines in String Should Be    ${logs}    1
@@ -152,6 +225,8 @@ Log Command
     Nbr of Lines in String Should Be Greater than    ${logs}    1
 
 Pause And Resume Commands
+    [Tags]    test
+    
     # make & install jobfile
     ${output_file}=    Make Tempfile
     ${jobfile}=    Make Jobfile    TestJob    date > ${output_file}
@@ -191,6 +266,8 @@ Pause And Resume Commands
     Should Not Be Equal    ${output_1}    ${output_3}    msg=Job did not run when resumed
 
 Test Command
+    [Tags]    test
+    
     # make & install jobfile
     ${output_file}=    Make Tempfile
     ${jobfile}=    Make Jobfile    TestJob    date > ${output_file}
@@ -217,6 +294,8 @@ Test Command
     Should Not Be Equal    ${output_1}    ${output_2}    msg=Job did not run
 
 Init Command
+    [Tags]    test
+    
     # check initial condition
     Jobfile For Root Should Not Exist
     
@@ -227,6 +306,8 @@ Init Command
     Jobfile For Root Should Exist
 
 Kill Master Process
+    [Tags]    test
+    
     # kill it
     Kill Master Proc
     
@@ -237,6 +318,8 @@ Kill Master Process
     Restart Service
 
 Prefs File Excludes User
+    [Tags]    test
+    
     # make prefs that exclude normal user
     Set Prefs    exclude_users=normuser
     Restart Service
@@ -254,10 +337,14 @@ Prefs File Excludes User
     Jobberrunner Should Not Be Running For User    normuser
 
 Default Prefs Is Installed
+    [Tags]    test
+    
     # test
     Prefs File Should Exist
 
 Random Time Spec
+    [Tags]    test
+    
     # make jobfile with random time spec
     ${time_spec}=    Set Variable    0 0 R5-8
     ${jobfile}=    Make Jobfile    TestJob    exit 0    time=${time_spec}

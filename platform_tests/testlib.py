@@ -12,6 +12,22 @@ _RUNNER_LOG_FILE_FOR_NORMUSER = '/home/{0}/.jobber-log'.\
 _PREFS_PATH = '/etc/jobber.conf'
 _OLD_PREFS_PATH = '/etc/jobber.conf.old'
 
+_NOTIFY_PROGRAM = '''
+import json
+import sys
+
+def main():
+    data = json.load(sys.stdin)
+    with open('{notify_output_path}', 'w') as f:
+        f.write("succeeded: {{0}}, status: {{1}}".format(
+            data['succeeded'],
+            data['job']['status']
+        ))
+
+if __name__ == '__main__':
+    main()
+'''
+
 def sp_check_output(args):
     proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
     out, err = proc.communicate()
@@ -65,6 +81,7 @@ class testlib(object):
         self._root_jobfile_path = '/root/.jobber'
         self._normuser_jobfile_path = '/home/' + _NORMUSER + '/.jobber'
         self._jobber_path = find_program('jobber')
+        self._python_path = find_program('python')
         self._tmpfile_dir = '/JobberTestTmp'
 
     def make_tempfile_dir(self):
@@ -156,21 +173,38 @@ class testlib(object):
         
         print(log)
     
-    def make_jobfile(self, job_name, cmd, time="*", notify_prog=None):
+    def make_jobfile(self, job_name, cmd, time="*", \
+                     notify_on_error=False, notify_on_success=False,
+                     notify_output_path=None):
         # make jobs section
         jobs_sect = """[jobs]
 - name: {job_name}
   cmd: {cmd}
   time: '{time}'
-  notifyOnError: true
-""".format(job_name=job_name, cmd=cmd, time=time)
+  notifyOnError: {notify_on_error}
+  notifyOnSuccess: {notify_on_success}
+""".format(job_name=job_name, cmd=cmd, time=time,
+           notify_on_error=str(notify_on_error).lower(),
+           notify_on_success=str(notify_on_success).lower())
 
         # make prefs section
         prefs_sect = """[prefs]
 logPath: .jobber-log
 """
-        if notify_prog is not None:
-            prefs_sect += "notifyProgram: {0}\n".format(notify_prog)
+        if notify_on_error or notify_on_success:
+            # make notify program
+            output_path = self.make_tempfile()
+            notify_prog = _NOTIFY_PROGRAM.format(notify_output_path=\
+                                                 notify_output_path)
+            shebang = "#!" + self._python_path + "\n"
+            notify_prog = shebang + notify_prog
+            notify_prog_path = self.make_tempfile()
+            with open(notify_prog_path, 'w') as f:
+                f.write(notify_prog)
+            os.chmod(notify_prog_path, 0755)
+            
+            prefs_sect += "notifyProgram: {0}\n".format(
+                notify_prog_path)
         
         return prefs_sect + jobs_sect
 

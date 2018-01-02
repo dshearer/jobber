@@ -74,7 +74,7 @@ test-vm-dev : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
 	
 	# run test scripts
 	${VAGRANT_SSH} "tar xf platform_tests.tar"
-	${VAGRANT_SSH} "sudo robot platform_tests/test.robot ||:" > testlog.txt
+	${VAGRANT_SSH} "sudo robot --include test platform_tests/test.robot ||:" > testlog.txt
 	
 	# retrieve test reports
 	mkdir -p "${DESTDIR}test_report"
