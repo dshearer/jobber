@@ -115,6 +115,7 @@ func TestNextRunTime(t *testing.T) {
 		 */
 		var job *jobfile.Job = jobfile.NewJob("JobA", "blah", "dude")
 		timeSpec, _ := jobfile.ParseFullTimeSpec(testCase.timeSpec)
+		require.NotNil(t, timeSpec)
 		job.FullTimeSpec = *timeSpec
 
 		var now time.Time = testCase.startTime
@@ -139,4 +140,27 @@ func TestNextRunTime(t *testing.T) {
 			now = actualRunTime.Add(time.Second)
 		}
 	}
+}
+
+func TestNextRunTimeWithRandom(t *testing.T) {
+	/*
+	 * Set up
+	 */
+	var job *jobfile.Job = jobfile.NewJob("JobA", "blah", "dude")
+	timeSpec, _ := jobfile.ParseFullTimeSpec("0 0 R2-4")
+	require.NotNil(t, timeSpec)
+	job.FullTimeSpec = *timeSpec
+	job.FullTimeSpec.Derandomize()
+
+	now := myDate(2016, 1, 1, 0, 0, 0)
+
+	/*
+	 * Call
+	 */
+	actualRunTime := nextRunTime(job, now)
+
+	/*
+	 * Test
+	 */
+	require.Contains(t, []int{2, 3, 4}, actualRunTime.Hour())
 }

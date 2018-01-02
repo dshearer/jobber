@@ -257,6 +257,16 @@ Default Prefs Is Installed
     # test
     Prefs File Should Exist
 
+Random Time Spec
+    # make jobfile with random time spec
+    ${time_spec}=    Set Variable    0 0 R5-8
+    ${jobfile}=    Make Jobfile    TestJob    exit 0    time=${time_spec}
+    ${num_jobs}=    Install Root Jobfile    ${jobfile}
+    
+    # test
+    Nothing Has Crashed
+    Should Be Equal As Integers    1    ${num_jobs}    msg=Failed to load root's jobs
+
 *** Keyword ***
 Setup
     Restart Service

@@ -1,7 +1,7 @@
 FROM centos:6
 
 RUN yum -y install tar make sudo epel-release rpm-build \
-    selinux-policy-devel checkpolicy
+    selinux-policy-devel checkpolicy rsync
 RUN yum clean all
 RUN yum -y install golang python-pip
 RUN yum clean all

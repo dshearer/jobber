@@ -3,6 +3,7 @@ JOBFILE_SOURCES := \
 	job_file.go \
 	job.go \
 	mem_only_run_log.go \
+	parse_time_spec.y \
 	run_log.go \
 	run_rec_notifier.go \
 	time_spec.go

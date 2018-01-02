@@ -1,9 +1,11 @@
 package jobfile
 
+//go:generate goyacc -o parse_time_spec.go parse_time_spec.y
+
 import (
 	"fmt"
 	"github.com/dshearer/jobber/common"
-	"strconv"
+	"math/rand"
 	"strings"
 )
 
@@ -12,7 +14,7 @@ const (
 )
 
 type TimeSpec interface {
-	String() string
+	fmt.Stringer
 	Satisfied(int) bool
 }
 
@@ -35,14 +37,30 @@ func (self FullTimeSpec) String() string {
 		self.Wday)
 }
 
-type WildcardTimeSpec struct {
+func (self *FullTimeSpec) Derandomize() {
+	timeSpecs := [...]TimeSpec{
+		self.Sec,
+		self.Min,
+		self.Hour,
+		self.Mday,
+		self.Mon,
+		self.Wday,
+	}
+	for _, spec := range timeSpecs {
+		switch randSpec := spec.(type) {
+		case *RandomTimeSpec:
+			randSpec.Derandomize()
+		}
+	}
 }
 
-func (s WildcardTimeSpec) String() string {
+type WildcardTimeSpec struct{}
+
+func (self *WildcardTimeSpec) String() string {
 	return "*"
 }
 
-func (s WildcardTimeSpec) Satisfied(v int) bool {
+func (self *WildcardTimeSpec) Satisfied(v int) bool {
 	return true
 }
 
@@ -50,12 +68,12 @@ type OneValTimeSpec struct {
 	val int
 }
 
-func (s OneValTimeSpec) String() string {
-	return fmt.Sprintf("%v", s.val)
+func (self *OneValTimeSpec) String() string {
+	return fmt.Sprintf("%v", self.val)
 }
 
-func (s OneValTimeSpec) Satisfied(v int) bool {
-	return s.val == v
+func (self *OneValTimeSpec) Satisfied(v int) bool {
+	return self.val == v
 }
 
 type SetTimeSpec struct {
@@ -63,12 +81,12 @@ type SetTimeSpec struct {
 	vals []int
 }
 
-func (s SetTimeSpec) String() string {
-	return s.desc
+func (self *SetTimeSpec) String() string {
+	return self.desc
 }
 
-func (s SetTimeSpec) Satisfied(v int) bool {
-	for _, v2 := range s.vals {
+func (self *SetTimeSpec) Satisfied(v int) bool {
+	for _, v2 := range self.vals {
 		if v == v2 {
 			return true
 		}
@@ -76,14 +94,73 @@ func (s SetTimeSpec) Satisfied(v int) bool {
 	return false
 }
 
+/*
+A time spec that chooses (pseudo-)randomly from a set of values.
+Each value in that set has an (approximately) equal chance of getting
+picked.
+*/
+type RandomTimeSpec struct {
+	desc      string
+	vals      []int
+	pickedVal *int
+}
+
+func (self *RandomTimeSpec) String() string {
+	if self.pickedVal == nil {
+		return self.desc
+	} else {
+		return fmt.Sprintf("%v->%v", self.desc, *self.pickedVal)
+	}
+}
+
+/*
+Get whether the time spec is satisfied by val.
+
+If Derandomize has never been called, this method will panic.
+*/
+func (self *RandomTimeSpec) Satisfied(val int) bool {
+	if self.pickedVal == nil {
+		panic("RandomTimeSpec has never been derandomized")
+	}
+
+	return *self.pickedVal == val
+}
+
+/*
+	Pick a random value, and remember it so that it can be used by
+	the method Satisfied.
+
+	The method Satisfied will panic unless this method has been
+	called.
+
+	If this method has already been called, calling it again has
+	no effect.
+*/
+func (self *RandomTimeSpec) Derandomize() {
+	if self.pickedVal != nil {
+		return
+	}
+
+	tmp := self.vals[rand.Intn(len(self.vals))]
+	self.pickedVal = &tmp
+}
+
+/*
+   Get the picked value.  If Derandomize has never been called,
+   returns nil.
+*/
+func (self *RandomTimeSpec) PickedValue() *int {
+	return self.pickedVal
+}
+
 func ParseFullTimeSpec(s string) (*FullTimeSpec, error) {
 	var fullSpec FullTimeSpec
-	fullSpec.Sec = WildcardTimeSpec{}
-	fullSpec.Min = WildcardTimeSpec{}
-	fullSpec.Hour = WildcardTimeSpec{}
-	fullSpec.Mday = WildcardTimeSpec{}
-	fullSpec.Mon = WildcardTimeSpec{}
-	fullSpec.Wday = WildcardTimeSpec{}
+	fullSpec.Sec = &WildcardTimeSpec{}
+	fullSpec.Min = &WildcardTimeSpec{}
+	fullSpec.Hour = &WildcardTimeSpec{}
+	fullSpec.Mday = &WildcardTimeSpec{}
+	fullSpec.Mon = &WildcardTimeSpec{}
+	fullSpec.Wday = &WildcardTimeSpec{}
 
 	var timeParts []string = strings.Fields(s)
 
@@ -146,92 +223,4 @@ func ParseFullTimeSpec(s string) (*FullTimeSpec, error) {
 	}
 
 	return &fullSpec, nil
-}
-
-func parseTimeSpec(s string, fieldName string, min int, max int) (TimeSpec, error) {
-	errMsg := fmt.Sprintf("Invalid '%v' value", fieldName)
-
-	if s == TimeWildcard {
-		return WildcardTimeSpec{}, nil
-	} else if strings.HasPrefix(s, "*/") {
-		// parse step
-		stepStr := s[2:]
-		step, err := strconv.Atoi(stepStr)
-		if err != nil {
-			return nil, &common.Error{What: errMsg, Cause: err}
-		}
-
-		// make set of valid values
-		vals := make([]int, 0)
-		for v := min; v <= max; v = v + step {
-			vals = append(vals, v)
-		}
-
-		// make spec
-		spec := SetTimeSpec{vals: vals, desc: s}
-		return spec, nil
-
-	} else if strings.Contains(s, ",") {
-		// split step
-		stepStrs := strings.Split(s, ",")
-
-		// make set of valid values
-		vals := make([]int, 0)
-		for _, stepStr := range stepStrs {
-			step, err := strconv.Atoi(stepStr)
-			if err != nil {
-				return nil, &common.Error{What: errMsg, Cause: err}
-			}
-			vals = append(vals, step)
-		}
-
-		// make spec
-		spec := SetTimeSpec{vals: vals, desc: s}
-		return spec, nil
-	} else if strings.Contains(s, "-") {
-		// get range extremes
-		extremes := strings.Split(s, "-")
-		begin, err := strconv.Atoi(extremes[0])
-
-		if err != nil {
-			return nil, &common.Error{What: errMsg, Cause: err}
-		}
-
-		end, err := strconv.Atoi(extremes[1])
-
-		if err != nil {
-			return nil, &common.Error{What: errMsg, Cause: err}
-		}
-
-		// make set of valid values
-		vals := make([]int, 0)
-
-		for v := begin; v <= end; v++ {
-			vals = append(vals, v)
-		}
-
-		// make spec
-		spec := SetTimeSpec{vals: vals, desc: s}
-		return spec, nil
-	} else {
-		// convert to int
-		val, err := strconv.Atoi(s)
-		if err != nil {
-			return nil, &common.Error{What: errMsg, Cause: err}
-		}
-
-		// make TimeSpec
-		spec := OneValTimeSpec{val}
-
-		// check range
-		if val < min {
-			errMsg := fmt.Sprintf("%s: cannot be less than %v.", errMsg, min)
-			return nil, &common.Error{What: errMsg}
-		} else if val > max {
-			errMsg := fmt.Sprintf("%s: cannot be greater than %v.", errMsg, max)
-			return nil, &common.Error{What: errMsg}
-		}
-
-		return spec, nil
-	}
 }
