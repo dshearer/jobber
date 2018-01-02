@@ -8,21 +8,21 @@ define RECIPES
 .PHONY : pkg-vm-${platform}
 pkg-vm-${platform} :
 	mkdir -p "results/${platform}"
-	$${MAKE} -C ${platform} pkg-vm \
+	$${MAKE} -j 1 -C ${platform} pkg-vm \
 		"DESTDIR=$(abspath results/${platform})/" \
 	    2>&1 | tee "results/${platform}/pkg-vm.log"
 
 test-vm-${platform} :
 	mkdir -p "results/${platform}"
-	$${MAKE} -C ${platform} test-vm \
+	$${MAKE} -j 1 -C ${platform} test-vm \
 		"DESTDIR=$(abspath results/${platform})/" \
 	    2>&1 | tee "results/${platform}/test-vm.log"
 
 clean-${platform} :
-	$${MAKE} -C ${platform} clean
+	$${MAKE} -j 1 -C ${platform} clean
 
 deepclean-${platform} :
-	$${MAKE} -C ${platform} deepclean
+	$${MAKE} -j 1 -C ${platform} deepclean
 endef
 
 $(foreach platform,${PLATFORMS}, $(eval ${RECIPES}))
