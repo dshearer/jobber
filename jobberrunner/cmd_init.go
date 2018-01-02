@@ -15,6 +15,15 @@ const gDefaultJobfile = `## This is your jobfile: use it to tell Jobber what job
 ## set various general settings.  In "jobs", you define your jobs.
 
 [prefs]
+## You can have the Jobber daemon keep a log of various activities
+## with the "logPath" setting; the log will be written to the given
+## path (if the path is relative, it will be interpreted relative to
+## your home directory).  Your user account must be able to write to
+## the given path.  NOTE: This is NOT where logs about job runs
+## are stored --- for that, see the "runLog" setting below.  WARNING:
+## Jobber will NOT rotate this file.
+#logPath: jobber-log
+
 ## The following line makes jobber run a specified program when a job
 ## fails/succeeds:
 #notifyProgram: /home/handleError.sh
