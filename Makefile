@@ -89,7 +89,7 @@ SE_FILES = se_policy/jobber.fc \
 all : lib ${GO_WKSPC}/bin/jobber ${GO_WKSPC}/bin/jobbermaster ${GO_WKSPC}/bin/jobberrunner
 
 .PHONY : check
-check : ${TEST_SOURCES} check-go-version
+check : ${TEST_SOURCES} check-go-version gen-src
 	@go version
 	${GO} vet \
 		github.com/dshearer/jobber/common \
@@ -144,10 +144,21 @@ clean :
 	-${GO} clean -i github.com/dshearer/jobber/jobber
 	-${GO} clean -i github.com/dshearer/jobber/jobbermaster
 	-${GO} clean -i github.com/dshearer/jobber/jobberrunner
-	rm -f "${DESTDIR}${DIST_PKG_NAME}.tgz"
+	rm -f "${DESTDIR}${DIST_PKG_NAME}.tgz" jobfile/parse_time_spec.go \
+		jobfile/y.output ${GO_WKSPC}/bin/goyacc
+
+${GO_WKSPC}/bin/goyacc : buildtools/gotools/tools-release-branch.go1.8.tar.gz
+	cd buildtools/gotools/ && tar -xzf tools-release-branch.go1.8.tar.gz
+	rsync -a buildtools/gotools/tools-release-branch.go1.8/ ${GO_WKSPC}/src/
+	rm -rf buildtools/gotools/tools-release-branch.go1.8
+	${GO} install golang.org/x/tools/cmd/goyacc
+
+.PHONY : gen-src
+gen-src : ${GO_WKSPC}/bin/goyacc
+	PATH=${GO_WKSPC}/bin:$${PATH} ${GO} generate github.com/dshearer/jobber/jobfile
 
 .PHONY : lib
-lib : ${FINAL_LIB_SOURCES} check-go-version
+lib : ${FINAL_LIB_SOURCES} check-go-version gen-src
 	@go version
 	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/common"
 	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/jobfile"

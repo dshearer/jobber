@@ -12,7 +12,7 @@ Source2:    jobber.fc
 Source3:    jobber.if
 Source4:    jobber.te
 
-BuildRequires:	golang >= 1.8, coreutils
+BuildRequires:	golang >= 1.8, coreutils, rsync
 Requires:	daemonize, initscripts
 
 Prefix:         /usr/local

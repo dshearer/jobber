@@ -412,6 +412,7 @@ func parseJobsSect(s string, usr *user.User) ([]*Job, error) {
 			return nil, err
 		}
 		job.FullTimeSpec = *tmp
+		job.FullTimeSpec.Derandomize()
 
 		jobs = append(jobs, job)
 	}
