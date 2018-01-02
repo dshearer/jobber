@@ -4,7 +4,7 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/xenial64"
 
-  config.vm.network :forwarded_port, guest: 22, host: 2225
+  config.vm.network :forwarded_port, guest: 22, host: 2225, id: "ssh"
 
   config.vm.provision "shell", inline: <<-SHELL
     apt-get update -y

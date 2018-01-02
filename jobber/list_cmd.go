@@ -26,6 +26,54 @@ func formatTime(t *time.Time) string {
 	}
 }
 
+func formatResponseRecs(recs []ListRespRec, showUser bool) string {
+	// make table header
+	var buffer bytes.Buffer
+	var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer,
+		5, 0, 2, ' ', 0)
+	headers := []string{
+		"NAME",
+		"STATUS",
+		"SEC/MIN/HR/MDAY/MTH/WDAY",
+		"NEXT RUN TIME",
+		"NOTIFY ON SUCCESS",
+		"NOTIFY ON ERR",
+		"NOTIFY ON FAIL",
+		"ERR HANDLER",
+	}
+	if showUser {
+		headers = append(headers, "USER")
+	}
+	writer.Write([]byte(strings.Join(headers, "\t")))
+	writer.Write([]byte("\n"))
+
+	// make table rows
+	var rows []string
+	for _, respRec := range recs {
+		for _, j := range respRec.resp.Jobs {
+			fields := []string{
+				j.Name,
+				j.Status,
+				j.Schedule,
+				formatTime(j.NextRunTime),
+				fmt.Sprintf("%v", j.NotifyOnSuccess),
+				fmt.Sprintf("%v", j.NotifyOnErr),
+				fmt.Sprintf("%v", j.NotifyOnFail),
+				j.ErrHandler,
+			}
+			if showUser {
+				fields = append(fields, respRec.usr.Username)
+			}
+			rows = append(rows, strings.Join(fields, "\t"))
+		}
+	}
+	writer.Write([]byte(strings.Join(rows, "\n")))
+
+	// finish up
+	writer.Flush()
+	return buffer.String()
+}
+
 func doListCmd_allUsers() int {
 	// get all users
 	users, err := common.AllUsersWithSockets()
@@ -49,58 +97,16 @@ func doListCmd_allUsers() int {
 		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr,
-				"Failed to list jobs for %v: %v\n", usr.Name, err)
+				"Failed to list jobs for %v: %v\n", usr.Username, err)
 			continue
 		}
 		rec := ListRespRec{usr: usr, resp: &resp}
 		responses = append(responses, rec)
 	}
 
-	// make table header
-	var buffer bytes.Buffer
-	var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer,
-		5, 0, 2, ' ', 0)
-	headers := [...]string{
-		"NAME",
-		"STATUS",
-		"SEC/MIN/HR/MDAY/MTH/WDAY",
-		"NEXT RUN TIME",
-		"NOTIFY ON SUCCESS",
-		"NOTIFY ON ERR",
-		"NOTIFY ON FAIL",
-		"ERR HANDLER",
-		"USER",
-	}
-	fmt.Fprintf(writer, "%v\n", strings.Join(headers[:], "\t"))
+	// display response records
+	fmt.Println(formatResponseRecs(responses, true))
 
-	// make table rows
-	var rows []string
-	for _, respRec := range responses {
-		var userName string
-		if len(respRec.usr.Name) > 0 {
-			userName = respRec.usr.Name
-		} else {
-			userName = respRec.usr.Username
-		}
-		for _, j := range respRec.resp.Jobs {
-			var s string
-			s = fmt.Sprintf(
-				"%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
-				j.Name,
-				j.Status,
-				j.Schedule,
-				formatTime(j.NextRunTime),
-				j.NotifyOnSuccess,
-				j.NotifyOnErr,
-				j.NotifyOnFail,
-				j.ErrHandler,
-				userName)
-			rows = append(rows, s)
-		}
-	}
-	fmt.Fprintf(writer, "%v", strings.Join(rows, "\n"))
-	writer.Flush()
-	fmt.Printf("%v\n", buffer.String())
 	return 0
 }
 
@@ -128,42 +134,9 @@ func doListCmd_currUser() int {
 		return 1
 	}
 
-	// make table header
-	var buffer bytes.Buffer
-	var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer,
-		5, 0, 2, ' ', 0)
-	headers := [...]string{
-		"NAME",
-		"STATUS",
-		"SEC/MIN/HR/MDAY/MTH/WDAY",
-		"NEXT RUN TIME",
-		"NOTIFY ON ERR",
-		"NOTIFY ON FAIL",
-		"ERR HANDLER",
-	}
-	fmt.Fprintf(writer, "%v\n", strings.Join(headers[:], "\t"))
-
-	// handle response
-	strs := make([]string, 0, len(resp.Jobs))
-	for _, j := range resp.Jobs {
-		var s string
-		if usr != nil {
-			s = fmt.Sprintf("%v\t", usr.Name)
-		}
-		s = fmt.Sprintf(
-			"%v\t%v\t%v\t%v\t%v\t%v\t%v",
-			j.Name,
-			j.Status,
-			j.Schedule,
-			formatTime(j.NextRunTime),
-			j.NotifyOnErr,
-			j.NotifyOnFail,
-			j.ErrHandler)
-		strs = append(strs, s)
-	}
-	fmt.Fprintf(writer, "%v", strings.Join(strs, "\n"))
-	writer.Flush()
-	fmt.Printf("%v\n", buffer.String())
+	// display response records
+	rec := ListRespRec{usr: usr, resp: &resp}
+	fmt.Println(formatResponseRecs([]ListRespRec{rec}, false))
 
 	return 0
 }
