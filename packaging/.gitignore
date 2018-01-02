@@ -1,0 +1,5 @@
+*/*.rpm
+*/*.tar
+*/work
+*/testlog.txt
+*/test_report
