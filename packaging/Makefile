@@ -23,6 +23,9 @@ clean-${platform} :
 
 deepclean-${platform} :
 	$${MAKE} -j 1 -C ${platform} deepclean
+	
+make-vm-${platform} :
+	$${MAKE} -j 1 -C ${platform} .vm-is-running
 endef
 
 $(foreach platform,${PLATFORMS}, $(eval ${RECIPES}))
@@ -32,6 +35,9 @@ pkg-vm : $(patsubst %,pkg-vm-%,${PLATFORMS})
 
 .PHONY : test-vm
 test-vm : $(patsubst %,test-vm-%,${PLATFORMS})
+
+.PHONY : make-vm
+make-vm : $(patsubst %,make-vm-%,${PLATFORMS})
 
 .PHONY : clean
 clean : $(patsubst %,clean-%,${PLATFORMS})

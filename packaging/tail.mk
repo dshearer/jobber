@@ -4,15 +4,8 @@ VAGRANT_SSH = vagrant ssh --no-tty -c
 main :
 	@echo "Choose pkg-local or pkg-vm or test-vm or play-vm"
 
-.PHONY : thang
-thang :
-	#(vagrant snapshot list | grep Base >/dev/null) || \
-		(vagrant up && vagrant reload && vagrant snapshot save Base)
-	(vagrant up && vagrant reload && sleep 3 && vagrant snapshot save Base)
-	vagrant snapshot restore Base
-
 .PHONY : pkg-vm
-pkg-vm : .vm-is-pristine ${DESTDIR}${PKGFILE}	
+pkg-vm : .vm-is-running ${DESTDIR}${PKGFILE}	
 	# stop VM
 	vagrant suspend
 	rm -f .vm-is-running
@@ -23,11 +16,6 @@ pkg-vm : .vm-is-pristine ${DESTDIR}${PKGFILE}
 	(vagrant snapshot list | grep Base >/dev/null) || \
 		(vagrant up && vagrant reload && sleep 10 && vagrant snapshot save Base)
 	touch $@
-
-.vm-is-pristine : .vm-is-created
-	# restore "Base" snapshot and start VM
-	vagrant snapshot restore Base
-	touch $@
 	
 .vm-is-running : .vm-is-created
 	vagrant up
@@ -35,8 +23,6 @@ pkg-vm : .vm-is-pristine ${DESTDIR}${PKGFILE}
 
 ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
 		${PKGFILE_DEPS} .vm-is-running
-	
-	rm -f .vm-is-pristine
 	
 	# copy Jobber source to VM
 	vagrant scp "${WORK_DIR}/${SRC_TARFILE}" ":${SRC_TARFILE}"
@@ -55,15 +41,7 @@ ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARFILE} \
 	touch "$@"
 
 .PHONY : test-vm
-test-vm : .vm-is-pristine test-vm-dev
-	# stop VM
-	vagrant suspend
-	rm .vm-is-running
-
-.PHONY : test-vm-dev
-test-vm-dev : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
-	rm -f .vm-is-pristine
-	
+test-vm : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
 	# install package
 	-${VAGRANT_SSH} "${UNINSTALL_PKG_CMD}"
 	vagrant scp "${DESTDIR}${PKGFILE}" ":${PKGFILE}"
@@ -88,8 +66,6 @@ test-vm-dev : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
 
 .PHONY : play-vm
 play-vm : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
-	rm -f .vm-is-pristine
-	
 	# install package
 	-${VAGRANT_SSH} "${UNINSTALL_PKG_CMD}"
 	vagrant scp "${DESTDIR}${PKGFILE}" ":${PKGFILE}"
@@ -110,13 +86,18 @@ platform_tests.tar : $(wildcard ${SRC_ROOT}/platform_tests/**)
 	tar -C "${SRC_ROOT}" -cf "$@" platform_tests
 
 .PHONY : clean
-clean :
+clean : clean-common
+	(vagrant snapshot list | grep Base >/dev/null) && \
+		vagrant snapshot restore Base
+	-vagrant halt
+
+.PHONY : clean-common
+clean-common :
 	rm -rf "${WORK_DIR}" "${DESTDIR}${PKGFILE}" docker/src.tgz \
 		testlog.txt "${DESTDIR}test_report" platform_tests.tar \
 		.vm-is-running .vm-is-pristine
-	-vagrant suspend
 
 .PHONY : deepclean
-deepclean : clean
+deepclean : clean-common
 	-vagrant destroy -f
 	rm -f .vm-is-created
