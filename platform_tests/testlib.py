@@ -176,7 +176,7 @@ class testlib(object):
     
     def make_jobfile(self, job_name, cmd, time="*", \
                      notify_on_error=False, notify_on_success=False,
-                     notify_output_path=None):
+                     notify_output_path=None, file_run_log_path=None):
         # make jobs section
         jobs_sect = """[jobs]
 - name: {job_name}
@@ -209,6 +209,13 @@ logPath: .jobber-log
             
             print("Contents of {0}:\n{1}".\
                   format(notify_prog_path, notify_prog))
+        
+        if file_run_log_path is not None:
+            run_log_pref = """runLog:
+    type: file
+    path: {0}
+""".format(file_run_log_path)
+            prefs_sect += run_log_pref
         
         return prefs_sect + jobs_sect
 
