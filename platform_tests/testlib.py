@@ -49,7 +49,8 @@ def _find_file(name, dir):
     return None
 
 def find_program(name):
-    dirs = ['/bin', '/sbin', '/usr']
+    dirs = ['/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin',
+            '/usr/local/sbin']
     for dir in dirs:
         path = _find_file(name, dir)
         if path is not None:
@@ -205,6 +206,9 @@ logPath: .jobber-log
             
             prefs_sect += "notifyProgram: {0}\n".format(
                 notify_prog_path)
+            
+            print("Contents of {0}:\n{1}".\
+                  format(notify_prog_path, notify_prog))
         
         return prefs_sect + jobs_sect
 
