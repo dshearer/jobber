@@ -354,6 +354,50 @@ Random Time Spec
     Nothing Has Crashed
     Should Be Equal As Integers    1    ${num_jobs}    msg=Failed to load root's jobs
 
+Test File Run Log
+    [Tags]    test
+    
+    ${root_run_log_path}=    Make Tempfile
+    ${normuser_run_log_path}=    Make Tempfile
+    
+    # check initial 'jobber log' output
+    ${logs}=    Jobber Log as Root
+    Nbr of Lines in String Should Be    ${logs}    1
+    ${logs}=    Jobber Log as Normuser
+    Nbr of Lines in String Should Be    ${logs}    1
+    ${logs}=    Jobber Log as Root    all_users=${True}
+    Nbr of Lines in String Should Be    ${logs}    1
+    
+    # make jobfile for root
+    ${jobfile}=    Make Jobfile    TestJob1    exit 0    file_run_log_path=${root_run_log_path}
+    ${num_jobs}=    Install Root Jobfile    ${jobfile}
+    Nothing Has Crashed
+    Should Be Equal as Integers    1    ${num_jobs}    msg=Failed to load root's jobs
+    
+    # make jobfile for normal user
+    ${jobfile}=    Make Jobfile    TestJob2    exit 0    file_run_log_path=${normuser_run_log_path}
+    ${num_jobs}=    Install Normuser Jobfile    ${jobfile}
+    Nothing Has Crashed
+    Should Be Equal as Integers    1    ${num_jobs}    msg=Failed to load normuser's jobs
+    
+    Sleep    3s    reason=Give jobs time to run
+    
+    # check contents of run log files
+    ${root_run_log}=    Get File    ${root_run_log_path}
+    Nbr of Lines in String Should Be Greater than    ${root_run_log}    1
+    ${normuser_run_log}=    Get File    ${normuser_run_log_path}
+    Nbr of Lines in String Should Be Greater than    ${normuser_run_log}    1
+    
+    # check 'jobber log' output
+    ${logs}=    Jobber Log as Root
+    Nbr of Lines in String Should Be Greater than    ${logs}    1
+    ${logs}=    Jobber Log as Normuser
+    Nbr of Lines in String Should Be Greater than    ${logs}    1
+    ${logs}=    Jobber Log as Root    all_users=${True}
+    Nbr of Lines in String Should Be Greater than    ${logs}    1
+    
+    
+
 *** Keyword ***
 Setup
     Restart Service
