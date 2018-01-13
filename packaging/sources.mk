@@ -1,43 +1,14 @@
+include packaging/centos_6/sources.mk
+include packaging/centos_7/sources.mk
+include packaging/debian_9/sources.mk
+include packaging/ubuntu_16/sources.mk
+
 PACKAGING_SOURCES := \
-	Makefile \
-	head.mk \
-	tail.mk \
-	centos_6/se_policy/jobber.fc \
-	centos_6/se_policy/jobber.if \
-	centos_6/se_policy/jobber.te \
-	centos_6/jobber_init \
-	centos_6/jobber.spec \
-	centos_6/Makefile \
-	centos_6/pkgrel \
-	alpine_3.6/APKBUILD \
-	alpine_3.6/jobber.initd \
-	alpine_3.6/jobber.post-deinstall \
-	alpine_3.6/jobber.post-install \
-	alpine_3.6/jobber.post-upgrade \
-	alpine_3.6/jobber.pre-deinstall \
-	alpine_3.6/Makefile \
-	alpine_3.6/pkgrel \
-	debian_9/debian-pkg/source/format \
-	debian_9/debian-pkg/changelog \
-	debian_9/debian-pkg/compat \
-	debian_9/debian-pkg/control \
-	debian_9/debian-pkg/copyright \
-	debian_9/debian-pkg/docs \
-	debian_9/debian-pkg/jobber.init \
-	debian_9/debian-pkg/jobber.service \
-	debian_9/debian-pkg/rules \
-	debian_9/Makefile \
-	ubuntu_16/debian-pkg/source/format \
-	ubuntu_16/debian-pkg/changelog \
-	ubuntu_16/debian-pkg/compat \
-	ubuntu_16/debian-pkg/control \
-	ubuntu_16/debian-pkg/copyright \
-	ubuntu_16/debian-pkg/docs \
-	ubuntu_16/debian-pkg/jobber.init \
-	ubuntu_16/debian-pkg/jobber.service \
-	ubuntu_16/debian-pkg/rules \
-	ubuntu_16/Makefile \
-	centos_7/jobber.service \
-	centos_7/jobber.spec \
-	centos_7/Makefile \
-	centos_7/pkgrel
+	${CENTOS_6_SOURCES} \
+	${CENTOS_7_SOURCES} \
+	${DEBIAN_9_SOURCES} \
+	${UBUNTU_16_SOURCES} \
+	packaging/head.mk \
+	packaging/Makefile \
+	packaging/sources.mk \
+	packaging/tail.mk

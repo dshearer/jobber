@@ -2,18 +2,24 @@ include ../head.mk
 
 PKGREL := $(shell cat pkgrel)
 PLATFORM = x86_64
-PACKAGING_SUBDIR = centos_7
-PKGFILE ?= jobber-${VERSION}-${PKGREL}.el7.centos.${PLATFORM}.rpm
+
+# RPMs don't allow hyphens in version numbers
+RPM_VERSION = ${shell echo ${VERSION} | sed -e 's/\-/_/'}
+
+# required by tail.mk:
+PKGFILE = jobber-${RPM_VERSION}-${PKGREL}.el7.centos.${PLATFORM}.rpm
 PKGFILE_DEPS = jobber.spec
-PKGFILE_VM_PATH = jobber-${VERSION}-${PKGREL}.el7.centos.${PLATFORM}.rpm
+PKGFILE_VM_PATH = jobber-${RPM_VERSION}-${PKGREL}.el7.centos.${PLATFORM}.rpm
+PACKAGING_SUBDIR = centos_7
 INSTALL_PKG_CMD = sudo yum install -y ${PKGFILE} && \
 	sudo systemctl start jobber
-UNINSTALL_PKG_CMD = sudo systemctl stop jobber && \
+UNINSTALL_PKG_CMD = sudo systemctl stop jobber; \
 	sudo yum remove -y jobber
-DOCKER_IMAGE_NAME = jobber/centos7.2.1511_build_rpm
+SRC_TARBALL = jobber-${RPM_VERSION}.tgz
+SRC_TARBALL_DIR = jobber-${RPM_VERSION}
 
 .PHONY : pkg-local
-pkg-local : jobber.spec ${WORK_DIR}/${SRC_TARFILE}
+pkg-local : jobber.spec ${WORK_DIR}/${SRC_TARBALL}
 	# make RPM tree
 	mkdir -p "${WORK_DIR}" \
 		 "${WORK_DIR}/BUILD" \
@@ -25,13 +31,13 @@ pkg-local : jobber.spec ${WORK_DIR}/${SRC_TARFILE}
 	cp "$<" "${WORK_DIR}/SPECS"
 	
 	# copy sources
-	cp "${WORK_DIR}/${SRC_TARFILE}" jobber.service \
+	cp "${WORK_DIR}/${SRC_TARBALL}" jobber.service \
 		"${WORK_DIR}/SOURCES/"
 	
 	# build RPMs
 	cd "${WORK_DIR}/SPECS" && rpmbuild -bb \
 		--define "_topdir ${abspath ${WORK_DIR}}" \
-		--define "_pkg_version ${VERSION}" \
+		--define "_pkg_version ${RPM_VERSION}" \
 		--define "_pkg_release ${PKGREL}" \
 		--define "_enable_debug_packages 0" \
 		"$<"

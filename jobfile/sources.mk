@@ -1,14 +1,15 @@
 JOBFILE_SOURCES := \
-	file_run_log.go \
-	job_file.go \
-	job.go \
-	mem_only_run_log.go \
-	parse_time_spec.y \
-	run_log.go \
-	run_rec_notifier.go \
-	time_spec.go
+	jobfile/file_run_log.go \
+	jobfile/job_file.go \
+	jobfile/job.go \
+	jobfile/mem_only_run_log.go \
+	jobfile/parse_time_spec.y \
+	jobfile/run_log.go \
+	jobfile/run_rec_notifier.go \
+	jobfile/sources.mk \
+	jobfile/time_spec.go
 
 JOBFILE_TEST_SOURCES := \
-	file_run_log_test.go \
-	job_file_parse_test.go \
-	run_log_test.go
+	jobfile/file_run_log_test.go \
+	jobfile/job_file_parse_test.go \
+	jobfile/run_log_test.go

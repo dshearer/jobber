@@ -7,10 +7,10 @@ Vagrant.configure("2") do |config|
   config.vm.network :forwarded_port, guest: 22, host: 2223, id: "ssh"
 
   config.vm.provision "shell", inline: <<-SHELL
-    yum update -y
+    #yum update -y
     yum install -y epel-release rpm-build
     yum install -y golang python-pip
-    yum upgrade -y
+    #yum upgrade -y
     pip install --upgrade pip
     pip install robotframework
     grep normuser /etc/passwd >/dev/null || useradd normuser -m

@@ -1,15 +1,16 @@
 include ../head.mk
 
-PACKAGING_SUBDIR = debian_9
-PKGFILE ?= jobber_${VERSION}-1_amd64.deb
+# required by tail.mk:
+PKGFILE = jobber_${VERSION}-1_amd64.deb
 PKGFILE_DEPS = $(wildcard debian-pkg/**)
 PKGFILE_VM_PATH = jobber_${VERSION}-1_amd64.deb
+PACKAGING_SUBDIR = debian_9
 INSTALL_PKG_CMD = sudo dpkg -i ${PKGFILE}
 UNINSTALL_PKG_CMD = sudo dpkg -r jobber
 
 .PHONY : pkg-local
-pkg-local : ${WORK_DIR}/${SRC_TARFILE}
-	cp "${WORK_DIR}/${SRC_TARFILE}" \
+pkg-local : ${WORK_DIR}/${SRC_TARBALL}
+	cp "${WORK_DIR}/${SRC_TARBALL}" \
 		"${SRC_ROOT}/../jobber_${VERSION}.orig.tar.gz"
 	cp -R debian-pkg "${SRC_ROOT}/debian"
 	cd "${SRC_ROOT}" && dpkg-buildpackage -us -uc
