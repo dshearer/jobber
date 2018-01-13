@@ -7,10 +7,10 @@ Vagrant.configure("2") do |config|
   config.vm.network :forwarded_port, guest: 22, host: 2224, id: "ssh"
 
   config.vm.provision "shell", inline: <<-SHELL
-    apt-get update -y
+    #apt-get update -y
     apt-get install -y golang-1.8 python-pip dpkg-dev debhelper dh-systemd
     ln -s /usr/lib/go-1.8/bin/go /usr/local/bin/go
-    apt-get upgrade -y
+    #apt-get upgrade -y
     pip install --upgrade pip
     pip install robotframework
     grep normuser /etc/passwd >/dev/null || useradd normuser -m

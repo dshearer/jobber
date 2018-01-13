@@ -1,7 +1,8 @@
 MASTER_SOURCES := \
-	main.go \
-	prefs_file.go \
-	runner_proc.go
+	jobbermaster/main.go \
+	jobbermaster/prefs_file.go \
+	jobbermaster/runner_proc.go \
+	jobbermaster/sources.mk
 
 MASTER_TEST_SOURCES := \
-	prefs_file_test.go
+	jobbermaster/prefs_file_test.go

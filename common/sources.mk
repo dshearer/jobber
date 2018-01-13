@@ -1,15 +1,16 @@
 COMMON_SOURCES := \
-	consts.go \
-	error.go \
-	exec.go \
-	ipc_arg.go \
-	logging.go \
-	new_commands.go \
-	path.go \
-	safe_bytes_to_str.go \
-	sudo_cmd_linux.go \
-	sudo_cmd_freebsd.go \
-	user.go \
-	version.go
+	common/consts.go \
+	common/error.go \
+	common/exec.go \
+	common/ipc_arg.go \
+	common/logging.go \
+	common/new_commands.go \
+	common/path.go \
+	common/safe_bytes_to_str.go \
+	common/sources.mk \
+	common/sudo_cmd_linux.go \
+	common/sudo_cmd_freebsd.go \
+	common/user.go \
+	common/version.go
 
 COMMON_TEST_SOURCES :=

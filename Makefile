@@ -10,86 +10,30 @@ INSTALL = install
 INSTALL_PROGRAM = ${INSTALL}
 
 GO_WKSPC ?= ${abspath ../../../..}
-LIB = jobber.a
 TEST_TMPDIR = ${PWD}
-DIST_PKG_NAME = jobber-$(shell cat ${srcdir}/version)
+SRC_TARBALL = jobber-$(shell cat ${srcdir}/version).tgz
+SRC_TARBALL_DIR = jobber-$(shell cat ${srcdir}/version)
 
 GO = GOPATH=${GO_WKSPC} go
 GODEP = GOPATH=${GO_WKSPC} godep
 
-GO_VERSION=1.8
-
-# read lists of source files
-include common/sources.mk \
-		jobber/sources.mk \
-		jobbermaster/sources.mk \
-		jobberrunner/sources.mk \
-		jobfile/sources.mk \
-		packaging/sources.mk
-FINAL_LIB_SOURCES := \
-	$(COMMON_SOURCES:%=common/%) \
-	$(JOBFILE_SOURCES:%=jobfile/%)
-FINAL_LIB_TEST_SOURCES := \
-	$(COMMON_TEST_SOURCES:%=common/%) \
-	$(JOBFILE_TEST_SOURCES:%=jobfile/%)
-FINAL_CLIENT_SOURCES := $(CLIENT_SOURCES:%=jobber/%)
-FINAL_CLIENT_TEST_SOURCES := $(CLIENT_TEST_SOURCES:%=jobber/%)
-FINAL_MASTER_SOURCES := $(MASTER_SOURCES:%=jobbermaster/%)
-FINAL_MASTER_TEST_SOURCES := $(MASTER_TEST_SOURCES:%=jobbermaster/%)
-FINAL_RUNNER_SOURCES := $(RUNNER_SOURCES:%=jobberrunner/%)
-FINAL_RUNNER_TEST_SOURCES := $(RUNNER_TEST_SOURCES:%=jobberrunner/%)
-FINAL_PACKAGING_SOURCES := $(PACKAGING_SOURCES:%=packaging/%)
-
-MAIN_SOURCES := \
-	${FINAL_LIB_SOURCES} \
-	${FINAL_CLIENT_SOURCES} \
-	${FINAL_MASTER_SOURCES} \
-	${FINAL_RUNNER_SOURCES}
-	
-TEST_SOURCES := \
-	${FINAL_LIB_TEST_SOURCES} \
-	${FINAL_CLIENT_TEST_SOURCES} \
-	${FINAL_MASTER_TEST_SOURCES} \
-	${FINAL_RUNNER_TEST_SOURCES}
-
-GO_SOURCES := \
-	${MAIN_SOURCES} \
-	${TEST_SOURCES}
-	
-OTHER_SOURCES := \
-	Makefile \
-	common/sources.mk \
-	jobber/sources.mk \
-	jobbermaster/sources.mk \
-	jobberrunner/sources.mk \
-	jobfile/sources.mk \
-	packaging/sources.mk \
-	buildtools \
-	README.md \
-	LICENSE \
-	version \
-	Godeps \
-	vendor \
-	${FINAL_PACKAGING_SOURCES}
-
-ALL_SOURCES := \
-	${GO_SOURCES} \
-	${OTHER_SOURCES}
+GO_VERSION = 1.8
 
 LDFLAGS = -ldflags "-X github.com/dshearer/jobber/common.jobberVersion=`cat version`"
 
-SE_FILES = se_policy/jobber.fc \
-           se_policy/jobber.if \
-           se_policy/jobber.te \
-           ${wildcard se_policy/include/**} \
-           se_policy/Makefile \
-           se_policy/policygentool
+include mk/def-sources.mk
+
+.PHONY : default
+default : all
+
+include mk/buildtools.mk
 
 .PHONY : all
-all : lib ${GO_WKSPC}/bin/jobber ${GO_WKSPC}/bin/jobbermaster ${GO_WKSPC}/bin/jobberrunner
+all : ${GO_WKSPC}/bin/jobber ${GO_WKSPC}/bin/jobbermaster \
+	${GO_WKSPC}/bin/jobberrunner
 
 .PHONY : check
-check : ${TEST_SOURCES} check-go-version gen-src
+check : ${TEST_SOURCES} jobfile/parse_time_spec.go
 	@go version
 	${GO} vet \
 		github.com/dshearer/jobber/common \
@@ -104,23 +48,26 @@ check : ${TEST_SOURCES} check-go-version gen-src
 		github.com/dshearer/jobber/jobberrunner \
 		github.com/dshearer/jobber/jobfile
 
-.PHONY : installcheck
-installcheck :
-	./test_installation
+install : \
+	${DESTDIR}${libexecdir}/jobbermaster \
+	${DESTDIR}${libexecdir}/jobberrunner \
+	${DESTDIR}${bindir}/jobber \
+	${DESTDIR}${sysconfdir}/jobber.conf
 
-.PHONY : installdirs
-installdirs :
-	"${srcdir}/buildtools/mkinstalldirs" \
-		"${DESTDIR}${bindir}" "${DESTDIR}${libexecdir}" \
-		"${DESTDIR}${sysconfdir}"
+${DESTDIR}${libexecdir}/% : ${GO_WKSPC}/bin/%
+	@echo INSTALL "$@"
+	@mkdir -p "${dir $@}"
+	@${INSTALL_PROGRAM} "$<" "$@"
 
-.PHONY : install
-install : installdirs all
-	# install files
-	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobbermaster" "${DESTDIR}${libexecdir}"
-	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobberrunner" "${DESTDIR}${libexecdir}"
-	"${INSTALL_PROGRAM}" "${GO_WKSPC}/bin/jobber" "${DESTDIR}${bindir}"
-	"${GO_WKSPC}/bin/jobbermaster" defprefs > "${DESTDIR}${sysconfdir}/jobber.conf"
+${DESTDIR}${bindir}/% : ${GO_WKSPC}/bin/%
+	@echo INSTALL "$@"
+	@mkdir -p "${dir $@}"
+	@${INSTALL_PROGRAM} "$<" "$@"
+
+${DESTDIR}${sysconfdir}/jobber.conf : ${GO_WKSPC}/bin/jobbermaster
+	@echo INSTALL "$@"
+	@mkdir -p "${dir $@}"
+	@"$<" defprefs > "$@"
 
 .PHONY : uninstall
 uninstall :
@@ -129,81 +76,35 @@ uninstall :
 	-rm "${DESTDIR}${bindir}/jobber"
 	-rm "${DESTDIR}${sysconfdir}/jobber.conf"
 
-dist : ${ALL_SOURCES}
+.PHONY : dist
+dist :
 	mkdir -p "${DESTDIR}dist-tmp"
 	"${srcdir}/buildtools/srcsync" ${ALL_SOURCES} \
-		"${DESTDIR}dist-tmp/${DIST_PKG_NAME}"
-	tar -C "${DESTDIR}dist-tmp" -czf "${DESTDIR}${DIST_PKG_NAME}.tgz" \
-		"${DIST_PKG_NAME}"
+		"${DESTDIR}dist-tmp/${SRC_TARBALL_DIR}"
+	tar -C "${DESTDIR}dist-tmp" -czf "${DESTDIR}${SRC_TARBALL}" \
+		"${SRC_TARBALL_DIR}"
 	rm -rf "${DESTDIR}dist-tmp"
 
-.PHONY : clean
-clean :
-	-${GO} clean -i github.com/dshearer/jobber/common
-	-${GO} clean -i github.com/dshearer/jobber/jobfile
-	-${GO} clean -i github.com/dshearer/jobber/jobber
-	-${GO} clean -i github.com/dshearer/jobber/jobbermaster
-	-${GO} clean -i github.com/dshearer/jobber/jobberrunner
-	rm -f "${DESTDIR}${DIST_PKG_NAME}.tgz" jobfile/parse_time_spec.go \
-		jobfile/y.output ${GO_WKSPC}/bin/goyacc
+${GO_WKSPC}/bin/% : ${MAIN_SOURCES} jobfile/parse_time_spec.go	
+	@${srcdir}/buildtools/versionge "$$(go version | egrep --only-matching '[[:digit:].]+' | head -n 1)" "${GO_VERSION}"
+	@echo BUILD $*
+	@${GO} install ${LDFLAGS} "github.com/dshearer/jobber/$*"
 
-${GO_WKSPC}/bin/goyacc : buildtools/gotools/tools-release-branch.go1.8.tar.gz
-	cd buildtools/gotools/ && tar -xzf tools-release-branch.go1.8.tar.gz
-	rsync -a buildtools/gotools/tools-release-branch.go1.8/ ${GO_WKSPC}/src/
-	rm -rf buildtools/gotools/tools-release-branch.go1.8
-	${GO} install golang.org/x/tools/cmd/goyacc
-
-.PHONY : gen-src
-gen-src : ${GO_WKSPC}/bin/goyacc
-	PATH=${GO_WKSPC}/bin:$${PATH} ${GO} generate github.com/dshearer/jobber/jobfile
-
-.PHONY : lib
-lib : ${FINAL_LIB_SOURCES} check-go-version gen-src
-	@go version
-	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/common"
-	${GO} install ${LDFLAGS} "github.com/dshearer/jobber/jobfile"
-
-${GO_WKSPC}/bin/jobber : ${FINAL_CLIENT_SOURCES} lib check-go-version
-	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobber
-
-${GO_WKSPC}/bin/jobbermaster : ${FINAL_MASTER_SOURCES} lib check-go-version
-	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobbermaster
-
-${GO_WKSPC}/bin/jobberrunner : ${FINAL_RUNNER_SOURCES} lib check-go-version
-	${GO} install ${LDFLAGS} github.com/dshearer/jobber/jobberrunner
+jobfile/parse_time_spec.go : ${GOYACC} ${JOBFILE_SOURCES}
+	@echo GEN SRC
+	@${GO_WITH_TOOLS} generate github.com/dshearer/jobber/jobfile
 
 .PHONY : get-deps
 get-deps :
 	${GODEP} save ./...
-	
-.PHONY : check-go-version
-check-go-version :
-	${srcdir}/buildtools/versionge "$$(go version | egrep --only-matching '[[:digit:].]+' | head -n 1)" "${GO_VERSION}"
 
-## OLD:
-
-/etc/init.d/jobber : jobber_init
-	install -T -o root -g root -m 0755 "$<" "$@"
-	chkconfig --add jobber
-	chkconfig jobber on
-
-/var/lock/subsys/jobber : ${DESTDIR}/sbin/${DAEMON} /etc/init.d/jobber
-	service jobber restart
-
-se_policy/.installed : ${SE_FILES}
-	-[ -f /etc/sysconfig/selinux ] && ${MAKE} -C se_policy && semodule -i "$<" -v && restorecon -Rv /usr/local /etc/init.d
-	touch "$@"
-
-.PHONY : uninstall-bin
-uninstall-bin :
-	rm -f "${DESTDIR}/bin/${CLIENT}" "${DESTDIR}/sbin/${DAEMON}"
-
-.PHONY : uninstall-centos
-uninstall-centos :
-	service jobber stop
-	chkconfig jobber off
-	chkconfig --del jobber
-	rm -f /etc/init.d/jobber
-	-[ -f /etc/sysconfig/selinux ] && semodule -r jobber -v
-	rm -f se_policy/.installed
-
+.PHONY : clean
+clean : clean-buildtools
+	@echo CLEAN
+	@-${GO} clean -i github.com/dshearer/jobber/common
+	@-${GO} clean -i github.com/dshearer/jobber/jobfile
+	@-${GO} clean -i github.com/dshearer/jobber/jobber
+	@-${GO} clean -i github.com/dshearer/jobber/jobbermaster
+	@-${GO} clean -i github.com/dshearer/jobber/jobberrunner
+	@rm -f "${DESTDIR}${SRC_TARBALL}.tgz" jobfile/parse_time_spec.go \
+		jobfile/y.output
