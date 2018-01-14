@@ -80,3 +80,7 @@ ul.github-link a.github-link {
   font-size: 90%;
   list-style-type: none;
 }
+
+.license {
+	font-size: 14px;
+}
