@@ -1,0 +1,37 @@
+<section>
+  <h3>
+    Section
+    <code>prefs</code>
+  </h3>
+
+  <p>This section sets general preferences for how Jobber runs this
+    user&rsquo;s jobs. At this time, there is only one valid field.</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Value</th>
+        <th>Default Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>notifyProgram</code></td>
+        <td>
+          <p>A path to an executable file.</p>
+
+          <p>
+            When this field is set, jobs that notify on error or failure do so
+            by executing the specified file. See <a href="#error-handling">below</a>
+            for details.
+          </p>
+
+          <p>When it is not set, they notify by sending an email to the
+            owning user, using sendmail.</p>
+        </td>
+        <td>None.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

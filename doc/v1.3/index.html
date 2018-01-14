@@ -29,38 +29,18 @@
 <title>How to Use Jobber</title>
 
 <script lang="test/javascript">
-	g_curr_version = "1.2";
+	g_curr_version = "1.3";
 
 	g_sections = {
 		"deployment" : {
 			title : "Deployment",
 			page : "deployment.html",
-			version : "v1.2"
+			version : "v1.3"
 		},
 		"defining-jobs" : {
 			title : "Defining Jobs",
-			sections : {
-                "overview" : {
-                    title: "Overview",
-                    page: "defining-jobs/overview.html",
-                     version: "v1.2"
-                },
-                "section-prefs" : {
-                    title: "Preferences",
-                    page: "defining-jobs/prefs.html",
-                    version: "v1.2"
-                },
-                "section-jobs" : {
-                    title: "Jobs",
-                    page: "defining-jobs/jobs.html",
-                    version: "v1.2"
-                },
-                "error-handling" : {
-                    title: "Error-handling",
-                    page: "defining-jobs/error-handling.html",
-                    version: "v1.2"
-                }
-			}
+			page : "jobber-file.html",
+			version : "v1.2"
 		},
 		"loading-jobs" : {
 			title : "Loading Jobs",
@@ -91,10 +71,6 @@
 		// load sections
 		addSections($("#main-container .nav-list-2"), $("#main-section"),
 				g_sections);
-		
-		$('[data-spy="scroll"]').each(function () {
-			  var $spy = $(this).scrollspy('refresh')
-		});
 	}
 </script>
 </head>
@@ -140,9 +116,9 @@
           data-spy="affix" data-offset-top="150">
           <nav class="nav internal-nav">
             <ul class="nav-list-1">
+              <li class="top-nav-item nobr" target="_self"><a href="#">How
+                  to Use</a></li>
               <li>
-                <a class="top-nav-item nobr" href="#" target="_self">How
-                  to Use</a>
                 <ul class="nav-list-2">
                 </ul>
               </li>

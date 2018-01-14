@@ -50,7 +50,7 @@ nav.internal-nav li {
   font-weight: normal;
   padding-top: 5px;
 }
-nav.internal-nav li.active {
+nav.internal-nav li.active > a {
   font-weight: bold;
 }
 nav.internal-nav .nav-list-2,

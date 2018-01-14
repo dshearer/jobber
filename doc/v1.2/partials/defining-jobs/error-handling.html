@@ -1,0 +1,118 @@
+<section>
+  <h3>Error-handling</h3>
+
+  <p>
+    Some terms: When Jobber runs a job and that job exits with a non-0 status,
+    we call that a <strong>job error</strong>. When Jobber stops scheduling runs
+    of a job due to one or more job errors, we call that a <strong>job
+      failure</strong>.
+  </p>
+
+  <p>
+    In the
+    <code>onError</code>
+    field in the job&rsquo;s definition, you can control what Jobber does after
+    a job error by picking one of these values:
+  </p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Value</th>
+        <th>Effect</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Stop</code></td>
+        <td>Stop scheduling runs of this job.</td>
+      </tr>
+      <tr>
+        <td><code>Backoff</code></td>
+        <td>Schedule runs of this job according to an exponential backoff
+          algorithm. If a later run of the job succeeds, jobber resumes
+          scheduling this job normally; but if the job errors again on several
+          consecutive runs, Jobber stops scheduling it.</td>
+      </tr>
+      <tr>
+        <td><code>Continue</code></td>
+        <td>Continue scheduling this job normally.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    If you would like Jobber to notify you when a job errors or fails, first set
+    <code>notifyOnError</code>
+    or
+    <code>notifyOnFailure</code>
+    to
+    <code>true</code>
+    in the job&rsquo;s definition in the Jobber file.
+  </p>
+
+  <p>
+    Then, write a <em>notify program</em> &mdash; a program that does whatever
+    logic you want done after an error or failure. Set the
+    <code>notifyProgram</code>
+    field in the
+    <code>prefs</code>
+    section of the Jobber file to the path to your notify program.
+  </p>
+
+  <p>When Jobber calls your notify program, it will write to stdin a JSON
+    document like this:</p>
+
+  <pre>{  
+   "job":{  
+      "command":"/home/dylan/some_program",
+      "name":"MyHourlyJob",
+      "notifyOnError":true,
+      "notifyOnFailure":false,
+      "onError":"Stop",
+      "status":"Failed",
+      "time":"0 0 * * * *"
+   },
+   "startTime":"May 29 15:25:10 2017",
+   "stderr":"Some errors\n",
+   "stderr_base64":false,
+   "stdout":"Quotes: \"adf\"\n",
+   "stdout_base64":false,
+   "succeeded":false,
+   "user":"dylan"
+}</pre>
+
+  <p>
+    The fields in the
+    <code>job</code>
+    object are from the job&rsquo;s definition, except for
+    <code>status</code>
+    , which contains
+    <code>Good</code>
+    ,
+    <code>Backoff</code>
+    , or
+    <code>Failed</code>
+    .
+  </p>
+
+  <p>
+    <code>stdout</code>
+    (respectively,
+    <code>stderr</code>
+    ) contains whatever the job wrote to stdout (stderr). If
+    <code>stdout_base64</code>
+    contains
+    <code>true</code>
+    , then the job wrote only UTF-8 bytes to stdout (stderr), and
+    <code>stdout</code>
+    (
+    <code>stderr</code>
+    ) contains a string with those bytes; otherwise, there were some non-UTF-8
+    bytes and
+    <code>stdout</code>
+    (
+    <code>stderr</code>
+    ) contains a Base64 encoding of the output.
+  </p>
+</section>
