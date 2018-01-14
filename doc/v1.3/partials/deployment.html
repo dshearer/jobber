@@ -1,0 +1,54 @@
+<section>
+  <h2>Deployment</h2>
+
+  <p itemprop="requirements">
+    Jobber is written in <a href="https://golang.org/">Go</a>, and it should be
+    possible to compile and run it on <span itemprop="operatingSystem">any
+      Unix/Linux system</span>.
+  </p>
+
+  <aside class="alert alert-warning">
+    <h4 class="alert-heading">Warning</h4>
+    Privilege-escalation is possible if the OS on which Jobber runs allows
+    non-root users to change the owner of a file to another user. Fortunately,
+    this is not possible in Linux and is not common in other kinds of Unix.
+  </aside>
+
+  <h3>Installation from a Package</h3>
+
+  <p>
+    The easiest way to install Jobber is via <a href="/jobber/download">a
+      binary package</a>.
+  </p>
+
+  <h3>Compilation and Installation from Source</h3>
+
+  <p>Instead of installing a binary package, you can certainly compile and
+    install Jobber yourself.</p>
+
+  <p>You need Go 1.8 or later to compile Jobber. So, install Go, pick a
+    place for your workspace (say, /path/to/your/workspace), and ensure that the
+    environment variable <code>GOPATH</code> includes a path to your workspace.
+    Then:</p>
+
+  <pre>cd /path/to/your/workspace
+go get -u github.com/dshearer/jobber
+cd src/github.com/dshearer/jobber
+git checkout v1.3-pr.1
+make check
+sudo make install DESTDIR=/usr/local/</pre>
+
+  <p>This will install the following:</p>
+  <ul>
+    <li>/usr/local/bin/jobber</li>
+    <li>/usr/local/libexec/jobbermaster</li>
+    <li>/usr/local/libexec/jobberrunner</li>
+  </ul>
+
+  <p>
+    Finally, do something to ensure that jobbermaster runs as a daemon (as root)
+    when your computer boots. Note that jobbermaster does not daemonize itself,
+    but that should not be a problem if you use systemd; otherwise, <a
+      href="https://linux.die.net/man/1/daemonize">daemonize(1)</a> could help.
+  </p>
+</section>

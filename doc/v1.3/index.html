@@ -14,6 +14,7 @@
   crossorigin="anonymous" />
 
 <link rel="stylesheet" href="/jobber/stylesheets/app.css" />
+<link rel="stylesheet" href="/jobber/stylesheets/doc.css" />
 <script src="/jobber/scripts/doc.js"></script>
 
 <script src="https://use.fontawesome.com/9c63186c95.js"></script>
@@ -37,10 +38,35 @@
 			page : "deployment.html",
 			version : "v1.3"
 		},
-		"defining-jobs" : {
-			title : "Defining Jobs",
-			page : "jobber-file.html",
-			version : "v1.2"
+		"jobfile" : {
+			title : "Putting Jobber to Work",
+			sections : {
+				"overview" : {
+					title : "Overview",
+					page : "jobfile/overview.html",
+					version : "v1.3"
+				},
+                "time-strings" : {
+                    title : "Time strings",
+                    page : "jobfile/time-strings.html",
+                    version : "v1.3"
+                },
+                "error-handling" : {
+                    title : "Error-handling",
+                    page : "jobfile/error-handling.html",
+                    version : "v1.3"
+                },
+                "notifications" : {
+                    title : "Job Status Notifications",
+                    page : "jobfile/notifications.html",
+                    version : "v1.3"
+                },
+                "run-history": {
+                	   title: "Keeping a Log of Job Runs",
+                	   page: "jobfile/run-log.html",
+                	   version: "v1.3"
+                }
+			}
 		},
 		"loading-jobs" : {
 			title : "Loading Jobs",
@@ -57,11 +83,21 @@
 			page : "listing-runs.html",
 			version : "v1.1"
 		},
-		"testing-jobs" : {
-			title : "Testing Jobs",
-			page : "testing-jobs.html",
-			version : "v1.1"
-		}
+        "testing-jobs" : {
+            title : "Testing Jobs",
+            page : "testing-jobs.html",
+            version : "v1.1"
+        },
+        "pausing-resuming-jobs" : {
+            title : "Pausing and Resuming Jobs",
+            page : "pausing-resuming-jobs.html",
+            version : "v1.2"
+        },
+        "cat-jobs" : {
+            title : "Printing a Job's Command",
+            page : "cat-jobs.html",
+            version : "v1.2"
+        }
 	};
 
 	function onLoad() {
@@ -128,7 +164,13 @@
       </div>
       <!-- col -->
 
-      <section id="main-section" class="col-md-10 main" role="main"></section>
+      <section id="main-section" class="col-md-10 main" role="main">
+        <aside class="alert alert-info">
+          <h4 class="alert-heading">Attention</h4>
+          Version 1.3 is a work-in-progress.  This page documents the
+          behavior as of Preview Release 1.
+        </aside>
+      </section>
     </div>
   </div>
   <!-- main content -->

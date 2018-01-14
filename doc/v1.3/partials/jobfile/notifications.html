@@ -1,0 +1,146 @@
+<section>
+  <h3>Job Status Notifications</h3>
+
+  <p>You can arrange for Jobber to send notifications when certain events
+    happen for a particular job:</p>
+  <table class="table">
+    <tr>
+      <td><dfn>Job success</dfn></td>
+      <td>The job (or, specifically, the shell script that the job runs)
+        exited with status 0</td>
+    </tr>
+    <tr>
+      <td><dfn>Job error</dfn></td>
+      <td>The job (or, specifically, the shell script that the job runs)
+        exited with a non-0 status</td>
+    </tr>
+    <tr>
+      <td><dfn>Job failure</dfn></td>
+      <td>Jobber stopped scheduling runs of the job due to one or more job
+        errors</td>
+    </tr>
+  </table>
+
+  <p>By default, these notifications consist of emails to the user account
+    that owns the job. Jobber uses sendmail to do this.</p>
+
+  <p>
+    Also, by default, Jobber will send notifications when any job fails. To
+    disable this for a particular job, set
+    <code>notifyOnFailure</code>
+    in that job&rsquo;s definition to
+    <code>false</code>
+    .
+  </p>
+
+  <p>
+    To enable notifications when a particular job succeeds, set
+    <code>notifyOnSuccess</code>
+    to
+    <code>true</code>
+    in that job&rsquo;s definition.
+  </p>
+
+  <p>
+    To enable notifications when a particular job errs, set
+    <code>notifyOnError</code>
+    to
+    <code>true</code>
+    in that job&rsquo;s definition.
+  </p>
+
+  <p>For example, in the following, for DailyBackup Jobber will send
+    notifications only on job error, while for OffsiteBackup it will send
+    notifications only on job failure:</p>
+
+  <pre>[prefs]
+...
+
+[jobs]
+- name: DailyBackup
+  notifyOnError: true
+  notifyOnFailure: false
+  ...
+
+- name: OffsiteBackup
+  onError: Stop
+  ...</pre>
+
+  <h4 id="notify-programs">Notify Programs</h4>
+
+  <p>
+    Rather than having Jobber notify by sending emails, you can have it call an
+    arbitrary program, called a <strong><dfn>&ldquo;notify program&rdquo;</dfn></strong>.
+  </p>
+
+  <p>
+    To do so, in the
+    <code>prefs</code>
+    section of your jobfile define
+    <code>notifyProgram</code>
+    to be a path to your notify program, thus:
+  </p>
+
+  <pre>[prefs]
+notifyProgram: /home/dylan/myNotifyProgram.sh</pre>
+
+  <p>(Make sure the notify program is executable.)</p>
+
+  <p>When Jobber calls your notify program, it will write to stdin a JSON
+    document like this:</p>
+
+  <pre>{  
+   "job":{  
+      "command":"/home/dylan/some_program",
+      "name":"MyHourlyJob",
+      "notifyOnError":true,
+      "notifyOnFailure":false,
+      "onError":"Stop",
+      "status":"Failed",
+      "time":"0 0 * * * *"
+   },
+   "startTime":"May 29 15:25:10 2017",
+   "stderr":"Some errors\n",
+   "stderr_base64":false,
+   "stdout":"Quotes: \"adf\"\n",
+   "stdout_base64":false,
+   "succeeded":false,
+   "user":"dylan"
+}</pre>
+
+  <p>
+    The fields in the
+    <code>job</code>
+    object are from the job&rsquo;s definition, except for
+    <code>status</code>, which indicates whether and how Jobber will
+    schedule runs of the job in the future.  Its possible values
+    are
+    <code>Good</code>
+    ,
+    <code>Backoff</code>
+    , or
+    <code>Failed</code>
+    .
+  </p>
+
+  <p>
+    <code>stdout</code>
+    (respectively,
+    <code>stderr</code>
+    ) contains whatever the job wrote to stdout (stderr). If
+    <code>stdout_base64</code> (<code>stderr_base64</code>)
+    contains
+    <code>false</code>
+    , then the job wrote only UTF-8 bytes to stdout (stderr), and
+    <code>stdout</code>
+    (
+    <code>stderr</code>
+    ) contains a string with those bytes; otherwise, there were some non-UTF-8
+    bytes and
+    <code>stdout</code>
+    (
+    <code>stderr</code>
+    ) contains a Base64 encoding of the output.
+  </p>
+
+</section>

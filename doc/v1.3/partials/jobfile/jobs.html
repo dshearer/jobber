@@ -1,0 +1,68 @@
+<section>
+  <h3>
+    Section
+    <code>jobs</code>
+  </h3>
+
+  <p>This section defines the user&rsquo;s jobs.</p>
+
+  <p>As stated above, this section must contain a YAML file that defines a
+    sequence of mappings. Each mapping in this sequence defines a job.</p>
+
+  <p>The fields of a job definition:</p>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Value</th>
+        <th>Default Value</th>
+      </tr>
+    </thead>
+    <tfoot></tfoot>
+    <tbody>
+      <tr>
+        <td><code>name</code></td>
+        <td>The name of the job.</td>
+        <td>N/A</td>
+      </tr>
+      <tr>
+        <td><code>cmd</code></td>
+        <td>A shell script that is executed when this job runs. Jobber will
+          use the shell at /bin/sh.</td>
+        <td>N/A</td>
+      </tr>
+      <tr>
+        <td><code>time</code></td>
+        <td>A string specifying when the job should run. See <a
+          href="#time-strings">below</a> for details.
+        </td>
+        <td><code>* * * * * *</code></td>
+      </tr>
+      <tr>
+        <td><code>onError</code></td>
+        <td>A string (<code>Stop</code>, <code>Backoff</code>, or <code>Continue</code>)
+          specifying what should happen when the job has an error. See <a
+          href="#error-handling">below</a> for details.
+        </td>
+        <td><code>Continue</code></td>
+      </tr>
+      <tr>
+        <td><code>notifyOnError</code></td>
+        <td>A string (<code>true</code> or <code>false</code>) specifying
+          whether jobberd should notify when the job has an error. See <a
+          href="#error-handling">below</a> for details.
+        </td>
+        <td><code>false</code></td>
+      </tr>
+      <tr>
+        <td><code>notifyOnFailure</code></td>
+        <td>A string (<code>true</code> or <code>false</code>) specifying
+          whether jobberd should notify when the job fails. See <a
+          href="#error-handling">below</a> for details.
+        </td>
+        <td><code>true</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+</section>

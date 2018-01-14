@@ -1,0 +1,44 @@
+<section>
+  <h3>Keeping a Log of Job Runs</h3>
+
+  <p>
+    The command
+    <code>jobber log</code>
+    prints out info about previous runs. This info &mdash; the
+    <dfn>run log</dfn>
+    &mdash; must be kept somewhere, and you can control this in the
+    <code>prefs</code>
+    section of the jobfile.
+  </p>
+
+  <p>You can chose to have Jobber keep the run log in its memory, or write
+    it to disk. Please note that, if you chose to keep it in memory, it will be
+    lost when the Jobber service stops or restarts.</p>
+
+  <p>Here is an example of keeping the run log in memory:</p>
+  <pre>[prefs]
+runLog:
+    type: memory
+    maxLen: 500</pre>
+
+  <p>With this, Jobber will keep log entries for no more than the 500 most
+    recent runs of any of the user&rsquo;s jobs.</p>
+
+  <p>Here is an example of keeping the run log on disk:</p>
+  <pre>[prefs]
+runLog:
+    type: file
+    path: /var/log/jobber-runs
+    maxFileLen: 100m
+    maxHistories: 2</pre>
+
+  <p>With this, Jobber will write run log entries to /var/log/jobber-runs.
+    /var/log/jobber-runs will grow to no more than 100 MB, and Jobber will
+    rotate it when it gets too big. Jobber will keep up to two of these
+    rotated &ldquo;history&rdquo; files (named &ldquo;jobber-runs.1&rdquo; and
+    &ldquo;jobber-runs.2&rdquo;). When it is necessary to delete a history file,
+    the oldest one will get the axe.</p>
+
+  <p>If the jobfile does not have a <code>runLog</code> entry, then 
+  Jobber&rsquo;s run log is kept in memory, with a maximum length of 100.</p>
+</section>

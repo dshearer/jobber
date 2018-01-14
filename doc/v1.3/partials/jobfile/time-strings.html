@@ -1,0 +1,146 @@
+<section>
+  <h3 id="time-strings">Time Strings</h3>
+
+  <p>
+    Field
+    <code>time</code>
+    specifies the schedule at which a job is run, in a manner similar to how
+    cron jobs&rsquo; schedules are specified: with a space-separated list of up
+    to six specifiers, each one of which constrains a different component of
+    time (second, minute, hour, etc.). Schematically:
+  </p>
+
+  <blockquote>
+    <code>sec min hour month_day month week_day</code>
+  </blockquote>
+
+  <p>
+    <strong>A job is scheduled thus:</strong> the next run time is the time that
+    satisfies the second, minute, hour, and month specifiers and at least one of
+    the month-day and weekday specifiers.
+  </p>
+
+  <p>
+    <strong>Important:</strong> If a specifier is one of the random specifiers
+    (beginning with
+    <code>R</code>
+    ), a random value is chosen when the jobfile is loaded, and stays the same
+    until the jobfile is loaded again.
+  </p>
+
+  <p>Each specifier can take one of the following forms: (&ldquo;a&rdquo;,
+    &ldquo;b&rdquo;, &ldquo;c&rdquo;, and &ldquo;n&rdquo; are placeholders for
+    arbitrary numerals.)</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Specifier Form</th>
+        <th>What It Matches</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>*</code></td>
+        <td>Any value</td>
+      </tr>
+      <tr>
+        <td><code>
+            <var>a</var>
+          </code></td>
+        <td>The value <var>a</var></td>
+      </tr>
+      <tr>
+        <td><code>*/<var>n</var></code></td>
+        <td>Every <var>a</var>-th value &mdash; e.g., <code>*/25</code> in
+          the second specifier would match 0, 25, and 50, whereas in the month
+          specifier it would match 1 and 26.
+        </td>
+      </tr>
+      <tr>
+        <td><code><var>a</var>,<var>b</var>,<var>c</var>,...</code></td>
+        <td>The values <var>a</var>, <var>b</var>, <var>c</var>, ... 
+        &mdash; e.g., <code>10, 20, 30, 40</code> matches 10, 20, 30, and 40.
+        </td>
+      </tr>
+      <tr>
+        <td><code><var>a</var>-<var>b</var></code></td>
+        <td>Any of the values between and including <var>a</var> and 
+        <var>b</var></td>
+      </tr>
+      <tr>
+        <td><code>R</code>
+        <td>A random value</td>
+      </tr>
+      <tr>
+        <td><code>R<var>a</var>-<var>b</var></code>
+        <td>A random value between and including <var>a</var> and 
+        <var>b</var></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>The specifiers have different permitted values for the placeholders in
+    the specifier forms:</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Specifier</th>
+        <th>Values for &ldquo;a&rdquo;, &ldquo;b&rdquo;, and
+          &ldquo;c&rdquo;</th>
+        <th>Values for &ldquo;n&rdquo;</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>sec</td>
+        <td><code>0</code> thru <code>59</code></td>
+        <td><code>1</code> thru <code>59</code></td>
+      </tr>
+      <tr>
+        <td>min</td>
+        <td><code>0</code> thru <code>59</code></td>
+        <td><code>1</code> thru <code>59</code></td>
+      </tr>
+      <tr>
+        <td>hour</td>
+        <td><code>0</code> thru <code>23</code></td>
+        <td><code>1</code> thru <code>23</code></td>
+      </tr>
+      <tr>
+        <td>month_day</td>
+        <td><code>1</code> thru <code>31</code></td>
+        <td><code>1</code> thru <code>30</code></td>
+      </tr>
+      <tr>
+        <td>month</td>
+        <td><code>1</code> thru <code>12</code></td>
+        <td><code>1</code> thru <code>11</code></td>
+      </tr>
+      <tr>
+        <td>week_day</td>
+        <td><code>0</code> thru <code>6</code></td>
+        <td><code>1</code> thru <code>5</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    The default value for
+    <code>time</code>
+    is
+    <code>* * * * * *</code>
+    .
+  </p>
+
+  <aside class="alert alert-warning">
+    Because in a YAML document
+    <code>*</code>
+    has a special meaning at the beginning of an item, if your time string
+    starts with
+    <code>*</code>
+    you must quote the whole string, thus:
+    <code>time: '*/10'</code>
+  </aside>
+</section>

@@ -1,4 +1,4 @@
-var g_versions = [ "1.2", "1.1" ];
+var g_versions = [ "1.3", "1.2", "1.1" ];
 
 /*
  * Make a select control that lists the documented versions and lets the user

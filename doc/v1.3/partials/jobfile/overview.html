@@ -1,0 +1,67 @@
+<p>
+  As with cron, each user can have its own set of jobs, which will be run under
+  that user&rsquo;s privileges. A user&rsquo;s jobs are defined in a
+  <dfn>jobfile</dfn>
+  &mdash; a file named &ldquo;.jobber&rdquo; in the user&rsquo;s home directory.
+  Here's an example that defines two jobs:
+</p>
+
+<pre>[prefs]
+  notifyProgram: /home/foobar/handleError.sh
+
+[jobs]
+- name: DailyBackup
+  cmd: backup daily
+  time: 0 0 13
+  onError: Stop
+  notifyOnError: true
+  notifyOnFailure: false
+
+- name: OffsiteBackup
+  cmd: |
+    mount /backup/offsite
+    mount /backup/linux/weekly
+    backup-offsite /backup/linux/weekly/backup-0 linux || exit 1
+    umount /backup/linux/weekly
+    umount /backup/offsite
+  time: 0 0 14 * * 1
+  onError: Stop</pre>
+
+<p>
+  As shown, there are two sections:
+  <code>prefs</code>
+  and
+  <code>jobs</code>
+  . The contents of both sections are <a href="http://www.yaml.org/">YAML</a>
+  documents.
+</p>
+
+<aside class="alert alert-success">
+  <h4 class="alert-heading">Tip</h4>
+
+  Run
+  <code>jobber init</code>
+  to get started &mdash; it will make a do-nothing jobfile in the current
+  user&rsquo;s home directory with a bunch of helpful comments that explain how to define jobs and
+  other settings.
+</aside>
+
+<aside class="panel panel-default">
+  <div class="panel-body">
+    If you&rsquo;re unfamiliar with YAML: The document in the
+    <code>prefs</code>
+    section contains a mapping with a single entry. The document in the
+    <code>jobs</code>
+    section contains a sequence of two mappings: the two line-initial dashes (
+    <code>-</code>
+    ) mark the beginnings of the two mappings. Within the definition of a
+    particular map, each key (e.g.,
+    <code>name</code>
+    ,
+    <code>cmd</code>
+    ) must be column-aligned. The value for each key in the maps is a string. In
+    this example, the value for the key
+    <code>cmd</code>
+    in the second map is a multi-line string.
+  </div>
+</aside>
