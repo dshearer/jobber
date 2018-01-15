@@ -45,7 +45,7 @@ func MakeCmdExitedChan(cmd *exec.Cmd) <-chan error {
 Returns an unstarted process descriptor.
 */
 func Sudo(usr user.User, cmdStr string) *exec.Cmd {
-	return sudo_cmd(usr.Username, cmdStr, "/bin/sh")
+	return su_cmd(usr.Username, cmdStr, "/bin/sh")
 }
 
 func ExecAndWait(cmd *exec.Cmd, input *[]byte) (*ExecResult, *Error) {
