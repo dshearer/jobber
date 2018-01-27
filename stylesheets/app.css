@@ -5,16 +5,6 @@ dfn {
 body {
   position: relative;
 }
-
-section.main {
-	max-width:700px;
-}
-
-@media (min-width: 769px) {
-	section.main {
-	    margin-left: 5em;
-	}
-}
 	
 footer {
   text-align: center;
