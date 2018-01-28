@@ -14,15 +14,15 @@
   <!-- NAV BAR -->
   <?php makeSubpageNavbar("blog"); ?>
 
-  <header class="container">
-    <h1>Three Years of Go</h1>
-    <p>
-      <small>C. Dylan Shearer | 14 Jan 2018</small>
-    </p>
-  </header>
-
   <!-- MAIN CONTENT -->
-  <div class="container">
+  <article class="container">
+      <header>
+        <h1>Three Years of Go</h1>
+        <p>
+          <small>C. Dylan Shearer | 14 Jan 2018</small>
+        </p>
+      </header>
+      
     <p>I started Jobber more than three years ago. It was this first thing I
       had written in Go, and Jobber&rsquo;s need for threads made it a great
       project for learning this language.</p>
@@ -116,7 +116,7 @@
       , in the style of C++. If nothing else, it&rsquo;s a great way to document
       the side-effects of functions and methods.
     </p>
-  </div>
+  </article>
 
   <!-- FOOTER  -->
   <footer class="small">

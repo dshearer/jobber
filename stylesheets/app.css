@@ -74,3 +74,9 @@ ul.github-link a.github-link {
 .license {
 	font-size: 14px;
 }
+
+article {
+	max-width: 700px;
+	margin-right: auto;
+	margin-left: auto;
+}

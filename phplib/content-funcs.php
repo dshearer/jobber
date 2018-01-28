@@ -16,7 +16,7 @@ function makeSubpageNavbar($currSubpage)
             "title" => "Security"
         ],
         "blog" => [
-            "uri" => "/jobber/blog/2018/01/14/go-review/",
+            "uri" => "/jobber/blog/",
             "title" => "Blog"
         ]
     ];
@@ -41,17 +41,16 @@ function makeSubpageNavbar($currSubpage)
             {
                 $subpage = $subpages[$spId];
                 if ($spId == $currSubpage) {
-                    ?><li class="active">
-                        <a href="#"><?= $subpage["title"] ?></a>
-                      </li>
-                    <?php
+                    ?><li class="active"><?php
                 }
                 else {
-                    ?><li>
-                        <a href="<?= $subpage["uri"] ?>"><?= $subpage["title"] ?></a>
-                      </li>
-                    <?php
+                    ?><li><?php
                 }
+                ?><a href="<?= $subpage["uri"] ?>">
+                    <?= $subpage["title"] ?>
+                  </a>
+                </li>
+                <?php
             }
             ?>
             </ul>

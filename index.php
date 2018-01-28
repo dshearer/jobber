@@ -35,7 +35,7 @@
         <li><a href="/jobber/download/">Download</a></li>
         <li><a href="/jobber/doc/v1.2/">How to Use</a></li>
         <li><a href="/jobber/security/">Security</a></li>
-        <li><a href="/jobber/blog/2018/01/14/go-review/">Blog</a></li>
+        <li><a href="/jobber/blog/">Blog</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right github-link">
         <li><a class="github-link"
