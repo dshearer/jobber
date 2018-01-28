@@ -1,4 +1,10 @@
 <?
+function errExit($msg)
+{
+    echo($msg);
+    exit(1);
+}
+
 function fileExtPos($path)
 {
     $dotPos = strrpos($path, ".");
@@ -20,9 +26,12 @@ function processPhpSrc($path)
     $cmd = PHP_BINARY . " " . $path;
     $proc = proc_open($cmd, $desc, $pipes);
     if (!is_resource($proc)) {
-        die("Failed to spawn PHP subproc\n");
+        errExit("Failed to spawn PHP subproc\n");
     }
-    proc_close($proc);
+    $retval = proc_close($proc);
+    if ($retval !== 0) {
+        errExit("ERROR while making " . $destPath . "\n");
+    }
     echo "Made: " . $destPath . "\n";
 }
 
@@ -45,7 +54,7 @@ function isPhpFile($path)
 // process source files
 function processSrc($srcDir)
 {
-    $files = scandir($srcDir) or die("scandir failed\n");
+    $files = scandir($srcDir) or errExit("scandir failed\n");
     foreach ($files as $file)
     {
         $filePath = $srcDir . "/" . $file;
