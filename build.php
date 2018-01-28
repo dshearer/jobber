@@ -12,10 +12,8 @@ function fileExtPos($path)
 
 function processPhpSrc($path)
 {
-    echo "PHP file: " . $path . "\n";
     $basePath = substr($path, 0, fileExtPos($path));
     $destPath = $basePath . "html";
-    echo "Dest: " . $destPath . "\n";
     $desc = [
         1 => ["file", $destPath, "w"]
     ];
@@ -25,6 +23,7 @@ function processPhpSrc($path)
         die("Failed to spawn PHP subproc\n");
     }
     proc_close($proc);
+    echo "Made: " . $destPath . "\n";
 }
 
 function processNonPhpSrc($path)
@@ -50,7 +49,9 @@ function processSrc($srcDir)
     foreach ($files as $file)
     {
         $filePath = $srcDir . "/" . $file;
-        if ($file == "." || $file == ".." || $file == "build.php") {
+        if ($file == "." || $file == ".." || $file == "build.php" || 
+            strpos($filePath, "phplib") !== FALSE) 
+        {
             continue;
         }
         elseif (is_dir($filePath)) {
@@ -63,9 +64,6 @@ function processSrc($srcDir)
             else {
                 processNonPhpSrc($filePath);
             }
-        }
-        else {
-            echo("Ignoring " . $filePath);
         }
     }
 }

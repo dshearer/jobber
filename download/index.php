@@ -1,3 +1,4 @@
+<?php require("phplib/content-funcs.php"); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -31,36 +32,8 @@
 <body data-spy="scroll" data-target="#toc-container" data-offset="100">
 
   <!-- NAV BAR -->
-        <nav class="navbar navbar-default">
-        <div class="container">
-          <div class="navbar-header">
-            <button type="button" class="navbar-toggle collapsed"
-              data-toggle="collapse" data-target="#navbar-collapse"
-              aria-expanded="false">
-              <span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span>
-              <span class="icon-bar"></span> <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand" href="/jobber/">Jobber</a>
-          </div>
-          <div class="collapse navbar-collapse" id="navbar-collapse">
-            <ul class="nav navbar-nav">
-            <li class="active">
-                        <a href="#">Download</a>
-                      </li>
-                    <li>
-                        <a href="/jobber/doc/v1.2/">How to Use</a>
-                      </li>
-                    <li>
-                        <a href="/jobber/security/">Security</a>
-                      </li>
-                    <li>
-                        <a href="/jobber/blog/2018/01/14/go-review/">Blog</a>
-                      </li>
-                                </ul>
-          </div>
-        </div>
-      </nav>
-    
+  <?php makeSubpageNavbar("download"); ?>
+
   <header class="container">
     <h1>Download Jobber</h1>
   </header>
