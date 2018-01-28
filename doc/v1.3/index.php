@@ -104,7 +104,7 @@ $gSections = [
   <div id="main-container" class="container">
     <div class="row">
 
-      <div class="col-md-2">
+      <div class="col-md-3">
         <div id="toc-container" class="hidden-sm hidden-xs hidden-print"
           data-spy="affix" data-offset-top="150">
           <nav class="nav internal-nav">
@@ -122,7 +122,7 @@ $gSections = [
       </div>
       <!-- col -->
 
-      <section id="main-section" class="col-md-10 main" role="main">
+      <section id="main-section" class="col-md-9 main" role="main">
         <aside class="alert alert-info">
           <h4 class="alert-heading">Attention</h4>
           Version 1.3 is a work-in-progress.  This page documents the
