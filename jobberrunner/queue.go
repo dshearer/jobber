@@ -8,54 +8,6 @@ import (
 	"time"
 )
 
-func monthToInt(m time.Month) int {
-	switch m {
-	case time.January:
-		return 1
-	case time.February:
-		return 2
-	case time.March:
-		return 3
-	case time.April:
-		return 4
-	case time.May:
-		return 5
-	case time.June:
-		return 6
-	case time.July:
-		return 7
-	case time.August:
-		return 8
-	case time.September:
-		return 9
-	case time.October:
-		return 10
-	case time.November:
-		return 11
-	default:
-		return 12
-	}
-}
-
-func weekdayToInt(d time.Weekday) int {
-	switch d {
-	case time.Sunday:
-		return 0
-	case time.Monday:
-		return 1
-	case time.Tuesday:
-		return 2
-	case time.Wednesday:
-		return 3
-	case time.Thursday:
-		return 4
-	case time.Friday:
-		return 5
-	default:
-		return 6
-	}
-}
-
 func nextRunTime(job *jobfile.Job, now time.Time) *time.Time {
 	/*
 	 * We test every second from now till 2 years from now,
@@ -65,15 +17,8 @@ func nextRunTime(job *jobfile.Job, now time.Time) *time.Time {
 
 	var year time.Duration = time.Hour * 24 * 365
 	var max time.Time = now.Add(2 * year)
-	timeSpec := job.FullTimeSpec
 	for next := now; next.Before(max); next = next.Add(time.Second) {
-		a := timeSpec.Sec.Satisfied(next.Second()) &&
-			timeSpec.Min.Satisfied(next.Minute()) &&
-			timeSpec.Hour.Satisfied(next.Hour()) &&
-			timeSpec.Wday.Satisfied(weekdayToInt(next.Weekday())) &&
-			timeSpec.Mday.Satisfied(next.Day()) &&
-			timeSpec.Mon.Satisfied(monthToInt(next.Month()))
-		if a {
+		if job.FullTimeSpec.Satisfied(next) {
 			return &next
 		}
 	}
