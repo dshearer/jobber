@@ -47,14 +47,14 @@ var TestCases []TestCase = []TestCase{
 	},
 
 	TestCase{
-		"12 5 14 4 * 1",             // every Monday that is on the 4th at 2:05:12 PM
+		"12 5 14 5 * 1",             // every day that is a Monday or the 5th of the month at 2:05:12 PM
 		myDate(2016, 1, 1, 0, 0, 0), // start on 1 Jan 2016
 		[]time.Time{
 			myDate(2016, 1, 4, 14, 5, 12),
-			myDate(2016, 4, 4, 14, 5, 12),
-			myDate(2016, 7, 4, 14, 5, 12),
-			myDate(2017, 9, 4, 14, 5, 12),
-			myDate(2017, 12, 4, 14, 5, 12),
+			myDate(2016, 1, 5, 14, 5, 12),
+			myDate(2016, 1, 11, 14, 5, 12),
+			myDate(2016, 1, 18, 14, 5, 12),
+			myDate(2016, 1, 25, 14, 5, 12),
 		},
 	},
 

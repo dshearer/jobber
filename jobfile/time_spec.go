@@ -7,15 +7,65 @@ import (
 	"github.com/dshearer/jobber/common"
 	"math/rand"
 	"strings"
+	"time"
 )
 
 const (
 	TimeWildcard = "*"
 )
 
+func monthToInt(m time.Month) int {
+	switch m {
+	case time.January:
+		return 1
+	case time.February:
+		return 2
+	case time.March:
+		return 3
+	case time.April:
+		return 4
+	case time.May:
+		return 5
+	case time.June:
+		return 6
+	case time.July:
+		return 7
+	case time.August:
+		return 8
+	case time.September:
+		return 9
+	case time.October:
+		return 10
+	case time.November:
+		return 11
+	default:
+		return 12
+	}
+}
+
+func weekdayToInt(d time.Weekday) int {
+	switch d {
+	case time.Sunday:
+		return 0
+	case time.Monday:
+		return 1
+	case time.Tuesday:
+		return 2
+	case time.Wednesday:
+		return 3
+	case time.Thursday:
+		return 4
+	case time.Friday:
+		return 5
+	default:
+		return 6
+	}
+}
+
 type TimeSpec interface {
 	fmt.Stringer
 	Satisfied(int) bool
+	IsWildcard() bool
 }
 
 type FullTimeSpec struct {
@@ -54,7 +104,36 @@ func (self *FullTimeSpec) Derandomize() {
 	}
 }
 
+func (self *FullTimeSpec) Satisfied(t time.Time) bool {
+	nondayMatch := self.Sec.Satisfied(t.Second()) &&
+		self.Min.Satisfied(t.Minute()) &&
+		self.Hour.Satisfied(t.Hour()) &&
+		self.Mon.Satisfied(monthToInt(t.Month()))
+
+	/*
+	   - If Mday and Wday are wildcards, then both must be satisfied.
+	   - If exactly one of Mday and Wday is a wildcard, then both must
+	   be satisfied.
+	   - If neither Mday nor Wday is a wildcard, then either must be
+	   satisfied.
+	*/
+	dayMatch := false
+	if !self.Mday.IsWildcard() && !self.Wday.IsWildcard() {
+		dayMatch = self.Wday.Satisfied(weekdayToInt(t.Weekday())) ||
+			self.Mday.Satisfied(t.Day())
+	} else {
+		dayMatch = self.Wday.Satisfied(weekdayToInt(t.Weekday())) &&
+			self.Mday.Satisfied(t.Day())
+	}
+
+	return nondayMatch && dayMatch
+}
+
 type WildcardTimeSpec struct{}
+
+func (self *WildcardTimeSpec) IsWildcard() bool {
+	return true
+}
 
 func (self *WildcardTimeSpec) String() string {
 	return "*"
@@ -68,6 +147,10 @@ type OneValTimeSpec struct {
 	val int
 }
 
+func (self *OneValTimeSpec) IsWildcard() bool {
+	return false
+}
+
 func (self *OneValTimeSpec) String() string {
 	return fmt.Sprintf("%v", self.val)
 }
@@ -79,6 +162,10 @@ func (self *OneValTimeSpec) Satisfied(v int) bool {
 type SetTimeSpec struct {
 	desc string
 	vals []int
+}
+
+func (self *SetTimeSpec) IsWildcard() bool {
+	return false
 }
 
 func (self *SetTimeSpec) String() string {
@@ -103,6 +190,10 @@ type RandomTimeSpec struct {
 	desc      string
 	vals      []int
 	pickedVal *int
+}
+
+func (self *RandomTimeSpec) IsWildcard() bool {
+	return false
 }
 
 func (self *RandomTimeSpec) String() string {
