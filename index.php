@@ -33,7 +33,7 @@
     <div class="container">
       <ul class="nav navbar-nav">
         <li><a href="/jobber/download/">Download</a></li>
-        <li><a href="/jobber/doc/v1.2/">How to Use</a></li>
+        <li><a href="/jobber/doc/v1.3/">How to Use</a></li>
         <li><a href="/jobber/security/">Security</a></li>
         <li><a href="/jobber/blog/">Blog</a></li>
       </ul>

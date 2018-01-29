@@ -32,11 +32,13 @@
     Then:</p>
 
   <pre>cd /path/to/your/workspace
-go get -u github.com/dshearer/jobber
-cd src/github.com/dshearer/jobber
-git checkout v1.3-pr.1
+mkdir -p src/github.com/dshearer
+cd src/github.com/dshearer
+git clone https://github.com/dshearer/jobber.git
+cd jobber
+git checkout v1.3.0
 make check
-sudo make install DESTDIR=/usr/local/</pre>
+sudo make install DESTDIR=/</pre>
 
   <p>This will install the following:</p>
   <ul>
