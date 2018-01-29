@@ -44,10 +44,7 @@ main :
 	@echo "Choose pkg-local or pkg-vm or test-vm or play-vm"
 
 .PHONY : pkg-vm
-pkg-vm : .vm-is-running ${DESTDIR}${PKGFILE}	
-	# stop VM
-	vagrant suspend
-	rm -f .vm-is-running
+pkg-vm : .vm-is-running ${DESTDIR}${PKGFILE}
 
 .vm-is-created :
 	@# NOTE: We do 'vagrant reload' b/c some packages may need a restart
