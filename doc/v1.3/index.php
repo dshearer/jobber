@@ -123,12 +123,6 @@ $gSections = [
       <!-- col -->
 
       <section id="main-section" class="col-md-9 main" role="main">
-        <aside class="alert alert-info">
-          <h4 class="alert-heading">Attention</h4>
-          Version 1.3 is a work-in-progress.  This page documents the
-          behavior as of Preview Release 1.
-        </aside>
-        
         <?php makeDocSections($gSections); ?>
       </section>
     </div>

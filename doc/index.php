@@ -36,11 +36,11 @@
   <div class="container">
     <h1>How to Use Jobber</h1>
 
-    <a href="/jobber/doc/v1.1/" class="btn btn-primary">v1.1</a> 
-    <a
-      href="/jobber/doc/v1.2/" class="btn btn-primary">v1.2</a>
     <a
       href="/jobber/doc/v1.3/" class="btn btn-primary">v1.3</a>
+    <a
+      href="/jobber/doc/v1.2/" class="btn btn-primary">v1.2</a>
+    <a href="/jobber/doc/v1.1/" class="btn btn-primary">v1.1</a> 
   </div>
 </body>
 </html>

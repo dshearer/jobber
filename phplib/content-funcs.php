@@ -8,7 +8,7 @@ function makeSubpageNavbar($currSubpage)
             "title" => "Download"
         ],
         "doc" => [
-            "uri" => "/jobber/doc/v1.2/",
+            "uri" => "/jobber/doc/v1.3/",
             "title" => "How to Use"
         ],
         "security" => [

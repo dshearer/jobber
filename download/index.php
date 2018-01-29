@@ -60,20 +60,19 @@
     <section id="downloading">
       <h2>Downloading</h2>
 
-      <h3>Stable</h3>
-      <p>The latest release is v1.2.1, which was made on 28 Dec 2017.</p>
-      <p><a href="https://github.com/dshearer/jobber/releases/tag/v1.2.1">Release notes.</a>
+      <p>The latest release is v1.3.0, which was made on 28 Jan 2018.</p>
+      <p><a href="https://github.com/dshearer/jobber/releases/tag/v1.3.0">Release notes.</a>
 
       <table class="table">
         <caption>Source</caption>
         <tr>
           <td><a
-            href="https://api.github.com/repos/dshearer/jobber/tarball/v1.2.1">
-              <span class="fa fa-download" aria-hidden="true">&nbsp;</span>v1.2.1.tar
+            href="https://api.github.com/repos/dshearer/jobber/tarball/v1.3.0">
+              <span class="fa fa-download" aria-hidden="true">&nbsp;</span>v1.3.0.tar
           </a></td>
           <td><a
-            href="https://api.github.com/repos/dshearer/jobber/zipball/v1.2.1">
-              <span class="fa fa-download" aria-hidden="true">&nbsp;</span>v1.2.1.zip
+            href="https://api.github.com/repos/dshearer/jobber/zipball/v1.3.0">
+              <span class="fa fa-download" aria-hidden="true">&nbsp;</span>v1.3.0.zip
           </a></td>
         </tr>
       </table>
@@ -92,80 +91,8 @@
         <tbody>
           <tr>
             <td><a
-              href="https://github.com/dshearer/jobber/releases/download/v1.2.1/jobber-1.2.1-1.el6.centos.x86_64.rpm">
-                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.2.1-1.el6.centos.x86_64.rpm
-            </a></td>
-            <td>RHEL/CentOS 6</td>
-            <td>x86_64</td>
-            <td>3.77 MB</td>
-          </tr>
-          <tr>
-            <td><a
-              href="https://github.com/dshearer/jobber/releases/download/v1.2.1/jobber-1.2.1-1.el7.centos.x86_64.rpm">
-                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.2.1-1.el7.centos.x86_64.rpm
-            </a></td>
-            <td>RHEL/CentOS 7</td>
-            <td>x86_64</td>
-            <td>3.73 MB</td>
-          </tr>
-          <tr>
-            <td><a
-              href="https://github.com/dshearer/jobber/releases/download/v1.2.1/jobber-1.2.1-r0.apk">
-                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.2.1-r0.apk
-            </a></td>
-            <td>Alpine Linux</td>
-            <td>x86_64</td>
-            <td>4.49 MB</td>
-          </tr>
-          <tr>
-            <td><a
-              href="https://github.com/dshearer/jobber/releases/download/v1.2.1/jobber_1.2.1-1_amd64.deb">
-                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>
-                jobber_1.2.1-1_amd64.deb
-            </a></td>
-            <td>Debian 9/Ubuntu 16</td>
-            <td>x86_64</td>
-            <td>2.02 MB</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h3>Preview</h3>
-
-      <p>The latest preview release is v1.3.0-pr.1, which was made on 13 Jan
-        2018.</p>
-      <p><a href="https://github.com/dshearer/jobber/releases/tag/v1.3.0-pr.1">Release notes.</a>
-
-      <table class="table">
-        <caption>Source</caption>
-        <tr>
-          <td><a
-            href="https://api.github.com/repos/dshearer/jobber/tarball/v1.3.0-pr.1">
-              <span class="fa fa-download" aria-hidden="true">&nbsp;</span>v1.3.0-pr.1.tar
-          </a></td>
-          <td><a
-            href="https://api.github.com/repos/dshearer/jobber/zipball/v1.3.0-pr.1">
-              <span class="fa fa-download" aria-hidden="true">&nbsp;</span>v1.3.0-pr.1.zip
-          </a></td>
-        </tr>
-      </table>
-
-      <table class="table">
-        <caption>Binary Packages</caption>
-        <thead>
-          <tr>
-            <th>File</th>
-            <th>OS</th>
-            <th>Platform</th>
-            <th>Size</th>
-          </tr>
-        </thead>
-        <tfoot></tfoot>
-        <tbody>
-          <tr>
-            <td><a
-              href="https://github.com/dshearer/jobber/releases/download/v1.3.0-pr.1/jobber-1.3.0_pr.1-1.el6.centos.x86_64.rpm">
-                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.3.0_pr.1-1.el6.centos.x86_64.rpm
+              href="https://github.com/dshearer/jobber/releases/download/v1.3.0/jobber-1.3.0-1.el6.centos.x86_64.rpm">
+                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.3.0-1.el6.centos.x86_64.rpm
             </a></td>
             <td>RHEL/CentOS 6</td>
             <td>x86_64</td>
@@ -173,8 +100,8 @@
           </tr>
           <tr>
             <td><a
-              href="https://github.com/dshearer/jobber/releases/download/v1.3.0-pr.1/jobber-1.3.0_pr.1-1.el7.centos.x86_64.rpm">
-                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.3.0_pr.1-1.el7.centos.x86_64.rpm
+              href="https://github.com/dshearer/jobber/releases/download/v1.3.0/jobber-1.3.0-1.el7.centos.x86_64.rpm">
+                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.3.0-1.el7.centos.x86_64.rpm
             </a></td>
             <td>RHEL/CentOS 7</td>
             <td>x86_64</td>
@@ -182,13 +109,42 @@
           </tr>
           <tr>
             <td><a
-              href="https://github.com/dshearer/jobber/releases/download/v1.3.0-pr.1/jobber_1.3.0-pr.1-1_amd64.deb">
-                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>
-                jobber_1.3.0-pr.1-1_amd64.deb
+              href="https://github.com/dshearer/jobber/releases/download/v1.3.0/jobber-1.3.0-r0_alpine3.6and3.7.apk">
+                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>jobber-1.3.0-r0_alpine3.6and3.7.apk
             </a></td>
-            <td>Debian 9/Ubuntu 16</td>
+            <td>Alpine Linux 3.6/3.7</td>
             <td>x86_64</td>
-            <td>2.46 MB</td>
+            <td>5.55 MB</td>
+          </tr>
+          <tr>
+            <td><a
+              href="https://github.com/dshearer/jobber/releases/download/v1.3.0/jobber_1.3.0-1_amd64_deb9.deb">
+                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>
+                jobber_1.3.0-1_amd64_deb9.deb
+            </a></td>
+            <td>Debian 9</td>
+            <td>x86_64</td>
+            <td>2.47 MB</td>
+          </tr>
+          <tr>
+            <td><a
+              href="https://github.com/dshearer/jobber/releases/download/v1.3.0/jobber_1.3.0-1_amd64_ubuntu14.deb">
+                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>
+                jobber_1.3.0-1_amd64_ubuntu14.deb
+            </a></td>
+            <td>Ubuntu 14</td>
+            <td>x86_64</td>
+            <td>3.02 MB</td>
+          </tr>
+          <tr>
+            <td><a
+              href="https://github.com/dshearer/jobber/releases/download/v1.3.0/jobber_1.3.0-1_amd64_ubuntu16.deb">
+                <span class="fa fa-download" aria-hidden="true">&nbsp;</span>
+                jobber_1.3.0-1_amd64_ubuntu16.deb
+            </a></td>
+            <td>Ubuntu 16</td>
+            <td>x86_64</td>
+            <td>3.01 MB</td>
           </tr>
         </tbody>
       </table>
