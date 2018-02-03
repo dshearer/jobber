@@ -51,6 +51,8 @@ func NewEmptyJobFile() *JobFile {
 	}
 }
 
+const gBadJobfilePerms os.FileMode = 0022
+
 func ShouldLoadJobfile(f *os.File, usr *user.User) (bool, error) {
 	// check jobfile's owner
 	ownsFile, err := common.UserOwnsFileF(usr, f)
@@ -67,9 +69,12 @@ func ShouldLoadJobfile(f *os.File, usr *user.User) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if stat.Mode().Perm()&0022 > 0 {
-		msg := fmt.Sprintf("Jobfile has bad permissions: %v",
-			stat.Mode().Perm())
+	if stat.Mode().Perm()&gBadJobfilePerms > 0 {
+		msg := fmt.Sprintf(
+			"Jobfile has bad permissions: %v. Problematic perms: %v",
+			stat.Mode().Perm(),
+			stat.Mode().Perm()&gBadJobfilePerms,
+		)
 		return false, &common.Error{What: msg}
 	}
 
