@@ -87,58 +87,20 @@ func (self *JobManager) findJobs(names []string) ([]*jobfile.Job, error) {
 }
 
 /*
-Replaces in-memory jobfile with the current version on disk.  If there
-is no jobfile on disk, sets in-memory jobfile to an empty jobfile.  In
-both cases, restarts the job-runner thread and sets the loggers.
-
-If an error happens when trying to read the on-disk jobfile, does not
-change the in-memory jobfile, and returns that error.
+Stop the job-runner thread, replace the current jobfile with the given
+one, then start the job-runner thread.
 */
-func (self *JobManager) loadJobfile() error {
-
-	// get current user
-	usr, err := user.Current()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to get current user: %v", err))
-	}
-
-	var jfile *jobfile.JobFile
-
-	// open jobfile
-	f, err := os.Open(self.jobfilePath)
-	if err != nil && os.IsNotExist(err) {
-		/* This is not an error. */
-		jfile = jobfile.NewEmptyJobFile()
-	} else {
-		defer f.Close()
-
-		// check jobfile
-		flag, err := jobfile.ShouldLoadJobfile(f, usr)
-		if !flag {
-			/* This is an error. */
-			msg := fmt.Sprintf("Failed to read jobfile %v",
-				self.jobfilePath)
-			return &common.Error{What: msg, Cause: err}
+func (self *JobManager) replaceCurrJobfile(jfile *jobfile.JobFile) {
+	if self.jobRunner.Running {
+		// stop job-runner thread and wait for current runs to end
+		common.Logger.Println("Stopping job-runner thread...")
+		self.jobRunner.Cancel()
+		for rec := range self.jobRunner.RunRecChan() {
+			self.handleRunRec(rec)
 		}
-
-		// read jobfile
-		jfile, err = jobfile.LoadJobfile(f, usr)
-		if err != nil {
-			/* This is an error */
-			msg := fmt.Sprintf("Failed to read jobfile %v",
-				self.jobfilePath)
-			return &common.Error{What: msg, Cause: err}
-		}
+		self.jobRunner.Wait()
+		common.Logger.Println("done")
 	}
-
-	// stop job-runner thread and wait for current runs to end
-	common.Logger.Println("Stopping job-runner thread...")
-	self.jobRunner.Cancel()
-	for rec := range self.jobRunner.RunRecChan() {
-		self.handleRunRec(rec)
-	}
-	self.jobRunner.Wait()
-	common.Logger.Println("done")
 
 	// set jobfile
 	self.jfile = jfile
@@ -150,12 +112,87 @@ func (self *JobManager) loadJobfile() error {
 		common.LogToStdoutStderr()
 	}
 
-	// restart job-runner thread
+	// start job-runner thread
 	common.Logger.Println("Starting job-runner thread...")
 	self.jobRunner.Start(self.jfile.Jobs, self.Shell)
 	common.Logger.Println("done")
+}
 
-	return nil
+func (self *JobManager) openJobfile(path string,
+	usr *user.User) (*jobfile.JobFile, error) {
+
+	// open jobfile
+	f, err := os.Open(self.jobfilePath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	// check jobfile
+	jobfileGood, err := jobfile.ShouldLoadJobfile(f, usr)
+	if !jobfileGood {
+		return nil, err
+	}
+
+	// read jobfile
+	return jobfile.LoadJobfile(f, usr)
+}
+
+/*
+Replaces in-memory jobfile with the current version on disk.  If there
+is no jobfile on disk, sets in-memory jobfile to an empty jobfile.  In
+both cases, restarts the job-runner thread and sets the loggers.
+
+If an error happens when trying to read the on-disk jobfile, does not
+change the in-memory jobfile, and returns that error.
+*/
+func (self *JobManager) loadJobfile() error {
+
+	/*
+			   If there is no jobfile:
+			       1. Stop job-runner thread
+			       2. Replace current jobfile with empty one
+			       3. Start job-runner thread
+
+			   If there is a jobfile with no errors:
+			       1. Stop job-runner thread
+			       2. Replace current jobfile with new one
+			       3. Start job-runner thread
+
+			   If there is a jobfile but it has an error:
+		        	   1. If job-runner thread is not running, start it
+		        	   2. Return the error
+	*/
+
+	// get current user
+	usr, err := user.Current()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get current user: %v", err))
+	}
+
+	// open jobfile
+	jfile, err := self.openJobfile(self.jobfilePath, usr)
+
+	if err == nil || os.IsNotExist(err) {
+		if jfile == nil {
+			jfile = jobfile.NewEmptyJobFile()
+		}
+		self.replaceCurrJobfile(jfile)
+		return nil
+
+	} else {
+		if !self.jobRunner.Running {
+			// start job-runner thread
+			common.Logger.Println("Starting job-runner thread...")
+			self.jobRunner.Start(self.jfile.Jobs, self.Shell)
+			common.Logger.Println("done")
+		}
+
+		// report error
+		msg := fmt.Sprintf("Failed to read jobfile %v",
+			self.jobfilePath)
+		return &common.Error{What: msg, Cause: err}
+	}
 }
 
 func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
