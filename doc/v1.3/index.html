@@ -206,6 +206,15 @@ sudo make install DESTDIR=/</pre>
   that user&rsquo;s privileges. A user&rsquo;s jobs are defined in a
   <dfn>jobfile</dfn>
   &mdash; a file named &ldquo;.jobber&rdquo; in the user&rsquo;s home directory.
+</p>
+
+<p class="alert alert-info">IMPORTANT: Jobfiles must be owned
+by the user who owns the home directory that contains them, and their
+permissions must not allow the owning group or any other users to write
+to them (i.e., the permission bits must exclude 022). 
+</p>
+  
+<p>
   Here's an example that defines two jobs:
 </p>
 
