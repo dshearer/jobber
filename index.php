@@ -1,6 +1,9 @@
+<?php
+require("phplib/releases.php");
+$release = latestRelease();
+?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 <?php require("phplib/partials/head.html"); ?>
 
@@ -22,7 +25,7 @@
         <div class="fa fa-arrow-circle-o-down fa-2x pull-left"
           aria-hidden="true"></div>
         <div class="pull-right">
-          Get Jobber <span class="banner-btn-details">1.3.0 | 28 Jan 2018</span>
+          Get Jobber <span class="banner-btn-details"><?= $release["name"] ?> | <?= $release["date"] ?></span>
         </div>
       </a>
     </div>
