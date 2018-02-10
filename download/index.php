@@ -68,22 +68,20 @@ $release = latestRelease();
       on <?= $release["date"] ?>.</p>
       
       <p><a href="<?= $release["rel_notes_url"] ?>">Release notes.</a>
-
-      <table class="table">
-        <caption>Source</caption>
-        <tr>
+      
+      <h3>Source</h3>
+      <ul>
           <?php foreach (["tarball", "zipball"] as $src) { ?>
-          <td>
+          <li>
           <a href="<?= $release["{$src}_url"] ?>">
             <span class="fa fa-download" aria-hidden="true">&nbsp;</span><?= $src ?>
           </a>
-          </td>
+          </li>
           <?php } ?>
-        </tr>
-      </table>
-
+      </ul>
+      
+      <h3>Binary Packages</h3>
       <table class="table">
-        <caption>Binary Packages</caption>
         <thead>
           <tr>
             <th>OS</th>
@@ -108,6 +106,20 @@ $release = latestRelease();
           <?php } ?>
         </tbody>
       </table>
+      
+      <h3>Docker Images</h3>
+      
+      <p>Docker images containing Jobber are available on
+      <a href="https://hub.docker.com/r/dshearer/jobber/">Docker Hub</a>.</p>
+      
+      <pre>docker pull dshearer/jobber</pre>
+      
+      <p>These images contain Jobber running for a single user named
+      &ldquo;jobberuser&rdquo;, using the jobfile at /home/jobberuser/.jobber
+      (in the images' filesystems). To use one of them, create an image
+      based on it and replace /home/jobberuser/.jobber with your own
+      custom jobfile.</p>
+      
     </section>
   </div>
   <!-- main content -->
