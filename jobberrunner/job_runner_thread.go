@@ -10,7 +10,7 @@ import (
 )
 
 type JobRunnerThread struct {
-	running            bool
+	Running            bool
 	runRecChan         chan *jobfile.RunRec
 	mainThreadDoneChan chan interface{}
 	ctxCancel          context.CancelFunc
@@ -18,7 +18,7 @@ type JobRunnerThread struct {
 
 func NewJobRunnerThread() *JobRunnerThread {
 	jr := JobRunnerThread{
-		running:    false,
+		Running:    false,
 		runRecChan: make(chan *jobfile.RunRec),
 	}
 	close(jr.runRecChan)
@@ -31,10 +31,10 @@ func (self *JobRunnerThread) RunRecChan() <-chan *jobfile.RunRec {
 
 func (self *JobRunnerThread) Start(jobs []*jobfile.Job, shell string) {
 
-	if self.running {
+	if self.Running {
 		panic("JobRunnerThread already running.")
 	}
-	self.running = true
+	self.Running = true
 
 	self.mainThreadDoneChan = make(chan interface{})
 
@@ -87,7 +87,7 @@ func (self *JobRunnerThread) Cancel() {
 	common.Logger.Println("JobRunner: cancelling")
 	if self.ctxCancel != nil {
 		self.ctxCancel()
-		self.running = false
+		self.Running = false
 	}
 }
 

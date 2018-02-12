@@ -1,48 +1,40 @@
-DESTDIR ?= ./
-SRC_ROOT := $(abspath ../..)
-DOCKER_IMAGE_NAME = jobber/alpine3.6_build_pkg
-PLATFORM = $(shell uname -i)
-PKGREL = $(shell cat pkgrel)
-VERSION = $(shell cat "${SRC_ROOT}/version")
+include ../head.mk
 
-.PHONY : main
-main :
-	@echo "Choose pkg-local or pkg-docker"
+PKGREL := $(shell cat pkgrel)
+PLATFORM = x86_64
 
-.PHONY : pkg-docker
-pkg-docker : jobber.tgz
-	# run VM
-	cp jobber.tgz docker/
-	docker build -t "${DOCKER_IMAGE_NAME}" docker
-	docker run "${DOCKER_IMAGE_NAME}"
-	
-	# extract package from VM
-	docker cp "`docker ps -alq`:/output/pkgs.tgz" "${DESTDIR}"
-	tar -C "${DESTDIR}" -xmzf "${DESTDIR}pkgs.tgz"
-	rm -f "${DESTDIR}pkgs.tgz"
+# Alpine doesn't allow hyphens in version numbers
+ALPINE_VERSION = ${shell echo ${VERSION} | sed -e 's/\-/_/' | sed -e 's/pr./rc/'}
+
+# required by tail.mk:
+PKGFILE = jobber-${ALPINE_VERSION}-r${PKGREL}.apk
+PKGFILE_DEPS = \
+	APKBUILD \
+	jobber.initd \
+	jobber.post-deinstall \
+	jobber.post-install \
+	jobber.post-upgrade \
+	jobber.pre-deinstall \
+	pkgrel
+PKGFILE_VM_PATH = ${PKGFILE}
+PACKAGING_SUBDIR = alpine_3.6
+INSTALL_PKG_CMD = apk add --allow-untrusted ${PKGFILE}
+UNINSTALL_PKG_CMD = apk remove jobber
+SRC_TARBALL = jobber.tgz
+SRC_TARBALL_DIR = jobber
 
 .PHONY : pkg-local
-pkg-local : pkgrel jobber.tgz
+pkg-local : ${WORK_DIR}/${SRC_TARBALL} ${PKGFILE_DEPS}
 	# make package
-	ln -s $(abspath jobber.tgz) /var/cache/distfiles/jobber.tgz
-	abuild-keygen -a
+	cp ${WORK_DIR}/${SRC_TARBALL} ./
+	echo "" | abuild-keygen -a
 	abuild checksum
-	env "pkgrel=${PKGREL}" "pkgver=${VERSION}" abuild -r
+	env "pkgrel=${PKGREL}" "pkgver=${ALPINE_VERSION}" abuild -r
 	
-	# make pkgs.tgz
+	# copy package out of VM
 	find "${HOME}/packages/packaging" -name "*.apk" -exec cp '{}' "${DESTDIR}" ';'
-	
-jobber.tgz :
-	# make source package
-	make -C "${SRC_ROOT}" "DESTDIR=$(abspath .)/" dist DIST_PKG_NAME=jobber
 
-.PHONY : clean
-clean :
-	rm -f jobber.tgz docker/jobber.tgz "${DESTDIR}"*.apk
+include ../tail.mk
 
-.PHONY : clean-docker
-clean-docker :
-	-abuild clean
-	-abuild cleanoldpkg
-	-abuild cleanpkg
-	-abuild cleancache
+test-vm :
+	@echo "Cannot test on Alpine"
