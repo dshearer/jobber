@@ -2,12 +2,13 @@ package jobfile
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var gUserEx = user.User{Username: "bob", HomeDir: "/home/bob"}
@@ -141,7 +142,7 @@ notifyProgram: ~/handleError
   notifyOnError: false
   notifyOnFailure: false
   notifyOnSuccess: true
-  
+
 # So many comments...
 `
 
@@ -203,6 +204,7 @@ var gLegacyJobFile = JobFile{
 type JobFileTestCase struct {
 	Input  string
 	Output JobFile
+	Error  bool
 }
 
 var gFileRunLog, _ = NewFileRunLog(
@@ -268,6 +270,17 @@ runLog:
 		},
 	},
 	{
+		Input: `
+[prefs]
+runLog:
+    type: file
+    path: /dir/does/not/exist/claudius
+    maxFileLen: 10m
+    maxHistories: 20
+`,
+		Error: true,
+	},
+	{
 		Input: `[prefs]
 logPath: /my/log/path
 `,
@@ -298,6 +311,16 @@ logPath: my/log/path
 				LogPath: "",
 			},
 		},
+	},
+	{
+		Input: `[badSection]
+`,
+		Error: true,
+	},
+	{
+		Input: `[unparseable
+`,
+		Error: true,
 	},
 }
 
@@ -411,6 +434,12 @@ func TestLoadJobFile(t *testing.T) {
 		/*
 		 * Test
 		 */
+
+		if testCase.Error {
+			/* We expect error */
+			require.NotNil(t, err, "Expected error, but didn't get one")
+			continue
+		}
 
 		require.Nil(t, err, "%v", err)
 		require.NotNil(t, file)
