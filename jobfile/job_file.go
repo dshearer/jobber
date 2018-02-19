@@ -3,14 +3,15 @@ package jobfile
 import (
 	"bufio"
 	"fmt"
-	"github.com/dshearer/jobber/common"
-	"gopkg.in/yaml.v2"
 	"os"
 	"os/user"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/dshearer/jobber/common"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -104,6 +105,13 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 			Notifier: MakeMailNotifier(),
 			RunLog:   NewMemOnlyRunLog(100),
 		},
+	}
+
+	// check for invalid sections
+	for sectName, _ := range sections {
+		if sectName != PrefsSectName && sectName != JobsSectName {
+			return nil, &common.Error{What: fmt.Sprintf("Invalid section: %v", sectName)}
+		}
 	}
 
 	// parse "prefs" section
