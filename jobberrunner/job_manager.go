@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/dshearer/jobber/common"
-	"github.com/dshearer/jobber/jobfile"
 	"os"
 	"os/user"
 	"strings"
+
+	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/jobfile"
 )
 
 type JobManager struct {
@@ -131,11 +132,23 @@ func (self *JobManager) openJobfile(path string,
 	// check jobfile
 	jobfileGood, err := jobfile.ShouldLoadJobfile(f, usr)
 	if !jobfileGood {
-		return nil, err
+		if os.IsNotExist(err) {
+			return nil, &common.Error{What: "Problem with jobfile", Cause: err}
+		} else {
+			return nil, err
+		}
 	}
 
 	// read jobfile
-	return jobfile.LoadJobfile(f, usr)
+	jobfile, err := jobfile.LoadJobfile(f, usr)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, &common.Error{What: "Problem with jobfile", Cause: err}
+		} else {
+			return nil, err
+		}
+	}
+	return jobfile, nil
 }
 
 /*
@@ -189,9 +202,7 @@ func (self *JobManager) loadJobfile() error {
 		}
 
 		// report error
-		msg := fmt.Sprintf("Failed to read jobfile %v",
-			self.jobfilePath)
-		return &common.Error{What: msg, Cause: err}
+		return err
 	}
 }
 

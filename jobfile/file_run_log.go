@@ -2,7 +2,6 @@ package jobfile
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"io"
 	"io/ioutil"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dshearer/jobber/common"
 )
 
 /*
@@ -605,9 +606,13 @@ func (self *fileRunLog) GetFromIndex(minIdx int, idxArr ...int) (
 }
 
 func (self *fileRunLog) GetAll() ([]*RunLogEntry, error) {
+	if self.Len() == 0 {
+		return nil, nil
+	}
+
+	var result []*RunLogEntry
 	iter := self.iterAt(0)
 	defer iter.close()
-	var result []*RunLogEntry
 	for !iter.done() {
 		entry, err := iter.next()
 		if err != nil {

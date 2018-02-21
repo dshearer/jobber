@@ -12,7 +12,6 @@ func (self *JobManager) doLogCmd(cmd common.LogCmd) {
 	entries, err := self.jfile.Prefs.RunLog.GetAll()
 	if err != nil {
 		cmd.RespChan <- &common.LogCmdResp{Err: err}
-		close(cmd.RespChan)
 		return
 	}
 	for _, l := range entries {
