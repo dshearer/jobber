@@ -13,7 +13,7 @@ MAIN_SOURCES := \
 	${CLIENT_SOURCES} \
 	${MASTER_SOURCES} \
 	${RUNNER_SOURCES}
-	
+
 TEST_SOURCES := \
 	${COMMON_TEST_SOURCES} \
 	${JOBFILE_TEST_SOURCES} \
@@ -24,9 +24,10 @@ TEST_SOURCES := \
 GO_SOURCES := \
 	${MAIN_SOURCES} \
 	${TEST_SOURCES}
-	
+
 OTHER_SOURCES := \
-	Godeps \
+	Gopkg.lock \
+	Gopkg.toml \
 	LICENSE \
 	Makefile \
 	mk \
