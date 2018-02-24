@@ -15,7 +15,6 @@ SRC_TARBALL = jobber-$(shell cat ${srcdir}/version).tgz
 SRC_TARBALL_DIR = jobber-$(shell cat ${srcdir}/version)
 
 GO = GOPATH=${GO_WKSPC} go
-GODEP = GOPATH=${GO_WKSPC} godep
 
 GO_VERSION = 1.8
 
@@ -85,7 +84,7 @@ dist :
 		"${SRC_TARBALL_DIR}"
 	rm -rf "${DESTDIR}dist-tmp"
 
-${GO_WKSPC}/bin/% : ${MAIN_SOURCES} jobfile/parse_time_spec.go	
+${GO_WKSPC}/bin/% : ${MAIN_SOURCES} jobfile/parse_time_spec.go
 	@${srcdir}/buildtools/versionge "$$(go version | egrep --only-matching '[[:digit:].]+' | head -n 1)" "${GO_VERSION}"
 	@echo BUILD $*
 	@${GO} install ${LDFLAGS} "github.com/dshearer/jobber/$*"
@@ -93,10 +92,6 @@ ${GO_WKSPC}/bin/% : ${MAIN_SOURCES} jobfile/parse_time_spec.go
 jobfile/parse_time_spec.go : ${GOYACC} ${JOBFILE_SOURCES}
 	@echo GEN SRC
 	@${GO_WITH_TOOLS} generate github.com/dshearer/jobber/jobfile
-
-.PHONY : get-deps
-get-deps :
-	${GODEP} save ./...
 
 .PHONY : clean
 clean : clean-buildtools
