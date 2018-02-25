@@ -18,4 +18,4 @@ CMD tar xzf /jobber.tgz && \
     yum install -y /*.rpm && \
     useradd normuser --create-home && \
     tar xf /platform_tests.tar && \
-    robot platform_tests/test.robot
+    robot --pythonpath platform_tests/keywords platform_tests/suites
