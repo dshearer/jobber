@@ -54,28 +54,28 @@ pkg-vm : .vm-is-running ${DESTDIR}${PKGFILE}
 		(vagrant up && vagrant reload && sleep 10 && vagrant snapshot \
 			save Base)
 	touch $@
-	
+
 .vm-is-running : .vm-is-created
 	vagrant up
 	touch $@
 
 ${DESTDIR}${PKGFILE} : Vagrantfile ${WORK_DIR}/${SRC_TARBALL} \
 		${PKGFILE_DEPS} .vm-is-running
-	
+
 	# copy Jobber source to VM
 	vagrant scp "${WORK_DIR}/${SRC_TARBALL}" ":${SRC_TARBALL}"
 	${VAGRANT_SSH} "tar -xzmf ${SRC_TARBALL}"
-	
+
 	# make Jobber package
 	${VAGRANT_SSH} 'mkdir -p work && \
 		mv ${SRC_TARBALL} work/${SRC_TARBALL} && \
 		mkdir -p dest && \
 		make -C ${SRC_TARBALL_DIR}/packaging/${PACKAGING_SUBDIR} \
 		pkg-local DESTDIR=$${PWD}/dest/ WORK_DIR=$${PWD}/work'
-	
+
 	# copy package out of VM
 	vagrant scp :dest/${PKGFILE_VM_PATH} "${DESTDIR}${PKGFILE}"
-	
+
 	touch "$@"
 
 .PHONY : test-vm
@@ -84,20 +84,21 @@ test-vm : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
 	-${VAGRANT_SSH} "${UNINSTALL_PKG_CMD}"
 	vagrant scp "${DESTDIR}${PKGFILE}" ":${PKGFILE}"
 	${VAGRANT_SSH} "${INSTALL_PKG_CMD}"
-	
+
 	# copy test scripts to VM
 	vagrant scp platform_tests.tar :platform_tests.tar
-	
+
 	# run test scripts
 	${VAGRANT_SSH} "tar xf platform_tests.tar"
 	${VAGRANT_SSH} "sudo robot --include ${ROBOT_TAGS} \
-		platform_tests/test.robot ||:" > testlog.txt
-	
+	  --pythonpath platform_tests/keywords \
+		platform_tests/suites ||:" > testlog.txt
+
 	# retrieve test reports
 	mkdir -p "${DESTDIR}test_report"
 	vagrant scp :log.html "${DESTDIR}test_report/"
 	vagrant scp :report.html "${DESTDIR}test_report/"
-	
+
 	# finish up
 	@cat testlog.txt
 	@egrep '.* critical tests,.* 0 failed[[:space:]]*$$' testlog.txt\
@@ -109,10 +110,10 @@ play-vm : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
 	-${VAGRANT_SSH} "${UNINSTALL_PKG_CMD}"
 	vagrant scp "${DESTDIR}${PKGFILE}" ":${PKGFILE}"
 	${VAGRANT_SSH} "${INSTALL_PKG_CMD}"
-	
+
 	# copy test scripts to VM
 	vagrant scp platform_tests.tar :platform_tests.tar
-	
+
 	# SSH into VM
 	vagrant ssh
 

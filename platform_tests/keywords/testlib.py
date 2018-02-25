@@ -9,8 +9,8 @@ _NORMUSER = 'normuser'
 _RUNNER_LOG_FILE_FOR_ROOT = '/root/.jobber-log'
 _RUNNER_LOG_FILE_FOR_NORMUSER = '/home/{0}/.jobber-log'.\
     format(_NORMUSER)
-_PREFS_PATH = '/etc/jobber.conf'
-_OLD_PREFS_PATH = '/etc/jobber.conf.old'
+_CONFIG_PATH = '/etc/jobber.conf'
+_OLD_CONFIG_PATH = '/etc/jobber.conf.old'
 
 _NOTIFY_PROGRAM = '''
 import json
@@ -73,6 +73,10 @@ def get_jobbermaster_logs():
         lines = sp_check_output(args).split('\n')
         lines = [l for l in lines if 'jobbermaster' in l]
         return '/n'.join(lines)
+
+def parse_list_arg(s):
+    parts = s.split(',')
+    return set([p for p in parts if len(p) > 0])
 
 class testlib(object):
     ROBOT_LIBRARY_VERSION = 1.0
@@ -168,10 +172,10 @@ class testlib(object):
             except Exception as e:
                 log += "[{0}]".format(e)
 
-        # get prefs file
-        log += "\n\nPrefs:\n"
+        # get config file
+        log += "\nConfig:\n"
         try:
-            with open(_PREFS_PATH) as f:
+            with open(_CONFIG_PATH) as f:
                 log += f.read()
         except Exception as e:
             log += "[{0}]".format(e)
@@ -223,42 +227,34 @@ logPath: .jobber-log
 
         return prefs_sect + jobs_sect
 
-    def install_root_jobfile(self, contents):
-        '''
-        :return: Number of jobs loaded.
-        '''
-
+    def install_jobfile(self, contents, for_root=False, reload=True, exp_num_jobs=1):
         # make jobfile
-        with open(self._root_jobfile_path, 'w') as f:
-            f.write(contents)
-
-        # reload it
-        output = sp_check_output([self._jobber_path, 'reload'])
-        return int(output.split()[1])
-
-    def install_normuser_jobfile(self, contents, reload=True):
-        '''
-        :return: Number of jobs loaded.
-        '''
-
-        # make jobfile
-        print("Installing jobfile at {path}".\
-              format(path=self._normuser_jobfile_path))
-        pwnam = pwd.getpwnam(_NORMUSER)
-        os.setegid(pwnam.pw_gid)
-        os.seteuid(pwnam.pw_uid)
-        with open(self._normuser_jobfile_path, 'w') as f:
-            f.write(contents)
-        os.seteuid(0)
-        os.setegid(0)
-
-        if reload:
-        # reload it
-            output = sp_check_output(['sudo', '-u', _NORMUSER, \
-                                      self._jobber_path, 'reload'])
-            return int(output.split()[1])
+        if for_root:
+            with open(self._root_jobfile_path, 'w') as f:
+                f.write(contents)
         else:
-            return 0
+            pwnam = pwd.getpwnam(_NORMUSER)
+            os.setegid(pwnam.pw_gid)
+            os.seteuid(pwnam.pw_uid)
+            with open(self._normuser_jobfile_path, 'w') as f:
+                f.write(contents)
+            os.seteuid(0)
+            os.setegid(0)
+
+        # reload it
+        if reload:
+            if for_root:
+                output = sp_check_output([self._jobber_path, 'reload'])
+            else:
+                output = sp_check_output(['sudo', '-u', _NORMUSER, \
+                                          self._jobber_path, 'reload'])
+            num_jobs = int(output.split()[1])
+
+            # check number of loaded jobs
+            if num_jobs != exp_num_jobs:
+                msg = ("Failed to load jobfile: expected to load {0} jobs " + \
+                    "but loaded {1}").format(exp_num_jobs, num_jobs)
+                raise AssertionError(msg)
 
     def rm_jobfiles(self):
         # rm jobfile
@@ -267,11 +263,25 @@ logPath: .jobber-log
         if os.path.exists(self._normuser_jobfile_path):
             os.unlink(self._normuser_jobfile_path)
 
-    def jobber_log_as_root(self, all_users=False):
-        args = [self._jobber_path, 'log']
+    def jobber_log(self, as_root=False, all_users=False):
+        '''
+        :return: Number of run log entries
+        '''
+        if as_root:
+            args = [self._jobber_path, 'log']
+        else:
+            args = ['sudo', '-u', _NORMUSER, self._jobber_path, 'log']
         if all_users:
             args.append('-a')
-        return sp_check_output(args).strip()
+        output = sp_check_output(args).strip()
+
+        # get run log entries
+        lines = output.split("\n")
+        if len(lines) == 0:
+            msg = "Expected output to have some lines: \"{0}\"".\
+                format(output)
+            raise AssertionError(msg)
+        return len(lines[1:]) # ignore header line
 
     def jobber_log_as_normuser(self, all_users=False):
         args = ['sudo', '-u', _NORMUSER, self._jobber_path, 'log']
@@ -301,18 +311,18 @@ logPath: .jobber-log
         pwnam = pwd.getpwnam(user)
         os.chown(path, pwnam.pw_uid, pwnam.pw_gid)
 
-    def set_prefs(self, include_users='', exclude_users=''):
-        # make prefs
-        prefs = "users-include:\n"
-        for user in include_users.split(','):
-            prefs += "    - username: {0}\n".format(user)
-        prefs = "users-exclude:\n"
-        for user in exclude_users.split(','):
-            prefs += "    - username: {0}\n".format(user)
+    def set_config(self, include_users='', exclude_users=''):
+        # make config
+        config = "users-include:\n"
+        for user in parse_list_arg(include_users):
+            config += "    - username: {0}\n".format(user)
+        config += "users-exclude:\n"
+        for user in parse_list_arg(exclude_users):
+            config += "    - username: {0}\n".format(user)
 
-        # remove old prefs
+        # remove old config
         try:
-            os.rename(_PREFS_PATH, _OLD_PREFS_PATH)
+            os.rename(_CONFIG_PATH, _OLD_CONFIG_PATH)
         except OSError as e:
             if e.errno == 2:
                 pass
@@ -320,12 +330,12 @@ logPath: .jobber-log
                 raise e
 
         # write to disk
-        with open(_PREFS_PATH, 'w') as f:
-            f.write(prefs)
+        with open(_CONFIG_PATH, 'w') as f:
+            f.write(config)
 
     def restore_prefs(self):
         try:
-            os.rename(_OLD_PREFS_PATH, _PREFS_PATH)
+            os.rename(_OLD_CONFIG_PATH, _CONFIG_PATH)
         except OSError as e:
             if e.errno == 2:
                 pass
@@ -378,24 +388,15 @@ logPath: .jobber-log
             print("Runner procs:\n{0}".format(proc_info))
             raise AssertionError("There are still runner procs")
 
-    def _check_jobber_list_output(self, output, exp_job_names):
-        lines = output.split("\n")
-        if len(lines) <= 1:
-            msg = "Expected output to have multiple lines: \"{0}\"".\
-                format(output)
-            raise AssertionError(msg)
-        listed_jobs = set([line.split()[0] for line in lines[1:]])
-        exp_job_names = set(exp_job_names.split(","))
-        if listed_jobs != exp_job_names:
-            msg = "Expected listed jobs to be {exp}, but was {act}".\
-                format(exp=exp_job_names, act=listed_jobs)
-            raise AssertionError(msg)
+    def jobber_list_should_return(self, exp_job_names, as_root=False,
+                                  all_users=False):
+        exp_job_names = parse_list_arg(exp_job_names)
 
-    def jobber_list_as_root_should_return(self, job_names, \
-                                          all_users=False):
         # do 'jobber list'
-        all_users = bool(all_users)
-        args = [self._jobber_path, 'list']
+        if as_root:
+            args = [self._jobber_path, 'list']
+        else:
+            args = ['sudo', '-u', _NORMUSER, self._jobber_path, 'list']
         if all_users:
             args.append('-a')
         print("Cmd: {0}".format(args))
@@ -403,19 +404,16 @@ logPath: .jobber-log
         print(output)
 
         # check output
-        self._check_jobber_list_output(output, job_names)
-
-    def jobber_list_as_normuser_should_return(self, job_names, \
-                                              all_users=False):
-        # do 'jobber list'
-        args = ['sudo', '-u', _NORMUSER, self._jobber_path, 'list']
-        if all_users:
-            args.append('-a')
-        output = sp_check_output(args).strip()
-        print(output)
-
-        # check output
-        self._check_jobber_list_output(output, job_names)
+        lines = output.split("\n")
+        if len(lines) == 0:
+            msg = "Expected output to have some lines: \"{0}\"".\
+                format(output)
+            raise AssertionError(msg)
+        listed_jobs = set([line.split()[0] for line in lines[1:]])
+        if listed_jobs != exp_job_names:
+            msg = "Expected listed jobs to be {exp}, but was {act}".\
+                format(exp=exp_job_names, act=listed_jobs)
+            raise AssertionError(msg)
 
     def nbr_of_lines_in_string_should_be(self, string, nbr, msg=None):
         lines = string.split("\n")
@@ -474,13 +472,19 @@ logPath: .jobber-log
                 print(logs)
                 raise AssertionError("jobberrunner for normuser crashed")
 
+    def jobberrunner_should_be_running_for_user(self, username):
+        proc_info = self.runner_proc_info()
+        if username not in proc_info:
+            print("Runner procs:\n{0}\n".format(proc_info))
+            self.print_debug_info()
+            raise AssertionError("jobberrunner is not running for {0}".\
+                                 format(username))
+
     def jobberrunner_should_not_be_running_for_user(self, username):
         proc_info = self.runner_proc_info()
         if username in proc_info:
-            print("Runner procs:\n{0}".format(proc_info))
-            print("Logs: \n" + get_jobbermaster_logs())
-            with open(_PREFS_PATH) as f:
-                print("Prefs:\n{0}".format(f.read()))
+            print("Runner procs:\n{0}\n".format(proc_info))
+            self.print_debug_info()
             raise AssertionError("jobberrunner is running for {0}".\
                                  format(username))
 
@@ -501,9 +505,9 @@ logPath: .jobber-log
             if e.errno != 2:
                 raise e
 
-    def prefs_file_should_exist(self):
+    def config_file_should_exist(self):
         try:
-            os.stat(_PREFS_PATH)
+            os.stat(_CONFIG_PATH)
         except OSError as e:
             if e.errno == 2:
                 raise AssertionError("Prefs file does not exist")

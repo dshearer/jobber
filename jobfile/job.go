@@ -118,14 +118,12 @@ type Job struct {
 	stdoutLogger *log.Logger
 	stderrLogger *log.Logger
 
-	// dynamic shit
-	Status      JobStatus
-	LastRunTime time.Time
-	Paused      bool
-
-	// backoff after errors
-	backoffLevel int
-	skipsLeft    int
+	// dynamic
+	Status       JobStatus
+	LastRunTime  time.Time
+	Paused       bool
+	backoffLevel int // backoff
+	skipsLeft    int // backoff
 }
 
 func (j *Job) String() string {
