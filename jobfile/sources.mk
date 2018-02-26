@@ -1,6 +1,7 @@
 JOBFILE_SOURCES := \
 	jobfile/file_run_log.go \
 	jobfile/job_file.go \
+	jobfile/job_output_handler.go \
 	jobfile/job.go \
 	jobfile/mem_only_run_log.go \
 	jobfile/parse_time_spec.y \

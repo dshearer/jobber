@@ -13,6 +13,7 @@ func (self *JobManager) doReloadCmd(cmd common.ReloadCmd) {
 	if err != nil {
 		cmd.RespChan <- &common.ReloadCmdResp{Err: err}
 	} else {
+		common.Logger.Printf("%v", self.jfile.Prefs.String())
 		cmd.RespChan <- &common.ReloadCmdResp{
 			NumJobs: len(self.jfile.Jobs),
 		}

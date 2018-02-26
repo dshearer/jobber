@@ -30,16 +30,62 @@ type UserPrefs struct {
 	Notifier RunRecNotifier
 	RunLog   RunLog
 	LogPath  string // for error msgs etc.  May be "".
+
+	// output handling
+	StdoutHandler JobOutputHandler
+	StderrHandler JobOutputHandler
 }
 
-type JobConfigEntry struct {
+func (self *UserPrefs) String() string {
+	s := ""
+	s += fmt.Sprintf("Notifier: %v\n", self.Notifier)
+	s += fmt.Sprintf("RunLog: %v\n", self.RunLog)
+	if len(self.LogPath) > 0 {
+		s += fmt.Sprintf("Log path: %v\n", self.LogPath)
+	}
+	s += fmt.Sprintf("StdoutHandler: %v\n", self.StdoutHandler)
+	s += fmt.Sprintf("StderrHandler: %v", self.StderrHandler)
+	return s
+}
+
+type JobOutputPrefsRaw struct {
+	Where      *string `yaml:"where"`
+	MaxAgeDays *int    `yaml:"maxAgeDays"`
+}
+
+type BothJobOutputPrefsRaw struct {
+	Stdout *JobOutputPrefsRaw `yaml:"stdout"`
+	Stderr *JobOutputPrefsRaw `yaml:"stderr"`
+}
+
+type RunLogRaw struct {
+	Type string `yaml:"type"` // "file" or "memory"
+
+	// fields for type == "memory":
+	MaxLen *int `yaml:"maxLen"`
+
+	// fields for type == "file":
+	Path         *string `yaml:"path"`
+	MaxFileLen   *string `yaml:"maxFileLen"`
+	MaxHistories *int    `yaml:"maxHistories"`
+}
+
+type UserPrefsRaw struct {
+	LogPath       *string                `yaml:"logPath"`
+	NotifyProgram *string                `yaml:"notifyProgram"`
+	RunLog        *RunLogRaw             `yaml:"runLog"`
+	JobOutput     *BothJobOutputPrefsRaw `yaml:"jobOutput"`
+}
+
+type JobRaw struct {
 	Name            string
 	Cmd             string
 	Time            string
-	OnError         *string `yaml:"onError,omitempty"`
-	NotifyOnSuccess *bool   `yaml:"notifyOnSuccess,omitempty"`
-	NotifyOnError   *bool   `yaml:"notifyOnError,omitempty"`
-	NotifyOnFailure *bool   `yaml:"notifyOnFailure,omitempty"`
+	OnError         *string                `yaml:"onError"`
+	NotifyOnSuccess *bool                  `yaml:"notifyOnSuccess"`
+	NotifyOnError   *bool                  `yaml:"notifyOnError"`
+	NotifyOnFailure *bool                  `yaml:"notifyOnFailure"`
+	JobOutput       *BothJobOutputPrefsRaw `yaml:"jobOutput"`
 }
 
 func NewEmptyJobFile() *JobFile {
@@ -88,7 +134,7 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	   line, and the other begins with "[jobs]".  Both contain a YAML
 	   document.  The "prefs" section can be parsed with struct
 	   UserPrefs, and the "jobs" section is a YAML array of records
-	   that can be parsed with struct JobConfigEntry.
+	   that can be parsed with struct JobRaw.
 
 	   Legacy format: no section beginnings; whole file is YAML doc
 	   for "jobs" section.
@@ -102,8 +148,10 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 
 	var jfile JobFile = JobFile{
 		Prefs: UserPrefs{
-			Notifier: MakeMailNotifier(),
-			RunLog:   NewMemOnlyRunLog(100),
+			Notifier:      MakeMailNotifier(),
+			RunLog:        NewMemOnlyRunLog(100),
+			StdoutHandler: NopJobOutputHandler{},
+			StderrHandler: NopJobOutputHandler{},
 		},
 	}
 
@@ -127,7 +175,7 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	// parse "jobs" section
 	jobsSection, jobsOk := sections[JobsSectName]
 	if jobsOk {
-		jobs, err := parseJobsSect(jobsSection, usr)
+		jobs, err := parseJobsSect(jobsSection, usr, &jfile.Prefs)
 		if err != nil {
 			return nil, err
 		}
@@ -228,74 +276,73 @@ func findSections(f *os.File) (map[string]string, error) {
 }
 
 func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
-	// parse as yaml
-	var rawPrefs map[string]interface{}
+	var rawPrefs UserPrefsRaw
+	var userPrefs UserPrefs
 
+	// parse as yaml
 	if !strings.HasPrefix(s, gYamlStarter+"\n") {
 		s = gYamlStarter + "\n" + s
 	}
-	err := yaml.Unmarshal([]byte(s), &rawPrefs)
+	err := yaml.UnmarshalStrict([]byte(s), &rawPrefs)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
 			PrefsSectName)
 		return nil, &common.Error{What: errMsg, Cause: err}
 	}
 
-	// parse "notifyProgram"
-	var userPrefs UserPrefs
-	noteProgVal, hasNoteProg := rawPrefs["notifyProgram"]
-	if hasNoteProg {
-		noteProgValStr, ok := noteProgVal.(string)
-		if !ok {
-			errMsg := fmt.Sprintf("Invalid value for preference \"notifyProgram\": %v",
-				noteProgVal)
-			return nil, &common.Error{What: errMsg}
+	// parse "logPath"
+	if rawPrefs.LogPath != nil {
+		/*
+		   Relative paths are interpreted as relative to the user's
+		   home dir.
+		*/
+		logPath := *rawPrefs.LogPath
+		if filepath.IsAbs(logPath) {
+			userPrefs.LogPath = logPath
+		} else {
+			if len(usr.HomeDir) == 0 {
+				errMsg := fmt.Sprintf("User has no home directory, so "+
+					"cannot interpret relative log file path %v",
+					logPath)
+				return nil, &common.Error{What: errMsg}
+			}
+			userPrefs.LogPath = filepath.Join(usr.HomeDir, logPath)
 		}
-		userPrefs.Notifier = MakeProgramNotifier(noteProgValStr)
+	} // logPath
+
+	// parse "notifyProgram"
+	if rawPrefs.NotifyProgram != nil {
+		userPrefs.Notifier = MakeProgramNotifier(*rawPrefs.NotifyProgram)
 	} else {
 		userPrefs.Notifier = MakeMailNotifier()
 	}
 
 	// parse "runLog"
-	runLogVal, hasRunLog := rawPrefs["runLog"]
-	if hasRunLog {
-		runLogValMap, ok := runLogVal.(map[interface{}]interface{})
-		if !ok {
-			errMsg := fmt.Sprintf("Invalid value for preference \"runLog\": %v",
-				runLogVal)
-			return nil, &common.Error{What: errMsg}
-		}
+	if rawPrefs.RunLog != nil {
+		rawRunLog := rawPrefs.RunLog
 
-		// get type
-		typeVal, ok := runLogValMap["type"].(string)
-		if !ok {
-			errMsg := fmt.Sprintf("Preference \"runLog\" needs \"type\"")
-			return nil, &common.Error{What: errMsg}
-		}
-
-		if typeVal == "memory" {
+		if rawRunLog.Type == "memory" {
 			// make memory run log
 			maxLen := gDefaultMemRunLogMaxLen
-			tmp, ok := runLogValMap["maxLen"].(int)
-			if ok {
-				maxLen = tmp
+			if rawPrefs.RunLog.MaxLen != nil {
+				maxLen = *rawRunLog.MaxLen
 			}
 			userPrefs.RunLog = NewMemOnlyRunLog(maxLen)
-		} else if typeVal == "file" {
+
+		} else if rawRunLog.Type == "file" {
 			const defaultMaxFileLen int64 = 50 * (1 << 20)
 			const defaultMaxHistories int = 5
 
-			// get file path
-			filePath, ok := runLogValMap["path"].(string)
-			if !ok {
-				msg := fmt.Sprintf("Missing run log path")
-				return nil, &common.Error{What: msg}
+			// check for file path
+			if rawRunLog.Path == nil {
+				return nil, &common.Error{What: "Missing path for run log"}
 			}
 
 			// get max file len
 			maxFileLen := defaultMaxFileLen
-			maxFileLenStr, ok := runLogValMap["maxFileLen"].(string)
-			if ok {
+			if rawRunLog.MaxFileLen != nil {
+				maxFileLenStr := *rawRunLog.MaxFileLen
+
 				if len(maxFileLenStr) == 0 {
 					msg := fmt.Sprintf("Invalid max file len: '%v'",
 						maxFileLenStr)
@@ -321,67 +368,81 @@ func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 
 			// get max histories
 			maxHistories := defaultMaxHistories
-			tmp, ok := runLogValMap["maxHistories"].(int)
-			if ok {
-				maxHistories = tmp
+			if rawRunLog.MaxHistories != nil {
+				maxHistories = *rawRunLog.MaxHistories
 			}
 
 			// make file run log
 			userPrefs.RunLog, err = NewFileRunLog(
-				filePath,
+				*rawRunLog.Path,
 				maxFileLen,
 				maxHistories,
 			)
 			if err != nil {
 				return nil, err
 			}
+
 		} else {
-			msg := fmt.Sprintf("Invalid run log type: %v",
-				typeVal)
+			msg := fmt.Sprintf("Invalid run log type: %v", rawRunLog.Type)
 			return nil, &common.Error{What: msg}
 		}
+
 	} else {
 		userPrefs.RunLog = NewMemOnlyRunLog(gDefaultMemRunLogMaxLen)
-	}
+	} // runLog
 
-	// parse LogPath
-	logPathVal, hasLogPath := rawPrefs["logPath"]
-	if hasLogPath && logPathVal != nil {
-		// ensure it's a string
-		logPath, ok := logPathVal.(string)
-		if !ok {
-			errMsg := fmt.Sprintf("Invalid value for preference "+
-				"\"logPath\": %v", logPathVal)
-			return nil, &common.Error{What: errMsg}
-		}
-
-		/*
-		   Relative paths are interpreted as relative to the user's
-		   home dir.
-		*/
-		if filepath.IsAbs(logPath) {
-			userPrefs.LogPath = logPath
-		} else {
-			if len(usr.HomeDir) == 0 {
-				errMsg := fmt.Sprintf("User has no home directory, so "+
-					"cannot interpret relative log file path %v",
-					logPath)
-				return nil, &common.Error{What: errMsg}
+	// parse "jobOutput"
+	userPrefs.StdoutHandler = NopJobOutputHandler{}
+	userPrefs.StderrHandler = NopJobOutputHandler{}
+	if rawPrefs.JobOutput != nil {
+		bothPrefs := rawPrefs.JobOutput
+		if bothPrefs.Stdout != nil {
+			outputPrefs := bothPrefs.Stdout
+			if err := checkJobOutputPrefs(outputPrefs); err != nil {
+				return nil, err
 			}
-			userPrefs.LogPath = filepath.Join(usr.HomeDir, logPath)
+			userPrefs.StdoutHandler = FileJobOutputHandler{
+				Where:      *outputPrefs.Where,
+				MaxAgeDays: *outputPrefs.MaxAgeDays,
+				Suffix:     "stdout",
+			}
 		}
-	}
+
+		if bothPrefs.Stderr != nil {
+			outputPrefs := bothPrefs.Stderr
+			if err := checkJobOutputPrefs(outputPrefs); err != nil {
+				return nil, err
+			}
+			userPrefs.StderrHandler = FileJobOutputHandler{
+				Where:      *outputPrefs.Where,
+				MaxAgeDays: *outputPrefs.MaxAgeDays,
+				Suffix:     "stderr",
+			}
+		}
+	} // jobOutput
 
 	return &userPrefs, nil
 }
 
-func parseJobsSect(s string, usr *user.User) ([]*Job, error) {
+func checkJobOutputPrefs(prefs *JobOutputPrefsRaw) error {
+	if prefs.Where == nil {
+		errMsg := "Job output prefs needs \"where\" field"
+		return &common.Error{What: errMsg}
+	} else if prefs.MaxAgeDays == nil {
+		errMsg := "Job output prefs needs \"maxAgeDays\" field"
+		return &common.Error{What: errMsg}
+	} else {
+		return nil
+	}
+}
+
+func parseJobsSect(s string, usr *user.User, prefs *UserPrefs) ([]*Job, error) {
 	// parse "jobs" section
-	var jobConfigs []JobConfigEntry
+	var jobConfigs []JobRaw
 	if !strings.HasPrefix(s, gYamlStarter+"\n") {
 		s = gYamlStarter + "\n" + s
 	}
-	err := yaml.Unmarshal([]byte(s), &jobConfigs)
+	err := yaml.UnmarshalStrict([]byte(s), &jobConfigs)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
 			JobsSectName)
@@ -427,10 +488,64 @@ func parseJobsSect(s string, usr *user.User) ([]*Job, error) {
 		job.FullTimeSpec = *tmp
 		job.FullTimeSpec.Derandomize()
 
+		// parse job output prefs
+		var stdoutOutputPrefs *JobOutputPrefsRaw
+		var stderrOutputPrefs *JobOutputPrefsRaw
+		if config.JobOutput != nil {
+			stdoutOutputPrefs = config.JobOutput.Stdout
+			stderrOutputPrefs = config.JobOutput.Stderr
+		}
+		handler, err := makeOutputHandlerForJob(stdoutOutputPrefs,
+			prefs.StdoutHandler, "stdout")
+		if err != nil {
+			return nil, err
+		}
+		job.StdoutHandler = handler
+		handler, err = makeOutputHandlerForJob(stderrOutputPrefs,
+			prefs.StderrHandler, "stderr")
+		if err != nil {
+			return nil, err
+		}
+		job.StderrHandler = handler
+
 		jobs = append(jobs, job)
 	}
 
 	return jobs, nil
+}
+
+func makeOutputHandlerForJob(localPrefs *JobOutputPrefsRaw,
+	globalHandler JobOutputHandler, suffix string) (JobOutputHandler, error) {
+
+	if localPrefs == nil {
+		return globalHandler, nil
+	}
+
+	globalFileHandler, hasGlobalFileHandler := globalHandler.(FileJobOutputHandler)
+	if hasGlobalFileHandler {
+		jobHandler := FileJobOutputHandler{Suffix: suffix}
+		if localPrefs.Where == nil {
+			jobHandler.Where = globalFileHandler.Where
+		} else {
+			jobHandler.Where = *localPrefs.Where
+		}
+		if localPrefs.MaxAgeDays == nil {
+			jobHandler.MaxAgeDays = globalFileHandler.MaxAgeDays
+		} else {
+			jobHandler.MaxAgeDays = *localPrefs.MaxAgeDays
+		}
+		return jobHandler, nil
+
+	} else {
+		if err := checkJobOutputPrefs(localPrefs); err != nil {
+			return nil, err
+		}
+		return FileJobOutputHandler{
+			Where:      *localPrefs.Where,
+			MaxAgeDays: *localPrefs.MaxAgeDays,
+			Suffix:     suffix,
+		}, nil
+	}
 }
 
 func getErrorHandler(name string) (*ErrorHandler, error) {

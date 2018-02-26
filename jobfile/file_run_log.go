@@ -43,6 +43,15 @@ type fileRunLog struct {
 	index []backingFileDtor
 }
 
+func (self *fileRunLog) String() string {
+	return fmt.Sprintf(
+		"FileRunLog{filePath: %v, maxFileLen: %v, maxHistories: %v}",
+		self.filePath,
+		self.maxFileLen,
+		self.maxHistories,
+	)
+}
+
 /*
 A backing file consists of one or more gLogEntryLen-byte entries separated by
 '\n'.

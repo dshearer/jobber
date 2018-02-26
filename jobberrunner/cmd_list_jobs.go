@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/jobfile"
 )
 
 func (self *JobManager) doListJobsCmd(cmd common.ListJobsCmd) {
@@ -12,6 +14,15 @@ func (self *JobManager) doListJobsCmd(cmd common.ListJobsCmd) {
 	common.Logger.Printf("Got list jobs cmd\n")
 	jobDescs := make([]common.JobDesc, 0)
 	for _, j := range self.jfile.Jobs {
+		var stdoutDir *string
+		var stderrDir *string
+		if handler, ok := j.StdoutHandler.(jobfile.FileJobOutputHandler); ok {
+			stdoutDir = &handler.Where
+		}
+		if handler, ok := j.StderrHandler.(jobfile.FileJobOutputHandler); ok {
+			stderrDir = &handler.Where
+		}
+
 		jobDesc := common.JobDesc{
 			Name:   j.Name,
 			Status: j.Status.String(),
@@ -28,6 +39,8 @@ func (self *JobManager) doListJobsCmd(cmd common.ListJobsCmd) {
 			NotifyOnErr:     j.NotifyOnError,
 			NotifyOnFail:    j.NotifyOnFailure,
 			ErrHandler:      j.ErrorHandler.String(),
+			StdoutDir:       stdoutDir,
+			StderrDir:       stderrDir,
 		}
 		if j.Paused {
 			jobDesc.Status += " (Paused)"

@@ -4,10 +4,11 @@ package jobfile
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/dshearer/jobber/common"
 )
 
 const (

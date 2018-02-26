@@ -38,6 +38,8 @@ var gDailyBackup = Job{
 	NotifyOnError:   false,
 	NotifyOnFailure: true,
 	NotifyOnSuccess: false,
+	StdoutHandler:   NopJobOutputHandler{},
+	StderrHandler:   NopJobOutputHandler{},
 }
 
 var gWeeklyBackup = Job{
@@ -59,6 +61,8 @@ script
 	NotifyOnError:   true,
 	NotifyOnFailure: false,
 	NotifyOnSuccess: false,
+	StdoutHandler:   NopJobOutputHandler{},
+	StderrHandler:   NopJobOutputHandler{},
 }
 
 var gSuccessReport = Job{
@@ -80,6 +84,8 @@ script
 	NotifyOnError:   false,
 	NotifyOnFailure: false,
 	NotifyOnSuccess: true,
+	StdoutHandler:   NopJobOutputHandler{},
+	StderrHandler:   NopJobOutputHandler{},
 }
 
 var gJobA = Job{
@@ -91,6 +97,8 @@ var gJobA = Job{
 	NotifyOnError:   true,
 	NotifyOnFailure: false,
 	NotifyOnSuccess: false,
+	StdoutHandler:   NopJobOutputHandler{},
+	StderrHandler:   NopJobOutputHandler{},
 }
 
 var gJobB = Job{
@@ -102,6 +110,8 @@ var gJobB = Job{
 	NotifyOnError:   true,
 	NotifyOnFailure: false,
 	NotifyOnSuccess: false,
+	StdoutHandler:   NopJobOutputHandler{},
+	StderrHandler:   NopJobOutputHandler{},
 }
 
 const gNewJobFileContents = `
@@ -148,7 +158,9 @@ notifyProgram: ~/handleError
 
 var gNewJobFile = JobFile{
 	Prefs: UserPrefs{
-		RunLog: NewMemOnlyRunLog(100),
+		RunLog:        NewMemOnlyRunLog(100),
+		StdoutHandler: NopJobOutputHandler{},
+		StderrHandler: NopJobOutputHandler{},
 	},
 	Jobs: []*Job{
 		&gDailyBackup,
@@ -191,7 +203,9 @@ const gLegacyJobFileContents = `---
 
 var gLegacyJobFile = JobFile{
 	Prefs: UserPrefs{
-		RunLog: NewMemOnlyRunLog(100),
+		RunLog:        NewMemOnlyRunLog(100),
+		StdoutHandler: NopJobOutputHandler{},
+		StderrHandler: NopJobOutputHandler{},
 	},
 	Jobs: []*Job{
 		&gDailyBackup,
@@ -234,7 +248,9 @@ var gTestCases = []JobFileTestCase{
 `,
 		Output: JobFile{
 			Prefs: UserPrefs{
-				RunLog: NewMemOnlyRunLog(100),
+				RunLog:        NewMemOnlyRunLog(100),
+				StdoutHandler: NopJobOutputHandler{},
+				StderrHandler: NopJobOutputHandler{},
 			},
 			Jobs: []*Job{&gDailyBackup},
 		},
@@ -248,7 +264,9 @@ runLog:
 `,
 		Output: JobFile{
 			Prefs: UserPrefs{
-				RunLog: NewMemOnlyRunLog(10),
+				RunLog:        NewMemOnlyRunLog(10),
+				StdoutHandler: NopJobOutputHandler{},
+				StderrHandler: NopJobOutputHandler{},
 			},
 			Jobs: nil,
 		},
@@ -264,7 +282,9 @@ runLog:
 `,
 		Output: JobFile{
 			Prefs: UserPrefs{
-				RunLog: gFileRunLog,
+				RunLog:        gFileRunLog,
+				StdoutHandler: NopJobOutputHandler{},
+				StderrHandler: NopJobOutputHandler{},
 			},
 			Jobs: nil,
 		},
@@ -286,8 +306,10 @@ logPath: /my/log/path
 `,
 		Output: JobFile{
 			Prefs: UserPrefs{
-				RunLog:  NewMemOnlyRunLog(100),
-				LogPath: "/my/log/path",
+				RunLog:        NewMemOnlyRunLog(100),
+				LogPath:       "/my/log/path",
+				StdoutHandler: NopJobOutputHandler{},
+				StderrHandler: NopJobOutputHandler{},
 			},
 		},
 	},
@@ -297,8 +319,10 @@ logPath: my/log/path
 `,
 		Output: JobFile{
 			Prefs: UserPrefs{
-				RunLog:  NewMemOnlyRunLog(100),
-				LogPath: filepath.Join(gUserEx.HomeDir, "my/log/path"),
+				RunLog:        NewMemOnlyRunLog(100),
+				LogPath:       filepath.Join(gUserEx.HomeDir, "my/log/path"),
+				StdoutHandler: NopJobOutputHandler{},
+				StderrHandler: NopJobOutputHandler{},
 			},
 		},
 	},
@@ -307,8 +331,147 @@ logPath: my/log/path
 `,
 		Output: JobFile{
 			Prefs: UserPrefs{
+				RunLog:        NewMemOnlyRunLog(100),
+				LogPath:       "",
+				StdoutHandler: NopJobOutputHandler{},
+				StderrHandler: NopJobOutputHandler{},
+			},
+		},
+	},
+	{
+		Input: `[prefs]
+jobOutput:
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				RunLog:        NewMemOnlyRunLog(100),
+				LogPath:       "",
+				StdoutHandler: NopJobOutputHandler{},
+				StderrHandler: NopJobOutputHandler{},
+			},
+		},
+	},
+	{
+		Input: `[prefs]
+jobOutput:
+    stdout:
+        where: /tmp
+`,
+		Error: true,
+	},
+	{
+		Input: `[prefs]
+jobOutput:
+    stdout:
+        maxAgeDays: 10
+`,
+		Error: true,
+	},
+	{
+		Input: `[prefs]
+jobOutput:
+    stdout:
+        where: /tmp
+        maxAgeDays: 10
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
 				RunLog:  NewMemOnlyRunLog(100),
 				LogPath: "",
+				StdoutHandler: FileJobOutputHandler{
+					Where:      "/tmp",
+					MaxAgeDays: 10,
+					Suffix:     "stdout",
+				},
+				StderrHandler: NopJobOutputHandler{},
+			},
+		},
+	},
+	{
+		Input: `[prefs]
+jobOutput:
+    stdout:
+        where: /tmp
+        maxAgeDays: 10
+    stderr:
+        where: /tmp2
+        maxAgeDays: 100
+
+[jobs]
+- name: JobA
+  cmd: exit 0
+  time: '*'
+  notifyOnError: false
+  notifyOnFailure: false
+  notifyOnSuccess: false
+  jobOutput:
+      stdout:
+          where: /tmp3
+      stderr:
+          maxAgeDays: 200
+- name: JobB
+  cmd: exit 0
+  time: '*'
+  notifyOnError: false
+  notifyOnFailure: false
+  notifyOnSuccess: false
+`,
+		Output: JobFile{
+			Prefs: UserPrefs{
+				RunLog:  NewMemOnlyRunLog(100),
+				LogPath: "",
+				StdoutHandler: FileJobOutputHandler{
+					Where:      "/tmp",
+					MaxAgeDays: 10,
+					Suffix:     "stdout",
+				},
+				StderrHandler: FileJobOutputHandler{
+					Where:      "/tmp2",
+					MaxAgeDays: 100,
+					Suffix:     "stderr",
+				},
+			}, // prefs
+			Jobs: []*Job{
+				&Job{
+					Name:            "JobA",
+					Cmd:             "exit 0",
+					User:            gUserEx.Username,
+					FullTimeSpec:    EverySecTimeSpec,
+					ErrorHandler:    &ErrorHandlerContinue,
+					NotifyOnError:   false,
+					NotifyOnFailure: false,
+					NotifyOnSuccess: false,
+					StdoutHandler: FileJobOutputHandler{
+						Where:      "/tmp3",
+						MaxAgeDays: 10,
+						Suffix:     "stdout",
+					},
+					StderrHandler: FileJobOutputHandler{
+						Where:      "/tmp2",
+						MaxAgeDays: 200,
+						Suffix:     "stderr",
+					},
+				}, // job
+				&Job{
+					Name:            "JobB",
+					Cmd:             "exit 0",
+					User:            gUserEx.Username,
+					FullTimeSpec:    EverySecTimeSpec,
+					ErrorHandler:    &ErrorHandlerContinue,
+					NotifyOnError:   false,
+					NotifyOnFailure: false,
+					NotifyOnSuccess: false,
+					StdoutHandler: FileJobOutputHandler{
+						Where:      "/tmp",
+						MaxAgeDays: 10,
+						Suffix:     "stdout",
+					},
+					StderrHandler: FileJobOutputHandler{
+						Where:      "/tmp2",
+						MaxAgeDays: 100,
+						Suffix:     "stderr",
+					},
+				}, // job
 			},
 		},
 	},
@@ -459,7 +622,9 @@ func TestLoadJobFile(t *testing.T) {
 		require.Equal(t, testCase.Output.Prefs, file.Prefs)
 		require.Equal(t, len(testCase.Output.Jobs), len(file.Jobs))
 		for i := 0; i < len(file.Jobs); i++ {
-			require.Equal(t, testCase.Output.Jobs[i], file.Jobs[i])
+			require.Equal(t, testCase.Output.Jobs[i].StderrHandler, file.Jobs[i].StderrHandler)
+			require.Equal(t, testCase.Output.Jobs[i].StdoutHandler, file.Jobs[i].StdoutHandler)
+			require.Equal(t, *testCase.Output.Jobs[i], *file.Jobs[i])
 		}
 	}
 }
