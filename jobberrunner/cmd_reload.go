@@ -5,7 +5,8 @@ import (
 )
 
 func (self *JobManager) doReloadCmd(cmd common.ReloadCmd) {
-	common.Logger.Println("Got reload cmd")
+	common.Logger.Printf("Got cmd 'reload'\n")
+
 	defer close(cmd.RespChan)
 
 	// read job file

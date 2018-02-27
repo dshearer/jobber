@@ -8,10 +8,11 @@ import (
 )
 
 func (self *JobManager) doListJobsCmd(cmd common.ListJobsCmd) {
+	common.Logger.Printf("Got cmd 'list'\n")
+
 	defer close(cmd.RespChan)
 
 	// make job list
-	common.Logger.Printf("Got list jobs cmd\n")
 	jobDescs := make([]common.JobDesc, 0)
 	for _, j := range self.jfile.Jobs {
 		var stdoutDir *string

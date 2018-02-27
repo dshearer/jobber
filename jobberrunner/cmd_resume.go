@@ -6,6 +6,8 @@ import (
 )
 
 func (self *JobManager) doResumeCmd(cmd common.ResumeCmd) {
+	common.Logger.Printf("Got cmd 'resume'\n")
+
 	defer close(cmd.RespChan)
 
 	// look up jobs to resume

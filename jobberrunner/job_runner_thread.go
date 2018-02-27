@@ -48,14 +48,12 @@ func (self *JobRunnerThread) Start(jobs []*jobfile.Job, shell string) {
 	var jobQ JobQueue
 	jobQ.SetJobs(time.Now(), jobs)
 
-	common.Logger.Println("Launching job runner thread")
 	go func() {
 		defer close(self.mainThreadDoneChan)
 
 		var jobThreadWaitGroup sync.WaitGroup
 
 		for {
-			common.Logger.Println("Calling pop")
 			var job *jobfile.Job = jobQ.Pop(ctx, time.Now()) // sleeps
 
 			if job != nil && !job.Paused {
@@ -69,23 +67,19 @@ func (self *JobRunnerThread) Start(jobs []*jobfile.Job, shell string) {
 
 			} else if job == nil {
 				/* We were canceled. */
-				common.Logger.Printf("Run thread got 'stop'\n")
 				break
 			}
 		}
 
 		// wait for run threads to stop
-		common.Logger.Printf("JobRunner: cleaning up...")
 		jobThreadWaitGroup.Wait()
 
 		// close run-rec channel
 		close(self.runRecChan)
-		common.Logger.Println("JobRunner done")
 	}()
 }
 
 func (self *JobRunnerThread) Cancel() {
-	common.Logger.Println("JobRunner: cancelling")
 	if self.ctxCancel != nil {
 		self.ctxCancel()
 		self.Running = false
@@ -112,7 +106,6 @@ func RunJob(
 
 	if err != nil {
 		/* unexpected error while trying to run job */
-		common.Logger.Printf("RunJob: %v", err)
 		rec.Err = err
 		return rec
 	}
@@ -141,7 +134,6 @@ func RunJob(
 	rec.NewStatus = job.Status
 
 	// write output to disk
-	common.Logger.Printf("Writing output: %v", job.StdoutHandler)
 	job.StdoutHandler.WriteOutput(execResult.Stdout, job.Name, rec.RunTime)
 	job.StderrHandler.WriteOutput(execResult.Stderr, job.Name, rec.RunTime)
 

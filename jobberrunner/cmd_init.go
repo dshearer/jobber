@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"os"
 	"strings"
+
+	"github.com/dshearer/jobber/common"
 )
 
 const gDefaultJobfile = `## This is your jobfile: use it to tell Jobber what jobs you want it to
@@ -57,6 +58,8 @@ const gDefaultJobfile = `## This is your jobfile: use it to tell Jobber what job
 `
 
 func (self *JobManager) doInitCmd(cmd common.InitCmd) {
+	common.Logger.Printf("Got cmd 'init'\n")
+
 	defer close(cmd.RespChan)
 
 	var resp common.InitCmdResp

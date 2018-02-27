@@ -3,13 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
 	"os/user"
 	"syscall"
+
+	"github.com/dshearer/jobber/common"
 )
 
 var gUser *user.User
@@ -17,7 +18,6 @@ var gIpcServer *IpcServer
 var gJobManager *JobManager
 
 func quit(exitCode int) {
-	common.Logger.Printf("Jobberrunner Quitting")
 	if gIpcServer != nil {
 		gIpcServer.Stop()
 	}
@@ -80,11 +80,7 @@ func quitOnJobbermasterDiscon() {
 
 	// read from it -- this will block until jobbermaster close the cxn
 	var buf [1]byte
-	_, err = conn.Read(buf[:])
-	common.Logger.Printf("Finished reading from quit socket")
-	if err != nil {
-		common.Logger.Printf("read: %v", err)
-	}
+	_, _ = conn.Read(buf[:])
 
 	/*
 	   As conn.Read has returned, jobbermaster must have closed the cxn.

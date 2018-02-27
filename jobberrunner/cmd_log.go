@@ -5,6 +5,8 @@ import (
 )
 
 func (self *JobManager) doLogCmd(cmd common.LogCmd) {
+	common.Logger.Printf("Got cmd 'log'\n")
+
 	defer close(cmd.RespChan)
 
 	// make log list

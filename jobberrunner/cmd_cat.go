@@ -5,6 +5,8 @@ import (
 )
 
 func (self *JobManager) doCatCmd(cmd common.CatCmd) {
+	common.Logger.Printf("Got cmd 'cat'\n")
+
 	defer close(cmd.RespChan)
 
 	// find job

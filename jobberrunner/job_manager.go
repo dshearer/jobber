@@ -44,15 +44,11 @@ func (self *JobManager) Launch() error {
 }
 
 func (self *JobManager) Cancel() {
-	common.Logger.Println("JobManager cancelling...")
 	self.mainThreadCtxCancel()
-	common.Logger.Println("done")
 }
 
 func (self *JobManager) Wait() {
-	common.Logger.Printf("JobManager Waiting...")
 	<-self.mainThreadDoneChan
-	common.Logger.Println("done")
 }
 
 func (self *JobManager) findJob(name string) *jobfile.Job {
@@ -94,13 +90,11 @@ one, then start the job-runner thread.
 func (self *JobManager) replaceCurrJobfile(jfile *jobfile.JobFile) {
 	if self.jobRunner.Running {
 		// stop job-runner thread and wait for current runs to end
-		common.Logger.Println("Stopping job-runner thread...")
 		self.jobRunner.Cancel()
 		for rec := range self.jobRunner.RunRecChan() {
 			self.handleRunRec(rec)
 		}
 		self.jobRunner.Wait()
-		common.Logger.Println("done")
 	}
 
 	// set jobfile
@@ -114,9 +108,7 @@ func (self *JobManager) replaceCurrJobfile(jfile *jobfile.JobFile) {
 	}
 
 	// start job-runner thread
-	common.Logger.Println("Starting job-runner thread...")
 	self.jobRunner.Start(self.jfile.Jobs, self.Shell)
-	common.Logger.Println("done")
 }
 
 func (self *JobManager) openJobfile(path string,
@@ -196,9 +188,7 @@ func (self *JobManager) loadJobfile() error {
 	} else {
 		if !self.jobRunner.Running {
 			// start job-runner thread
-			common.Logger.Println("Starting job-runner thread...")
 			self.jobRunner.Start(self.jfile.Jobs, self.Shell)
-			common.Logger.Println("done")
 		}
 
 		// report error
@@ -244,7 +234,6 @@ func (self *JobManager) runMainThread() {
 		/*
 		   All modifications to the job manager's state occur here.
 		*/
-		common.Logger.Println("In job manager main thread")
 		defer close(self.mainThreadDoneChan)
 		defer close(self.CmdRespChan)
 		defer close(self.CmdChan)
@@ -259,7 +248,6 @@ func (self *JobManager) runMainThread() {
 		for {
 			select {
 			case <-ctx.Done():
-				common.Logger.Println("Main thread cancelled")
 				break Loop
 
 			case rec, ok := <-self.jobRunner.RunRecChan():
@@ -271,7 +259,6 @@ func (self *JobManager) runMainThread() {
 
 			case cmd, ok := <-self.CmdChan:
 				if ok {
-					common.Logger.Println("Got command")
 					var shouldExit bool
 					self.doCmd(cmd, &shouldExit)
 					if shouldExit {
@@ -291,11 +278,9 @@ func (self *JobManager) runMainThread() {
 		self.jobRunner.Cancel()
 
 		// consume all run-records
-		common.Logger.Println("Consuming remaining run recs...")
 		for rec := range self.jobRunner.RunRecChan() {
 			self.handleRunRec(rec)
 		}
-		common.Logger.Println("Done onsuming remaining run recs")
 
 		// wait for job runner to fully stop
 		self.jobRunner.Wait()

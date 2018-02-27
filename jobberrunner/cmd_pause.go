@@ -6,6 +6,8 @@ import (
 )
 
 func (self *JobManager) doPauseCmd(cmd common.PauseCmd) {
+	common.Logger.Printf("Got cmd 'pause'\n")
+
 	defer close(cmd.RespChan)
 
 	// look up jobs to pause

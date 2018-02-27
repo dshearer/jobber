@@ -5,6 +5,8 @@ import (
 )
 
 func (self *JobManager) doTestCmd(cmd common.TestCmd) {
+	common.Logger.Printf("Got cmd 'test'\n")
+
 	defer close(cmd.RespChan)
 
 	// find job
