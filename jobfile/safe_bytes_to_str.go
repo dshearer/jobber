@@ -1,4 +1,4 @@
-package common
+package jobfile
 
 import (
 	"encoding/base64"

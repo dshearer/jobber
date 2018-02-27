@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"os"
+
+	"github.com/dshearer/jobber/common"
 )
 
 const (
