@@ -1,9 +1,11 @@
 import subprocess as sp
 import os
+import stat
 import shutil
 import tempfile
 import pwd
 import time
+import json
 
 _NORMUSER = 'normuser'
 _RUNNER_LOG_FILE_FOR_ROOT = '/root/.jobber-log'
@@ -184,22 +186,22 @@ class testlib(object):
 
     def make_jobfile(self, job_name, cmd, time="*", \
                      notify_on_error=False, notify_on_success=False,
-                     notify_output_path=None, file_run_log_path=None):
+                     notify_output_path=None, file_run_log_path=None,
+                     stdout_output_dir=None, stdout_output_max_age=None,
+                     stderr_output_dir=None, stderr_output_max_age=None):
         # make jobs section
-        jobs_sect = """[jobs]
-- name: {job_name}
-  cmd: {cmd}
-  time: '{time}'
-  notifyOnError: {notify_on_error}
-  notifyOnSuccess: {notify_on_success}
-""".format(job_name=job_name, cmd=cmd, time=time,
-           notify_on_error=str(notify_on_error).lower(),
-           notify_on_success=str(notify_on_success).lower())
+        job = {
+            'name': job_name,
+            'cmd': cmd,
+            'time': time,
+            'notifyOnError': notify_on_error,
+            'notifyOnSuccess': notify_on_success
+        }
+        jobs_sect = "[jobs]\n{0}\n".format(json.dumps([job]))
 
         # make prefs section
-        prefs_sect = """[prefs]
-logPath: .jobber-log
-"""
+        prefs = {'logPath': '.jobber-log'}
+
         if notify_on_error or notify_on_success:
             # make notify program
             output_path = self.make_tempfile()
@@ -212,18 +214,31 @@ logPath: .jobber-log
                 f.write(notify_prog)
             os.chmod(notify_prog_path, 0755)
 
-            prefs_sect += "notifyProgram: {0}\n".format(
-                notify_prog_path)
+            # set pref
+            prefs['notifyProgram'] = notify_prog_path
 
             print("Contents of {0}:\n{1}".\
                   format(notify_prog_path, notify_prog))
 
         if file_run_log_path is not None:
-            run_log_pref = """runLog:
-    type: file
-    path: {0}
-""".format(file_run_log_path)
-            prefs_sect += run_log_pref
+            prefs['runLog'] = {'type': 'file', 'path': file_run_log_path}
+
+        if stdout_output_dir is not None:
+            jobOutput = prefs.get('jobOutput', {})
+            jobOutput['stdout'] = {
+                'where': stdout_output_dir,
+                'maxAgeDays': int(stdout_output_max_age)
+            }
+            prefs['jobOutput'] = jobOutput
+        if stderr_output_dir is not None:
+            jobOutput = prefs.get('jobOutput', {})
+            jobOutput['stderr'] = {
+                'where': stderr_output_dir,
+                'maxAgeDays': int(stderr_output_max_age)
+            }
+            prefs['jobOutput'] = jobOutput
+
+        prefs_sect = "[prefs]\n{0}\n".format(json.dumps(prefs))
 
         return prefs_sect + jobs_sect
 
@@ -248,6 +263,7 @@ logPath: .jobber-log
             else:
                 output = sp_check_output(['sudo', '-u', _NORMUSER, \
                                           self._jobber_path, 'reload'])
+            print(output)
             num_jobs = int(output.split()[1])
 
             # check number of loaded jobs
@@ -351,6 +367,82 @@ logPath: .jobber-log
         # kill it
         sp_check_output(['kill', '-9', master_pid])
         time.sleep(1)
+
+    def _parse_job_output_file_name(self, fname):
+        '''
+        :return: (timestamp, suffix)
+        '''
+
+        err_msg = "Invalid job output file name: \"{0}\"".format(fname)
+        parts = fname.split('.')
+        if len(parts) != 2:
+            raise AssertionError(err_msg)
+        try:
+            ts = int(parts[0])
+        except ValueError:
+            raise AssertionError(err_msg)
+        return ts, parts[1]
+
+    def max_job_output_file_age(self, dir_path):
+        '''
+        Get the maximum age (in days) of any job output file in the specified
+        directory.
+        '''
+
+        # list dir contents
+        for _, _, fn in os.walk(dir_path):
+            filenames = fn
+            break
+
+        if len(filenames) == 0:
+            return None
+
+        # examine timestamps
+        now = time.time()
+        day_sec = 60 * 60 * 24
+        ages = []
+        for fname in filenames:
+            ts, _ = self._parse_job_output_file_name(fname)
+            age = int((now - ts)/day_sec)
+            ages.append(age)
+            print("Age of {0}: {1} days".format(fname, age))
+
+        return max(ages)
+
+    def decrease_job_output_files_timestamps(self, dir_path, days):
+        '''
+        Decrease the timestamps on the job-output files in the specified
+        directory by the specified amount of days.
+        '''
+
+        # list dir contents
+        for _, _, fn in os.walk(dir_path):
+            filenames = fn
+            break
+
+        # rename files
+        day_sec = 60 * 60 * 24
+        for fname in filenames:
+            ts, suffix = self._parse_job_output_file_name(fname)
+            new_fname = "{0}.{1}".format(ts - days*day_sec, suffix)
+            old_path = os.path.join(dir_path, fname)
+            new_path = os.path.join(dir_path, new_fname)
+            os.rename(old_path, new_path)
+            print("Renamed {0} to {1}".format(old_path, new_path))
+
+    def directory_exists(self, path):
+        try:
+            st = os.stat(path)
+            if stat.S_ISDIR(st.st_mode):
+                return True
+            else:
+                print("{0} is not a directory".format(path))
+                return False
+        except OSError as e:
+            if e.errno == 2:
+                return False
+            else:
+                raise e
 
     def runner_proc_info(self):
         args = ['ps', '-C', 'jobberrunner', '-o', 'user,uid,tty']

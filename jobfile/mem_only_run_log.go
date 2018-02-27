@@ -25,6 +25,13 @@ type memOnlyRunLog struct {
 	entries []*RunLogEntry
 }
 
+func (self *memOnlyRunLog) String() string {
+	return fmt.Sprintf(
+		"MemRunLog{maxLen: %v}",
+		cap(self.entries),
+	)
+}
+
 func NewMemOnlyRunLog(maxLen int) RunLog {
 	if maxLen <= 0 {
 		panic("maxLen must be > 0")

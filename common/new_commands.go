@@ -12,8 +12,9 @@ type ReloadCmd struct {
 	RespChan chan *ReloadCmdResp
 }
 type ReloadCmdResp struct {
-	NumJobs int
-	Err     error
+	PrefsDesc string
+	NumJobs   int
+	Err       error
 }
 
 type JobDesc struct {
@@ -25,6 +26,8 @@ type JobDesc struct {
 	NotifyOnErr     bool
 	NotifyOnFail    bool
 	ErrHandler      string
+	StdoutDir       *string
+	StderrDir       *string
 }
 
 type ListJobsCmd struct {

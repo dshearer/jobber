@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"github.com/dshearer/jobber/common"
-	"github.com/dshearer/jobber/jobfile"
 	"os/exec"
 	"sync"
 	"time"
+
+	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/jobfile"
 )
 
 type JobRunnerThread struct {
@@ -122,20 +123,27 @@ func RunJob(
 	rec.Stdout = &execResult.Stdout
 	rec.Stderr = &execResult.Stderr
 
-	if !testing {
-		// update job
-		if execResult.Succeeded {
-			/* job succeeded */
-			job.Status = jobfile.JobGood
-		} else {
-			/* job failed: apply error-handler (which sets job.Status) */
-			job.ErrorHandler.Apply(job)
-		}
-		job.LastRunTime = rec.RunTime
-
-		// update rec.NewStatus
-		rec.NewStatus = job.Status
+	if testing {
+		return rec
 	}
+
+	// update job
+	if execResult.Succeeded {
+		/* job succeeded */
+		job.Status = jobfile.JobGood
+	} else {
+		/* job failed: apply error-handler (which sets job.Status) */
+		job.ErrorHandler.Apply(job)
+	}
+	job.LastRunTime = rec.RunTime
+
+	// update rec.NewStatus
+	rec.NewStatus = job.Status
+
+	// write output to disk
+	common.Logger.Printf("Writing output: %v", job.StdoutHandler)
+	job.StdoutHandler.WriteOutput(execResult.Stdout, job.Name, rec.RunTime)
+	job.StderrHandler.WriteOutput(execResult.Stderr, job.Name, rec.RunTime)
 
 	return rec
 }

@@ -2,7 +2,6 @@ package jobfile
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/dshearer/jobber/common"
@@ -114,16 +113,18 @@ type Job struct {
 	NotifyOnSuccess bool
 	NextRunTime     *time.Time
 
-	// other params
-	stdoutLogger *log.Logger
-	stderrLogger *log.Logger
+	// output handling
+	StdoutHandler JobOutputHandler
+	StderrHandler JobOutputHandler
 
-	// dynamic
-	Status       JobStatus
-	LastRunTime  time.Time
-	Paused       bool
-	backoffLevel int // backoff
-	skipsLeft    int // backoff
+	// backoff after errors
+	backoffLevel int
+	skipsLeft    int
+
+	// other dynamic stuff
+	Status      JobStatus
+	LastRunTime time.Time
+	Paused      bool
 }
 
 func (j *Job) String() string {
