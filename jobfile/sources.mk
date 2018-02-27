@@ -7,6 +7,7 @@ JOBFILE_SOURCES := \
 	jobfile/parse_time_spec.y \
 	jobfile/run_log.go \
 	jobfile/run_rec_notifier.go \
+	jobfile/safe_bytes_to_str.go \
 	jobfile/sources.mk \
 	jobfile/time_spec.go
 

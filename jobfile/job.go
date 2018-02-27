@@ -157,8 +157,8 @@ func (rec *RunRec) Describe() string {
 	} else {
 		summary = fmt.Sprintf("Job \"%v\" failed.", rec.Job.Name)
 	}
-	stdoutStr, _ := common.SafeBytesToStr(*rec.Stdout)
-	stderrStr, _ := common.SafeBytesToStr(*rec.Stderr)
+	stdoutStr, _ := SafeBytesToStr(*rec.Stdout)
+	stderrStr, _ := SafeBytesToStr(*rec.Stderr)
 	return fmt.Sprintf("%v\r\nNew status: %v.\r\n\r\nStdout:\r\n%v\r\n\r\nStderr:\r\n%v",
 		summary, rec.Job.Status, stdoutStr, stderrStr)
 }

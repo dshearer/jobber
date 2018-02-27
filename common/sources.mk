@@ -2,11 +2,9 @@ COMMON_SOURCES := \
 	common/consts.go \
 	common/error.go \
 	common/exec.go \
-	common/ipc_arg.go \
 	common/logging.go \
-	common/new_commands.go \
+	common/commands.go \
 	common/path.go \
-	common/safe_bytes_to_str.go \
 	common/sources.mk \
 	common/su_cmd_linux.go \
 	common/su_cmd_freebsd.go \

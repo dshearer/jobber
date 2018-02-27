@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dshearer/jobber/common"
 	"os/exec"
+
+	"github.com/dshearer/jobber/common"
 )
 
 type RunRecNotifier func(rec *RunRec)
@@ -26,7 +27,7 @@ func MakeMailNotifier() RunRecNotifier {
 		if err != nil {
 			common.ErrLogger.Printf("Failed to send mail: %v\n", err)
 		} else if !execResult.Succeeded {
-			errMsg, _ := common.SafeBytesToStr(execResult.Stderr)
+			errMsg, _ := SafeBytesToStr(execResult.Stderr)
 			common.ErrLogger.Printf("Failed to send mail: %v\n", errMsg)
 		}
 	}
@@ -61,14 +62,14 @@ func MakeProgramNotifier(program string) RunRecNotifier {
 		if rec.Stdout == nil {
 			recJson["stdout"] = nil
 		} else {
-			stdoutStr, stdoutBase64 := common.SafeBytesToStr(*rec.Stdout)
+			stdoutStr, stdoutBase64 := SafeBytesToStr(*rec.Stdout)
 			recJson["stdout"] = stdoutStr
 			recJson["stdout_base64"] = stdoutBase64
 		}
 		if rec.Stderr == nil {
 			recJson["stderr"] = nil
 		} else {
-			stderrStr, stderrBase64 := common.SafeBytesToStr(*rec.Stderr)
+			stderrStr, stderrBase64 := SafeBytesToStr(*rec.Stderr)
 			recJson["stderr"] = stderrStr
 			recJson["stderr_base64"] = stderrBase64
 		}
@@ -84,7 +85,7 @@ func MakeProgramNotifier(program string) RunRecNotifier {
 		if err2 != nil {
 			common.ErrLogger.Printf("Failed to call %v: %v\n", program, err2)
 		} else if !execResult.Succeeded {
-			errMsg, _ := common.SafeBytesToStr(execResult.Stderr)
+			errMsg, _ := SafeBytesToStr(execResult.Stderr)
 			common.ErrLogger.Printf("%v failed: %v\n",
 				program,
 				errMsg)
