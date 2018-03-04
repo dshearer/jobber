@@ -42,7 +42,7 @@ func doTestCmd(args []string) int {
 	var resp common.TestCmdResp
 	fmt.Printf("Running job \"%v\"...\n", job)
 	err = CallDaemon(
-		"NewIpcService.Test",
+		"IpcService.Test",
 		common.TestCmd{Job: job},
 		&resp,
 		usr,

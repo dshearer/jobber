@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"os"
 	"os/user"
+
+	"github.com/dshearer/jobber/common"
 )
 
 func doCatCmd(args []string) int {
@@ -40,7 +41,7 @@ func doCatCmd(args []string) int {
 	// send command
 	var resp common.CatCmdResp
 	err = CallDaemon(
-		"NewIpcService.Cat",
+		"IpcService.Cat",
 		common.CatCmd{Job: job},
 		&resp,
 		usr,

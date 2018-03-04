@@ -605,3 +605,17 @@ class testlib(object):
                 raise AssertionError("Prefs file does not exist")
             else:
                 raise e
+
+    def jobber_procs_should_not_have_inet_sockets(self):
+        proc = sp.Popen(["lsof", "-i", "-P"], stdout=sp.PIPE)
+        output, _ = proc.communicate()
+        output = output.strip()
+        if len(output) == 0:
+            # no results
+            return
+        lines = output.split("\n")[1:]
+        jobber_lines = [line for line in lines if "jobber" in line]
+        if len(jobber_lines) > 0:
+            msg = "Jobber procs have inet sockets:\n{0}".\
+                format("\n".join(jobber_lines))
+            raise AssertionError(msg)

@@ -4,27 +4,22 @@ import (
 	"github.com/dshearer/jobber/common"
 )
 
-func (self *JobManager) doTestCmd(cmd common.TestCmd) {
+func (self *JobManager) doTestCmd(cmd common.TestCmd) common.ICmdResp {
 	common.Logger.Printf("Got cmd 'test'\n")
-
-	defer close(cmd.RespChan)
 
 	// find job
 	job := self.findJob(cmd.Job)
 	if job == nil {
-		cmd.RespChan <- &common.TestCmdResp{
-			Err: &common.Error{What: "No such job."},
-		}
-		return
+		return common.NewErrorCmdResp(&common.Error{What: "No such job."})
 	}
 
 	// run the job in this thread
 	runRec := RunJob(job, self.Shell, true)
 
 	// make response
-	if runRec.Err == nil {
-		cmd.RespChan <- &common.TestCmdResp{Result: runRec.Describe()}
-	} else {
-		cmd.RespChan <- &common.TestCmdResp{Err: runRec.Err}
+	if runRec.Err != nil {
+		return common.NewErrorCmdResp(runRec.Err)
 	}
+
+	return common.TestCmdResp{Result: runRec.Describe()}
 }

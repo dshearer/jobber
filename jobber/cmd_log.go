@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"os"
 	"os/user"
 	"sort"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/dshearer/jobber/common"
 )
 
 type EnhancedLogDesc struct {
@@ -68,7 +69,7 @@ func doLogCmd_allUsers() int {
 	for _, usr := range users {
 		var resp common.LogCmdResp
 		err = CallDaemon(
-			"NewIpcService.Log",
+			"IpcService.Log",
 			common.LogCmd{},
 			&resp,
 			usr,
@@ -125,7 +126,7 @@ func doLogCmd_currUser() int {
 	// send command
 	var resp common.LogCmdResp
 	err = CallDaemon(
-		"NewIpcService.Log",
+		"IpcService.Log",
 		common.LogCmd{},
 		&resp,
 		usr,

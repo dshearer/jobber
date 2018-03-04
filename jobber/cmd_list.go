@@ -103,7 +103,7 @@ func doListCmd_allUsers() int {
 	for _, usr := range users {
 		var resp common.ListJobsCmdResp
 		err = CallDaemon(
-			"NewIpcService.ListJobs",
+			"IpcService.ListJobs",
 			common.ListJobsCmd{},
 			&resp,
 			usr,
@@ -137,7 +137,7 @@ func doListCmd_currUser() int {
 	// send cmd
 	var resp common.ListJobsCmdResp
 	err = CallDaemon(
-		"NewIpcService.ListJobs",
+		"IpcService.ListJobs",
 		common.ListJobsCmd{},
 		&resp,
 		usr,

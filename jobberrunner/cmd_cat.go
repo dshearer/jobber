@@ -4,20 +4,15 @@ import (
 	"github.com/dshearer/jobber/common"
 )
 
-func (self *JobManager) doCatCmd(cmd common.CatCmd) {
+func (self *JobManager) doCatCmd(cmd common.CatCmd) common.ICmdResp {
 	common.Logger.Printf("Got cmd 'cat'\n")
-
-	defer close(cmd.RespChan)
 
 	// find job
 	job := self.findJob(cmd.Job)
 	if job == nil {
-		cmd.RespChan <- &common.CatCmdResp{
-			Err: &common.Error{What: "No such job."},
-		}
-		return
+		return common.NewErrorCmdResp(&common.Error{What: "No such job."})
 	}
 
 	// make response
-	cmd.RespChan <- &common.CatCmdResp{Result: job.Cmd}
+	return common.CatCmdResp{Result: job.Cmd}
 }

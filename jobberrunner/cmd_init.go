@@ -57,10 +57,8 @@ const gDefaultJobfile = `## This is your jobfile: use it to tell Jobber what job
 #  notifyOnSuccess: false  # whether to call notifyProgram when the job succeeds
 `
 
-func (self *JobManager) doInitCmd(cmd common.InitCmd) {
+func (self *JobManager) doInitCmd(cmd common.InitCmd) common.ICmdResp {
 	common.Logger.Printf("Got cmd 'init'\n")
-
-	defer close(cmd.RespChan)
 
 	var resp common.InitCmdResp
 	resp.JobfilePath = self.jobfilePath
@@ -74,17 +72,15 @@ func (self *JobManager) doInitCmd(cmd common.InitCmd) {
 				self.jobfilePath)
 			err = &common.Error{What: msg}
 		}
-		resp.Err = err
-		cmd.RespChan <- &resp
-		return
+		return common.NewErrorCmdResp(err)
 	}
 	defer f.Close()
 
 	// write default jobfile
 	_, err = f.WriteString(gDefaultJobfile)
 	if err != nil {
-		resp.Err = err
+		return common.NewErrorCmdResp(err)
 	}
 
-	cmd.RespChan <- &resp
+	return resp
 }

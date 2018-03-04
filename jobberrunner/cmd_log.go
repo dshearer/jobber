@@ -4,17 +4,14 @@ import (
 	"github.com/dshearer/jobber/common"
 )
 
-func (self *JobManager) doLogCmd(cmd common.LogCmd) {
+func (self *JobManager) doLogCmd(cmd common.LogCmd) common.ICmdResp {
 	common.Logger.Printf("Got cmd 'log'\n")
-
-	defer close(cmd.RespChan)
 
 	// make log list
 	var logDescs []common.LogDesc
 	entries, err := self.jfile.Prefs.RunLog.GetAll()
 	if err != nil {
-		cmd.RespChan <- &common.LogCmdResp{Err: err}
-		return
+		return common.NewErrorCmdResp(err)
 	}
 	for _, l := range entries {
 		logDesc := common.LogDesc{
@@ -27,5 +24,5 @@ func (self *JobManager) doLogCmd(cmd common.LogCmd) {
 	}
 
 	// make response
-	cmd.RespChan <- &common.LogCmdResp{Logs: logDescs}
+	return common.LogCmdResp{Logs: logDescs}
 }

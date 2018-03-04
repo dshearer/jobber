@@ -11,12 +11,16 @@ import (
 	"github.com/dshearer/jobber/jobfile"
 )
 
+type CmdContainer struct {
+	Cmd      common.ICmd
+	RespChan chan<- common.ICmdResp
+}
+
 type JobManager struct {
 	jobfilePath         string
 	launched            bool
 	jfile               *jobfile.JobFile
-	CmdChan             chan common.ICmd
-	CmdRespChan         chan common.ICmdResp
+	CmdChan             chan CmdContainer
 	mainThreadCtx       context.Context
 	mainThreadCtxCancel context.CancelFunc
 	mainThreadDoneChan  chan interface{}
@@ -226,8 +230,7 @@ func (self *JobManager) runMainThread() {
 		context.WithCancel(context.Background())
 	self.mainThreadCtxCancel = cancel
 
-	self.CmdChan = make(chan common.ICmd)
-	self.CmdRespChan = make(chan common.ICmdResp)
+	self.CmdChan = make(chan CmdContainer)
 	self.mainThreadDoneChan = make(chan interface{})
 
 	go func() {
@@ -235,7 +238,6 @@ func (self *JobManager) runMainThread() {
 		   All modifications to the job manager's state occur here.
 		*/
 		defer close(self.mainThreadDoneChan)
-		defer close(self.CmdRespChan)
 		defer close(self.CmdChan)
 
 		// load job file & start job-runner thread
@@ -260,7 +262,7 @@ func (self *JobManager) runMainThread() {
 			case cmd, ok := <-self.CmdChan:
 				if ok {
 					var shouldExit bool
-					self.doCmd(cmd, &shouldExit)
+					cmd.RespChan <- self.doCmd(cmd.Cmd, &shouldExit)
 					if shouldExit {
 						self.mainThreadCtxCancel()
 						break Loop
@@ -272,7 +274,7 @@ func (self *JobManager) runMainThread() {
 					break Loop
 				}
 			}
-		}
+		} // for
 
 		// cancel job runner
 		self.jobRunner.Cancel()
@@ -289,36 +291,38 @@ func (self *JobManager) runMainThread() {
 
 func (self *JobManager) doCmd(
 	tmpCmd common.ICmd,
-	shouldExit *bool) { // runs in main thread
+	shouldExit *bool) common.ICmdResp { // runs in main thread
 
 	*shouldExit = false
 
 	switch cmd := tmpCmd.(type) {
 	case common.ReloadCmd:
-		self.doReloadCmd(cmd)
+		return self.doReloadCmd(cmd)
 
 	case common.ListJobsCmd:
-		self.doListJobsCmd(cmd)
+		return self.doListJobsCmd(cmd)
 
 	case common.LogCmd:
-		self.doLogCmd(cmd)
+		return self.doLogCmd(cmd)
 
 	case common.TestCmd:
-		self.doTestCmd(cmd)
+		return self.doTestCmd(cmd)
 
 	case common.CatCmd:
-		self.doCatCmd(cmd)
+		return self.doCatCmd(cmd)
 
 	case common.PauseCmd:
-		self.doPauseCmd(cmd)
+		return self.doPauseCmd(cmd)
 
 	case common.ResumeCmd:
-		self.doResumeCmd(cmd)
+		return self.doResumeCmd(cmd)
 
 	case common.InitCmd:
-		self.doInitCmd(cmd)
+		return self.doInitCmd(cmd)
 
 	default:
-		common.ErrLogger.Printf("Unknown command: %v", cmd)
+		return common.NewErrorCmdResp(
+			&common.Error{What: fmt.Sprintf("Unknown command: %v", cmd)},
+		)
 	}
 }

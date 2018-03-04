@@ -4,19 +4,14 @@ import (
 	"github.com/dshearer/jobber/common"
 )
 
-func (self *JobManager) doReloadCmd(cmd common.ReloadCmd) {
+func (self *JobManager) doReloadCmd(cmd common.ReloadCmd) common.ICmdResp {
 	common.Logger.Printf("Got cmd 'reload'\n")
 
-	defer close(cmd.RespChan)
-
 	// read job file
-	err := self.loadJobfile()
-	if err != nil {
-		cmd.RespChan <- &common.ReloadCmdResp{Err: err}
-	} else {
-		common.Logger.Printf("%v", self.jfile.Prefs.String())
-		cmd.RespChan <- &common.ReloadCmdResp{
-			NumJobs: len(self.jfile.Jobs),
-		}
+	if err := self.loadJobfile(); err != nil {
+		return common.NewErrorCmdResp(err)
 	}
+
+	common.Logger.Printf("%v", self.jfile.Prefs.String())
+	return common.ReloadCmdResp{NumJobs: len(self.jfile.Jobs)}
 }

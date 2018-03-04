@@ -7,10 +7,8 @@ import (
 	"github.com/dshearer/jobber/jobfile"
 )
 
-func (self *JobManager) doListJobsCmd(cmd common.ListJobsCmd) {
+func (self *JobManager) doListJobsCmd(cmd common.ListJobsCmd) common.ICmdResp {
 	common.Logger.Printf("Got cmd 'list'\n")
-
-	defer close(cmd.RespChan)
 
 	// make job list
 	jobDescs := make([]common.JobDesc, 0)
@@ -52,5 +50,5 @@ func (self *JobManager) doListJobsCmd(cmd common.ListJobsCmd) {
 	}
 
 	// make response
-	cmd.RespChan <- &common.ListJobsCmdResp{Jobs: jobDescs}
+	return common.ListJobsCmdResp{Jobs: jobDescs}
 }

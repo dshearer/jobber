@@ -36,7 +36,7 @@ func doReloadCmd(args []string) int {
 			// send cmd
 			var resp common.ReloadCmdResp
 			err = CallDaemon(
-				"NewIpcService.Reload",
+				"IpcService.Reload",
 				common.ReloadCmd{},
 				&resp,
 				usr,
@@ -66,7 +66,7 @@ func doReloadCmd(args []string) int {
 		// send cmd
 		var resp common.ReloadCmdResp
 		err = CallDaemon(
-			"NewIpcService.Reload",
+			"IpcService.Reload",
 			common.ReloadCmd{},
 			&resp,
 			usr,

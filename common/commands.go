@@ -5,98 +5,109 @@ import (
 )
 
 type ICmd interface{}
-type ICmdResp interface{}
 
-type ReloadCmd struct {
-	Dummy    int // this is here just to make RPC work
-	RespChan chan *ReloadCmdResp
+type ICmdResp interface {
+	Error() error
 }
+
+type errorCmdResp struct {
+	err error
+}
+
+func (self errorCmdResp) Error() error {
+	return self.err
+}
+
+func NewErrorCmdResp(err error) ICmdResp {
+	return errorCmdResp{err: err}
+}
+
+type nonErrorCmdResp struct{}
+
+func (self nonErrorCmdResp) Error() error {
+	return nil
+}
+
+type ReloadCmd struct{}
+
 type ReloadCmdResp struct {
-	PrefsDesc string
-	NumJobs   int
-	Err       error
+	NumJobs int `json:"numJobs"`
+	nonErrorCmdResp
 }
 
 type JobDesc struct {
-	Name            string
-	Status          string
-	Schedule        string
-	NextRunTime     *time.Time
-	NotifyOnSuccess bool
-	NotifyOnErr     bool
-	NotifyOnFail    bool
-	ErrHandler      string
-	StdoutDir       *string
-	StderrDir       *string
+	Name            string     `json:"name"`
+	Status          string     `json:"status"`
+	Schedule        string     `json:"schedule"`
+	NextRunTime     *time.Time `json:"nextRunTime"`
+	NotifyOnSuccess bool       `json:"notifyOnSuccess"`
+	NotifyOnErr     bool       `json:"notifyOnError"`
+	NotifyOnFail    bool       `json:"notifyOnFailure"`
+	ErrHandler      string     `json:"errHandler"`
+	StdoutDir       *string    `json:"stdoutDir"`
+	StderrDir       *string    `json:"stderrDir"`
 }
 
-type ListJobsCmd struct {
-	Dummy    int // this is here just to make RPC work
-	RespChan chan *ListJobsCmdResp
-}
+type ListJobsCmd struct{}
+
 type ListJobsCmdResp struct {
-	Jobs []JobDesc
-	Err  error
+	Jobs []JobDesc `json:"jobs"`
+	nonErrorCmdResp
 }
 
 type LogDesc struct {
-	Time      time.Time
-	Job       string
-	Succeeded bool
-	Result    string
+	Time      time.Time `json:"time"`
+	Job       string    `json:"job"`
+	Succeeded bool      `json:"succeeded"`
+	Result    string    `json:"result"`
 }
 
-type LogCmd struct {
-	Dummy    int // this is here just to make RPC work
-	RespChan chan *LogCmdResp
-}
+type LogCmd struct{}
+
 type LogCmdResp struct {
-	Logs []LogDesc
-	Err  error
+	Logs []LogDesc `json:"logs"`
+	nonErrorCmdResp
 }
 
 type TestCmd struct {
-	Job      string
-	RespChan chan *TestCmdResp
+	Job string `json:"job"`
 }
+
 type TestCmdResp struct {
-	Result string
-	Err    error
+	Result string `json:"result"`
+	nonErrorCmdResp
 }
 
 type CatCmd struct {
-	Job      string
-	RespChan chan *CatCmdResp
+	Job string `json:"job"`
 }
+
 type CatCmdResp struct {
-	Result string
-	Err    error
+	Result string `json:"result"`
+	nonErrorCmdResp
 }
 
 type PauseCmd struct {
-	Jobs     []string
-	RespChan chan *PauseCmdResp
+	Jobs []string `json:"jobs"`
 }
+
 type PauseCmdResp struct {
-	AmtPaused int
-	Err       error
+	NumPaused int `json:"numPaused"`
+	nonErrorCmdResp
 }
 
 type ResumeCmd struct {
-	Jobs     []string
-	RespChan chan *ResumeCmdResp
-}
-type ResumeCmdResp struct {
-	AmtResumed int
-	Err        error
+	Jobs []string `json:"jobs"`
 }
 
-type InitCmd struct {
-	Dummy    int // this is here just to make RPC work
-	RespChan chan *InitCmdResp
+type ResumeCmdResp struct {
+	NumResumed int `json:"numResumed"`
+	nonErrorCmdResp
 }
+
+type InitCmd struct{}
 
 type InitCmdResp struct {
-	JobfilePath string
-	Err         error
+	JobfilePath string `json:"jobfilePath"`
+	nonErrorCmdResp
 }

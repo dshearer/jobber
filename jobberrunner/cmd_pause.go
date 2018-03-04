@@ -5,10 +5,8 @@ import (
 	"github.com/dshearer/jobber/jobfile"
 )
 
-func (self *JobManager) doPauseCmd(cmd common.PauseCmd) {
+func (self *JobManager) doPauseCmd(cmd common.PauseCmd) common.ICmdResp {
 	common.Logger.Printf("Got cmd 'pause'\n")
-
-	defer close(cmd.RespChan)
 
 	// look up jobs to pause
 	var jobsToPause []*jobfile.Job
@@ -16,22 +14,21 @@ func (self *JobManager) doPauseCmd(cmd common.PauseCmd) {
 		var err error
 		jobsToPause, err = self.findJobs(cmd.Jobs)
 		if err != nil {
-			cmd.RespChan <- &common.PauseCmdResp{Err: err}
-			return
+			return common.NewErrorCmdResp(err)
 		}
 	} else {
 		jobsToPause = self.jfile.Jobs
 	}
 
 	// pause them
-	amtPaused := 0
+	numPaused := 0
 	for _, job := range jobsToPause {
 		if !job.Paused {
 			job.Paused = true
-			amtPaused += 1
+			numPaused += 1
 		}
 	}
 
 	// make response
-	cmd.RespChan <- &common.PauseCmdResp{AmtPaused: amtPaused}
+	return common.PauseCmdResp{NumPaused: numPaused}
 }
