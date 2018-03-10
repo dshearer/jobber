@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"os"
 	"os/user"
-	"strings"
 
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 	"github.com/dshearer/jobber/jobfile"
 )
 
 type CmdContainer struct {
-	Cmd      common.ICmd
-	RespChan chan<- common.ICmdResp
+	Cmd      ipc.ICmd
+	RespChan chan<- ipc.ICmdResp
 }
 
 type JobManager struct {
@@ -53,38 +53,6 @@ func (self *JobManager) Cancel() {
 
 func (self *JobManager) Wait() {
 	<-self.mainThreadDoneChan
-}
-
-func (self *JobManager) findJob(name string) *jobfile.Job {
-	for _, job := range self.jfile.Jobs {
-		if job.Name == name {
-			return job
-		}
-	}
-	return nil
-}
-
-func (self *JobManager) findJobs(names []string) ([]*jobfile.Job, error) {
-	foundJobs := make([]*jobfile.Job, 0, len(names))
-	missingJobNames := make([]string, 0)
-	for _, name := range names {
-		job := self.findJob(name)
-		if job != nil {
-			foundJobs = append(foundJobs, job)
-		} else {
-			missingJobNames = append(missingJobNames, name)
-		}
-	}
-
-	if len(missingJobNames) > 0 {
-		msg := fmt.Sprintf(
-			"No such jobs: %v",
-			strings.Join(missingJobNames, ", "),
-		)
-		return foundJobs, &common.Error{What: msg}
-	} else {
-		return foundJobs, nil
-	}
 }
 
 /*
@@ -290,38 +258,44 @@ func (self *JobManager) runMainThread() {
 }
 
 func (self *JobManager) doCmd(
-	tmpCmd common.ICmd,
-	shouldExit *bool) common.ICmdResp { // runs in main thread
+	tmpCmd ipc.ICmd,
+	shouldExit *bool) ipc.ICmdResp { // runs in main thread
 
 	*shouldExit = false
 
 	switch cmd := tmpCmd.(type) {
-	case common.ReloadCmd:
+	case ipc.ReloadCmd:
 		return self.doReloadCmd(cmd)
 
-	case common.ListJobsCmd:
+	case ipc.ListJobsCmd:
 		return self.doListJobsCmd(cmd)
 
-	case common.LogCmd:
+	case ipc.LogCmd:
 		return self.doLogCmd(cmd)
 
-	case common.TestCmd:
+	case ipc.TestCmd:
 		return self.doTestCmd(cmd)
 
-	case common.CatCmd:
+	case ipc.CatCmd:
 		return self.doCatCmd(cmd)
 
-	case common.PauseCmd:
+	case ipc.PauseCmd:
 		return self.doPauseCmd(cmd)
 
-	case common.ResumeCmd:
+	case ipc.ResumeCmd:
 		return self.doResumeCmd(cmd)
 
-	case common.InitCmd:
+	case ipc.InitCmd:
 		return self.doInitCmd(cmd)
 
+	case ipc.SetJobCmd:
+		return self.doSetJobCmd(cmd)
+
+	case ipc.DeleteJobCmd:
+		return self.doDeleteJobCmd(cmd)
+
 	default:
-		return common.NewErrorCmdResp(
+		return ipc.NewErrorCmdResp(
 			&common.Error{What: fmt.Sprintf("Unknown command: %v", cmd)},
 		)
 	}

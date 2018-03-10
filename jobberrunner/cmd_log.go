@@ -2,19 +2,20 @@ package main
 
 import (
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
-func (self *JobManager) doLogCmd(cmd common.LogCmd) common.ICmdResp {
+func (self *JobManager) doLogCmd(cmd ipc.LogCmd) ipc.ICmdResp {
 	common.Logger.Printf("Got cmd 'log'\n")
 
 	// make log list
-	var logDescs []common.LogDesc
+	var logDescs []ipc.LogDesc
 	entries, err := self.jfile.Prefs.RunLog.GetAll()
 	if err != nil {
-		return common.NewErrorCmdResp(err)
+		return ipc.NewErrorCmdResp(err)
 	}
 	for _, l := range entries {
-		logDesc := common.LogDesc{
+		logDesc := ipc.LogDesc{
 			Time:      l.Time,
 			Job:       l.JobName,
 			Succeeded: l.Succeeded,
@@ -24,5 +25,5 @@ func (self *JobManager) doLogCmd(cmd common.LogCmd) common.ICmdResp {
 	}
 
 	// make response
-	return common.LogCmdResp{Logs: logDescs}
+	return ipc.LogCmdResp{Logs: logDescs}
 }

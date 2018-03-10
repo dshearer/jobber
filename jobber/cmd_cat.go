@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/user"
 
-	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
 func doCatCmd(args []string) int {
@@ -39,10 +39,10 @@ func doCatCmd(args []string) int {
 	}
 
 	// send command
-	var resp common.CatCmdResp
+	var resp ipc.CatCmdResp
 	err = CallDaemon(
 		"IpcService.Cat",
-		common.CatCmd{Job: job},
+		ipc.CatCmd{Job: job},
 		&resp,
 		usr,
 		true,

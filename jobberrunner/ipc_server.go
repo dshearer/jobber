@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
 type IpcService struct {
@@ -15,11 +16,11 @@ type IpcService struct {
 }
 
 func (self *IpcService) Reload(
-	cmd common.ReloadCmd,
-	resp_p *common.ReloadCmdResp) error {
+	cmd ipc.ReloadCmd,
+	resp_p *ipc.ReloadCmdResp) error {
 
 	// send command
-	respChan := make(chan common.ICmdResp, 1)
+	respChan := make(chan ipc.ICmdResp, 1)
 	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
@@ -27,7 +28,7 @@ func (self *IpcService) Reload(
 	if err := resp.Error(); err != nil {
 		return err
 	}
-	concreteResp, ok := resp.(common.ReloadCmdResp)
+	concreteResp, ok := resp.(ipc.ReloadCmdResp)
 	if !ok {
 		return &common.Error{What: "Unexpected response type"}
 	}
@@ -36,11 +37,11 @@ func (self *IpcService) Reload(
 }
 
 func (self *IpcService) ListJobs(
-	cmd common.ListJobsCmd,
-	resp_p *common.ListJobsCmdResp) error {
+	cmd ipc.ListJobsCmd,
+	resp_p *ipc.ListJobsCmdResp) error {
 
 	// send command
-	respChan := make(chan common.ICmdResp, 1)
+	respChan := make(chan ipc.ICmdResp, 1)
 	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
@@ -48,7 +49,7 @@ func (self *IpcService) ListJobs(
 	if err := resp.Error(); err != nil {
 		return err
 	}
-	concreteResp, ok := resp.(common.ListJobsCmdResp)
+	concreteResp, ok := resp.(ipc.ListJobsCmdResp)
 	if !ok {
 		return &common.Error{What: "Unexpected response type"}
 	}
@@ -57,11 +58,11 @@ func (self *IpcService) ListJobs(
 }
 
 func (self *IpcService) Log(
-	cmd common.LogCmd,
-	resp_p *common.LogCmdResp) error {
+	cmd ipc.LogCmd,
+	resp_p *ipc.LogCmdResp) error {
 
 	// send command
-	respChan := make(chan common.ICmdResp, 1)
+	respChan := make(chan ipc.ICmdResp, 1)
 	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
@@ -69,7 +70,7 @@ func (self *IpcService) Log(
 	if err := resp.Error(); err != nil {
 		return err
 	}
-	concreteResp, ok := resp.(common.LogCmdResp)
+	concreteResp, ok := resp.(ipc.LogCmdResp)
 	if !ok {
 		return &common.Error{What: "Unexpected response type"}
 	}
@@ -78,11 +79,11 @@ func (self *IpcService) Log(
 }
 
 func (self *IpcService) Test(
-	cmd common.TestCmd,
-	resp_p *common.TestCmdResp) error {
+	cmd ipc.TestCmd,
+	resp_p *ipc.TestCmdResp) error {
 
 	// send command
-	respChan := make(chan common.ICmdResp, 1)
+	respChan := make(chan ipc.ICmdResp, 1)
 	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
@@ -90,7 +91,7 @@ func (self *IpcService) Test(
 	if err := resp.Error(); err != nil {
 		return err
 	}
-	concreteResp, ok := resp.(common.TestCmdResp)
+	concreteResp, ok := resp.(ipc.TestCmdResp)
 	if !ok {
 		return &common.Error{What: "Unexpected response type"}
 	}
@@ -99,11 +100,11 @@ func (self *IpcService) Test(
 }
 
 func (self *IpcService) Cat(
-	cmd common.CatCmd,
-	resp_p *common.CatCmdResp) error {
+	cmd ipc.CatCmd,
+	resp_p *ipc.CatCmdResp) error {
 
 	// send command
-	respChan := make(chan common.ICmdResp, 1)
+	respChan := make(chan ipc.ICmdResp, 1)
 	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
@@ -111,7 +112,7 @@ func (self *IpcService) Cat(
 	if err := resp.Error(); err != nil {
 		return err
 	}
-	concreteResp, ok := resp.(common.CatCmdResp)
+	concreteResp, ok := resp.(ipc.CatCmdResp)
 	if !ok {
 		return &common.Error{What: "Unexpected response type"}
 	}
@@ -120,11 +121,11 @@ func (self *IpcService) Cat(
 }
 
 func (self *IpcService) Pause(
-	cmd common.PauseCmd,
-	resp_p *common.PauseCmdResp) error {
+	cmd ipc.PauseCmd,
+	resp_p *ipc.PauseCmdResp) error {
 
 	// send command
-	respChan := make(chan common.ICmdResp, 1)
+	respChan := make(chan ipc.ICmdResp, 1)
 	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
@@ -132,7 +133,7 @@ func (self *IpcService) Pause(
 	if err := resp.Error(); err != nil {
 		return err
 	}
-	concreteResp, ok := resp.(common.PauseCmdResp)
+	concreteResp, ok := resp.(ipc.PauseCmdResp)
 	if !ok {
 		return &common.Error{What: "Unexpected response type"}
 	}
@@ -141,11 +142,11 @@ func (self *IpcService) Pause(
 }
 
 func (self *IpcService) Resume(
-	cmd common.ResumeCmd,
-	resp_p *common.ResumeCmdResp) error {
+	cmd ipc.ResumeCmd,
+	resp_p *ipc.ResumeCmdResp) error {
 
 	// send command
-	respChan := make(chan common.ICmdResp, 1)
+	respChan := make(chan ipc.ICmdResp, 1)
 	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
@@ -153,7 +154,7 @@ func (self *IpcService) Resume(
 	if err := resp.Error(); err != nil {
 		return err
 	}
-	concreteResp, ok := resp.(common.ResumeCmdResp)
+	concreteResp, ok := resp.(ipc.ResumeCmdResp)
 	if !ok {
 		return &common.Error{What: "Unexpected response type"}
 	}
@@ -162,11 +163,11 @@ func (self *IpcService) Resume(
 }
 
 func (self *IpcService) Init(
-	cmd common.InitCmd,
-	resp_p *common.InitCmdResp) error {
+	cmd ipc.InitCmd,
+	resp_p *ipc.InitCmdResp) error {
 
 	// send command
-	respChan := make(chan common.ICmdResp, 1)
+	respChan := make(chan ipc.ICmdResp, 1)
 	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
@@ -174,7 +175,49 @@ func (self *IpcService) Init(
 	if err := resp.Error(); err != nil {
 		return err
 	}
-	concreteResp, ok := resp.(common.InitCmdResp)
+	concreteResp, ok := resp.(ipc.InitCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
+}
+
+func (self *IpcService) SetJob(
+	cmd ipc.SetJobCmd,
+	resp_p *ipc.SetJobCmdResp) error {
+
+	// send command
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
+
+	// get response
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.SetJobCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
+}
+
+func (self *IpcService) DeleteJob(
+	cmd ipc.DeleteJobCmd,
+	resp_p *ipc.DeleteJobCmdResp) error {
+
+	// send command
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
+
+	// get response
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.DeleteJobCmdResp)
 	if !ok {
 		return &common.Error{What: "Unexpected response type"}
 	}

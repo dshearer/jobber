@@ -67,12 +67,11 @@ type JobQueue struct {
 	q jobQueueImpl
 }
 
-func (jq *JobQueue) SetJobs(now time.Time, jobs []*jobfile.Job) {
+func (jq *JobQueue) SetJobs(now time.Time, jobs map[string]*jobfile.Job) {
 	jq.q = make(jobQueueImpl, 0)
 	heap.Init(&jq.q)
 
-	for i := 0; i < len(jobs); i++ {
-		var job *jobfile.Job = jobs[i]
+	for _, job := range jobs {
 		job.NextRunTime = nextRunTime(job, now)
 		if job.NextRunTime != nil {
 			heap.Push(&jq.q, job)

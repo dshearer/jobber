@@ -162,10 +162,10 @@ var gNewJobFile = JobFile{
 		StdoutHandler: NopJobOutputHandler{},
 		StderrHandler: NopJobOutputHandler{},
 	},
-	Jobs: []*Job{
-		&gDailyBackup,
-		&gWeeklyBackup,
-		&gSuccessReport,
+	Jobs: map[string]*Job{
+		"DailyBackup":   &gDailyBackup,
+		"WeeklyBackup":  &gWeeklyBackup,
+		"SuccessReport": &gSuccessReport,
 	},
 }
 
@@ -207,11 +207,11 @@ var gLegacyJobFile = JobFile{
 		StdoutHandler: NopJobOutputHandler{},
 		StderrHandler: NopJobOutputHandler{},
 	},
-	Jobs: []*Job{
-		&gDailyBackup,
-		&gWeeklyBackup,
-		&gJobA,
-		&gJobB,
+	Jobs: map[string]*Job{
+		"DailyBackup":  &gDailyBackup,
+		"WeeklyBackup": &gWeeklyBackup,
+		"JobA":         &gJobA,
+		"JobB":         &gJobB,
 	},
 }
 
@@ -252,7 +252,7 @@ var gTestCases = []JobFileTestCase{
 				StdoutHandler: NopJobOutputHandler{},
 				StderrHandler: NopJobOutputHandler{},
 			},
-			Jobs: []*Job{&gDailyBackup},
+			Jobs: map[string]*Job{"DailyBackup": &gDailyBackup},
 		},
 	},
 	{
@@ -431,8 +431,8 @@ jobOutput:
 					Suffix:     "stderr",
 				},
 			}, // prefs
-			Jobs: []*Job{
-				&Job{
+			Jobs: map[string]*Job{
+				"JobA": &Job{
 					Name:            "JobA",
 					Cmd:             "exit 0",
 					User:            gUserEx.Username,
@@ -452,7 +452,7 @@ jobOutput:
 						Suffix:     "stderr",
 					},
 				}, // job
-				&Job{
+				"JobB": &Job{
 					Name:            "JobB",
 					Cmd:             "exit 0",
 					User:            gUserEx.Username,
@@ -621,10 +621,10 @@ func TestLoadJobFile(t *testing.T) {
 
 		require.Equal(t, testCase.Output.Prefs, file.Prefs)
 		require.Equal(t, len(testCase.Output.Jobs), len(file.Jobs))
-		for i := 0; i < len(file.Jobs); i++ {
-			require.Equal(t, testCase.Output.Jobs[i].StderrHandler, file.Jobs[i].StderrHandler)
-			require.Equal(t, testCase.Output.Jobs[i].StdoutHandler, file.Jobs[i].StdoutHandler)
-			require.Equal(t, *testCase.Output.Jobs[i], *file.Jobs[i])
+		for jobName, _ := range testCase.Output.Jobs {
+			require.Equal(t, testCase.Output.Jobs[jobName].StderrHandler, file.Jobs[jobName].StderrHandler)
+			require.Equal(t, testCase.Output.Jobs[jobName].StdoutHandler, file.Jobs[jobName].StdoutHandler)
+			require.Equal(t, *testCase.Output.Jobs[jobName], *file.Jobs[jobName])
 		}
 	}
 }

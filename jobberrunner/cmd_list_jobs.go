@@ -4,14 +4,15 @@ import (
 	"fmt"
 
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 	"github.com/dshearer/jobber/jobfile"
 )
 
-func (self *JobManager) doListJobsCmd(cmd common.ListJobsCmd) common.ICmdResp {
+func (self *JobManager) doListJobsCmd(cmd ipc.ListJobsCmd) ipc.ICmdResp {
 	common.Logger.Printf("Got cmd 'list'\n")
 
 	// make job list
-	jobDescs := make([]common.JobDesc, 0)
+	jobDescs := make([]ipc.JobDesc, 0)
 	for _, j := range self.jfile.Jobs {
 		var stdoutDir *string
 		var stderrDir *string
@@ -22,7 +23,7 @@ func (self *JobManager) doListJobsCmd(cmd common.ListJobsCmd) common.ICmdResp {
 			stderrDir = &handler.Where
 		}
 
-		jobDesc := common.JobDesc{
+		jobDesc := ipc.JobDesc{
 			Name:   j.Name,
 			Status: j.Status.String(),
 			Schedule: fmt.Sprintf(
@@ -50,5 +51,5 @@ func (self *JobManager) doListJobsCmd(cmd common.ListJobsCmd) common.ICmdResp {
 	}
 
 	// make response
-	return common.ListJobsCmdResp{Jobs: jobDescs}
+	return ipc.ListJobsCmdResp{Jobs: jobDescs}
 }

@@ -23,7 +23,7 @@ const (
 
 type JobFile struct {
 	Prefs UserPrefs
-	Jobs  []*Job
+	Jobs  map[string]*Job
 }
 
 type UserPrefs struct {
@@ -49,13 +49,13 @@ func (self *UserPrefs) String() string {
 }
 
 type JobOutputPrefsRaw struct {
-	Where      *string `yaml:"where"`
-	MaxAgeDays *int    `yaml:"maxAgeDays"`
+	Where      *string `json:"where" yaml:"where"`
+	MaxAgeDays *int    `json:"maxAgeDays" yaml:"maxAgeDays"`
 }
 
 type BothJobOutputPrefsRaw struct {
-	Stdout *JobOutputPrefsRaw `yaml:"stdout"`
-	Stderr *JobOutputPrefsRaw `yaml:"stderr"`
+	Stdout *JobOutputPrefsRaw `json:"stdout" yaml:"stdout"`
+	Stderr *JobOutputPrefsRaw `json:"stderr" yaml:"stderr"`
 }
 
 type RunLogRaw struct {
@@ -78,23 +78,24 @@ type UserPrefsRaw struct {
 }
 
 type JobRaw struct {
-	Name            string
-	Cmd             string
-	Time            string
-	OnError         *string                `yaml:"onError"`
-	NotifyOnSuccess *bool                  `yaml:"notifyOnSuccess"`
-	NotifyOnError   *bool                  `yaml:"notifyOnError"`
-	NotifyOnFailure *bool                  `yaml:"notifyOnFailure"`
-	JobOutput       *BothJobOutputPrefsRaw `yaml:"jobOutput"`
+	Name            string                 `json:"name" yaml:"name"`
+	Cmd             string                 `json:"cmd" yaml:"cmd"`
+	Time            string                 `json:"time" yaml:"time"`
+	OnError         *string                `json:"onError" yaml:"onError"`
+	NotifyOnSuccess *bool                  `json:"notifyOnSuccess" yaml:"notifyOnSuccess"`
+	NotifyOnError   *bool                  `json:"notifyOnError" yaml:"notifyOnError"`
+	NotifyOnFailure *bool                  `json:"notifyOnFailure" yaml:"notifyOnFailure"`
+	JobOutput       *BothJobOutputPrefsRaw `json:"jobOutput" yaml:"jobOutput"`
 }
 
 func NewEmptyJobFile() *JobFile {
-	prefs := UserPrefs{
-		RunLog: NewMemOnlyRunLog(gDefaultMemRunLogMaxLen),
-	}
 	return &JobFile{
-		Prefs: prefs,
-		Jobs:  nil,
+		Prefs: UserPrefs{
+			RunLog:        NewMemOnlyRunLog(gDefaultMemRunLogMaxLen),
+			StdoutHandler: NopJobOutputHandler{},
+			StderrHandler: NopJobOutputHandler{},
+		},
+		Jobs: make(map[string]*Job),
 	}
 }
 
@@ -436,7 +437,67 @@ func checkJobOutputPrefs(prefs *JobOutputPrefsRaw) error {
 	}
 }
 
-func parseJobsSect(s string, usr *user.User, prefs *UserPrefs) ([]*Job, error) {
+func JobRawToJob(jobRaw JobRaw, usr *user.User, prefs *UserPrefs) (*Job, error) {
+	job := NewJob(jobRaw.Name, jobRaw.Cmd, usr.Username)
+	var err error
+
+	// check name
+	if len(jobRaw.Name) == 0 {
+		return nil, &common.Error{What: "Job name cannot be empty."}
+	}
+
+	// set failure-handler
+	if jobRaw.OnError != nil {
+		job.ErrorHandler, err = getErrorHandler(*jobRaw.OnError)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// set notify prefs
+	if jobRaw.NotifyOnError != nil {
+		job.NotifyOnError = *jobRaw.NotifyOnError
+	}
+	if jobRaw.NotifyOnFailure != nil {
+		job.NotifyOnFailure = *jobRaw.NotifyOnFailure
+	}
+	if jobRaw.NotifyOnSuccess != nil {
+		job.NotifyOnSuccess = *jobRaw.NotifyOnSuccess
+	}
+
+	// parse time spec
+	var tmp *FullTimeSpec
+	tmp, err = ParseFullTimeSpec(jobRaw.Time)
+	if err != nil {
+		return nil, err
+	}
+	job.FullTimeSpec = *tmp
+	job.FullTimeSpec.Derandomize()
+
+	// parse job output prefs
+	var stdoutOutputPrefs *JobOutputPrefsRaw
+	var stderrOutputPrefs *JobOutputPrefsRaw
+	if jobRaw.JobOutput != nil {
+		stdoutOutputPrefs = jobRaw.JobOutput.Stdout
+		stderrOutputPrefs = jobRaw.JobOutput.Stderr
+	}
+	handler, err := makeOutputHandlerForJob(stdoutOutputPrefs,
+		prefs.StdoutHandler, "stdout")
+	if err != nil {
+		return nil, err
+	}
+	job.StdoutHandler = handler
+	handler, err = makeOutputHandlerForJob(stderrOutputPrefs,
+		prefs.StderrHandler, "stderr")
+	if err != nil {
+		return nil, err
+	}
+	job.StderrHandler = handler
+
+	return job, nil
+}
+
+func parseJobsSect(s string, usr *user.User, prefs *UserPrefs) (map[string]*Job, error) {
 	// parse "jobs" section
 	var jobConfigs []JobRaw
 	if !strings.HasPrefix(s, gYamlStarter+"\n") {
@@ -450,65 +511,17 @@ func parseJobsSect(s string, usr *user.User, prefs *UserPrefs) ([]*Job, error) {
 	}
 
 	// make jobs
-	var jobs []*Job
+	jobs := make(map[string]*Job)
 	for _, config := range jobConfigs {
-		job := NewJob(config.Name, config.Cmd, usr.Username)
-		var err error = nil
-
-		// check name
-		if len(config.Name) == 0 {
-			return nil, &common.Error{What: "Job name cannot be empty."}
-		}
-
-		// set failure-handler
-		if config.OnError != nil {
-			job.ErrorHandler, err = getErrorHandler(*config.OnError)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// set notify prefs
-		if config.NotifyOnError != nil {
-			job.NotifyOnError = *config.NotifyOnError
-		}
-		if config.NotifyOnFailure != nil {
-			job.NotifyOnFailure = *config.NotifyOnFailure
-		}
-		if config.NotifyOnSuccess != nil {
-			job.NotifyOnSuccess = *config.NotifyOnSuccess
-		}
-
-		// parse time spec
-		var tmp *FullTimeSpec
-		tmp, err = ParseFullTimeSpec(config.Time)
+		job, err := JobRawToJob(config, usr, prefs)
 		if err != nil {
 			return nil, err
 		}
-		job.FullTimeSpec = *tmp
-		job.FullTimeSpec.Derandomize()
-
-		// parse job output prefs
-		var stdoutOutputPrefs *JobOutputPrefsRaw
-		var stderrOutputPrefs *JobOutputPrefsRaw
-		if config.JobOutput != nil {
-			stdoutOutputPrefs = config.JobOutput.Stdout
-			stderrOutputPrefs = config.JobOutput.Stderr
+		if _, ok := jobs[job.Name]; ok {
+			msg := fmt.Sprintf("Multiple jobs named \"%v\"", job.Name)
+			return nil, &common.Error{What: msg}
 		}
-		handler, err := makeOutputHandlerForJob(stdoutOutputPrefs,
-			prefs.StdoutHandler, "stdout")
-		if err != nil {
-			return nil, err
-		}
-		job.StdoutHandler = handler
-		handler, err = makeOutputHandlerForJob(stderrOutputPrefs,
-			prefs.StderrHandler, "stderr")
-		if err != nil {
-			return nil, err
-		}
-		job.StderrHandler = handler
-
-		jobs = append(jobs, job)
+		jobs[job.Name] = job
 	}
 
 	return jobs, nil

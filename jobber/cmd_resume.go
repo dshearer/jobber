@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/user"
 
-	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
 func doResumeCmd(args []string) int {
@@ -34,10 +34,10 @@ func doResumeCmd(args []string) int {
 	}
 
 	// send command
-	var resp common.ResumeCmdResp
+	var resp ipc.ResumeCmdResp
 	err = CallDaemon(
 		"IpcService.Resume",
-		common.ResumeCmd{Jobs: jobs},
+		ipc.ResumeCmd{Jobs: jobs},
 		&resp,
 		usr,
 		true,

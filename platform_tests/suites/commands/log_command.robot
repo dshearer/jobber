@@ -5,7 +5,7 @@ Resource         keywords.robot
 Test Setup       Setup
 Test Teardown    Teardown
 Test Template    Log Command
-Force Tags       test
+Force Tags       test    cmd
 
 *** Test Cases ***          ROOT_HAS_JOB    NON_ROOT_HAS_JOB    ROOT_LOG_RESULTS    ROOT_LOG_ALL_RESULTS    NON_ROOT_LOG_RESULTS
 While Root Has Job          ${True}         ${False}            ${True}             ${True}                 ${False}

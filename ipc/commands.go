@@ -1,7 +1,9 @@
-package common
+package ipc
 
 import (
 	"time"
+
+	"github.com/dshearer/jobber/jobfile"
 )
 
 type ICmd interface{}
@@ -109,5 +111,23 @@ type InitCmd struct{}
 
 type InitCmdResp struct {
 	JobfilePath string `json:"jobfilePath"`
+	nonErrorCmdResp
+}
+
+type SetJobCmd struct {
+	Job jobfile.JobRaw `json:"job"`
+}
+
+type SetJobCmdResp struct {
+	Ok bool `json:"ok"` // just to make IPC work
+	nonErrorCmdResp
+}
+
+type DeleteJobCmd struct {
+	Job string `json:"job"`
+}
+
+type DeleteJobCmdResp struct {
+	Ok bool `json:"ok"` // just to make IPC work
 	nonErrorCmdResp
 }

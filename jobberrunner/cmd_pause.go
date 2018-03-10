@@ -1,23 +1,31 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 	"github.com/dshearer/jobber/jobfile"
 )
 
-func (self *JobManager) doPauseCmd(cmd common.PauseCmd) common.ICmdResp {
+func (self *JobManager) doPauseCmd(cmd ipc.PauseCmd) ipc.ICmdResp {
 	common.Logger.Printf("Got cmd 'pause'\n")
 
 	// look up jobs to pause
 	var jobsToPause []*jobfile.Job
-	if len(cmd.Jobs) > 0 {
-		var err error
-		jobsToPause, err = self.findJobs(cmd.Jobs)
-		if err != nil {
-			return common.NewErrorCmdResp(err)
+	if len(cmd.Jobs) == 0 {
+		for _, job := range self.jfile.Jobs {
+			jobsToPause = append(jobsToPause, job)
 		}
 	} else {
-		jobsToPause = self.jfile.Jobs
+		for _, jobName := range cmd.Jobs {
+			job, ok := self.jfile.Jobs[jobName]
+			if !ok {
+				msg := fmt.Sprintf("No such job: %v", jobName)
+				return ipc.NewErrorCmdResp(&common.Error{What: msg})
+			}
+			jobsToPause = append(jobsToPause, job)
+		}
 	}
 
 	// pause them
@@ -30,5 +38,5 @@ func (self *JobManager) doPauseCmd(cmd common.PauseCmd) common.ICmdResp {
 	}
 
 	// make response
-	return common.PauseCmdResp{NumPaused: numPaused}
+	return ipc.PauseCmdResp{NumPaused: numPaused}
 }

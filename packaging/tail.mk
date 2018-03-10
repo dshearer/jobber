@@ -142,3 +142,9 @@ clean-common :
 deepclean : clean-common
 	-vagrant destroy -f
 	rm -f .vm-is-created
+
+.PHONY : shallowclean
+shallowclean :
+	-${VAGRANT_SSH} "rm -rf work dest jobber-* platform_tests* *.html *.xml"
+		rm -rf "${WORK_DIR}" "${DESTDIR}${PKGFILE}" docker/src.tgz \
+			testlog.txt "${DESTDIR}test_report" platform_tests.tar

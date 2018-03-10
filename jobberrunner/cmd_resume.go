@@ -1,23 +1,31 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 	"github.com/dshearer/jobber/jobfile"
 )
 
-func (self *JobManager) doResumeCmd(cmd common.ResumeCmd) common.ICmdResp {
+func (self *JobManager) doResumeCmd(cmd ipc.ResumeCmd) ipc.ICmdResp {
 	common.Logger.Printf("Got cmd 'resume'\n")
 
 	// look up jobs to resume
 	var jobsToResume []*jobfile.Job
-	if len(cmd.Jobs) > 0 {
-		var err error
-		jobsToResume, err = self.findJobs(cmd.Jobs)
-		if err != nil {
-			return common.NewErrorCmdResp(err)
+	if len(cmd.Jobs) == 0 {
+		for _, job := range self.jfile.Jobs {
+			jobsToResume = append(jobsToResume, job)
 		}
 	} else {
-		jobsToResume = self.jfile.Jobs
+		for _, jobName := range cmd.Jobs {
+			job, ok := self.jfile.Jobs[jobName]
+			if !ok {
+				msg := fmt.Sprintf("No such job: %v", jobName)
+				return ipc.NewErrorCmdResp(&common.Error{What: msg})
+			}
+			jobsToResume = append(jobsToResume, job)
+		}
 	}
 
 	// pause them
@@ -30,5 +38,5 @@ func (self *JobManager) doResumeCmd(cmd common.ResumeCmd) common.ICmdResp {
 	}
 
 	// make response
-	return common.ResumeCmdResp{NumResumed: numResumed}
+	return ipc.ResumeCmdResp{NumResumed: numResumed}
 }

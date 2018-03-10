@@ -2,17 +2,18 @@ package main
 
 import (
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
-func (self *JobManager) doCatCmd(cmd common.CatCmd) common.ICmdResp {
+func (self *JobManager) doCatCmd(cmd ipc.CatCmd) ipc.ICmdResp {
 	common.Logger.Printf("Got cmd 'cat'\n")
 
 	// find job
-	job := self.findJob(cmd.Job)
-	if job == nil {
-		return common.NewErrorCmdResp(&common.Error{What: "No such job."})
+	job, ok := self.jfile.Jobs[cmd.Job]
+	if !ok {
+		return ipc.NewErrorCmdResp(&common.Error{What: "No such job."})
 	}
 
 	// make response
-	return common.CatCmdResp{Result: job.Cmd}
+	return ipc.CatCmdResp{Result: job.Cmd}
 }

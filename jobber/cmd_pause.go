@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/user"
 
-	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
 func doPauseCmd(args []string) int {
@@ -34,10 +34,10 @@ func doPauseCmd(args []string) int {
 	}
 
 	// send command
-	var resp common.PauseCmdResp
+	var resp ipc.PauseCmdResp
 	err = CallDaemon(
 		"IpcService.Pause",
-		common.PauseCmd{Jobs: jobs},
+		ipc.PauseCmd{Jobs: jobs},
 		&resp,
 		usr,
 		true,

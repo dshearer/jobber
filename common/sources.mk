@@ -3,7 +3,6 @@ COMMON_SOURCES := \
 	common/error.go \
 	common/exec.go \
 	common/logging.go \
-	common/commands.go \
 	common/path.go \
 	common/sources.mk \
 	common/su_cmd_linux.go \

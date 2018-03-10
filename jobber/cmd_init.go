@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/user"
 
-	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
 func doInitCmd(args []string) int {
@@ -31,10 +31,10 @@ func doInitCmd(args []string) int {
 	}
 
 	// send command
-	var resp common.InitCmdResp
+	var resp ipc.InitCmdResp
 	err = CallDaemon(
 		"IpcService.Init",
-		common.InitCmd{},
+		ipc.InitCmd{},
 		&resp,
 		usr,
 		true,

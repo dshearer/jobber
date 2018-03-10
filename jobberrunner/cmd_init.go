@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
 const gDefaultJobfile = `## This is your jobfile: use it to tell Jobber what jobs you want it to
@@ -57,10 +58,10 @@ const gDefaultJobfile = `## This is your jobfile: use it to tell Jobber what job
 #  notifyOnSuccess: false  # whether to call notifyProgram when the job succeeds
 `
 
-func (self *JobManager) doInitCmd(cmd common.InitCmd) common.ICmdResp {
+func (self *JobManager) doInitCmd(cmd ipc.InitCmd) ipc.ICmdResp {
 	common.Logger.Printf("Got cmd 'init'\n")
 
-	var resp common.InitCmdResp
+	var resp ipc.InitCmdResp
 	resp.JobfilePath = self.jobfilePath
 
 	// open file for writing
@@ -72,14 +73,14 @@ func (self *JobManager) doInitCmd(cmd common.InitCmd) common.ICmdResp {
 				self.jobfilePath)
 			err = &common.Error{What: msg}
 		}
-		return common.NewErrorCmdResp(err)
+		return ipc.NewErrorCmdResp(err)
 	}
 	defer f.Close()
 
 	// write default jobfile
 	_, err = f.WriteString(gDefaultJobfile)
 	if err != nil {
-		return common.NewErrorCmdResp(err)
+		return ipc.NewErrorCmdResp(err)
 	}
 
 	return resp

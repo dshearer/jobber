@@ -30,7 +30,7 @@ func (self *JobRunnerThread) RunRecChan() <-chan *jobfile.RunRec {
 	return self.runRecChan
 }
 
-func (self *JobRunnerThread) Start(jobs []*jobfile.Job, shell string) {
+func (self *JobRunnerThread) Start(jobs map[string]*jobfile.Job, shell string) {
 
 	if self.Running {
 		panic("JobRunnerThread already running.")

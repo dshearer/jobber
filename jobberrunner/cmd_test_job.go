@@ -2,15 +2,16 @@ package main
 
 import (
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
-func (self *JobManager) doTestCmd(cmd common.TestCmd) common.ICmdResp {
+func (self *JobManager) doTestCmd(cmd ipc.TestCmd) ipc.ICmdResp {
 	common.Logger.Printf("Got cmd 'test'\n")
 
 	// find job
-	job := self.findJob(cmd.Job)
-	if job == nil {
-		return common.NewErrorCmdResp(&common.Error{What: "No such job."})
+	job, ok := self.jfile.Jobs[cmd.Job]
+	if !ok {
+		return ipc.NewErrorCmdResp(&common.Error{What: "No such job."})
 	}
 
 	// run the job in this thread
@@ -18,8 +19,8 @@ func (self *JobManager) doTestCmd(cmd common.TestCmd) common.ICmdResp {
 
 	// make response
 	if runRec.Err != nil {
-		return common.NewErrorCmdResp(runRec.Err)
+		return ipc.NewErrorCmdResp(runRec.Err)
 	}
 
-	return common.TestCmdResp{Result: runRec.Describe()}
+	return ipc.TestCmdResp{Result: runRec.Describe()}
 }

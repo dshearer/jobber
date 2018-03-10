@@ -5,7 +5,7 @@ Resource         keywords.robot
 Test Setup       Setup
 Test Teardown    Teardown
 Test Template    List Command
-Force Tags       test
+Force Tags       test    cmd
 
 *** Test Cases ***        ROOT_JOB_NAME    NON_ROOT_JOB_NAME    ROOT_LIST_RESULTS    ROOT_ALL_LIST_RESULTS    NON_ROOT_LIST_RESULTS
 While Root Has Job        TestJob          ${EMPTY}             TestJob              TestJob                  ${EMPTY}
