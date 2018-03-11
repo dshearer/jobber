@@ -27,9 +27,9 @@ type JobFile struct {
 }
 
 type UserPrefs struct {
-	Notifier RunRecNotifier
-	RunLog   RunLog
-	LogPath  string // for error msgs etc.  May be "".
+	NotifyProgram *string
+	RunLog        RunLog
+	LogPath       string // for error msgs etc.  May be "".
 
 	// output handling
 	StdoutHandler JobOutputHandler
@@ -38,7 +38,7 @@ type UserPrefs struct {
 
 func (self *UserPrefs) String() string {
 	s := ""
-	s += fmt.Sprintf("Notifier: %v\n", self.Notifier)
+	s += fmt.Sprintf("NotifyProgram: %v\n", self.NotifyProgram)
 	s += fmt.Sprintf("RunLog: %v\n", self.RunLog)
 	if len(self.LogPath) > 0 {
 		s += fmt.Sprintf("Log path: %v\n", self.LogPath)
@@ -147,14 +147,7 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 		return nil, err
 	}
 
-	var jfile JobFile = JobFile{
-		Prefs: UserPrefs{
-			Notifier:      MakeMailNotifier(),
-			RunLog:        NewMemOnlyRunLog(100),
-			StdoutHandler: NopJobOutputHandler{},
-			StderrHandler: NopJobOutputHandler{},
-		},
-	}
+	jfile := NewEmptyJobFile()
 
 	// check for invalid sections
 	for sectName, _ := range sections {
@@ -166,24 +159,20 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	// parse "prefs" section
 	prefsSection, prefsOk := sections[PrefsSectName]
 	if prefsOk && len(prefsSection) > 0 {
-		ptr, err := parsePrefsSect(prefsSection, usr)
-		if err != nil {
+		if err := parsePrefsSect(prefsSection, usr, jfile); err != nil {
 			return nil, err
 		}
-		jfile.Prefs = *ptr
 	}
 
 	// parse "jobs" section
 	jobsSection, jobsOk := sections[JobsSectName]
 	if jobsOk {
-		jobs, err := parseJobsSect(jobsSection, usr, &jfile.Prefs)
-		if err != nil {
+		if err := parseJobsSect(jobsSection, usr, jfile); err != nil {
 			return nil, err
 		}
-		jfile.Jobs = jobs
 	}
 
-	return &jfile, nil
+	return jfile, nil
 }
 
 /*
@@ -276,11 +265,9 @@ func findSections(f *os.File) (map[string]string, error) {
 	return retval, nil
 }
 
-func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
-	var rawPrefs UserPrefsRaw
-	var userPrefs UserPrefs
-
+func parsePrefsSect(s string, usr *user.User, dest *JobFile) error {
 	// parse as yaml
+	var rawPrefs UserPrefsRaw
 	if !strings.HasPrefix(s, gYamlStarter+"\n") {
 		s = gYamlStarter + "\n" + s
 	}
@@ -288,7 +275,7 @@ func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
 			PrefsSectName)
-		return nil, &common.Error{What: errMsg, Cause: err}
+		return &common.Error{What: errMsg, Cause: err}
 	}
 
 	// parse "logPath"
@@ -299,23 +286,21 @@ func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 		*/
 		logPath := *rawPrefs.LogPath
 		if filepath.IsAbs(logPath) {
-			userPrefs.LogPath = logPath
+			dest.Prefs.LogPath = logPath
 		} else {
 			if len(usr.HomeDir) == 0 {
 				errMsg := fmt.Sprintf("User has no home directory, so "+
 					"cannot interpret relative log file path %v",
 					logPath)
-				return nil, &common.Error{What: errMsg}
+				return &common.Error{What: errMsg}
 			}
-			userPrefs.LogPath = filepath.Join(usr.HomeDir, logPath)
+			dest.Prefs.LogPath = filepath.Join(usr.HomeDir, logPath)
 		}
 	} // logPath
 
-	// parse "notifyProgram"
+	// parse "notifyProgram
 	if rawPrefs.NotifyProgram != nil {
-		userPrefs.Notifier = MakeProgramNotifier(*rawPrefs.NotifyProgram)
-	} else {
-		userPrefs.Notifier = MakeMailNotifier()
+		dest.Prefs.NotifyProgram = rawPrefs.NotifyProgram
 	}
 
 	// parse "runLog"
@@ -328,7 +313,7 @@ func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 			if rawPrefs.RunLog.MaxLen != nil {
 				maxLen = *rawRunLog.MaxLen
 			}
-			userPrefs.RunLog = NewMemOnlyRunLog(maxLen)
+			dest.Prefs.RunLog = NewMemOnlyRunLog(maxLen)
 
 		} else if rawRunLog.Type == "file" {
 			const defaultMaxFileLen int64 = 50 * (1 << 20)
@@ -336,7 +321,7 @@ func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 
 			// check for file path
 			if rawRunLog.Path == nil {
-				return nil, &common.Error{What: "Missing path for run log"}
+				return &common.Error{What: "Missing path for run log"}
 			}
 
 			// get max file len
@@ -347,14 +332,14 @@ func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 				if len(maxFileLenStr) == 0 {
 					msg := fmt.Sprintf("Invalid max file len: '%v'",
 						maxFileLenStr)
-					return nil, &common.Error{What: msg}
+					return &common.Error{What: msg}
 				}
 
 				lastChar := maxFileLenStr[len(maxFileLenStr)-1]
 				if lastChar != 'm' && lastChar != 'M' {
 					msg := fmt.Sprintf("Invalid max file len: '%v'",
 						maxFileLenStr)
-					return nil, &common.Error{What: msg}
+					return &common.Error{What: msg}
 				}
 
 				numPart := maxFileLenStr[:len(maxFileLenStr)-1]
@@ -362,7 +347,7 @@ func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 				if err != nil {
 					msg := fmt.Sprintf("Invalid max file len: '%v'",
 						maxFileLenStr)
-					return nil, &common.Error{What: msg, Cause: err}
+					return &common.Error{What: msg, Cause: err}
 				}
 				maxFileLen = int64(tmp) * (1 << 20)
 			}
@@ -374,35 +359,33 @@ func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 			}
 
 			// make file run log
-			userPrefs.RunLog, err = NewFileRunLog(
+			dest.Prefs.RunLog, err = NewFileRunLog(
 				*rawRunLog.Path,
 				maxFileLen,
 				maxHistories,
 			)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 		} else {
 			msg := fmt.Sprintf("Invalid run log type: %v", rawRunLog.Type)
-			return nil, &common.Error{What: msg}
+			return &common.Error{What: msg}
 		}
 
 	} else {
-		userPrefs.RunLog = NewMemOnlyRunLog(gDefaultMemRunLogMaxLen)
+		dest.Prefs.RunLog = NewMemOnlyRunLog(gDefaultMemRunLogMaxLen)
 	} // runLog
 
 	// parse "jobOutput"
-	userPrefs.StdoutHandler = NopJobOutputHandler{}
-	userPrefs.StderrHandler = NopJobOutputHandler{}
 	if rawPrefs.JobOutput != nil {
 		bothPrefs := rawPrefs.JobOutput
 		if bothPrefs.Stdout != nil {
 			outputPrefs := bothPrefs.Stdout
 			if err := checkJobOutputPrefs(outputPrefs); err != nil {
-				return nil, err
+				return err
 			}
-			userPrefs.StdoutHandler = FileJobOutputHandler{
+			dest.Prefs.StdoutHandler = FileJobOutputHandler{
 				Where:      *outputPrefs.Where,
 				MaxAgeDays: *outputPrefs.MaxAgeDays,
 				Suffix:     "stdout",
@@ -412,9 +395,9 @@ func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 		if bothPrefs.Stderr != nil {
 			outputPrefs := bothPrefs.Stderr
 			if err := checkJobOutputPrefs(outputPrefs); err != nil {
-				return nil, err
+				return err
 			}
-			userPrefs.StderrHandler = FileJobOutputHandler{
+			dest.Prefs.StderrHandler = FileJobOutputHandler{
 				Where:      *outputPrefs.Where,
 				MaxAgeDays: *outputPrefs.MaxAgeDays,
 				Suffix:     "stderr",
@@ -422,7 +405,7 @@ func parsePrefsSect(s string, usr *user.User) (*UserPrefs, error) {
 		}
 	} // jobOutput
 
-	return &userPrefs, nil
+	return nil
 }
 
 func checkJobOutputPrefs(prefs *JobOutputPrefsRaw) error {
@@ -437,7 +420,7 @@ func checkJobOutputPrefs(prefs *JobOutputPrefsRaw) error {
 	}
 }
 
-func JobRawToJob(jobRaw JobRaw, usr *user.User, prefs *UserPrefs) (*Job, error) {
+func JobRawToJob(jobRaw JobRaw, usr *user.User, prefs UserPrefs) (*Job, error) {
 	job := NewJob(jobRaw.Name, jobRaw.Cmd, usr.Username)
 	var err error
 
@@ -448,21 +431,45 @@ func JobRawToJob(jobRaw JobRaw, usr *user.User, prefs *UserPrefs) (*Job, error) 
 
 	// set failure-handler
 	if jobRaw.OnError != nil {
-		job.ErrorHandler, err = getErrorHandler(*jobRaw.OnError)
+		job.ErrorHandler, err = GetErrorHandler(*jobRaw.OnError)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// set notify prefs
+	var defaultNotifier RunRecNotifier
+	if prefs.NotifyProgram == nil {
+		defaultNotifier = MailRunRecNotifier{}
+	} else {
+		defaultNotifier = ProgramRunRecNotifier{Program: *prefs.NotifyProgram}
+	}
 	if jobRaw.NotifyOnError != nil {
-		job.NotifyOnError = *jobRaw.NotifyOnError
+		var notifier RunRecNotifier
+		if *jobRaw.NotifyOnError {
+			notifier = defaultNotifier
+		} else {
+			notifier = NopRunRecNotifier{}
+		}
+		job.NotifyOnError = notifier
 	}
 	if jobRaw.NotifyOnFailure != nil {
-		job.NotifyOnFailure = *jobRaw.NotifyOnFailure
+		var notifier RunRecNotifier
+		if *jobRaw.NotifyOnFailure {
+			notifier = defaultNotifier
+		} else {
+			notifier = NopRunRecNotifier{}
+		}
+		job.NotifyOnFailure = notifier
 	}
 	if jobRaw.NotifyOnSuccess != nil {
-		job.NotifyOnSuccess = *jobRaw.NotifyOnSuccess
+		var notifier RunRecNotifier
+		if *jobRaw.NotifyOnSuccess {
+			notifier = defaultNotifier
+		} else {
+			notifier = NopRunRecNotifier{}
+		}
+		job.NotifyOnSuccess = notifier
 	}
 
 	// parse time spec
@@ -497,7 +504,7 @@ func JobRawToJob(jobRaw JobRaw, usr *user.User, prefs *UserPrefs) (*Job, error) 
 	return job, nil
 }
 
-func parseJobsSect(s string, usr *user.User, prefs *UserPrefs) (map[string]*Job, error) {
+func parseJobsSect(s string, usr *user.User, dest *JobFile) error {
 	// parse "jobs" section
 	var jobConfigs []JobRaw
 	if !strings.HasPrefix(s, gYamlStarter+"\n") {
@@ -507,24 +514,23 @@ func parseJobsSect(s string, usr *user.User, prefs *UserPrefs) (map[string]*Job,
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
 			JobsSectName)
-		return nil, &common.Error{What: errMsg, Cause: err}
+		return &common.Error{What: errMsg, Cause: err}
 	}
 
 	// make jobs
-	jobs := make(map[string]*Job)
 	for _, config := range jobConfigs {
-		job, err := JobRawToJob(config, usr, prefs)
+		job, err := JobRawToJob(config, usr, dest.Prefs)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		if _, ok := jobs[job.Name]; ok {
+		if _, ok := dest.Jobs[job.Name]; ok {
 			msg := fmt.Sprintf("Multiple jobs named \"%v\"", job.Name)
-			return nil, &common.Error{What: msg}
+			return &common.Error{What: msg}
 		}
-		jobs[job.Name] = job
+		dest.Jobs[job.Name] = job
 	}
 
-	return jobs, nil
+	return nil
 }
 
 func makeOutputHandlerForJob(localPrefs *JobOutputPrefsRaw,
@@ -558,18 +564,5 @@ func makeOutputHandlerForJob(localPrefs *JobOutputPrefsRaw,
 			MaxAgeDays: *localPrefs.MaxAgeDays,
 			Suffix:     suffix,
 		}, nil
-	}
-}
-
-func getErrorHandler(name string) (*ErrorHandler, error) {
-	switch name {
-	case ErrorHandlerStopName:
-		return &ErrorHandlerStop, nil
-	case ErrorHandlerBackoffName:
-		return &ErrorHandlerBackoff, nil
-	case ErrorHandlerContinueName:
-		return &ErrorHandlerContinue, nil
-	default:
-		return nil, &common.Error{What: "Invalid error handler: " + name}
 	}
 }

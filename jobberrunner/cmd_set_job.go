@@ -19,7 +19,7 @@ func (self *JobManager) doSetJobCmd(cmd ipc.SetJobCmd) ipc.ICmdResp {
 	}
 
 	// make job
-	newJob, err := jobfile.JobRawToJob(cmd.Job, usr, &self.jfile.Prefs)
+	newJob, err := jobfile.JobRawToJob(cmd.Job, usr, self.jfile.Prefs)
 	if err != nil {
 		return ipc.NewErrorCmdResp(err)
 	}

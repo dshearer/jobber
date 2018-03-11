@@ -126,7 +126,7 @@ func RunJob(
 		job.Status = jobfile.JobGood
 	} else {
 		/* job failed: apply error-handler (which sets job.Status) */
-		job.ErrorHandler.Apply(job)
+		job.ErrorHandler.Handle(job)
 	}
 	job.LastRunTime = rec.RunTime
 

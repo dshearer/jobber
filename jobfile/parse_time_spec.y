@@ -23,7 +23,7 @@ type OneValTimeSpecExp struct {
     val int
 }
 
-func (self *OneValTimeSpecExp) Eval(fieldName string, min int,
+func (self OneValTimeSpecExp) Eval(fieldName string, min int,
     max int) (TimeSpec, error) {
 
     errMsg := fmt.Sprintf("Invalid '%v' value", fieldName)
@@ -36,39 +36,39 @@ func (self *OneValTimeSpecExp) Eval(fieldName string, min int,
         errMsg := fmt.Sprintf("%s: cannot be greater than %v.", errMsg, max)
         return nil, &common.Error{What: errMsg}
     }
-    
-    return &OneValTimeSpec{val: self.val}, nil
+
+    return OneValTimeSpec{val: self.val}, nil
 }
 
 type WildcardTimeSpecExp struct {}
 
-func (self *WildcardTimeSpecExp) Eval(fieldName string, min int,
+func (self WildcardTimeSpecExp) Eval(fieldName string, min int,
     max int) (TimeSpec, error) {
-    
-    return &WildcardTimeSpec{}, nil
+
+    return WildcardTimeSpec{}, nil
 }
 
 type SetTimeSpecExp struct {
     setExp SetExp
 }
 
-func (self *SetTimeSpecExp) Eval(fieldName string, min int,
+func (self SetTimeSpecExp) Eval(fieldName string, min int,
     max int) (TimeSpec, error) {
-    
+
     vals, err := self.setExp.Eval(fieldName, min, max)
     if err != nil {
         return nil, err
     }
-    return &SetTimeSpec{vals: vals, desc: self.setExp.String()}, nil
+    return SetTimeSpec{vals: vals, desc: self.setExp.String()}, nil
 }
 
 type RandomTimeSpecExp struct {
     setExp SetExp
 }
 
-func (self *RandomTimeSpecExp) Eval(fieldName string, min int,
+func (self RandomTimeSpecExp) Eval(fieldName string, min int,
     max int) (TimeSpec, error) {
-    
+
     vals, err := self.setExp.Eval(fieldName, min, max)
     if err != nil {
         return nil, err
@@ -86,13 +86,13 @@ type StepSetExp struct {
     step int
 }
 
-func (self *StepSetExp) String() string {
+func (self StepSetExp) String() string {
     return fmt.Sprintf("*/%v", self.step)
 }
 
-func (self *StepSetExp) Eval(fieldName string, min int,
+func (self StepSetExp) Eval(fieldName string, min int,
     max int) ([]int, error) {
-    
+
     var vals []int
     for v := min; v <= max; v = v + self.step {
         vals = append(vals, v)
@@ -104,10 +104,10 @@ type EnumSetExp struct {
     ints []int
 }
 
-func (self *EnumSetExp) normValues() []int {
+func (self EnumSetExp) normValues() []int {
     sortedInts := append(make([]int, 0, len(self.ints)), self.ints...)
     sort.Ints(sortedInts)
-    
+
     uniqMap := make(map[int]bool)
     var uniqInts []int
     for _, v := range sortedInts {
@@ -119,7 +119,7 @@ func (self *EnumSetExp) normValues() []int {
     return uniqInts
 }
 
-func (self *EnumSetExp) String() string {
+func (self EnumSetExp) String() string {
     var strs []string
     for _, i := range self.normValues() {
         strs = append(strs, fmt.Sprintf("%v", i))
@@ -127,11 +127,11 @@ func (self *EnumSetExp) String() string {
     return strings.Join(strs, ",")
 }
 
-func (self *EnumSetExp) Eval(fieldName string, min int,
+func (self EnumSetExp) Eval(fieldName string, min int,
     max int) ([]int, error) {
-    
+
     errMsgPrefix := fmt.Sprintf("Invalid \"%v\" value", fieldName)
-    
+
     // check values
     for _, v := range self.ints {
         if v < min {
@@ -144,7 +144,7 @@ func (self *EnumSetExp) Eval(fieldName string, min int,
             return nil, &common.Error{What: msg}
         }
     }
-    
+
     return self.normValues(), nil
 }
 
@@ -153,15 +153,15 @@ type RangeSetExp struct {
     end   int
 }
 
-func (self *RangeSetExp) String() string {
+func (self RangeSetExp) String() string {
     return fmt.Sprintf("%v-%v", self.start, self.end)
 }
 
-func (self *RangeSetExp) Eval(fieldName string, min int,
+func (self RangeSetExp) Eval(fieldName string, min int,
     max int) ([]int, error) {
-    
+
     errMsgPrefix := fmt.Sprintf("Invalid \"%v\" value", fieldName)
-    
+
     // check values
     if self.start < min {
         msg := fmt.Sprintf("%v: Values must be greater than or " +
@@ -172,11 +172,11 @@ func (self *RangeSetExp) Eval(fieldName string, min int,
             "equal to %v", errMsgPrefix, max)
         return nil, &common.Error{What: msg}
     } else if self.start > self.end {
-        msg := fmt.Sprintf("%s: start must be less than or " + 
+        msg := fmt.Sprintf("%s: start must be less than or " +
             "equal to end", errMsgPrefix)
         return nil, &common.Error{What: msg}
     }
-    
+
     // make values
     var vals []int
     for i := self.start; i <= self.end; i++ {
@@ -187,13 +187,13 @@ func (self *RangeSetExp) Eval(fieldName string, min int,
 
 type AnySetExp struct{}
 
-func (self *AnySetExp) String() string {
+func (self AnySetExp) String() string {
     return ""
 }
 
-func (self *AnySetExp) Eval(fieldName string, min int,
+func (self AnySetExp) Eval(fieldName string, min int,
     max int) ([]int, error) {
-    
+
     var vals []int
     for i := min; i <= max; i++ {
         vals = append(vals, i)
@@ -217,11 +217,11 @@ func setErrorMsg(msg string) {
 
 %union {
     nbr                 *int
-    randTimeSpecExp     *RandomTimeSpecExp
+    randTimeSpecExp     RandomTimeSpecExp
     setExp              SetExp
-    stepSetExp          *StepSetExp
-    enumSetExp          *EnumSetExp
-    rangeSetExp         *RangeSetExp
+    stepSetExp          StepSetExp
+    enumSetExp          EnumSetExp
+    rangeSetExp         RangeSetExp
 }
 
 %type <randTimeSpecExp>   rand_time_spec_exp
@@ -238,19 +238,19 @@ func setErrorMsg(msg string) {
 
 top:
     INT
-    { gPhrase = &OneValTimeSpecExp{val: *$1} }
+    { gPhrase = OneValTimeSpecExp{val: *$1} }
 |   set_exp
-    { gPhrase = &SetTimeSpecExp{setExp: $1} }
+    { gPhrase = SetTimeSpecExp{setExp: $1} }
 |   '*'
-    { gPhrase = &WildcardTimeSpecExp{} }
+    { gPhrase = WildcardTimeSpecExp{} }
 |   rand_time_spec_exp
     { gPhrase = $1 }
 
 rand_time_spec_exp:
     'R' set_exp
-    { $$ = &RandomTimeSpecExp{setExp: $2} }
+    { $$ = RandomTimeSpecExp{setExp: $2} }
 |   'R'
-    { $$ = &RandomTimeSpecExp{setExp: &AnySetExp{}} }
+    { $$ = RandomTimeSpecExp{setExp: AnySetExp{}} }
 
 set_exp:
     step_set_exp
@@ -262,7 +262,7 @@ set_exp:
 
 step_set_exp:
     STAR_SLASH INT
-    { $$ = &StepSetExp{step: *$2} }
+    { $$ = StepSetExp{step: *$2} }
 |   STAR_SLASH error
     {
         setErrorMsg("Expected int after \"*/\"")
@@ -272,16 +272,16 @@ step_set_exp:
 enum_set_exp:
     INT enum_set_exp_tail
     {
-        $$ = &EnumSetExp{ints: []int{*$1}}
+        $$ = EnumSetExp{ints: []int{*$1}}
         $$.ints = append($$.ints, $2.ints...)
     }
 
 enum_set_exp_tail:
     ',' INT
-    { $$ = &EnumSetExp{ints: []int{*$2}} }
+    { $$ = EnumSetExp{ints: []int{*$2}} }
 |   ',' INT enum_set_exp_tail
     {
-        $$ = &EnumSetExp{ints: []int{*$2}}
+        $$ = EnumSetExp{ints: []int{*$2}}
         $$.ints = append($$.ints, $3.ints...)
     }
 |   ',' error
@@ -292,7 +292,7 @@ enum_set_exp_tail:
 
 range_set_exp:
     INT '-' INT
-    { $$ = &RangeSetExp{start: *$1, end: *$3} }
+    { $$ = RangeSetExp{start: *$1, end: *$3} }
 |   INT '-' error
     {
         setErrorMsg("Expected int after \"-\"")
@@ -321,7 +321,7 @@ func (self *yyLex) Lex(yylval *yySymType) int {
         switch r {
         case ',', '-', 'R':
             return int(r)
-            
+
         case '*':
             r2 := self.nextRune()
             if r2 == '/' {
@@ -330,7 +330,7 @@ func (self *yyLex) Lex(yylval *yySymType) int {
                 self.peek = r2
                 return int('*')
             }
-            
+
         case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
             numeral := string(r)
         ReadNums:
@@ -354,13 +354,13 @@ func (self *yyLex) Lex(yylval *yySymType) int {
             }
             yylval.nbr = &number
             return INT
-            
+
         case ' ', '\t':
             // ignore
-        
+
         case gEof:
             return gEof
-            
+
         default:
             var msg string
             if unicode.IsGraphic(r) {
@@ -390,7 +390,7 @@ func (self *yyLex) nextRune() rune {
 
 func parseTimeSpec(s string, fieldName string, min int,
     max int) (TimeSpec, error) {
-    
+
     // parse
     gErrorMsg = nil
     lex := NewTimeSpecLexer(s)
@@ -400,7 +400,7 @@ func parseTimeSpec(s string, fieldName string, min int,
             fieldName, *gErrorMsg)
         return nil, &common.Error{What: msg}
     }
-    
+
     // eval
     return gPhrase.Eval(fieldName, min, max)
 }

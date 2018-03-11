@@ -184,12 +184,13 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 
 	/* NOTE: error-handler was already applied by the job, if necessary. */
 
-	shouldNotify := (!rec.Succeeded && rec.Job.NotifyOnError) ||
-		(rec.NewStatus == jobfile.JobFailed && rec.Job.NotifyOnFailure) ||
-		(rec.Succeeded && rec.Job.NotifyOnSuccess)
-	if shouldNotify {
-		// notify user
-		self.jfile.Prefs.Notifier(rec)
+	if rec.Succeeded {
+		rec.Job.NotifyOnSuccess.Notify(rec)
+	} else {
+		rec.Job.NotifyOnError.Notify(rec)
+	}
+	if rec.NewStatus == jobfile.JobFailed {
+		rec.Job.NotifyOnFailure.Notify(rec)
 	}
 }
 

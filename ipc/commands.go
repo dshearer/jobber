@@ -42,9 +42,9 @@ type JobDesc struct {
 	Status          string     `json:"status"`
 	Schedule        string     `json:"schedule"`
 	NextRunTime     *time.Time `json:"nextRunTime"`
-	NotifyOnSuccess bool       `json:"notifyOnSuccess"`
-	NotifyOnErr     bool       `json:"notifyOnError"`
-	NotifyOnFail    bool       `json:"notifyOnFailure"`
+	NotifyOnSuccess string     `json:"notifyOnSuccess"`
+	NotifyOnErr     string     `json:"notifyOnError"`
+	NotifyOnFail    string     `json:"notifyOnFailure"`
 	ErrHandler      string     `json:"errHandler"`
 	StdoutDir       *string    `json:"stdoutDir"`
 	StderrDir       *string    `json:"stderrDir"`

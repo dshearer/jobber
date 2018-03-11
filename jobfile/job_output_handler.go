@@ -14,6 +14,7 @@ import (
 
 type JobOutputHandler interface {
 	WriteOutput(output []byte, jobName string, runTime time.Time)
+	fmt.Stringer
 }
 
 type NopJobOutputHandler struct{}

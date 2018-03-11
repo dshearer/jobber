@@ -1,4 +1,5 @@
 JOBFILE_SOURCES := \
+	jobfile/error_handler.go \
 	jobfile/file_run_log.go \
 	jobfile/job_file.go \
 	jobfile/job_output_handler.go \

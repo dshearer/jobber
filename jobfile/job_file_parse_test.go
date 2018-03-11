@@ -11,107 +11,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func NewString(val string) *string {
+	return &val
+}
+
 var gUserEx = user.User{Username: "bob", HomeDir: "/home/bob"}
 
 var EverySecTimeSpec = FullTimeSpec{
-	Sec:  &WildcardTimeSpec{},
-	Min:  &WildcardTimeSpec{},
-	Hour: &WildcardTimeSpec{},
-	Mday: &WildcardTimeSpec{},
-	Mon:  &WildcardTimeSpec{},
-	Wday: &WildcardTimeSpec{},
-}
-
-var gDailyBackup = Job{
-	Name: "DailyBackup",
-	Cmd:  "backup daily",
-	User: gUserEx.Username,
-	FullTimeSpec: FullTimeSpec{
-		Sec:  &OneValTimeSpec{0},
-		Min:  &OneValTimeSpec{0},
-		Hour: &OneValTimeSpec{14},
-		Mday: &WildcardTimeSpec{},
-		Mon:  &WildcardTimeSpec{},
-		Wday: &WildcardTimeSpec{},
-	},
-	ErrorHandler:    &ErrorHandlerStop,
-	NotifyOnError:   false,
-	NotifyOnFailure: true,
-	NotifyOnSuccess: false,
-	StdoutHandler:   NopJobOutputHandler{},
-	StderrHandler:   NopJobOutputHandler{},
-}
-
-var gWeeklyBackup = Job{
-	Name: "WeeklyBackup",
-	Cmd: `multi-
-line
-script
-`,
-	User: gUserEx.Username,
-	FullTimeSpec: FullTimeSpec{
-		Sec:  &OneValTimeSpec{0},
-		Min:  &OneValTimeSpec{0},
-		Hour: &OneValTimeSpec{14},
-		Mday: &WildcardTimeSpec{},
-		Mon:  &WildcardTimeSpec{},
-		Wday: &OneValTimeSpec{1},
-	},
-	ErrorHandler:    &ErrorHandlerBackoff,
-	NotifyOnError:   true,
-	NotifyOnFailure: false,
-	NotifyOnSuccess: false,
-	StdoutHandler:   NopJobOutputHandler{},
-	StderrHandler:   NopJobOutputHandler{},
-}
-
-var gSuccessReport = Job{
-	Name: "SuccessReport",
-	Cmd: `multi-
-line
-script
-`,
-	User: gUserEx.Username,
-	FullTimeSpec: FullTimeSpec{
-		Sec:  &OneValTimeSpec{0},
-		Min:  &OneValTimeSpec{0},
-		Hour: &OneValTimeSpec{14},
-		Mday: &WildcardTimeSpec{},
-		Mon:  &WildcardTimeSpec{},
-		Wday: &OneValTimeSpec{1},
-	},
-	ErrorHandler:    &ErrorHandlerBackoff,
-	NotifyOnError:   false,
-	NotifyOnFailure: false,
-	NotifyOnSuccess: true,
-	StdoutHandler:   NopJobOutputHandler{},
-	StderrHandler:   NopJobOutputHandler{},
-}
-
-var gJobA = Job{
-	Name:            "JobA",
-	Cmd:             "whatever",
-	User:            gUserEx.Username,
-	FullTimeSpec:    EverySecTimeSpec,
-	ErrorHandler:    &ErrorHandlerBackoff,
-	NotifyOnError:   true,
-	NotifyOnFailure: false,
-	NotifyOnSuccess: false,
-	StdoutHandler:   NopJobOutputHandler{},
-	StderrHandler:   NopJobOutputHandler{},
-}
-
-var gJobB = Job{
-	Name:            "JobB",
-	Cmd:             "whatever",
-	User:            gUserEx.Username,
-	FullTimeSpec:    EverySecTimeSpec,
-	ErrorHandler:    &ErrorHandlerBackoff,
-	NotifyOnError:   true,
-	NotifyOnFailure: false,
-	NotifyOnSuccess: false,
-	StdoutHandler:   NopJobOutputHandler{},
-	StderrHandler:   NopJobOutputHandler{},
+	Sec:  WildcardTimeSpec{},
+	Min:  WildcardTimeSpec{},
+	Hour: WildcardTimeSpec{},
+	Mday: WildcardTimeSpec{},
+	Mon:  WildcardTimeSpec{},
+	Wday: WildcardTimeSpec{},
 }
 
 const gNewJobFileContents = `
@@ -143,10 +55,7 @@ notifyProgram: ~/handleError
   notifyOnFailure: false
 
 - name: SuccessReport
-  cmd: |
-    multi-
-    line
-    script
+  cmd: exit 0
   time: 0 0 14 * * 1
   onError: Backoff
   notifyOnError: false
@@ -158,14 +67,72 @@ notifyProgram: ~/handleError
 
 var gNewJobFile = JobFile{
 	Prefs: UserPrefs{
+		NotifyProgram: NewString("~/handleError"),
 		RunLog:        NewMemOnlyRunLog(100),
 		StdoutHandler: NopJobOutputHandler{},
 		StderrHandler: NopJobOutputHandler{},
 	},
 	Jobs: map[string]*Job{
-		"DailyBackup":   &gDailyBackup,
-		"WeeklyBackup":  &gWeeklyBackup,
-		"SuccessReport": &gSuccessReport,
+		"DailyBackup": &Job{
+			Name: "DailyBackup",
+			Cmd:  "backup daily",
+			User: gUserEx.Username,
+			FullTimeSpec: FullTimeSpec{
+				Sec:  OneValTimeSpec{0},
+				Min:  OneValTimeSpec{0},
+				Hour: OneValTimeSpec{14},
+				Mday: WildcardTimeSpec{},
+				Mon:  WildcardTimeSpec{},
+				Wday: WildcardTimeSpec{},
+			},
+			ErrorHandler:    StopErrorHandler{},
+			NotifyOnError:   NopRunRecNotifier{},
+			NotifyOnFailure: ProgramRunRecNotifier{Program: "~/handleError"},
+			NotifyOnSuccess: NopRunRecNotifier{},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
+		"WeeklyBackup": &Job{
+			Name: "WeeklyBackup",
+			Cmd: `multi-
+line
+script
+`,
+			User: gUserEx.Username,
+			FullTimeSpec: FullTimeSpec{
+				Sec:  OneValTimeSpec{0},
+				Min:  OneValTimeSpec{0},
+				Hour: OneValTimeSpec{14},
+				Mday: WildcardTimeSpec{},
+				Mon:  WildcardTimeSpec{},
+				Wday: OneValTimeSpec{1},
+			},
+			ErrorHandler:    BackoffErrorHandler{},
+			NotifyOnError:   ProgramRunRecNotifier{Program: "~/handleError"},
+			NotifyOnFailure: NopRunRecNotifier{},
+			NotifyOnSuccess: NopRunRecNotifier{},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
+		"SuccessReport": &Job{
+			Name: "SuccessReport",
+			Cmd:  "exit 0",
+			User: gUserEx.Username,
+			FullTimeSpec: FullTimeSpec{
+				Sec:  OneValTimeSpec{0},
+				Min:  OneValTimeSpec{0},
+				Hour: OneValTimeSpec{14},
+				Mday: WildcardTimeSpec{},
+				Mon:  WildcardTimeSpec{},
+				Wday: OneValTimeSpec{1},
+			},
+			ErrorHandler:    BackoffErrorHandler{},
+			NotifyOnError:   NopRunRecNotifier{},
+			NotifyOnFailure: NopRunRecNotifier{},
+			NotifyOnSuccess: ProgramRunRecNotifier{Program: "~/handleError"},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
 	},
 }
 
@@ -208,10 +175,71 @@ var gLegacyJobFile = JobFile{
 		StderrHandler: NopJobOutputHandler{},
 	},
 	Jobs: map[string]*Job{
-		"DailyBackup":  &gDailyBackup,
-		"WeeklyBackup": &gWeeklyBackup,
-		"JobA":         &gJobA,
-		"JobB":         &gJobB,
+		"DailyBackup": &Job{
+			Name: "DailyBackup",
+			Cmd:  "backup daily",
+			User: gUserEx.Username,
+			FullTimeSpec: FullTimeSpec{
+				Sec:  OneValTimeSpec{0},
+				Min:  OneValTimeSpec{0},
+				Hour: OneValTimeSpec{14},
+				Mday: WildcardTimeSpec{},
+				Mon:  WildcardTimeSpec{},
+				Wday: WildcardTimeSpec{},
+			},
+			ErrorHandler:    StopErrorHandler{},
+			NotifyOnError:   NopRunRecNotifier{},
+			NotifyOnFailure: MailRunRecNotifier{},
+			NotifyOnSuccess: NopRunRecNotifier{},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
+		"WeeklyBackup": &Job{
+			Name: "WeeklyBackup",
+			Cmd: `multi-
+line
+script
+`,
+			User: gUserEx.Username,
+			FullTimeSpec: FullTimeSpec{
+				Sec:  OneValTimeSpec{0},
+				Min:  OneValTimeSpec{0},
+				Hour: OneValTimeSpec{14},
+				Mday: WildcardTimeSpec{},
+				Mon:  WildcardTimeSpec{},
+				Wday: OneValTimeSpec{1},
+			},
+			ErrorHandler:    BackoffErrorHandler{},
+			NotifyOnError:   MailRunRecNotifier{},
+			NotifyOnFailure: NopRunRecNotifier{},
+			NotifyOnSuccess: NopRunRecNotifier{},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
+		"JobA": &Job{
+			Name:            "JobA",
+			Cmd:             "whatever",
+			User:            gUserEx.Username,
+			FullTimeSpec:    EverySecTimeSpec,
+			ErrorHandler:    BackoffErrorHandler{},
+			NotifyOnError:   MailRunRecNotifier{},
+			NotifyOnFailure: NopRunRecNotifier{},
+			NotifyOnSuccess: NopRunRecNotifier{},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
+		"JobB": &Job{
+			Name:            "JobB",
+			Cmd:             "whatever",
+			User:            gUserEx.Username,
+			FullTimeSpec:    EverySecTimeSpec,
+			ErrorHandler:    BackoffErrorHandler{},
+			NotifyOnError:   MailRunRecNotifier{},
+			NotifyOnFailure: NopRunRecNotifier{},
+			NotifyOnSuccess: NopRunRecNotifier{},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
 	},
 }
 
@@ -252,7 +280,27 @@ var gTestCases = []JobFileTestCase{
 				StdoutHandler: NopJobOutputHandler{},
 				StderrHandler: NopJobOutputHandler{},
 			},
-			Jobs: map[string]*Job{"DailyBackup": &gDailyBackup},
+			Jobs: map[string]*Job{
+				"DailyBackup": &Job{
+					Name: "DailyBackup",
+					Cmd:  "backup daily",
+					User: gUserEx.Username,
+					FullTimeSpec: FullTimeSpec{
+						Sec:  OneValTimeSpec{0},
+						Min:  OneValTimeSpec{0},
+						Hour: OneValTimeSpec{14},
+						Mday: WildcardTimeSpec{},
+						Mon:  WildcardTimeSpec{},
+						Wday: WildcardTimeSpec{},
+					},
+					ErrorHandler:    StopErrorHandler{},
+					NotifyOnError:   NopRunRecNotifier{},
+					NotifyOnFailure: MailRunRecNotifier{},
+					NotifyOnSuccess: NopRunRecNotifier{},
+					StdoutHandler:   NopJobOutputHandler{},
+					StderrHandler:   NopJobOutputHandler{},
+				},
+			},
 		},
 	},
 	{
@@ -437,10 +485,10 @@ jobOutput:
 					Cmd:             "exit 0",
 					User:            gUserEx.Username,
 					FullTimeSpec:    EverySecTimeSpec,
-					ErrorHandler:    &ErrorHandlerContinue,
-					NotifyOnError:   false,
-					NotifyOnFailure: false,
-					NotifyOnSuccess: false,
+					ErrorHandler:    ContinueErrorHandler{},
+					NotifyOnError:   NopRunRecNotifier{},
+					NotifyOnFailure: NopRunRecNotifier{},
+					NotifyOnSuccess: NopRunRecNotifier{},
 					StdoutHandler: FileJobOutputHandler{
 						Where:      "/tmp3",
 						MaxAgeDays: 10,
@@ -457,10 +505,10 @@ jobOutput:
 					Cmd:             "exit 0",
 					User:            gUserEx.Username,
 					FullTimeSpec:    EverySecTimeSpec,
-					ErrorHandler:    &ErrorHandlerContinue,
-					NotifyOnError:   false,
-					NotifyOnFailure: false,
-					NotifyOnSuccess: false,
+					ErrorHandler:    ContinueErrorHandler{},
+					NotifyOnError:   NopRunRecNotifier{},
+					NotifyOnFailure: NopRunRecNotifier{},
+					NotifyOnSuccess: NopRunRecNotifier{},
 					StdoutHandler: FileJobOutputHandler{
 						Where:      "/tmp",
 						MaxAgeDays: 10,
@@ -503,54 +551,54 @@ func TestParseFullTimeSpec(t *testing.T) {
 		spec FullTimeSpec
 	}{
 		{"0 0 14", FullTimeSpec{
-			&OneValTimeSpec{0},
-			&OneValTimeSpec{0},
-			&OneValTimeSpec{14},
-			&WildcardTimeSpec{},
-			&WildcardTimeSpec{},
-			&WildcardTimeSpec{}}},
+			OneValTimeSpec{0},
+			OneValTimeSpec{0},
+			OneValTimeSpec{14},
+			WildcardTimeSpec{},
+			WildcardTimeSpec{},
+			WildcardTimeSpec{}}},
 		{"0 0 14 * * 1", FullTimeSpec{
-			&OneValTimeSpec{0},
-			&OneValTimeSpec{0},
-			&OneValTimeSpec{14},
-			&WildcardTimeSpec{},
-			&WildcardTimeSpec{},
-			&OneValTimeSpec{1}}},
+			OneValTimeSpec{0},
+			OneValTimeSpec{0},
+			OneValTimeSpec{14},
+			WildcardTimeSpec{},
+			WildcardTimeSpec{},
+			OneValTimeSpec{1}}},
 		{"0 0 */2 * * 1", FullTimeSpec{
-			&OneValTimeSpec{0},
-			&OneValTimeSpec{0},
-			&SetTimeSpec{"*/2", evens},
-			&WildcardTimeSpec{},
-			&WildcardTimeSpec{},
-			&OneValTimeSpec{1}}},
+			OneValTimeSpec{0},
+			OneValTimeSpec{0},
+			SetTimeSpec{"*/2", evens},
+			WildcardTimeSpec{},
+			WildcardTimeSpec{},
+			OneValTimeSpec{1}}},
 		{"0 0 1,4,7,10,13,16,19,22 * * 1", FullTimeSpec{
-			&OneValTimeSpec{0},
-			&OneValTimeSpec{0},
-			&SetTimeSpec{"1,4,7,10,13,16,19,22", threes},
-			&WildcardTimeSpec{},
-			&WildcardTimeSpec{},
-			&OneValTimeSpec{1}}},
+			OneValTimeSpec{0},
+			OneValTimeSpec{0},
+			SetTimeSpec{"1,4,7,10,13,16,19,22", threes},
+			WildcardTimeSpec{},
+			WildcardTimeSpec{},
+			OneValTimeSpec{1}}},
 		{"10,20,30,40 0 14 1 8 0-5", FullTimeSpec{
-			&SetTimeSpec{"10,20,30,40", []int{10, 20, 30, 40}},
-			&OneValTimeSpec{0},
-			&OneValTimeSpec{14},
-			&OneValTimeSpec{1},
-			&OneValTimeSpec{8},
-			&SetTimeSpec{"0-5", makeRange(0, 6)}}},
+			SetTimeSpec{"10,20,30,40", []int{10, 20, 30, 40}},
+			OneValTimeSpec{0},
+			OneValTimeSpec{14},
+			OneValTimeSpec{1},
+			OneValTimeSpec{8},
+			SetTimeSpec{"0-5", makeRange(0, 6)}}},
 		{"0 0 R * * 1", FullTimeSpec{
-			&OneValTimeSpec{0},
-			&OneValTimeSpec{0},
+			OneValTimeSpec{0},
+			OneValTimeSpec{0},
 			&RandomTimeSpec{desc: "R", vals: makeRange(0, 24)},
-			&WildcardTimeSpec{},
-			&WildcardTimeSpec{},
-			&OneValTimeSpec{1}}},
+			WildcardTimeSpec{},
+			WildcardTimeSpec{},
+			OneValTimeSpec{1}}},
 		{"0 0 R2-4 * * 1", FullTimeSpec{
-			&OneValTimeSpec{0},
-			&OneValTimeSpec{0},
+			OneValTimeSpec{0},
+			OneValTimeSpec{0},
 			&RandomTimeSpec{desc: "R2-4", vals: makeRange(2, 5)},
-			&WildcardTimeSpec{},
-			&WildcardTimeSpec{},
-			&OneValTimeSpec{1}}},
+			WildcardTimeSpec{},
+			WildcardTimeSpec{},
+			OneValTimeSpec{1}}},
 	}
 
 	for _, c := range cases {
@@ -606,24 +654,15 @@ func TestLoadJobFile(t *testing.T) {
 
 		require.Nil(t, err, "%v", err)
 		require.NotNil(t, file)
-		require.NotNil(t, file.Prefs.Notifier)
-
-		// can't compare functions
-		testCase.Output.Prefs.Notifier = nil
-		file.Prefs.Notifier = nil
-		for _, job := range testCase.Output.Jobs {
-			job.ErrorHandler.Apply = nil
-		}
-		for _, job := range file.Jobs {
-			require.NotNil(t, job.ErrorHandler)
-			job.ErrorHandler.Apply = nil
-		}
-
 		require.Equal(t, testCase.Output.Prefs, file.Prefs)
 		require.Equal(t, len(testCase.Output.Jobs), len(file.Jobs))
 		for jobName, _ := range testCase.Output.Jobs {
 			require.Equal(t, testCase.Output.Jobs[jobName].StderrHandler, file.Jobs[jobName].StderrHandler)
 			require.Equal(t, testCase.Output.Jobs[jobName].StdoutHandler, file.Jobs[jobName].StdoutHandler)
+			require.Equal(t, testCase.Output.Jobs[jobName].FullTimeSpec, file.Jobs[jobName].FullTimeSpec)
+			require.Equal(t, testCase.Output.Jobs[jobName].NotifyOnError, file.Jobs[jobName].NotifyOnError)
+			require.Equal(t, testCase.Output.Jobs[jobName].NotifyOnFailure, file.Jobs[jobName].NotifyOnFailure)
+			require.Equal(t, testCase.Output.Jobs[jobName].NotifyOnSuccess, file.Jobs[jobName].NotifyOnSuccess)
 			require.Equal(t, *testCase.Output.Jobs[jobName], *file.Jobs[jobName])
 		}
 	}
