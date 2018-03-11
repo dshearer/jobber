@@ -19,8 +19,8 @@ func (self *JobManager) doSetJobCmd(cmd ipc.SetJobCmd) ipc.ICmdResp {
 	}
 
 	// make job
-	newJob, err := jobfile.JobRawToJob(cmd.Job, usr, self.jfile.Prefs)
-	if err != nil {
+	newJob := jobfile.NewJob()
+	if err := cmd.Job.ToJob(usr, self.jfile.Prefs, &newJob); err != nil {
 		return ipc.NewErrorCmdResp(err)
 	}
 
@@ -29,7 +29,7 @@ func (self *JobManager) doSetJobCmd(cmd ipc.SetJobCmd) ipc.ICmdResp {
 	for currJobName, currJob := range self.jfile.Jobs {
 		newJobs[currJobName] = currJob
 	}
-	newJobs[newJob.Name] = newJob
+	newJobs[newJob.Name] = &newJob
 	newJobfile := jobfile.JobFile{
 		Prefs: self.jfile.Prefs,
 		Jobs:  newJobs,

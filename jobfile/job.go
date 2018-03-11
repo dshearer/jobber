@@ -64,12 +64,9 @@ func (j *Job) String() string {
 	return j.Name
 }
 
-func NewJob(name string, cmd string, username string) *Job {
-	return &Job{
-		Name:            name,
-		Cmd:             cmd,
+func NewJob() Job {
+	return Job{
 		Status:          JobGood,
-		User:            username,
 		ErrorHandler:    ContinueErrorHandler{},
 		NotifyOnError:   NopRunRecNotifier{},
 		NotifyOnFailure: MailRunRecNotifier{},

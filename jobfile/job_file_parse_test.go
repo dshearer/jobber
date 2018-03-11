@@ -17,7 +17,7 @@ func NewString(val string) *string {
 
 var gUserEx = user.User{Username: "bob", HomeDir: "/home/bob"}
 
-var EverySecTimeSpec = FullTimeSpec{
+var gEverySecTimeSpec = FullTimeSpec{
 	Sec:  WildcardTimeSpec{},
 	Min:  WildcardTimeSpec{},
 	Hour: WildcardTimeSpec{},
@@ -26,7 +26,114 @@ var EverySecTimeSpec = FullTimeSpec{
 	Wday: WildcardTimeSpec{},
 }
 
-const gNewJobFileContents = `
+const gV1JobFileContents = `---
+- name: DailyBackup
+  cmd: backup daily
+  time: 0 0 14
+  onError: Stop
+  notifyOnError: false
+  notifyOnFailure: true
+
+- name: WeeklyBackup
+  cmd: |
+    multi-
+    line
+    script
+  time: 0 0 14 * * 1
+  onError: Backoff
+  notifyOnError: true
+  notifyOnFailure: false
+
+- name: JobA
+  cmd: whatever
+  time: "* * * * * *"
+  onError: Backoff
+  notifyOnError: true
+  notifyOnFailure: false
+
+- name: JobB
+  cmd: whatever
+  time: '*'
+  onError: Backoff
+  notifyOnError: true
+  notifyOnFailure: false`
+
+var gV1JobFile = JobFile{
+	Prefs: UserPrefs{
+		RunLog:        NewMemOnlyRunLog(100),
+		StdoutHandler: NopJobOutputHandler{},
+		StderrHandler: NopJobOutputHandler{},
+	},
+	Jobs: map[string]*Job{
+		"DailyBackup": &Job{
+			Name: "DailyBackup",
+			Cmd:  "backup daily",
+			User: gUserEx.Username,
+			FullTimeSpec: FullTimeSpec{
+				Sec:  OneValTimeSpec{0},
+				Min:  OneValTimeSpec{0},
+				Hour: OneValTimeSpec{14},
+				Mday: WildcardTimeSpec{},
+				Mon:  WildcardTimeSpec{},
+				Wday: WildcardTimeSpec{},
+			},
+			ErrorHandler:    StopErrorHandler{},
+			NotifyOnError:   NopRunRecNotifier{},
+			NotifyOnFailure: MailRunRecNotifier{},
+			NotifyOnSuccess: NopRunRecNotifier{},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
+		"WeeklyBackup": &Job{
+			Name: "WeeklyBackup",
+			Cmd: `multi-
+line
+script
+`,
+			User: gUserEx.Username,
+			FullTimeSpec: FullTimeSpec{
+				Sec:  OneValTimeSpec{0},
+				Min:  OneValTimeSpec{0},
+				Hour: OneValTimeSpec{14},
+				Mday: WildcardTimeSpec{},
+				Mon:  WildcardTimeSpec{},
+				Wday: OneValTimeSpec{1},
+			},
+			ErrorHandler:    BackoffErrorHandler{},
+			NotifyOnError:   MailRunRecNotifier{},
+			NotifyOnFailure: NopRunRecNotifier{},
+			NotifyOnSuccess: NopRunRecNotifier{},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
+		"JobA": &Job{
+			Name:            "JobA",
+			Cmd:             "whatever",
+			User:            gUserEx.Username,
+			FullTimeSpec:    gEverySecTimeSpec,
+			ErrorHandler:    BackoffErrorHandler{},
+			NotifyOnError:   MailRunRecNotifier{},
+			NotifyOnFailure: NopRunRecNotifier{},
+			NotifyOnSuccess: NopRunRecNotifier{},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
+		"JobB": &Job{
+			Name:            "JobB",
+			Cmd:             "whatever",
+			User:            gUserEx.Username,
+			FullTimeSpec:    gEverySecTimeSpec,
+			ErrorHandler:    BackoffErrorHandler{},
+			NotifyOnError:   MailRunRecNotifier{},
+			NotifyOnFailure: NopRunRecNotifier{},
+			NotifyOnSuccess: NopRunRecNotifier{},
+			StdoutHandler:   NopJobOutputHandler{},
+			StderrHandler:   NopJobOutputHandler{},
+		},
+	},
+}
+
+const gV2JobFileContents = `
 # Must be able
 # to deal with comments.
 [prefs]
@@ -65,7 +172,7 @@ notifyProgram: ~/handleError
 # So many comments...
 `
 
-var gNewJobFile = JobFile{
+var gV2JobFile = JobFile{
 	Prefs: UserPrefs{
 		NotifyProgram: NewString("~/handleError"),
 		RunLog:        NewMemOnlyRunLog(100),
@@ -136,112 +243,46 @@ script
 	},
 }
 
-const gLegacyJobFileContents = `---
-- name: DailyBackup
-  cmd: backup daily
-  time: 0 0 14
-  onError: Stop
-  notifyOnError: false
-  notifyOnFailure: true
+const gV3JobFileContents = `
+# Must be able
+# to deal with comments.
+prefs:
+  # Which could be (almost) anywhere.
+  notifyProgram: ~/handleError
 
-- name: WeeklyBackup
-  cmd: |
-    multi-
-    line
-    script
-  time: 0 0 14 * * 1
-  onError: Backoff
-  notifyOnError: true
-  notifyOnFailure: false
+# Even here!
 
-- name: JobA
-  cmd: whatever
-  time: "* * * * * *"
-  onError: Backoff
-  notifyOnError: true
-  notifyOnFailure: false
+jobs:
+  DailyBackup:
+    cmd: backup daily
+  # And here
+    time: 0 0 14
+    onError: Stop
+    notifyOnError: false
+    notifyOnFailure: true
 
-- name: JobB
-  cmd: whatever
-  time: '*'
-  onError: Backoff
-  notifyOnError: true
-  notifyOnFailure: false`
+  WeeklyBackup:
+    cmd: | # And even here
+      multi-
+      line
+      script
+    time: 0 0 14 * * 1
+    onError: Backoff  # Here
+    notifyOnError: true
+    notifyOnFailure: false
 
-var gLegacyJobFile = JobFile{
-	Prefs: UserPrefs{
-		RunLog:        NewMemOnlyRunLog(100),
-		StdoutHandler: NopJobOutputHandler{},
-		StderrHandler: NopJobOutputHandler{},
-	},
-	Jobs: map[string]*Job{
-		"DailyBackup": &Job{
-			Name: "DailyBackup",
-			Cmd:  "backup daily",
-			User: gUserEx.Username,
-			FullTimeSpec: FullTimeSpec{
-				Sec:  OneValTimeSpec{0},
-				Min:  OneValTimeSpec{0},
-				Hour: OneValTimeSpec{14},
-				Mday: WildcardTimeSpec{},
-				Mon:  WildcardTimeSpec{},
-				Wday: WildcardTimeSpec{},
-			},
-			ErrorHandler:    StopErrorHandler{},
-			NotifyOnError:   NopRunRecNotifier{},
-			NotifyOnFailure: MailRunRecNotifier{},
-			NotifyOnSuccess: NopRunRecNotifier{},
-			StdoutHandler:   NopJobOutputHandler{},
-			StderrHandler:   NopJobOutputHandler{},
-		},
-		"WeeklyBackup": &Job{
-			Name: "WeeklyBackup",
-			Cmd: `multi-
-line
-script
-`,
-			User: gUserEx.Username,
-			FullTimeSpec: FullTimeSpec{
-				Sec:  OneValTimeSpec{0},
-				Min:  OneValTimeSpec{0},
-				Hour: OneValTimeSpec{14},
-				Mday: WildcardTimeSpec{},
-				Mon:  WildcardTimeSpec{},
-				Wday: OneValTimeSpec{1},
-			},
-			ErrorHandler:    BackoffErrorHandler{},
-			NotifyOnError:   MailRunRecNotifier{},
-			NotifyOnFailure: NopRunRecNotifier{},
-			NotifyOnSuccess: NopRunRecNotifier{},
-			StdoutHandler:   NopJobOutputHandler{},
-			StderrHandler:   NopJobOutputHandler{},
-		},
-		"JobA": &Job{
-			Name:            "JobA",
-			Cmd:             "whatever",
-			User:            gUserEx.Username,
-			FullTimeSpec:    EverySecTimeSpec,
-			ErrorHandler:    BackoffErrorHandler{},
-			NotifyOnError:   MailRunRecNotifier{},
-			NotifyOnFailure: NopRunRecNotifier{},
-			NotifyOnSuccess: NopRunRecNotifier{},
-			StdoutHandler:   NopJobOutputHandler{},
-			StderrHandler:   NopJobOutputHandler{},
-		},
-		"JobB": &Job{
-			Name:            "JobB",
-			Cmd:             "whatever",
-			User:            gUserEx.Username,
-			FullTimeSpec:    EverySecTimeSpec,
-			ErrorHandler:    BackoffErrorHandler{},
-			NotifyOnError:   MailRunRecNotifier{},
-			NotifyOnFailure: NopRunRecNotifier{},
-			NotifyOnSuccess: NopRunRecNotifier{},
-			StdoutHandler:   NopJobOutputHandler{},
-			StderrHandler:   NopJobOutputHandler{},
-		},
-	},
-}
+  SuccessReport:
+    cmd: exit 0
+    time: 0 0 14 * * 1
+    onError: Backoff
+    notifyOnError: false
+    notifyOnFailure: false
+    notifyOnSuccess: true
+
+# So many comments...
+`
+
+var gV3JobFile = gV2JobFile
 
 type JobFileTestCase struct {
 	Input  string
@@ -257,12 +298,16 @@ var gFileRunLog, _ = NewFileRunLog(
 
 var gTestCases = []JobFileTestCase{
 	{
-		Input:  gNewJobFileContents,
-		Output: gNewJobFile,
+		Input:  gV1JobFileContents,
+		Output: gV1JobFile,
 	},
 	{
-		Input:  gLegacyJobFileContents,
-		Output: gLegacyJobFile,
+		Input:  gV2JobFileContents,
+		Output: gV2JobFile,
+	},
+	{
+		Input:  gV3JobFileContents,
+		Output: gV3JobFile,
 	},
 	{
 		Input: `
@@ -484,7 +529,7 @@ jobOutput:
 					Name:            "JobA",
 					Cmd:             "exit 0",
 					User:            gUserEx.Username,
-					FullTimeSpec:    EverySecTimeSpec,
+					FullTimeSpec:    gEverySecTimeSpec,
 					ErrorHandler:    ContinueErrorHandler{},
 					NotifyOnError:   NopRunRecNotifier{},
 					NotifyOnFailure: NopRunRecNotifier{},
@@ -504,7 +549,7 @@ jobOutput:
 					Name:            "JobB",
 					Cmd:             "exit 0",
 					User:            gUserEx.Username,
-					FullTimeSpec:    EverySecTimeSpec,
+					FullTimeSpec:    gEverySecTimeSpec,
 					ErrorHandler:    ContinueErrorHandler{},
 					NotifyOnError:   NopRunRecNotifier{},
 					NotifyOnFailure: NopRunRecNotifier{},

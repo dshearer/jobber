@@ -3,6 +3,7 @@ package jobfile
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -48,6 +49,11 @@ func (self *UserPrefs) String() string {
 	return s
 }
 
+type JobFileV3Raw struct {
+	Prefs UserPrefsRaw      `yaml:"prefs"`
+	Jobs  map[string]JobRaw `yaml:"jobs"`
+}
+
 type JobOutputPrefsRaw struct {
 	Where      *string `json:"where" yaml:"where"`
 	MaxAgeDays *int    `json:"maxAgeDays" yaml:"maxAgeDays"`
@@ -88,8 +94,8 @@ type JobRaw struct {
 	JobOutput       *BothJobOutputPrefsRaw `json:"jobOutput" yaml:"jobOutput"`
 }
 
-func NewEmptyJobFile() *JobFile {
-	return &JobFile{
+func NewEmptyJobFile() JobFile {
+	return JobFile{
 		Prefs: UserPrefs{
 			RunLog:        NewMemOnlyRunLog(gDefaultMemRunLogMaxLen),
 			StdoutHandler: NopJobOutputHandler{},
@@ -130,14 +136,84 @@ func ShouldLoadJobfile(f *os.File, usr *user.User) (bool, error) {
 }
 
 func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
+	/* V3 jobfiles are pure YAML documents. */
+
+	// check for old versions
+	version, err := jobfileVersion(f)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := f.Seek(0, 0); err != nil {
+		return nil, err
+	}
+	if version < 3 {
+		return loadV1V2Jobfile(f, usr)
+	}
+
+	// parse it
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	dataStr := string(data)
+	if !strings.HasPrefix(dataStr, gYamlStarter+"\n") {
+		dataStr = gYamlStarter + "\n" + dataStr
+	}
+	var jobfileRaw JobFileV3Raw
+	if err := yaml.Unmarshal([]byte(dataStr), &jobfileRaw); err != nil {
+		return nil, err
+	}
+
+	jfile := NewEmptyJobFile()
+
+	// parse prefs
+	if err := jobfileRaw.Prefs.ToPrefs(usr, &jfile.Prefs); err != nil {
+		return nil, err
+	}
+
+	// parse jobs
+	for jobName, jobRaw := range jobfileRaw.Jobs {
+		job := NewJob()
+		jobRaw.Name = jobName
+		if err := jobRaw.ToJob(usr, jfile.Prefs, &job); err != nil {
+			return nil, err
+		}
+		jfile.Jobs[jobName] = &job
+	}
+
+	return &jfile, nil
+}
+
+func jobfileVersion(f *os.File) (int, error) {
+	// read file
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		return 0, err
+	}
+
+	// check version
+	v1Content := make([]interface{}, 0)
+	if err := yaml.Unmarshal(data, &v1Content); err == nil {
+		return 1, nil
+	} else if strings.HasPrefix(string(data), "[jobs]") ||
+		strings.Contains(string(data), "\n[jobs]\n") ||
+		strings.HasPrefix(string(data), "[prefs]") ||
+		strings.Contains(string(data), "\n[prefs]\n") {
+		return 2, nil
+	} else {
+		return 3, nil
+	}
+}
+
+func loadV1V2Jobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	/*
-	   Jobber files have two sections: one begins with "[prefs]" on a
+	   V2 jobfiles have two sections: one begins with "[prefs]" on a
 	   line, and the other begins with "[jobs]".  Both contain a YAML
 	   document.  The "prefs" section can be parsed with struct
 	   UserPrefs, and the "jobs" section is a YAML array of records
 	   that can be parsed with struct JobRaw.
 
-	   Legacy format: no section beginnings; whole file is YAML doc
+	   V1 format: no section beginnings; whole file is YAML doc
 	   for "jobs" section.
 	*/
 
@@ -159,7 +235,7 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	// parse "prefs" section
 	prefsSection, prefsOk := sections[PrefsSectName]
 	if prefsOk && len(prefsSection) > 0 {
-		if err := parsePrefsSect(prefsSection, usr, jfile); err != nil {
+		if err := parsePrefsSect(prefsSection, usr, &jfile); err != nil {
 			return nil, err
 		}
 	}
@@ -167,12 +243,12 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	// parse "jobs" section
 	jobsSection, jobsOk := sections[JobsSectName]
 	if jobsOk {
-		if err := parseJobsSect(jobsSection, usr, jfile); err != nil {
+		if err := parseJobsSect(jobsSection, usr, &jfile); err != nil {
 			return nil, err
 		}
 	}
 
-	return jfile, nil
+	return &jfile, nil
 }
 
 /*
@@ -265,28 +341,18 @@ func findSections(f *os.File) (map[string]string, error) {
 	return retval, nil
 }
 
-func parsePrefsSect(s string, usr *user.User, dest *JobFile) error {
-	// parse as yaml
-	var rawPrefs UserPrefsRaw
-	if !strings.HasPrefix(s, gYamlStarter+"\n") {
-		s = gYamlStarter + "\n" + s
-	}
-	err := yaml.UnmarshalStrict([]byte(s), &rawPrefs)
-	if err != nil {
-		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
-			PrefsSectName)
-		return &common.Error{What: errMsg, Cause: err}
-	}
+func (self UserPrefsRaw) ToPrefs(usr *user.User, dest *UserPrefs) error {
+	var err error
 
 	// parse "logPath"
-	if rawPrefs.LogPath != nil {
+	if self.LogPath != nil {
 		/*
 		   Relative paths are interpreted as relative to the user's
 		   home dir.
 		*/
-		logPath := *rawPrefs.LogPath
+		logPath := *self.LogPath
 		if filepath.IsAbs(logPath) {
-			dest.Prefs.LogPath = logPath
+			dest.LogPath = logPath
 		} else {
 			if len(usr.HomeDir) == 0 {
 				errMsg := fmt.Sprintf("User has no home directory, so "+
@@ -294,26 +360,26 @@ func parsePrefsSect(s string, usr *user.User, dest *JobFile) error {
 					logPath)
 				return &common.Error{What: errMsg}
 			}
-			dest.Prefs.LogPath = filepath.Join(usr.HomeDir, logPath)
+			dest.LogPath = filepath.Join(usr.HomeDir, logPath)
 		}
 	} // logPath
 
 	// parse "notifyProgram
-	if rawPrefs.NotifyProgram != nil {
-		dest.Prefs.NotifyProgram = rawPrefs.NotifyProgram
+	if self.NotifyProgram != nil {
+		dest.NotifyProgram = self.NotifyProgram
 	}
 
 	// parse "runLog"
-	if rawPrefs.RunLog != nil {
-		rawRunLog := rawPrefs.RunLog
+	if self.RunLog != nil {
+		rawRunLog := self.RunLog
 
 		if rawRunLog.Type == "memory" {
 			// make memory run log
 			maxLen := gDefaultMemRunLogMaxLen
-			if rawPrefs.RunLog.MaxLen != nil {
+			if self.RunLog.MaxLen != nil {
 				maxLen = *rawRunLog.MaxLen
 			}
-			dest.Prefs.RunLog = NewMemOnlyRunLog(maxLen)
+			dest.RunLog = NewMemOnlyRunLog(maxLen)
 
 		} else if rawRunLog.Type == "file" {
 			const defaultMaxFileLen int64 = 50 * (1 << 20)
@@ -359,7 +425,7 @@ func parsePrefsSect(s string, usr *user.User, dest *JobFile) error {
 			}
 
 			// make file run log
-			dest.Prefs.RunLog, err = NewFileRunLog(
+			dest.RunLog, err = NewFileRunLog(
 				*rawRunLog.Path,
 				maxFileLen,
 				maxHistories,
@@ -374,18 +440,18 @@ func parsePrefsSect(s string, usr *user.User, dest *JobFile) error {
 		}
 
 	} else {
-		dest.Prefs.RunLog = NewMemOnlyRunLog(gDefaultMemRunLogMaxLen)
+		dest.RunLog = NewMemOnlyRunLog(gDefaultMemRunLogMaxLen)
 	} // runLog
 
 	// parse "jobOutput"
-	if rawPrefs.JobOutput != nil {
-		bothPrefs := rawPrefs.JobOutput
+	if self.JobOutput != nil {
+		bothPrefs := self.JobOutput
 		if bothPrefs.Stdout != nil {
 			outputPrefs := bothPrefs.Stdout
 			if err := checkJobOutputPrefs(outputPrefs); err != nil {
 				return err
 			}
-			dest.Prefs.StdoutHandler = FileJobOutputHandler{
+			dest.StdoutHandler = FileJobOutputHandler{
 				Where:      *outputPrefs.Where,
 				MaxAgeDays: *outputPrefs.MaxAgeDays,
 				Suffix:     "stdout",
@@ -397,7 +463,7 @@ func parsePrefsSect(s string, usr *user.User, dest *JobFile) error {
 			if err := checkJobOutputPrefs(outputPrefs); err != nil {
 				return err
 			}
-			dest.Prefs.StderrHandler = FileJobOutputHandler{
+			dest.StderrHandler = FileJobOutputHandler{
 				Where:      *outputPrefs.Where,
 				MaxAgeDays: *outputPrefs.MaxAgeDays,
 				Suffix:     "stderr",
@@ -406,6 +472,22 @@ func parsePrefsSect(s string, usr *user.User, dest *JobFile) error {
 	} // jobOutput
 
 	return nil
+}
+
+func parsePrefsSect(s string, usr *user.User, dest *JobFile) error {
+	// parse as yaml
+	var rawPrefs UserPrefsRaw
+	if !strings.HasPrefix(s, gYamlStarter+"\n") {
+		s = gYamlStarter + "\n" + s
+	}
+	err := yaml.UnmarshalStrict([]byte(s), &rawPrefs)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
+			PrefsSectName)
+		return &common.Error{What: errMsg, Cause: err}
+	}
+
+	return rawPrefs.ToPrefs(usr, &dest.Prefs)
 }
 
 func checkJobOutputPrefs(prefs *JobOutputPrefsRaw) error {
@@ -420,20 +502,22 @@ func checkJobOutputPrefs(prefs *JobOutputPrefsRaw) error {
 	}
 }
 
-func JobRawToJob(jobRaw JobRaw, usr *user.User, prefs UserPrefs) (*Job, error) {
-	job := NewJob(jobRaw.Name, jobRaw.Cmd, usr.Username)
+func (self JobRaw) ToJob(usr *user.User, prefs UserPrefs, dest *Job) error {
 	var err error
 
-	// check name
-	if len(jobRaw.Name) == 0 {
-		return nil, &common.Error{What: "Job name cannot be empty."}
+	// set name, cmd, user
+	if len(self.Name) == 0 {
+		return &common.Error{What: "Job name cannot be empty."}
 	}
+	dest.Name = self.Name
+	dest.Cmd = self.Cmd
+	dest.User = usr.Username
 
 	// set failure-handler
-	if jobRaw.OnError != nil {
-		job.ErrorHandler, err = GetErrorHandler(*jobRaw.OnError)
+	if self.OnError != nil {
+		dest.ErrorHandler, err = GetErrorHandler(*self.OnError)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -444,64 +528,64 @@ func JobRawToJob(jobRaw JobRaw, usr *user.User, prefs UserPrefs) (*Job, error) {
 	} else {
 		defaultNotifier = ProgramRunRecNotifier{Program: *prefs.NotifyProgram}
 	}
-	if jobRaw.NotifyOnError != nil {
+	if self.NotifyOnError != nil {
 		var notifier RunRecNotifier
-		if *jobRaw.NotifyOnError {
+		if *self.NotifyOnError {
 			notifier = defaultNotifier
 		} else {
 			notifier = NopRunRecNotifier{}
 		}
-		job.NotifyOnError = notifier
+		dest.NotifyOnError = notifier
 	}
-	if jobRaw.NotifyOnFailure != nil {
+	if self.NotifyOnFailure != nil {
 		var notifier RunRecNotifier
-		if *jobRaw.NotifyOnFailure {
+		if *self.NotifyOnFailure {
 			notifier = defaultNotifier
 		} else {
 			notifier = NopRunRecNotifier{}
 		}
-		job.NotifyOnFailure = notifier
+		dest.NotifyOnFailure = notifier
 	}
-	if jobRaw.NotifyOnSuccess != nil {
+	if self.NotifyOnSuccess != nil {
 		var notifier RunRecNotifier
-		if *jobRaw.NotifyOnSuccess {
+		if *self.NotifyOnSuccess {
 			notifier = defaultNotifier
 		} else {
 			notifier = NopRunRecNotifier{}
 		}
-		job.NotifyOnSuccess = notifier
+		dest.NotifyOnSuccess = notifier
 	}
 
 	// parse time spec
 	var tmp *FullTimeSpec
-	tmp, err = ParseFullTimeSpec(jobRaw.Time)
+	tmp, err = ParseFullTimeSpec(self.Time)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	job.FullTimeSpec = *tmp
-	job.FullTimeSpec.Derandomize()
+	dest.FullTimeSpec = *tmp
+	dest.FullTimeSpec.Derandomize()
 
 	// parse job output prefs
 	var stdoutOutputPrefs *JobOutputPrefsRaw
 	var stderrOutputPrefs *JobOutputPrefsRaw
-	if jobRaw.JobOutput != nil {
-		stdoutOutputPrefs = jobRaw.JobOutput.Stdout
-		stderrOutputPrefs = jobRaw.JobOutput.Stderr
+	if self.JobOutput != nil {
+		stdoutOutputPrefs = self.JobOutput.Stdout
+		stderrOutputPrefs = self.JobOutput.Stderr
 	}
 	handler, err := makeOutputHandlerForJob(stdoutOutputPrefs,
 		prefs.StdoutHandler, "stdout")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	job.StdoutHandler = handler
+	dest.StdoutHandler = handler
 	handler, err = makeOutputHandlerForJob(stderrOutputPrefs,
 		prefs.StderrHandler, "stderr")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	job.StderrHandler = handler
+	dest.StderrHandler = handler
 
-	return job, nil
+	return nil
 }
 
 func parseJobsSect(s string, usr *user.User, dest *JobFile) error {
@@ -519,15 +603,15 @@ func parseJobsSect(s string, usr *user.User, dest *JobFile) error {
 
 	// make jobs
 	for _, config := range jobConfigs {
-		job, err := JobRawToJob(config, usr, dest.Prefs)
-		if err != nil {
+		job := NewJob()
+		if err := config.ToJob(usr, dest.Prefs, &job); err != nil {
 			return err
 		}
 		if _, ok := dest.Jobs[job.Name]; ok {
 			msg := fmt.Sprintf("Multiple jobs named \"%v\"", job.Name)
 			return &common.Error{What: msg}
 		}
-		dest.Jobs[job.Name] = job
+		dest.Jobs[job.Name] = &job
 	}
 
 	return nil

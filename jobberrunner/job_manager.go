@@ -32,7 +32,8 @@ func NewJobManager(jobfilePath string) *JobManager {
 	jm := JobManager{Shell: "/bin/sh"}
 	jm.jobfilePath = jobfilePath
 	jm.jobRunner = NewJobRunnerThread()
-	jm.jfile = jobfile.NewEmptyJobFile()
+	tmp := jobfile.NewEmptyJobFile()
+	jm.jfile = &tmp
 	common.LogToStdoutStderr()
 	return &jm
 }
@@ -152,7 +153,8 @@ func (self *JobManager) loadJobfile() error {
 
 	if err == nil || os.IsNotExist(err) {
 		if jfile == nil {
-			jfile = jobfile.NewEmptyJobFile()
+			tmp := jobfile.NewEmptyJobFile()
+			jfile = &tmp
 		}
 		self.replaceCurrJobfile(jfile)
 		return nil
