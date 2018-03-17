@@ -16,6 +16,8 @@ const gDefaultJobfile = `## This is your jobfile: use it to tell Jobber what job
 ## It consists of two sections: "prefs" and "jobs".  In "prefs" you can
 ## set various general settings.  In "jobs", you define your jobs.
 
+version: 1.4
+
 prefs:
   ## You can have the Jobber daemon keep a log of various activities
   ## with the "logPath" setting; the log will be written to the given
@@ -25,10 +27,6 @@ prefs:
   ## are stored --- for that, see the "runLog" setting below.  WARNING:
   ## Jobber will NOT rotate this file.
   #logPath: jobber-log
-
-  ## The following line makes jobber run a specified program when a job
-  ## fails/succeeds:
-  #notifyProgram: /home/handleError.sh
 
   ## You can specify how info about past runs is stored.  For
   ## "type: memory" (the default), they are stored in memory and
@@ -47,15 +45,29 @@ prefs:
   #    maxFileLen: 50m  # in MB
   #    maxHistories: 5
 
+resultSinks:
+  #- &programSink
+  #  type: program
+  #  path: /home/handleError.sh
+
+  #- &systemEmailSink
+  #  type: system-email
+
+  #- &filesystemSink
+  #  type: filesystem
+  #  path: /path/to/dir
+  #  data: [stdout, stderr]
+  #  maxAgeDays: 10
+
 jobs:
   ## This section must contain a YAML sequence of maps like the following:
   #DailyBackup:
-  #  cmd: backup daily  # shell command to execute
-  #  time: '* * * * * *'  # SEC MIN HOUR MONTH_DAY MONTH WEEK_DAY.
-  #  onError: Continue  # what to do when the job has an error: Stop, Backoff, or Continue
-  #  notifyOnError: false  # whether to call notifyProgram when the job has an error
-  #  notifyOnFailure: true  # whether to call notifyProgram when the job stops due to errors
-  #  notifyOnSuccess: false  # whether to call notifyProgram when the job succeeds
+  #    cmd: backup daily  # shell command to execute
+  #    time: '* * * * * *'  # SEC MIN HOUR MONTH_DAY MONTH WEEK_DAY.
+  #    onError: Continue  # what to do when the job has an error: Stop, Backoff, or Continue
+  #    notifyOnError: [*programSink]  # what to do with result when job has an error
+  #    notifyOnFailure: [*systemEmailSink, *programSink]  # what to do with result when the job stops due to errors
+  #    notifyOnSuccess: [*filesystemSink]  # what to do with result when the job succeeds
 `
 
 func (self *JobManager) doInitCmd(cmd ipc.InitCmd) ipc.ICmdResp {

@@ -20,9 +20,10 @@ func (self *JobManager) doSetJobCmd(cmd ipc.SetJobCmd) ipc.ICmdResp {
 
 	// make job
 	newJob := jobfile.NewJob()
-	if err := cmd.Job.ToJob(usr, self.jfile.Prefs, &newJob); err != nil {
+	if err := cmd.Job.ToJob(usr, &newJob); err != nil {
 		return ipc.NewErrorCmdResp(err)
 	}
+	newJob.Name = cmd.Job.Name
 
 	// make new jobfile
 	newJobs := make(map[string]*jobfile.Job)

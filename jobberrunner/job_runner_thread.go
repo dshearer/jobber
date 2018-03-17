@@ -113,8 +113,8 @@ func RunJob(
 	// update run rec
 	rec.Succeeded = execResult.Succeeded
 	rec.NewStatus = jobfile.JobGood
-	rec.Stdout = &execResult.Stdout
-	rec.Stderr = &execResult.Stderr
+	rec.Stdout = execResult.Stdout
+	rec.Stderr = execResult.Stderr
 
 	if testing {
 		return rec
@@ -132,10 +132,6 @@ func RunJob(
 
 	// update rec.NewStatus
 	rec.NewStatus = job.Status
-
-	// write output to disk
-	job.StdoutHandler.WriteOutput(execResult.Stdout, job.Name, rec.RunTime)
-	job.StderrHandler.WriteOutput(execResult.Stderr, job.Name, rec.RunTime)
 
 	return rec
 }

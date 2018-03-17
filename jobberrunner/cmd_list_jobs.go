@@ -2,11 +2,20 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/ipc"
 	"github.com/dshearer/jobber/jobfile"
 )
+
+func resultSinksString(sinks []jobfile.ResultSink) string {
+	var strs []string
+	for _, sink := range sinks {
+		strs = append(strs, sink.String())
+	}
+	return strings.Join(strs, ",")
+}
 
 func (self *JobManager) doListJobsCmd(cmd ipc.ListJobsCmd) ipc.ICmdResp {
 	common.Logger.Printf("Got cmd 'list'\n")
@@ -14,15 +23,6 @@ func (self *JobManager) doListJobsCmd(cmd ipc.ListJobsCmd) ipc.ICmdResp {
 	// make job list
 	jobDescs := make([]ipc.JobDesc, 0)
 	for _, j := range self.jfile.Jobs {
-		var stdoutDir *string
-		var stderrDir *string
-		if handler, ok := j.StdoutHandler.(jobfile.FileJobOutputHandler); ok {
-			stdoutDir = &handler.Where
-		}
-		if handler, ok := j.StderrHandler.(jobfile.FileJobOutputHandler); ok {
-			stderrDir = &handler.Where
-		}
-
 		jobDesc := ipc.JobDesc{
 			Name:   j.Name,
 			Status: j.Status.String(),
@@ -35,12 +35,10 @@ func (self *JobManager) doListJobsCmd(cmd ipc.ListJobsCmd) ipc.ICmdResp {
 				j.FullTimeSpec.Mon,
 				j.FullTimeSpec.Wday),
 			NextRunTime:     j.NextRunTime,
-			NotifyOnSuccess: j.NotifyOnSuccess.String(),
-			NotifyOnErr:     j.NotifyOnError.String(),
-			NotifyOnFail:    j.NotifyOnFailure.String(),
+			NotifyOnSuccess: resultSinksString(j.NotifyOnSuccess),
+			NotifyOnErr:     resultSinksString(j.NotifyOnError),
+			NotifyOnFail:    resultSinksString(j.NotifyOnFailure),
 			ErrHandler:      j.ErrorHandler.String(),
-			StdoutDir:       stdoutDir,
-			StderrDir:       stderrDir,
 		}
 		if j.Paused {
 			jobDesc.Status += " (Paused)"

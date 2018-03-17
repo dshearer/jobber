@@ -114,8 +114,13 @@ type InitCmdResp struct {
 	nonErrorCmdResp
 }
 
+type JobV3RawWithName struct {
+	jobfile.JobV3Raw
+	Name string
+}
+
 type SetJobCmd struct {
-	Job jobfile.JobRaw `json:"job"`
+	Job JobV3RawWithName `json:"job"`
 }
 
 type SetJobCmdResp struct {

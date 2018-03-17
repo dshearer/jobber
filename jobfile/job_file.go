@@ -28,40 +28,29 @@ type JobFile struct {
 }
 
 type UserPrefs struct {
-	NotifyProgram *string
-	RunLog        RunLog
-	LogPath       string // for error msgs etc.  May be "".
-
-	// output handling
-	StdoutHandler JobOutputHandler
-	StderrHandler JobOutputHandler
+	RunLog  RunLog
+	LogPath string // for error msgs etc.  May be "".
 }
 
 func (self *UserPrefs) String() string {
 	s := ""
-	s += fmt.Sprintf("NotifyProgram: %v\n", self.NotifyProgram)
 	s += fmt.Sprintf("RunLog: %v\n", self.RunLog)
 	if len(self.LogPath) > 0 {
 		s += fmt.Sprintf("Log path: %v\n", self.LogPath)
 	}
-	s += fmt.Sprintf("StdoutHandler: %v\n", self.StdoutHandler)
-	s += fmt.Sprintf("StderrHandler: %v", self.StderrHandler)
 	return s
 }
 
 type JobFileV3Raw struct {
-	Prefs UserPrefsRaw      `yaml:"prefs"`
-	Jobs  map[string]JobRaw `yaml:"jobs"`
+	Version     string              `yaml:"version"`
+	Prefs       UserPrefsV3Raw      `yaml:"prefs"`
+	ResultSinks []ResultSinkRaw     `yaml:"resultSinks"`
+	Jobs        map[string]JobV3Raw `yaml:"jobs"`
 }
 
-type JobOutputPrefsRaw struct {
-	Where      *string `json:"where" yaml:"where"`
-	MaxAgeDays *int    `json:"maxAgeDays" yaml:"maxAgeDays"`
-}
-
-type BothJobOutputPrefsRaw struct {
-	Stdout *JobOutputPrefsRaw `json:"stdout" yaml:"stdout"`
-	Stderr *JobOutputPrefsRaw `json:"stderr" yaml:"stderr"`
+type JobFileV1V2Raw struct {
+	Prefs UserPrefsV1V2Raw
+	Jobs  []JobV1V2Raw
 }
 
 type RunLogRaw struct {
@@ -76,30 +65,40 @@ type RunLogRaw struct {
 	MaxHistories *int    `yaml:"maxHistories"`
 }
 
-type UserPrefsRaw struct {
-	LogPath       *string                `yaml:"logPath"`
-	NotifyProgram *string                `yaml:"notifyProgram"`
-	RunLog        *RunLogRaw             `yaml:"runLog"`
-	JobOutput     *BothJobOutputPrefsRaw `yaml:"jobOutput"`
+type UserPrefsV3Raw struct {
+	LogPath *string    `yaml:"logPath"`
+	RunLog  *RunLogRaw `yaml:"runLog"`
 }
 
-type JobRaw struct {
-	Name            string                 `json:"name" yaml:"name"`
-	Cmd             string                 `json:"cmd" yaml:"cmd"`
-	Time            string                 `json:"time" yaml:"time"`
-	OnError         *string                `json:"onError" yaml:"onError"`
-	NotifyOnSuccess *bool                  `json:"notifyOnSuccess" yaml:"notifyOnSuccess"`
-	NotifyOnError   *bool                  `json:"notifyOnError" yaml:"notifyOnError"`
-	NotifyOnFailure *bool                  `json:"notifyOnFailure" yaml:"notifyOnFailure"`
-	JobOutput       *BothJobOutputPrefsRaw `json:"jobOutput" yaml:"jobOutput"`
+type UserPrefsV1V2Raw struct {
+	LogPath       *string    `yaml:"logPath"`
+	RunLog        *RunLogRaw `yaml:"runLog"`
+	NotifyProgram *string    `yaml:"notifyProgram"`
+}
+
+type JobV3Raw struct {
+	Cmd             string          `json:"cmd" yaml:"cmd"`
+	Time            string          `json:"time" yaml:"time"`
+	OnError         *string         `json:"onError" yaml:"onError"`
+	NotifyOnSuccess []ResultSinkRaw `json:"notifyOnSuccess" yaml:"notifyOnSuccess"`
+	NotifyOnError   []ResultSinkRaw `json:"notifyOnError" yaml:"notifyOnError"`
+	NotifyOnFailure []ResultSinkRaw `json:"notifyOnFailure" yaml:"notifyOnFailure"`
+}
+
+type JobV1V2Raw struct {
+	Name            string  `json:"name" yaml:"name"`
+	Cmd             string  `json:"cmd" yaml:"cmd"`
+	Time            string  `json:"time" yaml:"time"`
+	OnError         *string `json:"onError" yaml:"onError"`
+	NotifyOnSuccess *bool   `json:"notifyOnSuccess" yaml:"notifyOnSuccess"`
+	NotifyOnError   *bool   `json:"notifyOnError" yaml:"notifyOnError"`
+	NotifyOnFailure *bool   `json:"notifyOnFailure" yaml:"notifyOnFailure"`
 }
 
 func NewEmptyJobFile() JobFile {
 	return JobFile{
 		Prefs: UserPrefs{
-			RunLog:        NewMemOnlyRunLog(gDefaultMemRunLogMaxLen),
-			StdoutHandler: NopJobOutputHandler{},
-			StderrHandler: NopJobOutputHandler{},
+			RunLog: NewMemOnlyRunLog(gDefaultMemRunLogMaxLen),
 		},
 		Jobs: make(map[string]*Job),
 	}
@@ -138,7 +137,7 @@ func ShouldLoadJobfile(f *os.File, usr *user.User) (bool, error) {
 func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	/* V3 jobfiles are pure YAML documents. */
 
-	// check for old versions
+	// parse it
 	version, err := jobfileVersion(f)
 	if err != nil {
 		return nil, err
@@ -146,21 +145,14 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	if _, err := f.Seek(0, 0); err != nil {
 		return nil, err
 	}
-	if version < 3 {
-		return loadV1V2Jobfile(f, usr)
+	var parseFunc func(*os.File) (*JobFileV3Raw, error)
+	if c := version.Compare(SemVer{Major: 1, Minor: 4}); c >= 0 {
+		parseFunc = parseV3Jobfile
+	} else {
+		parseFunc = parseV1V2Jobfile
 	}
-
-	// parse it
-	data, err := ioutil.ReadAll(f)
+	jobfileRaw, err := parseFunc(f)
 	if err != nil {
-		return nil, err
-	}
-	dataStr := string(data)
-	if !strings.HasPrefix(dataStr, gYamlStarter+"\n") {
-		dataStr = gYamlStarter + "\n" + dataStr
-	}
-	var jobfileRaw JobFileV3Raw
-	if err := yaml.Unmarshal([]byte(dataStr), &jobfileRaw); err != nil {
 		return nil, err
 	}
 
@@ -174,8 +166,8 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	// parse jobs
 	for jobName, jobRaw := range jobfileRaw.Jobs {
 		job := NewJob()
-		jobRaw.Name = jobName
-		if err := jobRaw.ToJob(usr, jfile.Prefs, &job); err != nil {
+		job.Name = jobName
+		if err := jobRaw.ToJob(usr, &job); err != nil {
 			return nil, err
 		}
 		jfile.Jobs[jobName] = &job
@@ -184,34 +176,120 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	return &jfile, nil
 }
 
-func jobfileVersion(f *os.File) (int, error) {
+func jobfileVersion(f *os.File) (*SemVer, error) {
 	// read file
 	data, err := ioutil.ReadAll(f)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	// check version
 	v1Content := make([]interface{}, 0)
 	if err := yaml.Unmarshal(data, &v1Content); err == nil {
-		return 1, nil
+		return &SemVer{Major: 1}, nil
+
 	} else if strings.HasPrefix(string(data), "[jobs]") ||
 		strings.Contains(string(data), "\n[jobs]\n") ||
 		strings.HasPrefix(string(data), "[prefs]") ||
 		strings.Contains(string(data), "\n[prefs]\n") {
-		return 2, nil
+		return &SemVer{Major: 1, Minor: 2}, nil
+
 	} else {
-		return 3, nil
+		var tmp struct {
+			Version string `yaml:"version"`
+		}
+		if err := yaml.Unmarshal(data, &tmp); err != nil {
+			return nil, err
+		}
+		if len(tmp.Version) == 0 {
+			return nil, &common.Error{What: "Missing jobfile version"}
+		}
+		return ParseSemVer(tmp.Version)
 	}
 }
 
-func loadV1V2Jobfile(f *os.File, usr *user.User) (*JobFile, error) {
+func parseV3Jobfile(f *os.File) (*JobFileV3Raw, error) {
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	dataStr := string(data)
+	if !strings.HasPrefix(dataStr, gYamlStarter+"\n") {
+		dataStr = gYamlStarter + "\n" + dataStr
+	}
+	var jobfileRaw JobFileV3Raw
+	if err := yaml.UnmarshalStrict([]byte(dataStr), &jobfileRaw); err != nil {
+		return nil, err
+	}
+	return &jobfileRaw, nil
+}
+
+func v1v2ToV3(v1v2Jobfile JobFileV1V2Raw) (*JobFileV3Raw, error) {
+	var v3Jobfile JobFileV3Raw
+	v3Jobfile.Jobs = make(map[string]JobV3Raw)
+
+	// make prefs
+	v3Jobfile.Prefs.LogPath = v1v2Jobfile.Prefs.LogPath
+	v3Jobfile.Prefs.RunLog = v1v2Jobfile.Prefs.RunLog
+
+	// make result sink
+	resultSink := make(map[string]interface{})
+	if v1v2Jobfile.Prefs.NotifyProgram != nil {
+		resultSink["type"] = "program"
+		resultSink["path"] = *v1v2Jobfile.Prefs.NotifyProgram
+	} else {
+		resultSink["type"] = "system-email"
+	}
+	resultSinkArray := []ResultSinkRaw{resultSink}
+
+	// make jobs
+	for _, v1v2JobRaw := range v1v2Jobfile.Jobs {
+		var v3JobRaw JobV3Raw
+		v3JobRaw.Cmd = v1v2JobRaw.Cmd
+		v3JobRaw.Time = v1v2JobRaw.Time
+		v3JobRaw.OnError = v1v2JobRaw.OnError
+
+		notifyOnError := false
+		if v1v2JobRaw.NotifyOnError != nil {
+			notifyOnError = *v1v2JobRaw.NotifyOnError
+		}
+		notifyOnFailure := true
+		if v1v2JobRaw.NotifyOnFailure != nil {
+			notifyOnFailure = *v1v2JobRaw.NotifyOnFailure
+		}
+		notifyOnSuccess := false
+		if v1v2JobRaw.NotifyOnSuccess != nil {
+			notifyOnSuccess = *v1v2JobRaw.NotifyOnSuccess
+		}
+
+		if notifyOnError {
+			v3JobRaw.NotifyOnError = resultSinkArray
+		}
+		if notifyOnFailure {
+			v3JobRaw.NotifyOnFailure = resultSinkArray
+		}
+		if notifyOnSuccess {
+			v3JobRaw.NotifyOnSuccess = resultSinkArray
+		}
+
+		_, ok := v3Jobfile.Jobs[v1v2JobRaw.Name]
+		if ok {
+			msg := fmt.Sprintf("Multiple jobs named \"%v\"", v1v2JobRaw.Name)
+			return nil, &common.Error{What: msg}
+		}
+		v3Jobfile.Jobs[v1v2JobRaw.Name] = v3JobRaw
+	}
+
+	return &v3Jobfile, nil
+}
+
+func parseV1V2Jobfile(f *os.File) (*JobFileV3Raw, error) {
 	/*
 	   V2 jobfiles have two sections: one begins with "[prefs]" on a
 	   line, and the other begins with "[jobs]".  Both contain a YAML
 	   document.  The "prefs" section can be parsed with struct
 	   UserPrefs, and the "jobs" section is a YAML array of records
-	   that can be parsed with struct JobRaw.
+	   that can be parsed with struct JobV1V2Raw.
 
 	   V1 format: no section beginnings; whole file is YAML doc
 	   for "jobs" section.
@@ -223,7 +301,7 @@ func loadV1V2Jobfile(f *os.File, usr *user.User) (*JobFile, error) {
 		return nil, err
 	}
 
-	jfile := NewEmptyJobFile()
+	var jfile JobFileV1V2Raw
 
 	// check for invalid sections
 	for sectName, _ := range sections {
@@ -235,20 +313,34 @@ func loadV1V2Jobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	// parse "prefs" section
 	prefsSection, prefsOk := sections[PrefsSectName]
 	if prefsOk && len(prefsSection) > 0 {
-		if err := parsePrefsSect(prefsSection, usr, &jfile); err != nil {
-			return nil, err
+		// parse as yaml
+		if !strings.HasPrefix(prefsSection, gYamlStarter+"\n") {
+			prefsSection = gYamlStarter + "\n" + prefsSection
+		}
+		err := yaml.UnmarshalStrict([]byte(prefsSection), &jfile.Prefs)
+		if err != nil {
+			errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
+				PrefsSectName)
+			return nil, &common.Error{What: errMsg, Cause: err}
 		}
 	}
 
 	// parse "jobs" section
 	jobsSection, jobsOk := sections[JobsSectName]
 	if jobsOk {
-		if err := parseJobsSect(jobsSection, usr, &jfile); err != nil {
-			return nil, err
+		if !strings.HasPrefix(jobsSection, gYamlStarter+"\n") {
+			jobsSection = gYamlStarter + "\n" + jobsSection
+		}
+		err := yaml.UnmarshalStrict([]byte(jobsSection), &jfile.Jobs)
+		if err != nil {
+			errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
+				JobsSectName)
+			return nil, &common.Error{What: errMsg, Cause: err}
 		}
 	}
 
-	return &jfile, nil
+	// convert to 1.3 format
+	return v1v2ToV3(jfile)
 }
 
 /*
@@ -341,9 +433,68 @@ func findSections(f *os.File) (map[string]string, error) {
 	return retval, nil
 }
 
-func (self UserPrefsRaw) ToPrefs(usr *user.User, dest *UserPrefs) error {
-	var err error
+func (self RunLogRaw) ToRunLog() (RunLog, error) {
+	if self.Type == "memory" {
+		// make memory run log
+		maxLen := gDefaultMemRunLogMaxLen
+		if self.MaxLen != nil {
+			maxLen = *self.MaxLen
+		}
+		return NewMemOnlyRunLog(maxLen), nil
 
+	} else if self.Type == "file" {
+		const defaultMaxFileLen int64 = 50 * (1 << 20)
+		const defaultMaxHistories int = 5
+
+		// check for file path
+		if self.Path == nil {
+			return nil, &common.Error{What: "Missing path for run log"}
+		}
+
+		// get max file len
+		maxFileLen := defaultMaxFileLen
+		if self.MaxFileLen != nil {
+			maxFileLenStr := *self.MaxFileLen
+
+			if len(maxFileLenStr) == 0 {
+				msg := fmt.Sprintf("Invalid max file len: '%v'",
+					maxFileLenStr)
+				return nil, &common.Error{What: msg}
+			}
+
+			lastChar := maxFileLenStr[len(maxFileLenStr)-1]
+			if lastChar != 'm' && lastChar != 'M' {
+				msg := fmt.Sprintf("Invalid max file len: '%v'",
+					maxFileLenStr)
+				return nil, &common.Error{What: msg}
+			}
+
+			numPart := maxFileLenStr[:len(maxFileLenStr)-1]
+			tmp, err := strconv.Atoi(numPart)
+			if err != nil {
+				msg := fmt.Sprintf("Invalid max file len: '%v'",
+					maxFileLenStr)
+				return nil, &common.Error{What: msg, Cause: err}
+			}
+			maxFileLen = int64(tmp) * (1 << 20)
+		}
+
+		// get max histories
+		maxHistories := defaultMaxHistories
+		if self.MaxHistories != nil {
+			maxHistories = *self.MaxHistories
+		}
+
+		// make file run log
+		return NewFileRunLog(*self.Path, maxFileLen, maxHistories)
+
+	} else {
+		msg := fmt.Sprintf("Invalid run log type: %v", self.Type)
+		return nil, &common.Error{What: msg}
+	}
+}
+
+func (self UserPrefsV3Raw) ToPrefs(usr *user.User, dest *UserPrefs) error {
 	// parse "logPath"
 	if self.LogPath != nil {
 		/*
@@ -364,289 +515,90 @@ func (self UserPrefsRaw) ToPrefs(usr *user.User, dest *UserPrefs) error {
 		}
 	} // logPath
 
-	// parse "notifyProgram
-	if self.NotifyProgram != nil {
-		dest.NotifyProgram = self.NotifyProgram
-	}
-
 	// parse "runLog"
 	if self.RunLog != nil {
-		rawRunLog := self.RunLog
-
-		if rawRunLog.Type == "memory" {
-			// make memory run log
-			maxLen := gDefaultMemRunLogMaxLen
-			if self.RunLog.MaxLen != nil {
-				maxLen = *rawRunLog.MaxLen
-			}
-			dest.RunLog = NewMemOnlyRunLog(maxLen)
-
-		} else if rawRunLog.Type == "file" {
-			const defaultMaxFileLen int64 = 50 * (1 << 20)
-			const defaultMaxHistories int = 5
-
-			// check for file path
-			if rawRunLog.Path == nil {
-				return &common.Error{What: "Missing path for run log"}
-			}
-
-			// get max file len
-			maxFileLen := defaultMaxFileLen
-			if rawRunLog.MaxFileLen != nil {
-				maxFileLenStr := *rawRunLog.MaxFileLen
-
-				if len(maxFileLenStr) == 0 {
-					msg := fmt.Sprintf("Invalid max file len: '%v'",
-						maxFileLenStr)
-					return &common.Error{What: msg}
-				}
-
-				lastChar := maxFileLenStr[len(maxFileLenStr)-1]
-				if lastChar != 'm' && lastChar != 'M' {
-					msg := fmt.Sprintf("Invalid max file len: '%v'",
-						maxFileLenStr)
-					return &common.Error{What: msg}
-				}
-
-				numPart := maxFileLenStr[:len(maxFileLenStr)-1]
-				tmp, err := strconv.Atoi(numPart)
-				if err != nil {
-					msg := fmt.Sprintf("Invalid max file len: '%v'",
-						maxFileLenStr)
-					return &common.Error{What: msg, Cause: err}
-				}
-				maxFileLen = int64(tmp) * (1 << 20)
-			}
-
-			// get max histories
-			maxHistories := defaultMaxHistories
-			if rawRunLog.MaxHistories != nil {
-				maxHistories = *rawRunLog.MaxHistories
-			}
-
-			// make file run log
-			dest.RunLog, err = NewFileRunLog(
-				*rawRunLog.Path,
-				maxFileLen,
-				maxHistories,
-			)
-			if err != nil {
-				return err
-			}
-
-		} else {
-			msg := fmt.Sprintf("Invalid run log type: %v", rawRunLog.Type)
-			return &common.Error{What: msg}
+		runLog, err := self.RunLog.ToRunLog()
+		if err != nil {
+			return err
 		}
-
+		dest.RunLog = runLog
 	} else {
 		dest.RunLog = NewMemOnlyRunLog(gDefaultMemRunLogMaxLen)
-	} // runLog
-
-	// parse "jobOutput"
-	if self.JobOutput != nil {
-		bothPrefs := self.JobOutput
-		if bothPrefs.Stdout != nil {
-			outputPrefs := bothPrefs.Stdout
-			if err := checkJobOutputPrefs(outputPrefs); err != nil {
-				return err
-			}
-			dest.StdoutHandler = FileJobOutputHandler{
-				Where:      *outputPrefs.Where,
-				MaxAgeDays: *outputPrefs.MaxAgeDays,
-				Suffix:     "stdout",
-			}
-		}
-
-		if bothPrefs.Stderr != nil {
-			outputPrefs := bothPrefs.Stderr
-			if err := checkJobOutputPrefs(outputPrefs); err != nil {
-				return err
-			}
-			dest.StderrHandler = FileJobOutputHandler{
-				Where:      *outputPrefs.Where,
-				MaxAgeDays: *outputPrefs.MaxAgeDays,
-				Suffix:     "stderr",
-			}
-		}
-	} // jobOutput
+	}
 
 	return nil
 }
 
-func parsePrefsSect(s string, usr *user.User, dest *JobFile) error {
-	// parse as yaml
-	var rawPrefs UserPrefsRaw
-	if !strings.HasPrefix(s, gYamlStarter+"\n") {
-		s = gYamlStarter + "\n" + s
+func normalizeResultSinkArray(sinks []ResultSink) []ResultSink {
+	// remove duplicates
+	var newSinks []ResultSink
+	alreadyHave := func(sink ResultSink) bool {
+		for _, currSink := range newSinks {
+			if currSink.Equals(sink) {
+				return true
+			}
+		}
+		return false
 	}
-	err := yaml.UnmarshalStrict([]byte(s), &rawPrefs)
-	if err != nil {
-		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
-			PrefsSectName)
-		return &common.Error{What: errMsg, Cause: err}
+	for _, currSink := range sinks {
+		if !alreadyHave(currSink) {
+			newSinks = append(newSinks, currSink)
+		}
 	}
-
-	return rawPrefs.ToPrefs(usr, &dest.Prefs)
+	return newSinks
 }
 
-func checkJobOutputPrefs(prefs *JobOutputPrefsRaw) error {
-	if prefs.Where == nil {
-		errMsg := "Job output prefs needs \"where\" field"
-		return &common.Error{What: errMsg}
-	} else if prefs.MaxAgeDays == nil {
-		errMsg := "Job output prefs needs \"maxAgeDays\" field"
-		return &common.Error{What: errMsg}
-	} else {
-		return nil
-	}
-}
-
-func (self JobRaw) ToJob(usr *user.User, prefs UserPrefs, dest *Job) error {
-	var err error
-
-	// set name, cmd, user
-	if len(self.Name) == 0 {
-		return &common.Error{What: "Job name cannot be empty."}
-	}
-	dest.Name = self.Name
+func (self JobV3Raw) ToJob(usr *user.User, dest *Job) error {
+	// set cmd, user
 	dest.Cmd = self.Cmd
 	dest.User = usr.Username
 
 	// set failure-handler
 	if self.OnError != nil {
+		var err error
 		dest.ErrorHandler, err = GetErrorHandler(*self.OnError)
 		if err != nil {
 			return err
 		}
 	}
 
-	// set notify prefs
-	var defaultNotifier RunRecNotifier
-	if prefs.NotifyProgram == nil {
-		defaultNotifier = MailRunRecNotifier{}
-	} else {
-		defaultNotifier = ProgramRunRecNotifier{Program: *prefs.NotifyProgram}
-	}
-	if self.NotifyOnError != nil {
-		var notifier RunRecNotifier
-		if *self.NotifyOnError {
-			notifier = defaultNotifier
-		} else {
-			notifier = NopRunRecNotifier{}
+	// handle NotifyOnError
+	for _, sinkRaw := range self.NotifyOnError {
+		sink, err := MakeResultSinkFromConfig(sinkRaw)
+		if err != nil {
+			return err
 		}
-		dest.NotifyOnError = notifier
+		dest.NotifyOnError = append(dest.NotifyOnError, sink)
 	}
-	if self.NotifyOnFailure != nil {
-		var notifier RunRecNotifier
-		if *self.NotifyOnFailure {
-			notifier = defaultNotifier
-		} else {
-			notifier = NopRunRecNotifier{}
+	dest.NotifyOnError = normalizeResultSinkArray(dest.NotifyOnError)
+
+	// handle NotifyOnFailure
+	for _, sinkRaw := range self.NotifyOnFailure {
+		sink, err := MakeResultSinkFromConfig(sinkRaw)
+		if err != nil {
+			return err
 		}
-		dest.NotifyOnFailure = notifier
+		dest.NotifyOnFailure = append(dest.NotifyOnFailure, sink)
 	}
-	if self.NotifyOnSuccess != nil {
-		var notifier RunRecNotifier
-		if *self.NotifyOnSuccess {
-			notifier = defaultNotifier
-		} else {
-			notifier = NopRunRecNotifier{}
+	dest.NotifyOnFailure = normalizeResultSinkArray(dest.NotifyOnFailure)
+
+	// handle NotifyOnSuccess
+	for _, sinkRaw := range self.NotifyOnSuccess {
+		sink, err := MakeResultSinkFromConfig(sinkRaw)
+		if err != nil {
+			return err
 		}
-		dest.NotifyOnSuccess = notifier
+		dest.NotifyOnSuccess = append(dest.NotifyOnSuccess, sink)
 	}
+	dest.NotifyOnSuccess = normalizeResultSinkArray(dest.NotifyOnSuccess)
 
 	// parse time spec
-	var tmp *FullTimeSpec
-	tmp, err = ParseFullTimeSpec(self.Time)
+	tmp, err := ParseFullTimeSpec(self.Time)
 	if err != nil {
 		return err
 	}
 	dest.FullTimeSpec = *tmp
 	dest.FullTimeSpec.Derandomize()
 
-	// parse job output prefs
-	var stdoutOutputPrefs *JobOutputPrefsRaw
-	var stderrOutputPrefs *JobOutputPrefsRaw
-	if self.JobOutput != nil {
-		stdoutOutputPrefs = self.JobOutput.Stdout
-		stderrOutputPrefs = self.JobOutput.Stderr
-	}
-	handler, err := makeOutputHandlerForJob(stdoutOutputPrefs,
-		prefs.StdoutHandler, "stdout")
-	if err != nil {
-		return err
-	}
-	dest.StdoutHandler = handler
-	handler, err = makeOutputHandlerForJob(stderrOutputPrefs,
-		prefs.StderrHandler, "stderr")
-	if err != nil {
-		return err
-	}
-	dest.StderrHandler = handler
-
 	return nil
-}
-
-func parseJobsSect(s string, usr *user.User, dest *JobFile) error {
-	// parse "jobs" section
-	var jobConfigs []JobRaw
-	if !strings.HasPrefix(s, gYamlStarter+"\n") {
-		s = gYamlStarter + "\n" + s
-	}
-	err := yaml.UnmarshalStrict([]byte(s), &jobConfigs)
-	if err != nil {
-		errMsg := fmt.Sprintf("Failed to parse \"%v\" section",
-			JobsSectName)
-		return &common.Error{What: errMsg, Cause: err}
-	}
-
-	// make jobs
-	for _, config := range jobConfigs {
-		job := NewJob()
-		if err := config.ToJob(usr, dest.Prefs, &job); err != nil {
-			return err
-		}
-		if _, ok := dest.Jobs[job.Name]; ok {
-			msg := fmt.Sprintf("Multiple jobs named \"%v\"", job.Name)
-			return &common.Error{What: msg}
-		}
-		dest.Jobs[job.Name] = &job
-	}
-
-	return nil
-}
-
-func makeOutputHandlerForJob(localPrefs *JobOutputPrefsRaw,
-	globalHandler JobOutputHandler, suffix string) (JobOutputHandler, error) {
-
-	if localPrefs == nil {
-		return globalHandler, nil
-	}
-
-	globalFileHandler, hasGlobalFileHandler := globalHandler.(FileJobOutputHandler)
-	if hasGlobalFileHandler {
-		jobHandler := FileJobOutputHandler{Suffix: suffix}
-		if localPrefs.Where == nil {
-			jobHandler.Where = globalFileHandler.Where
-		} else {
-			jobHandler.Where = *localPrefs.Where
-		}
-		if localPrefs.MaxAgeDays == nil {
-			jobHandler.MaxAgeDays = globalFileHandler.MaxAgeDays
-		} else {
-			jobHandler.MaxAgeDays = *localPrefs.MaxAgeDays
-		}
-		return jobHandler, nil
-
-	} else {
-		if err := checkJobOutputPrefs(localPrefs); err != nil {
-			return nil, err
-		}
-		return FileJobOutputHandler{
-			Where:      *localPrefs.Where,
-			MaxAgeDays: *localPrefs.MaxAgeDays,
-			Suffix:     suffix,
-		}, nil
-	}
 }

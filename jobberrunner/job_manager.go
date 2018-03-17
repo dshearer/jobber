@@ -186,13 +186,17 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 
 	/* NOTE: error-handler was already applied by the job, if necessary. */
 
+	var sinksToNotify []jobfile.ResultSink
 	if rec.Succeeded {
-		rec.Job.NotifyOnSuccess.Notify(rec)
+		sinksToNotify = append(sinksToNotify, rec.Job.NotifyOnSuccess...)
 	} else {
-		rec.Job.NotifyOnError.Notify(rec)
+		sinksToNotify = append(sinksToNotify, rec.Job.NotifyOnError...)
 	}
 	if rec.NewStatus == jobfile.JobFailed {
-		rec.Job.NotifyOnFailure.Notify(rec)
+		sinksToNotify = append(sinksToNotify, rec.Job.NotifyOnFailure...)
+	}
+	for _, sink := range sinksToNotify {
+		sink.Handle(*rec)
 	}
 }
 

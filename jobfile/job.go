@@ -41,20 +41,16 @@ type Job struct {
 	FullTimeSpec    FullTimeSpec
 	User            string
 	ErrorHandler    ErrorHandler
-	NotifyOnError   RunRecNotifier
-	NotifyOnFailure RunRecNotifier
-	NotifyOnSuccess RunRecNotifier
-	NextRunTime     *time.Time
-
-	// output handling
-	StdoutHandler JobOutputHandler
-	StderrHandler JobOutputHandler
+	NotifyOnError   []ResultSink
+	NotifyOnFailure []ResultSink
+	NotifyOnSuccess []ResultSink
 
 	// backoff after errors
 	backoffLevel int
 	skipsLeft    int
 
 	// other dynamic stuff
+	NextRunTime *time.Time
 	Status      JobStatus
 	LastRunTime time.Time
 	Paused      bool
@@ -68,33 +64,10 @@ func NewJob() Job {
 	return Job{
 		Status:          JobGood,
 		ErrorHandler:    ContinueErrorHandler{},
-		NotifyOnError:   NopRunRecNotifier{},
-		NotifyOnFailure: MailRunRecNotifier{},
-		NotifyOnSuccess: NopRunRecNotifier{},
+		NotifyOnError:   nil,
+		NotifyOnFailure: nil,
+		NotifyOnSuccess: nil,
 	}
-}
-
-type RunRec struct {
-	Job       *Job
-	RunTime   time.Time
-	NewStatus JobStatus
-	Stdout    *[]byte
-	Stderr    *[]byte
-	Succeeded bool
-	Err       *common.Error
-}
-
-func (rec *RunRec) Describe() string {
-	var summary string
-	if rec.Succeeded {
-		summary = fmt.Sprintf("Job \"%v\" succeeded.", rec.Job.Name)
-	} else {
-		summary = fmt.Sprintf("Job \"%v\" failed.", rec.Job.Name)
-	}
-	stdoutStr, _ := SafeBytesToStr(*rec.Stdout)
-	stderrStr, _ := SafeBytesToStr(*rec.Stderr)
-	return fmt.Sprintf("%v\r\nNew status: %v.\r\n\r\nStdout:\r\n%v\r\n\r\nStderr:\r\n%v",
-		summary, rec.Job.Status, stdoutStr, stderrStr)
 }
 
 func (job *Job) ShouldRun() bool {
@@ -109,4 +82,27 @@ func (job *Job) ShouldRun() bool {
 	default:
 		return true
 	}
+}
+
+type RunRec struct {
+	Job       *Job
+	RunTime   time.Time
+	NewStatus JobStatus
+	Stdout    []byte
+	Stderr    []byte
+	Succeeded bool
+	Err       *common.Error
+}
+
+func (rec *RunRec) Describe() string {
+	var summary string
+	if rec.Succeeded {
+		summary = fmt.Sprintf("Job \"%v\" succeeded.", rec.Job.Name)
+	} else {
+		summary = fmt.Sprintf("Job \"%v\" failed.", rec.Job.Name)
+	}
+	stdoutStr, _ := SafeBytesToStr(rec.Stdout)
+	stderrStr, _ := SafeBytesToStr(rec.Stderr)
+	return fmt.Sprintf("%v\r\nNew status: %v.\r\n\r\nStdout:\r\n%v\r\n\r\nStderr:\r\n%v",
+		summary, rec.Job.Status, stdoutStr, stderrStr)
 }
