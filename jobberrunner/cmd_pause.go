@@ -1,35 +1,42 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 	"github.com/dshearer/jobber/jobfile"
 )
 
-func (self *JobManager) doPauseCmd(cmd common.PauseCmd) {
-	defer close(cmd.RespChan)
+func (self *JobManager) doPauseCmd(cmd ipc.PauseCmd) ipc.ICmdResp {
+	common.Logger.Printf("Got cmd 'pause'\n")
 
 	// look up jobs to pause
 	var jobsToPause []*jobfile.Job
-	if len(cmd.Jobs) > 0 {
-		var err error
-		jobsToPause, err = self.findJobs(cmd.Jobs)
-		if err != nil {
-			cmd.RespChan <- &common.PauseCmdResp{Err: err}
-			return
+	if len(cmd.Jobs) == 0 {
+		for _, job := range self.jfile.Jobs {
+			jobsToPause = append(jobsToPause, job)
 		}
 	} else {
-		jobsToPause = self.jfile.Jobs
+		for _, jobName := range cmd.Jobs {
+			job, ok := self.jfile.Jobs[jobName]
+			if !ok {
+				msg := fmt.Sprintf("No such job: %v", jobName)
+				return ipc.NewErrorCmdResp(&common.Error{What: msg})
+			}
+			jobsToPause = append(jobsToPause, job)
+		}
 	}
 
 	// pause them
-	amtPaused := 0
+	numPaused := 0
 	for _, job := range jobsToPause {
 		if !job.Paused {
 			job.Paused = true
-			amtPaused += 1
+			numPaused += 1
 		}
 	}
 
 	// make response
-	cmd.RespChan <- &common.PauseCmdResp{AmtPaused: amtPaused}
+	return ipc.PauseCmdResp{NumPaused: numPaused}
 }

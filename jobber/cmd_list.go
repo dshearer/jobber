@@ -11,11 +11,12 @@ import (
 	"time"
 
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
 type ListRespRec struct {
 	usr  *user.User
-	resp *common.ListJobsCmdResp
+	resp *ipc.ListJobsCmdResp
 }
 
 func formatTime(t *time.Time) string {
@@ -101,10 +102,10 @@ func doListCmd_allUsers() int {
 	// send cmd
 	var responses []ListRespRec
 	for _, usr := range users {
-		var resp common.ListJobsCmdResp
+		var resp ipc.ListJobsCmdResp
 		err = CallDaemon(
-			"NewIpcService.ListJobs",
-			common.ListJobsCmd{},
+			"IpcService.ListJobs",
+			ipc.ListJobsCmd{},
 			&resp,
 			usr,
 			true,
@@ -135,10 +136,10 @@ func doListCmd_currUser() int {
 	}
 
 	// send cmd
-	var resp common.ListJobsCmdResp
+	var resp ipc.ListJobsCmdResp
 	err = CallDaemon(
-		"NewIpcService.ListJobs",
-		common.ListJobsCmd{},
+		"IpcService.ListJobs",
+		ipc.ListJobsCmd{},
 		&resp,
 		usr,
 		true,

@@ -1,11 +1,13 @@
 RUNNER_SOURCES := \
 	jobberrunner/cmd_cat.go \
+	jobberrunner/cmd_delete_job.go \
 	jobberrunner/cmd_init.go \
 	jobberrunner/cmd_list_jobs.go \
 	jobberrunner/cmd_log.go \
 	jobberrunner/cmd_pause.go \
 	jobberrunner/cmd_reload.go \
 	jobberrunner/cmd_resume.go \
+	jobberrunner/cmd_set_job.go \
 	jobberrunner/cmd_test_job.go \
 	jobberrunner/ipc_server.go \
 	jobberrunner/job_manager.go \

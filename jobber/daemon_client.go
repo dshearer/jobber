@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/common"
-	"net"
-	"net/rpc"
+	"net/rpc/jsonrpc"
 	"os"
 	"os/user"
 	"time"
+
+	"github.com/dshearer/jobber/common"
 )
 
 const gTimeout = 5 * time.Second
@@ -34,19 +34,11 @@ func CallDaemon(method string, args, reply interface{},
 		return err
 	}
 
-	// connect to daemon
-	addr, err := net.ResolveUnixAddr("unix", socketPath)
-	if err != nil {
-		return err
-	}
-	conn, err := net.DialUnix("unix", nil, addr)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
 	// make client
-	client := rpc.NewClient(conn)
+	client, err := jsonrpc.Dial("unix", socketPath)
+	if err != nil {
+		return err
+	}
 	defer client.Close()
 
 	// make timeout timer

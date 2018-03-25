@@ -7,6 +7,7 @@ import (
 	"os/user"
 
 	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
 func doReloadCmd(args []string) int {
@@ -34,10 +35,10 @@ func doReloadCmd(args []string) int {
 
 		for _, usr := range users {
 			// send cmd
-			var resp common.ReloadCmdResp
+			var resp ipc.ReloadCmdResp
 			err = CallDaemon(
-				"NewIpcService.Reload",
-				common.ReloadCmd{},
+				"IpcService.Reload",
+				ipc.ReloadCmd{},
 				&resp,
 				usr,
 				true,
@@ -64,10 +65,10 @@ func doReloadCmd(args []string) int {
 		}
 
 		// send cmd
-		var resp common.ReloadCmdResp
+		var resp ipc.ReloadCmdResp
 		err = CallDaemon(
-			"NewIpcService.Reload",
-			common.ReloadCmd{},
+			"IpcService.Reload",
+			ipc.ReloadCmd{},
 			&resp,
 			usr,
 			true,

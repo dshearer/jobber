@@ -5,7 +5,7 @@ Resource         keywords.robot
 Test Setup       Setup
 Test Teardown    Teardown
 Test Template    File Run Log
-Force Tags       test
+Force Tags       test    prefs
 
 *** Test Cases ***    AS_ROOT
 As Root               ${True}

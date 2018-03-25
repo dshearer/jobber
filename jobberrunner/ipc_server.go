@@ -1,138 +1,262 @@
 package main
 
 import (
-	"github.com/dshearer/jobber/common"
+	"fmt"
 	"net"
 	"net/rpc"
+	"net/rpc/jsonrpc"
 	"os"
+
+	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
-type NewIpcService struct {
-	cmdChan chan<- common.ICmd
+type IpcService struct {
+	cmdChan chan<- CmdContainer
 }
 
-func (self *NewIpcService) Reload(
-	cmd common.ReloadCmd,
-	resp *common.ReloadCmdResp) error {
+func (self *IpcService) Reload(
+	cmd ipc.ReloadCmd,
+	resp_p *ipc.ReloadCmdResp) error {
 
 	// send command
-	cmd.RespChan = make(chan *common.ReloadCmdResp, 1)
-	self.cmdChan <- cmd
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
-	*resp = *<-cmd.RespChan
-	return resp.Err
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.ReloadCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
 }
 
-func (self *NewIpcService) ListJobs(
-	cmd common.ListJobsCmd,
-	resp *common.ListJobsCmdResp) error {
+func (self *IpcService) ListJobs(
+	cmd ipc.ListJobsCmd,
+	resp_p *ipc.ListJobsCmdResp) error {
 
 	// send command
-	cmd.RespChan = make(chan *common.ListJobsCmdResp, 1)
-	self.cmdChan <- cmd
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
-	*resp = *<-cmd.RespChan
-	return resp.Err
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.ListJobsCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
 }
 
-func (self *NewIpcService) Log(
-	cmd common.LogCmd,
-	resp *common.LogCmdResp) error {
+func (self *IpcService) Log(
+	cmd ipc.LogCmd,
+	resp_p *ipc.LogCmdResp) error {
 
 	// send command
-	cmd.RespChan = make(chan *common.LogCmdResp, 1)
-	self.cmdChan <- cmd
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
-	*resp = *<-cmd.RespChan
-	return resp.Err
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.LogCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
 }
 
-func (self *NewIpcService) Test(
-	cmd common.TestCmd,
-	resp *common.TestCmdResp) error {
+func (self *IpcService) Test(
+	cmd ipc.TestCmd,
+	resp_p *ipc.TestCmdResp) error {
 
 	// send command
-	cmd.RespChan = make(chan *common.TestCmdResp, 1)
-	self.cmdChan <- cmd
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
-	*resp = *<-cmd.RespChan
-	return resp.Err
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.TestCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
 }
 
-func (self *NewIpcService) Cat(
-	cmd common.CatCmd,
-	resp *common.CatCmdResp) error {
+func (self *IpcService) Cat(
+	cmd ipc.CatCmd,
+	resp_p *ipc.CatCmdResp) error {
 
 	// send command
-	cmd.RespChan = make(chan *common.CatCmdResp, 1)
-	self.cmdChan <- cmd
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
-	*resp = *<-cmd.RespChan
-	return resp.Err
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.CatCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
 }
 
-func (self *NewIpcService) Pause(
-	cmd common.PauseCmd,
-	resp *common.PauseCmdResp) error {
+func (self *IpcService) Pause(
+	cmd ipc.PauseCmd,
+	resp_p *ipc.PauseCmdResp) error {
 
 	// send command
-	cmd.RespChan = make(chan *common.PauseCmdResp, 1)
-	self.cmdChan <- cmd
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
-	*resp = *<-cmd.RespChan
-	return resp.Err
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.PauseCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
 }
 
-func (self *NewIpcService) Resume(
-	cmd common.ResumeCmd,
-	resp *common.ResumeCmdResp) error {
+func (self *IpcService) Resume(
+	cmd ipc.ResumeCmd,
+	resp_p *ipc.ResumeCmdResp) error {
 
 	// send command
-	cmd.RespChan = make(chan *common.ResumeCmdResp, 1)
-	self.cmdChan <- cmd
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
-	*resp = *<-cmd.RespChan
-	return resp.Err
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.ResumeCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
 }
 
-func (self *NewIpcService) Init(
-	cmd common.InitCmd,
-	resp *common.InitCmdResp) error {
+func (self *IpcService) Init(
+	cmd ipc.InitCmd,
+	resp_p *ipc.InitCmdResp) error {
 
 	// send command
-	cmd.RespChan = make(chan *common.InitCmdResp, 1)
-	self.cmdChan <- cmd
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
 
 	// get response
-	*resp = *<-cmd.RespChan
-	return resp.Err
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.InitCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
 }
 
-type IpcServer struct {
-	service  NewIpcService
+func (self *IpcService) SetJob(
+	cmd ipc.SetJobCmd,
+	resp_p *ipc.SetJobCmdResp) error {
+
+	// send command
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
+
+	// get response
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.SetJobCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
+}
+
+func (self *IpcService) DeleteJob(
+	cmd ipc.DeleteJobCmd,
+	resp_p *ipc.DeleteJobCmdResp) error {
+
+	// send command
+	respChan := make(chan ipc.ICmdResp, 1)
+	self.cmdChan <- CmdContainer{cmd, respChan}
+
+	// get response
+	resp := <-respChan
+	if err := resp.Error(); err != nil {
+		return err
+	}
+	concreteResp, ok := resp.(ipc.DeleteJobCmdResp)
+	if !ok {
+		return &common.Error{What: "Unexpected response type"}
+	}
+	*resp_p = concreteResp
+	return nil
+}
+
+type IpcServer interface {
+	Launch() error
+	Stop()
+}
+
+func serve(listener net.Listener, rpcServer *rpc.Server) {
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			common.Logger.Printf("%v", err)
+			return
+		}
+		go func() {
+			rpcServer.ServeCodec(jsonrpc.NewServerCodec(conn))
+			conn.Close()
+		}()
+	}
+}
+
+type udsIpcServer struct {
+	service  IpcService
 	listener *net.UnixListener
 	sockPath string
 }
 
-func NewIpcServer(sockPath string,
-	cmdChan chan<- common.ICmd,
-	respChan <-chan common.ICmdResp) *IpcServer {
-
-	server := &IpcServer{sockPath: sockPath}
+func NewUdsIpcServer(sockPath string, cmdChan chan<- CmdContainer) IpcServer {
+	server := &udsIpcServer{sockPath: sockPath}
 	server.service.cmdChan = cmdChan
 	return server
 }
 
-func (self *IpcServer) Launch() error {
-	var err error
-
+func (self *udsIpcServer) Launch() error {
 	// make socket
 	os.Remove(self.sockPath)
 	addr, err := net.ResolveUnixAddr("unix", self.sockPath)
@@ -147,12 +271,50 @@ func (self *IpcServer) Launch() error {
 	// make RPC server
 	rpcServer := rpc.NewServer()
 	rpcServer.Register(&self.service)
-	go rpcServer.Accept(self.listener)
+	rpcServer.HandleHTTP("/", "/debug")
+
+	// serve connections
+	go serve(self.listener, rpcServer)
 
 	return nil
 }
 
-func (self *IpcServer) Stop() {
+func (self *udsIpcServer) Stop() {
 	self.listener.Close()
 	os.Remove(self.sockPath)
+}
+
+type inetIcpServer struct {
+	service  IpcService
+	listener net.Listener
+	port     uint
+}
+
+func NewInetIpcServer(port uint, cmdChan chan<- CmdContainer) IpcServer {
+	server := &inetIcpServer{port: port}
+	server.service.cmdChan = cmdChan
+	return server
+}
+
+func (self *inetIcpServer) Launch() error {
+	// make socket
+	var err error
+	self.listener, err = net.Listen("tcp", fmt.Sprintf(":%v", self.port))
+	if err != nil {
+		return err
+	}
+
+	// make RPC server
+	rpcServer := rpc.NewServer()
+	rpcServer.Register(&self.service)
+	rpcServer.HandleHTTP("/", "/debug")
+
+	// serve connections
+	go serve(self.listener, rpcServer)
+
+	return nil
+}
+
+func (self *inetIcpServer) Stop() {
+	self.listener.Close()
 }

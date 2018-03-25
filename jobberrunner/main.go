@@ -3,21 +3,21 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
 	"os/user"
 	"syscall"
+
+	"github.com/dshearer/jobber/common"
 )
 
 var gUser *user.User
-var gIpcServer *IpcServer
+var gIpcServer IpcServer
 var gJobManager *JobManager
 
 func quit(exitCode int) {
-	common.Logger.Printf("Jobberrunner Quitting")
 	if gIpcServer != nil {
 		gIpcServer.Stop()
 	}
@@ -43,7 +43,7 @@ func quitOnSignal() {
 	quit(0)
 }
 
-func quitOnJobbermasterDiscon() {
+func quitOnJobbermasterDiscon(quickSockPath string) {
 	/*
 	   Jobbermaster launched us and gave us a path to a Unix socket.
 	   When jobbermaster wants us to quit, it will close that socket.
@@ -51,16 +51,15 @@ func quitOnJobbermasterDiscon() {
 
 	common.Logger.Printf(
 		"jobbermaster quit socket: %v",
-		common.QuitSocketPath(gUser),
+		quickSockPath,
 	)
 
 	// open socket
-	addr, err := net.ResolveUnixAddr("unix",
-		common.QuitSocketPath(gUser))
+	addr, err := net.ResolveUnixAddr("unix", quickSockPath)
 	if err != nil {
 		common.ErrLogger.Printf(
 			"ResolveUnixAddr failed on %v: %v",
-			common.QuitSocketPath(gUser),
+			quickSockPath,
 			err,
 		)
 		quit(1)
@@ -70,7 +69,7 @@ func quitOnJobbermasterDiscon() {
 	if err != nil {
 		common.ErrLogger.Printf(
 			"DialUnix failed on %v: %v",
-			common.QuitSocketPath(gUser),
+			quickSockPath,
 			err,
 		)
 		quit(1)
@@ -80,11 +79,7 @@ func quitOnJobbermasterDiscon() {
 
 	// read from it -- this will block until jobbermaster close the cxn
 	var buf [1]byte
-	_, err = conn.Read(buf[:])
-	common.Logger.Printf("Finished reading from quit socket")
-	if err != nil {
-		common.Logger.Printf("read: %v", err)
-	}
+	_, _ = conn.Read(buf[:])
 
 	/*
 	   As conn.Read has returned, jobbermaster must have closed the cxn.
@@ -92,7 +87,11 @@ func quitOnJobbermasterDiscon() {
 	quit(0)
 }
 
-func usage() {
+func usage(extraMsg string) {
+	if len(extraMsg) > 0 {
+		fmt.Printf("%v\n\n", extraMsg)
+	}
+
 	fmt.Printf("Usage: %v [flags] JOBFILE_PATH\n\n", os.Args[0])
 
 	fmt.Printf("Flags:\n")
@@ -133,18 +132,27 @@ func recordPid(usr *user.User) {
 
 func main() {
 	// parse args
-	flag.Usage = usage
-	var helpFlag_p = flag.Bool("h", false, "help")
-	var versionFlag_p = flag.Bool("v", false, "version")
-	var childFlag_p = flag.Bool("c",
-		false,
-		"run as child of jobbermaster",
-	)
+	flag.Usage = func() { usage("") }
+	helpFlag_p := flag.Bool("h", false, "help")
+	versionFlag_p := flag.Bool("v", false, "version")
+	quickSockPath_p := flag.String("q", "", "quit socket path")
+	udsSockPath_p := flag.String("u", "",
+		"path to Unix socket on which to receive commands")
+	inetPort_p := flag.Uint("p", 0,
+		"path TCP socket on which to receive commands")
 	flag.Parse()
+
+	// check for errors
+	haveUdsParam := udsSockPath_p != nil && len(*udsSockPath_p) > 0
+	haveInetParam := inetPort_p != nil && *inetPort_p > 0
+	if (!haveUdsParam && !haveInetParam) || (haveUdsParam && haveInetParam) {
+		usage("Must specify exactly one of -u and -p")
+		quit(0)
+	}
 
 	// handle flags
 	if *helpFlag_p {
-		usage()
+		usage("")
 		quit(0)
 	} else if *versionFlag_p {
 		fmt.Printf("%v\n", common.LongVersionStr())
@@ -153,7 +161,7 @@ func main() {
 
 	// get args
 	if len(flag.Args()) != 1 {
-		usage()
+		usage("")
 		quit(1)
 	}
 	jobfilePath := flag.Args()[0]
@@ -180,23 +188,21 @@ func main() {
 	}
 
 	// make IPC server
-	gIpcServer = NewIpcServer(
-		common.CmdSocketPath(gUser),
-		gJobManager.CmdChan,
-		gJobManager.CmdRespChan,
-	)
+	if haveUdsParam {
+		gIpcServer = NewUdsIpcServer(*udsSockPath_p, gJobManager.CmdChan)
+		common.Logger.Printf("Listing for commands on %v", *udsSockPath_p)
+	} else {
+		gIpcServer = NewInetIpcServer(*inetPort_p, gJobManager.CmdChan)
+		common.Logger.Printf("Listing for commands on :%v", *inetPort_p)
+	}
 	if err := gIpcServer.Launch(); err != nil {
 		common.ErrLogger.Printf("Error: %v", err)
 		quit(1)
 	}
-	common.Logger.Printf(
-		"Listening for commands on %v",
-		common.CmdSocketPath(gUser),
-	)
 
-	if *childFlag_p {
+	if quickSockPath_p != nil && len(*quickSockPath_p) > 0 {
 		// listen for jobbermaster to tell us to quit
-		go quitOnJobbermasterDiscon()
+		go quitOnJobbermasterDiscon(*quickSockPath_p)
 	}
 
 	// listen for signals

@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"os"
 	"os/user"
+
+	"github.com/dshearer/jobber/ipc"
 )
 
 func doPauseCmd(args []string) int {
@@ -33,10 +34,10 @@ func doPauseCmd(args []string) int {
 	}
 
 	// send command
-	var resp common.PauseCmdResp
+	var resp ipc.PauseCmdResp
 	err = CallDaemon(
-		"NewIpcService.Pause",
-		common.PauseCmd{Jobs: jobs},
+		"IpcService.Pause",
+		ipc.PauseCmd{Jobs: jobs},
 		&resp,
 		usr,
 		true,
@@ -47,6 +48,6 @@ func doPauseCmd(args []string) int {
 	}
 
 	// handle response
-	fmt.Printf("Paused %v jobs.\n", resp.AmtPaused)
+	fmt.Printf("Paused %v jobs.\n", resp.NumPaused)
 	return 0
 }

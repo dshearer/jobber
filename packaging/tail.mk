@@ -44,7 +44,7 @@ main :
 	@echo "Choose pkg-local or pkg-vm or test-vm or play-vm"
 
 .PHONY : pkg-vm
-pkg-vm : .vm-is-running ${DESTDIR}${PKGFILE}
+pkg-vm : .vm-is-running shallowclean ${DESTDIR}${PKGFILE}
 
 .vm-is-created :
 	@# NOTE: We do 'vagrant reload' b/c some packages may need a restart
@@ -142,3 +142,10 @@ clean-common :
 deepclean : clean-common
 	-vagrant destroy -f
 	rm -f .vm-is-created
+
+.PHONY : shallowclean
+shallowclean :
+	-${VAGRANT_SSH} "rm -rf work dest jobber-* platform_tests* *.html *.xml"
+	-${VAGRANT_SSH} "sudo systemctl stop jobber; sudo yum -y remove jobber"
+	rm -rf "${WORK_DIR}" "${DESTDIR}${PKGFILE}" docker/src.tgz \
+		testlog.txt "${DESTDIR}test_report" platform_tests.tar

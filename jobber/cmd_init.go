@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"os"
 	"os/user"
+
+	"github.com/dshearer/jobber/ipc"
 )
 
 func doInitCmd(args []string) int {
@@ -30,10 +31,10 @@ func doInitCmd(args []string) int {
 	}
 
 	// send command
-	var resp common.InitCmdResp
+	var resp ipc.InitCmdResp
 	err = CallDaemon(
-		"NewIpcService.Init",
-		common.InitCmd{},
+		"IpcService.Init",
+		ipc.InitCmd{},
 		&resp,
 		usr,
 		true,
@@ -44,10 +45,6 @@ func doInitCmd(args []string) int {
 	}
 
 	// handle response
-	if resp.Err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", resp.Err)
-		return 1
-	}
 	fmt.Printf("You can now define jobs in %v.\n", resp.JobfilePath)
 	fmt.Println("Once you have done so, run 'jobber reload'.")
 	return 0

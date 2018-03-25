@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"os"
 	"os/user"
+
+	"github.com/dshearer/jobber/ipc"
 )
 
 func doResumeCmd(args []string) int {
@@ -33,10 +34,10 @@ func doResumeCmd(args []string) int {
 	}
 
 	// send command
-	var resp common.ResumeCmdResp
+	var resp ipc.ResumeCmdResp
 	err = CallDaemon(
-		"NewIpcService.Resume",
-		common.ResumeCmd{Jobs: jobs},
+		"IpcService.Resume",
+		ipc.ResumeCmd{Jobs: jobs},
 		&resp,
 		usr,
 		true,
@@ -47,6 +48,6 @@ func doResumeCmd(args []string) int {
 	}
 
 	// handle response
-	fmt.Printf("Resumed %v jobs.\n", resp.AmtResumed)
+	fmt.Printf("Resumed %v jobs.\n", resp.NumResumed)
 	return 0
 }

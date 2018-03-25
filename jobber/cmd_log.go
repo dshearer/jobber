@@ -4,17 +4,19 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"os"
 	"os/user"
 	"sort"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
 type EnhancedLogDesc struct {
 	userName string
-	logDesc  common.LogDesc
+	logDesc  ipc.LogDesc
 }
 
 /* For sorting LogDescs: */
@@ -36,7 +38,7 @@ func (self EnhancedLogDescSorter) Less(i, j int) bool {
 }
 
 /* For sorting LogDescs: */
-type LogDescSorter []common.LogDesc
+type LogDescSorter []ipc.LogDesc
 
 /* For sorting LogDescs: */
 func (self LogDescSorter) Len() int {
@@ -66,10 +68,10 @@ func doLogCmd_allUsers() int {
 	// send cmd
 	logDescs := make([]EnhancedLogDesc, 0)
 	for _, usr := range users {
-		var resp common.LogCmdResp
+		var resp ipc.LogCmdResp
 		err = CallDaemon(
-			"NewIpcService.Log",
-			common.LogCmd{},
+			"IpcService.Log",
+			ipc.LogCmd{},
 			&resp,
 			usr,
 			true,
@@ -123,10 +125,10 @@ func doLogCmd_currUser() int {
 	}
 
 	// send command
-	var resp common.LogCmdResp
+	var resp ipc.LogCmdResp
 	err = CallDaemon(
-		"NewIpcService.Log",
-		common.LogCmd{},
+		"IpcService.Log",
+		ipc.LogCmd{},
 		&resp,
 		usr,
 		true,

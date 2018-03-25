@@ -2,11 +2,14 @@
 Setup
     Restart Service
     Runner Procs Should Not Have TTY
+    Jobber Procs Should Not Have Inet Sockets
     Make Tempfile Dir
     ${runner_procs}=    Runner Proc Info
     Set Test Variable    ${runner_procs}
 
 Teardown
+    Runner Procs Should Not Have TTY
+    Jobber Procs Should Not Have Inet Sockets
     Rm Tempfile Dir
     Rm Jobfiles
     Run Keyword If Test Failed    Print Debug Info

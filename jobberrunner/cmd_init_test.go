@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/jobfile"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"strings"
 	"testing"
+	"unicode"
+
+	"github.com/dshearer/jobber/jobfile"
+	"github.com/stretchr/testify/require"
 )
 
 var gUserEx = user.User{Username: "bob", HomeDir: "/home/bob"}
@@ -39,23 +41,40 @@ func TestParseDefaultJobfile(t *testing.T) {
 	require.NotNil(t, file)
 }
 
+func uncommentLine(line string) string {
+	nonWsIdx := strings.IndexFunc(line, func(r rune) bool {
+		return !unicode.IsSpace(r)
+	})
+	if nonWsIdx < 0 || line[nonWsIdx] != '#' {
+		return line
+	} else if len(line) == nonWsIdx+1 {
+		return line[:nonWsIdx]
+	} else {
+		return line[:nonWsIdx] + line[nonWsIdx+1:]
+	}
+}
+
 func TestParseDefaultJobfileAfterUncommenting(t *testing.T) {
 	/*
 	 * Set up
 	 */
+
+	// uncomment certain lines
+	var jfile string
+	lines := strings.Split(gDefaultJobfile, "\n")
+	for _, line := range lines {
+		jfile += uncommentLine(line) + "\n"
+	}
+	fmt.Printf("Jobfile:\n%v\n", jfile)
+
+	// write jobfile
 	f, err := ioutil.TempFile("", "Testing")
 	if err != nil {
 		panic(fmt.Sprintf("Failed to make tempfile: %v", err))
 	}
 	defer f.Close()
 	defer os.Remove(f.Name())
-	lines := strings.Split(gDefaultJobfile, "\n")
-	for _, line := range lines {
-		if len(line) > 2 && line[0] == '#' && line[1] != '#' {
-			line = line[1:]
-		}
-		f.WriteString(line + "\n")
-	}
+	f.WriteString(jfile)
 	f.Seek(0, 0)
 
 	/*

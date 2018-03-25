@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/jobfile"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/dshearer/jobber/jobfile"
+	"github.com/stretchr/testify/require"
 )
 
 func TimeString(t time.Time) string {
@@ -114,7 +115,7 @@ func TestNextRunTime(t *testing.T) {
 		/*
 		 * Set up
 		 */
-		var job *jobfile.Job = jobfile.NewJob("JobA", "blah", "dude")
+		job := jobfile.NewJob()
 		timeSpec, _ := jobfile.ParseFullTimeSpec(testCase.timeSpec)
 		require.NotNil(t, timeSpec)
 		job.FullTimeSpec = *timeSpec
@@ -127,7 +128,7 @@ func TestNextRunTime(t *testing.T) {
 			/*
 			 * Call
 			 */
-			var actualRunTime *time.Time = nextRunTime(job, now)
+			var actualRunTime *time.Time = nextRunTime(&job, now)
 
 			/*
 			 * Test
@@ -145,7 +146,7 @@ func TestNextRunTimeWithRandom(t *testing.T) {
 	/*
 	 * Set up
 	 */
-	var job *jobfile.Job = jobfile.NewJob("JobA", "blah", "dude")
+	job := jobfile.NewJob()
 	timeSpec, _ := jobfile.ParseFullTimeSpec("0 0 R2-4")
 	require.NotNil(t, timeSpec)
 	job.FullTimeSpec = *timeSpec
@@ -156,7 +157,7 @@ func TestNextRunTimeWithRandom(t *testing.T) {
 	/*
 	 * Call
 	 */
-	actualRunTime := nextRunTime(job, now)
+	actualRunTime := nextRunTime(&job, now)
 
 	/*
 	 * Test

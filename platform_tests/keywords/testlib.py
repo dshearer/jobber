@@ -189,20 +189,34 @@ class testlib(object):
                      notify_output_path=None, file_run_log_path=None,
                      stdout_output_dir=None, stdout_output_max_age=None,
                      stderr_output_dir=None, stderr_output_max_age=None):
+
+        jobfile = {
+            'version': '1.4',
+            'prefs': {},
+            'jobs': {}
+        }
+
         # make jobs section
         job = {
-            'name': job_name,
             'cmd': cmd,
             'time': time,
-            'notifyOnError': notify_on_error,
-            'notifyOnSuccess': notify_on_success
+            'notifyOnError': [],
+            'notifyOnSuccess': []
         }
-        jobs_sect = "[jobs]\n{0}\n".format(json.dumps([job]))
+        jobfile['jobs'][job_name] = job
 
         # make prefs section
-        prefs = {'logPath': '.jobber-log'}
+        jobfile['prefs']['logPath'] = '.jobber-log'
 
-        if notify_on_error or notify_on_success:
+        def install_result_sink(sink):
+            for job_name in jobfile['jobs']:
+                job = jobfile['jobs'][job_name]
+                if notify_on_error:
+                    job['notifyOnError'].append(sink)
+                if notify_on_success:
+                    job['notifyOnSuccess'].append(sink)
+
+        if notify_output_path is not None:
             # make notify program
             output_path = self.make_tempfile()
             notify_prog = _NOTIFY_PROGRAM.format(notify_output_path=\
@@ -214,33 +228,38 @@ class testlib(object):
                 f.write(notify_prog)
             os.chmod(notify_prog_path, 0755)
 
-            # set pref
-            prefs['notifyProgram'] = notify_prog_path
+            # make result sink
+            result_sink = {
+                'type': 'program',
+                'path': notify_prog_path
+            }
+            install_result_sink(result_sink)
 
             print("Contents of {0}:\n{1}".\
                   format(notify_prog_path, notify_prog))
 
         if file_run_log_path is not None:
-            prefs['runLog'] = {'type': 'file', 'path': file_run_log_path}
+            jobfile['prefs']['runLog'] = {'type': 'file', 'path': file_run_log_path}
 
         if stdout_output_dir is not None:
-            jobOutput = prefs.get('jobOutput', {})
-            jobOutput['stdout'] = {
-                'where': stdout_output_dir,
-                'maxAgeDays': int(stdout_output_max_age)
+            result_sink = {
+                'type': 'filesystem',
+                'path': stdout_output_dir,
+                'maxAgeDays': int(stdout_output_max_age),
+                'data': ['stdout']
             }
-            prefs['jobOutput'] = jobOutput
+            install_result_sink(result_sink)
+
         if stderr_output_dir is not None:
-            jobOutput = prefs.get('jobOutput', {})
-            jobOutput['stderr'] = {
-                'where': stderr_output_dir,
-                'maxAgeDays': int(stderr_output_max_age)
+            result_sink = {
+                'type': 'filesystem',
+                'path': stderr_output_dir,
+                'maxAgeDays': int(stderr_output_max_age),
+                'data': ['stderr']
             }
-            prefs['jobOutput'] = jobOutput
+            install_result_sink(result_sink)
 
-        prefs_sect = "[prefs]\n{0}\n".format(json.dumps(prefs))
-
-        return prefs_sect + jobs_sect
+        return json.dumps(jobfile)
 
     def install_jobfile(self, contents, for_root=False, reload=True, exp_num_jobs=1):
         # make jobfile
@@ -416,9 +435,12 @@ class testlib(object):
         '''
 
         # list dir contents
+        filenames = None
         for _, _, fn in os.walk(dir_path):
             filenames = fn
             break
+        if filenames is None:
+            raise AssertionError("No job output files")
 
         # rename files
         day_sec = 60 * 60 * 24
@@ -605,3 +627,17 @@ class testlib(object):
                 raise AssertionError("Prefs file does not exist")
             else:
                 raise e
+
+    def jobber_procs_should_not_have_inet_sockets(self):
+        proc = sp.Popen(["lsof", "-i", "-P"], stdout=sp.PIPE)
+        output, _ = proc.communicate()
+        output = output.strip()
+        if len(output) == 0:
+            # no results
+            return
+        lines = output.split("\n")[1:]
+        jobber_lines = [line for line in lines if "jobber" in line]
+        if len(jobber_lines) > 0:
+            msg = "Jobber procs have inet sockets:\n{0}".\
+                format("\n".join(jobber_lines))
+            raise AssertionError(msg)

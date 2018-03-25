@@ -5,7 +5,7 @@ Resource         keywords.robot
 Test Setup       Setup
 Test Teardown    Teardown
 Test Template    Notify Pref Should Work
-Force Tags     test
+Force Tags     test    prefs
 
 *** Test Cases ***                        ON_SUCCESS    ON_ERROR    JOB_SUCCEEDS    SHOULD_HAVE_CALLED_NOTIFY_PROGRAM
 Notify on error with error                ${False}      ${True}     ${False}        ${True}

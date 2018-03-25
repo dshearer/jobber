@@ -4,7 +4,7 @@ Library          testlib.py
 Resource         keywords.robot
 Test Setup       Setup
 Test Teardown    Teardown
-Force Tags       test
+Force Tags       test    prefs    joboutput
 
 *** Variables ***
 ${JOB_NAME}                   TestJob
@@ -34,7 +34,8 @@ Install Jobfile with Job that Produces Output
     Create Directory    ${output_dir}
     ${cmd}=    Set Variable    echo -n 'Hi'
     ${jobfile}=    Make Jobfile    job_name=${JOB_NAME}    cmd=${cmd}
-    ...    stdout_output_dir=${output_dir}    stdout_output_max_age=${JOB_OUTPUT_MAX_AGE_DAYS}
+    ...    notify_on_success=${True}    stdout_output_dir=${output_dir}
+    ...    stdout_output_max_age=${JOB_OUTPUT_MAX_AGE_DAYS}
     Install Jobfile    ${jobfile}    for_root=${True}
     Nothing Has Crashed
     [Return]    ${output_dir}

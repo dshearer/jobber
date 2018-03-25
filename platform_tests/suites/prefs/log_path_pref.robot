@@ -4,7 +4,7 @@ Library          testlib.py
 Resource         keywords.robot
 Test Setup       Setup
 Test Teardown    Teardown
-Force Tags       test
+Force Tags       test    prefs
 
 *** Test Cases ***
 Log Path Preference

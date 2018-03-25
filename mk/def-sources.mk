@@ -1,6 +1,7 @@
 # read lists of source files
 include buildtools/sources.mk \
 		common/sources.mk \
+		ipc/sources.mk \
 		jobber/sources.mk \
 		jobbermaster/sources.mk \
 		jobberrunner/sources.mk \
@@ -9,15 +10,17 @@ include buildtools/sources.mk \
 
 MAIN_SOURCES := \
 	${COMMON_SOURCES} \
-	${JOBFILE_SOURCES} \
 	${CLIENT_SOURCES} \
+	${IPC_SOURCES} \
+	${JOBFILE_SOURCES} \
 	${MASTER_SOURCES} \
 	${RUNNER_SOURCES}
 
 TEST_SOURCES := \
 	${COMMON_TEST_SOURCES} \
-	${JOBFILE_TEST_SOURCES} \
 	${CLIENT_TEST_SOURCES} \
+	${IPC_TEST_SOURCES} \
+	${JOBFILE_TEST_SOURCES} \
 	${MASTER_TEST_SOURCES} \
 	${RUNNER_TEST_SOURCES}
 

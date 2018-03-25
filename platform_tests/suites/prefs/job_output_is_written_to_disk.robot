@@ -5,7 +5,7 @@ Resource         keywords.robot
 Test Setup       Setup
 Test Teardown    Teardown
 Test Template    Job Output Is Written to Disk (or Not)
-Force Tags       test
+Force Tags       test    prefs    joboutput
 
 *** Variables ***
 ${JOB_NAME}             TestJob
@@ -48,12 +48,15 @@ Install Jobfile with Job that Produces Output
     Create Directory    ${output_dir}
     ${jobfile}=    Run Keyword If    ${stdout} and ${stderr}
     ...                            Make Jobfile    job_name=${JOB_NAME}    cmd=${cmd}
-    ...                            stdout_output_dir=${output_dir}    stdout_output_max_age=1
-    ...                            stderr_output_dir=${output_dir}    stderr_output_max_age=1
+    ...                            notify_on_success=${True}    stdout_output_dir=${output_dir}
+    ...                            stdout_output_max_age=1      stderr_output_dir=${output_dir}
+    ...                            stderr_output_max_age=1
     ...    ELSE IF    ${stdout}    Make Jobfile    job_name=${JOB_NAME}    cmd=${cmd}
-    ...                            stdout_output_dir=${output_dir}    stdout_output_max_age=1
+    ...                            notify_on_success=${True}    stdout_output_dir=${output_dir}
+    ...                            stdout_output_max_age=1
     ...    ELSE IF    ${stderr}    Make Jobfile    job_name=${JOB_NAME}    cmd=${cmd}
-    ...                            stderr_output_dir=${output_dir}    stderr_output_max_age=1
+    ...                            notify_on_success=${True}    stderr_output_dir=${output_dir}
+    ...                            stderr_output_max_age=1
     ...    ELSE                    Make Jobfile    job_name=${JOB_NAME}    cmd=${cmd}
     Install Jobfile    ${jobfile}    for_root=${True}
     Nothing Has Crashed

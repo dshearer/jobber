@@ -3,9 +3,9 @@ package main
 import (
 	"container/heap"
 	"context"
-	"github.com/dshearer/jobber/common"
-	"github.com/dshearer/jobber/jobfile"
 	"time"
+
+	"github.com/dshearer/jobber/jobfile"
 )
 
 func nextRunTime(job *jobfile.Job, now time.Time) *time.Time {
@@ -67,12 +67,11 @@ type JobQueue struct {
 	q jobQueueImpl
 }
 
-func (jq *JobQueue) SetJobs(now time.Time, jobs []*jobfile.Job) {
+func (jq *JobQueue) SetJobs(now time.Time, jobs map[string]*jobfile.Job) {
 	jq.q = make(jobQueueImpl, 0)
 	heap.Init(&jq.q)
 
-	for i := 0; i < len(jobs); i++ {
-		var job *jobfile.Job = jobs[i]
+	for _, job := range jobs {
 		job.NextRunTime = nextRunTime(job, now)
 		if job.NextRunTime != nil {
 			heap.Push(&jq.q, job)
@@ -93,9 +92,7 @@ func (jq *JobQueue) Empty() bool {
 func (jq *JobQueue) Pop(ctx context.Context, now time.Time) *jobfile.Job {
 	if jq.Empty() {
 		// just wait till the context has been canceled
-		common.Logger.Println("Queue: waiting...")
 		<-ctx.Done()
-		common.Logger.Println("Queue: done")
 		return nil
 
 	} else {

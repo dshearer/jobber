@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/user"
 
-	"github.com/dshearer/jobber/common"
+	"github.com/dshearer/jobber/ipc"
 )
 
 func doTestCmd(args []string) int {
@@ -39,11 +39,11 @@ func doTestCmd(args []string) int {
 	}
 
 	// send command
-	var resp common.TestCmdResp
+	var resp ipc.TestCmdResp
 	fmt.Printf("Running job \"%v\"...\n", job)
 	err = CallDaemon(
-		"NewIpcService.Test",
-		common.TestCmd{Job: job},
+		"IpcService.Test",
+		ipc.TestCmd{Job: job},
 		&resp,
 		usr,
 		false,
