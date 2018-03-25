@@ -29,7 +29,7 @@ func (self SemVer) String() string {
 }
 
 func (self SemVer) MarshalJSON() ([]byte, error) {
-	return []byte(self.String()), nil
+	return []byte("\"" + self.String() + "\""), nil
 }
 
 func (self SemVer) MarshalYAML() (interface{}, error) {
