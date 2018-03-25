@@ -27,6 +27,31 @@ type JobFile struct {
 	Jobs  map[string]*Job
 }
 
+func (self *JobFile) InitResultSinks() {
+	// collect result sinks
+	var sinks []ResultSink
+	for _, job := range self.Jobs {
+		sinks = append(sinks, job.NotifyOnError...)
+		sinks = append(sinks, job.NotifyOnFailure...)
+		sinks = append(sinks, job.NotifyOnSuccess...)
+	}
+
+	/*
+		Start/stop run record servers for SocketResultSink as necessary.
+	*/
+	var protos []string
+	var addresses []string
+	for _, sink := range sinks {
+		socketSink, ok := sink.(*SocketResultSink)
+		if !ok {
+			continue
+		}
+		protos = append(protos, socketSink.Proto)
+		addresses = append(addresses, socketSink.Address)
+	}
+	GlobalRunRecServerRegistry.SetServers(protos, addresses)
+}
+
 type UserPrefs struct {
 	RunLog  RunLog
 	LogPath string // for error msgs etc.  May be "".
@@ -42,7 +67,7 @@ func (self *UserPrefs) String() string {
 }
 
 type JobFileV3Raw struct {
-	Version     string              `yaml:"version"`
+	Version     SemVer              `yaml:"version"`
 	Prefs       UserPrefsV3Raw      `yaml:"prefs"`
 	ResultSinks []ResultSinkRaw     `yaml:"resultSinks"`
 	Jobs        map[string]JobV3Raw `yaml:"jobs"`
@@ -196,15 +221,15 @@ func jobfileVersion(f *os.File) (*SemVer, error) {
 
 	} else {
 		var tmp struct {
-			Version string `yaml:"version"`
+			Version SemVer `yaml:"version"`
 		}
 		if err := yaml.Unmarshal(data, &tmp); err != nil {
 			return nil, err
 		}
-		if len(tmp.Version) == 0 {
+		if tmp.Version.IsZero() {
 			return nil, &common.Error{What: "Missing jobfile version"}
 		}
-		return ParseSemVer(tmp.Version)
+		return &tmp.Version, nil
 	}
 }
 
@@ -237,6 +262,7 @@ func v1v2ToV3(v1v2Jobfile JobFileV1V2Raw) (*JobFileV3Raw, error) {
 	if v1v2Jobfile.Prefs.NotifyProgram != nil {
 		resultSink["type"] = "program"
 		resultSink["path"] = *v1v2Jobfile.Prefs.NotifyProgram
+		resultSink["runRecFormatVersion"] = SemVer{Major: 1}
 	} else {
 		resultSink["type"] = "system-email"
 	}

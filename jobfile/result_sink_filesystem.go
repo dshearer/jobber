@@ -37,6 +37,17 @@ type FilesystemResultSink struct {
 	MaxAgeDays int                 `yaml:"maxAgeDays"`
 }
 
+func (self FilesystemResultSink) CheckParams() error {
+	if len(self.Path) == 0 {
+		return &common.Error{What: "Filesystem result sink needs 'path' param"}
+	}
+	if self.MaxAgeDays < 1 {
+		msg := "Filesystem result sink's 'maxAgeDays' param must be >= 1"
+		return &common.Error{What: msg}
+	}
+	return nil
+}
+
 func (self FilesystemResultSink) String() string {
 	return _FILESYSTEM_RESULT_SINK_NAME
 }
@@ -56,17 +67,6 @@ func (self FilesystemResultSink) Equals(other ResultSink) bool {
 		return false
 	}
 	return true
-}
-
-func (self FilesystemResultSink) Validate() error {
-	if len(self.Path) == 0 {
-		return &common.Error{What: "Filesystem result sink needs 'path' param"}
-	}
-	if self.MaxAgeDays < 1 {
-		msg := "Filesystem result sink's 'maxAgeDays' param must be >= 1"
-		return &common.Error{What: msg}
-	}
-	return nil
 }
 
 func (self FilesystemResultSink) Handle(rec RunRec) {

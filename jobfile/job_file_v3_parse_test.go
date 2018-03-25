@@ -179,6 +179,16 @@ resultSinks:
     data: [stdout, stderr]
     maxAgeDays: 10
 
+  - &stdoutSink
+    type: stdout
+    data: [stderr]
+
+  - &socketSink
+    type: socket
+    proto: tcp6
+    address: :1234
+    data: [stdout]
+
 jobs:
   Job1:
     time: '*'
@@ -210,7 +220,8 @@ jobs:
   Job8:
     time: '*'
     cmd: exit 0
-    notifyOnError: [*fsSink]
+    notifyOnError: [*fsSink, *stdoutSink, *socketSink]
+    notifyOnSuccess: [*socketSink]
 `,
 		Output: JobFile{
 			Prefs: UserPrefs{
@@ -309,9 +320,23 @@ jobs:
 							Data:       RESULT_SINK_DATA_STDOUT | RESULT_SINK_DATA_STDERR,
 							MaxAgeDays: 10,
 						},
+						StdoutResultSink{
+							Data: RESULT_SINK_DATA_STDERR,
+						},
+						&SocketResultSink{
+							Proto:   "tcp6",
+							Address: ":1234",
+							Data:    RESULT_SINK_DATA_STDOUT,
+						},
 					},
 					NotifyOnFailure: nil,
-					NotifyOnSuccess: nil,
+					NotifyOnSuccess: []ResultSink{
+						&SocketResultSink{
+							Proto:   "tcp6",
+							Address: ":1234",
+							Data:    RESULT_SINK_DATA_STDOUT,
+						},
+					},
 				},
 			},
 		},

@@ -1,8 +1,11 @@
 package jobfile
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/dshearer/jobber/common"
 	"gopkg.in/yaml.v2"
@@ -12,9 +15,19 @@ import (
 A result sink is an object that does something with the results of a job run.
 */
 type ResultSink interface {
+	/*
+		Do something with the given run record.
+	*/
 	Handle(runRec RunRec)
-	Validate() error
+
+	/*
+		Check for problems with the params.  This is called just after
+		deserialization from a jobfile.
+	*/
+	CheckParams() error
+
 	Equals(other ResultSink) bool
+
 	fmt.Stringer
 }
 
@@ -60,6 +73,20 @@ func MakeResultSinkFromConfig(config ResultSinkRaw) (ResultSink, error) {
 		}
 		return sink, nil
 
+	case _STDOUT_RESULT_SINK_NAME:
+		var sink StdoutResultSink
+		if err := loadSinkParams(params, &sink); err != nil {
+			return nil, err
+		}
+		return sink, nil
+
+	case _SOCKET_RESULT_SINK_NAME:
+		var sink SocketResultSink
+		if err := loadSinkParams(params, &sink); err != nil {
+			return nil, err
+		}
+		return &sink, nil
+
 	default:
 		msg := fmt.Sprintf("No such result sink type: %v", typeName)
 		return nil, &common.Error{What: msg}
@@ -74,7 +101,7 @@ func loadSinkParams(params map[string]interface{}, sink ResultSink) error {
 	if err := yaml.UnmarshalStrict(paramYaml, sink); err != nil {
 		return err
 	}
-	if err := sink.Validate(); err != nil {
+	if err := sink.CheckParams(); err != nil {
 		return err
 	}
 	return nil
@@ -112,4 +139,50 @@ func (self *ResultSinkDataParam) UnmarshalYAML(unmarshal func(interface{}) error
 	}
 
 	return nil
+}
+
+func SerializeRunRec(rec RunRec, data ResultSinkDataParam) []byte {
+	recJson := map[string]interface{}{
+		"version": SemVer{Major: 1, Minor: 4},
+		"job": map[string]interface{}{
+			"name":    rec.Job.Name,
+			"command": rec.Job.Cmd,
+			"time":    rec.Job.FullTimeSpec.String(),
+			"status":  rec.NewStatus.String(),
+		},
+		"user":      rec.Job.User,
+		"startTime": rec.RunTime.Unix(),
+		"succeeded": rec.Succeeded,
+	}
+
+	if data.Contains(RESULT_SINK_DATA_STDOUT) {
+		if utf8.Valid(rec.Stdout) {
+			recJson["stdout"] = string(rec.Stdout)
+		} else {
+			stdout := rec.Stdout
+			if stdout == nil {
+				stdout = make([]byte, 0)
+			}
+			recJson["stdoutBase64"] = stdout
+		}
+	}
+	if data.Contains(RESULT_SINK_DATA_STDERR) {
+		if utf8.Valid(rec.Stderr) {
+			recJson["stderr"] = string(rec.Stderr)
+		} else {
+			stderr := rec.Stderr
+			if stderr == nil {
+				stderr = make([]byte, 0)
+			}
+			recJson["stderrBase64"] = stderr
+		}
+	}
+
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(recJson); err != nil {
+		panic(fmt.Sprintf("Failed to marshall RunRec: %v", err))
+	}
+	return buf.Bytes()
 }

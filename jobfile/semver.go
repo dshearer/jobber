@@ -1,6 +1,7 @@
 package jobfile
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -13,38 +14,65 @@ type SemVer struct {
 	Patch uint
 }
 
-func ParseSemVer(s string) (*SemVer, error) {
-	defaultError := common.Error{What: "Invalid Semantic Version"}
+func (self SemVer) IsZero() bool {
+	return self.Major == 0 && self.Minor == 0 && self.Patch == 0
+}
 
+func (self SemVer) String() string {
+	if self.Patch > 0 {
+		return fmt.Sprintf("%v.%v.%v", self.Major, self.Minor, self.Patch)
+	} else if self.Minor > 0 {
+		return fmt.Sprintf("%v.%v", self.Major, self.Minor)
+	} else {
+		return fmt.Sprintf("%v", self.Major)
+	}
+}
+
+func (self SemVer) MarshalJSON() ([]byte, error) {
+	return []byte(self.String()), nil
+}
+
+func (self SemVer) MarshalYAML() (interface{}, error) {
+	return self.String(), nil
+}
+
+func (self *SemVer) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var s string
+	if err := unmarshal(&s); err != nil {
+		return &common.Error{What: "Cannot unmarshal SemVer", Cause: err}
+	}
+	return self.fromString(s)
+}
+
+func (self *SemVer) fromString(s string) error {
 	parts := strings.Split(s, ".")
 	if len(parts) > 3 || len(parts) == 0 {
-		return nil, &defaultError
+		return &common.Error{What: fmt.Sprintf("Invalid Semantic Version: \"%v\"", s)}
 	}
 
-	var ver SemVer
 	if len(parts) > 0 {
 		val, err := strconv.ParseUint(parts[0], 10, 32)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		ver.Major = uint(val)
+		self.Major = uint(val)
 	}
 	if len(parts) > 1 {
 		val, err := strconv.ParseUint(parts[1], 10, 32)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		ver.Minor = uint(val)
+		self.Minor = uint(val)
 	}
 	if len(parts) > 2 {
 		val, err := strconv.ParseUint(parts[2], 10, 32)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		ver.Patch = uint(val)
+		self.Patch = uint(val)
 	}
 
-	return &ver, nil
+	return nil
 }
 
 func compareInts(a, b uint) int {

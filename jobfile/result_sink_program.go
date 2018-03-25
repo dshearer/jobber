@@ -2,6 +2,7 @@ package jobfile
 
 import (
 	"encoding/json"
+	"fmt"
 	"os/exec"
 
 	"github.com/dshearer/jobber/common"
@@ -10,7 +11,18 @@ import (
 const _PROGRAM_RESULT_SINK_NAME = "program"
 
 type ProgramResultSink struct {
-	Path string `yaml:"path"`
+	Path                string `yaml:"path"`
+	RunRecFormatVersion SemVer `yaml:"runRecFormatVersion"`
+}
+
+func (self ProgramResultSink) CheckParams() error {
+	if len(self.Path) == 0 {
+		return &common.Error{What: "Program result sink needs 'path' param"}
+	}
+	if self.RunRecFormatVersion.IsZero() {
+		self.RunRecFormatVersion = SemVer{Major: 1, Minor: 4}
+	}
+	return nil
 }
 
 func (self ProgramResultSink) String() string {
@@ -28,19 +40,7 @@ func (self ProgramResultSink) Equals(other ResultSink) bool {
 	return true
 }
 
-func (self ProgramResultSink) Validate() error {
-	if len(self.Path) == 0 {
-		return &common.Error{What: "Program result sink needs 'path' param"}
-	}
-	return nil
-}
-
-func (self ProgramResultSink) Handle(rec RunRec) {
-	/*
-	 Here we make a JSON document with the data in rec, and then pass it
-	 to a user-specified program.
-	*/
-
+func serializeRunRec_oldFormat(rec RunRec) []byte {
 	var timeFormat string = "Jan _2 15:04:05 2006"
 
 	// make job JSON
@@ -72,13 +72,26 @@ func (self ProgramResultSink) Handle(rec RunRec) {
 	}
 	recJsonStr, err := json.Marshal(recJson)
 	if err != nil {
-		common.ErrLogger.Printf("Failed to make RunRec JSON: %v\n", err)
-		return
+		panic(fmt.Sprintf("Failed to make RunRec JSON: %v\n", err))
+	}
+	return recJsonStr
+}
+
+func (self ProgramResultSink) Handle(rec RunRec) {
+	/*
+	 Here we make a JSON document with the data in rec, and then pass it
+	 to a user-specified program.
+	*/
+
+	var recStr []byte
+	if self.RunRecFormatVersion.Compare(SemVer{Major: 1, Minor: 4}) < 0 {
+		recStr = serializeRunRec_oldFormat(rec)
+	} else {
+		recStr = SerializeRunRec(rec, RESULT_SINK_DATA_STDOUT|RESULT_SINK_DATA_STDERR)
 	}
 
 	// call program
-	execResult, err2 := common.ExecAndWait(exec.Command(self.Path),
-		&recJsonStr)
+	execResult, err2 := common.ExecAndWait(exec.Command(self.Path), &recStr)
 	if err2 != nil {
 		common.ErrLogger.Printf("Failed to call %v: %v\n", self.Path, err2)
 	} else if !execResult.Succeeded {

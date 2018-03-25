@@ -179,9 +179,14 @@ var gV2JobFile = JobFile{
 				Mon:  WildcardTimeSpec{},
 				Wday: WildcardTimeSpec{},
 			},
-			ErrorHandler:    StopErrorHandler{},
-			NotifyOnError:   nil,
-			NotifyOnFailure: []ResultSink{ProgramResultSink{Path: "~/handleError"}},
+			ErrorHandler:  StopErrorHandler{},
+			NotifyOnError: nil,
+			NotifyOnFailure: []ResultSink{
+				ProgramResultSink{
+					Path:                "~/handleError",
+					RunRecFormatVersion: SemVer{Major: 1},
+				},
+			},
 			NotifyOnSuccess: nil,
 		},
 		"WeeklyBackup": &Job{
@@ -199,8 +204,13 @@ script
 				Mon:  WildcardTimeSpec{},
 				Wday: OneValTimeSpec{1},
 			},
-			ErrorHandler:    BackoffErrorHandler{},
-			NotifyOnError:   []ResultSink{ProgramResultSink{Path: "~/handleError"}},
+			ErrorHandler: BackoffErrorHandler{},
+			NotifyOnError: []ResultSink{
+				ProgramResultSink{
+					Path:                "~/handleError",
+					RunRecFormatVersion: SemVer{Major: 1},
+				},
+			},
 			NotifyOnFailure: nil,
 			NotifyOnSuccess: nil,
 		},
@@ -219,7 +229,12 @@ script
 			ErrorHandler:    BackoffErrorHandler{},
 			NotifyOnError:   nil,
 			NotifyOnFailure: nil,
-			NotifyOnSuccess: []ResultSink{ProgramResultSink{Path: "~/handleError"}},
+			NotifyOnSuccess: []ResultSink{
+				ProgramResultSink{
+					Path:                "~/handleError",
+					RunRecFormatVersion: SemVer{Major: 1},
+				},
+			},
 		},
 	},
 }

@@ -11,6 +11,10 @@ const _SYSTEM_EMAIL_RESULT_SINK_NAME = "system-email"
 
 type SystemEmailResultSink struct{}
 
+func (self SystemEmailResultSink) CheckParams() error {
+	return nil
+}
+
 func (self SystemEmailResultSink) String() string {
 	return _SYSTEM_EMAIL_RESULT_SINK_NAME
 }
@@ -18,10 +22,6 @@ func (self SystemEmailResultSink) String() string {
 func (self SystemEmailResultSink) Equals(other ResultSink) bool {
 	_, ok := other.(SystemEmailResultSink)
 	return ok
-}
-
-func (self SystemEmailResultSink) Validate() error {
-	return nil
 }
 
 func (self SystemEmailResultSink) Handle(rec RunRec) {
