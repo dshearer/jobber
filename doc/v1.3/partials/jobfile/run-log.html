@@ -2,10 +2,10 @@
   <h3>Keeping a Log of Job Runs</h3>
 
   <p>
-    <code>jobber log</code> command prints info about 100 last runs.
-    This info &mdash; <dfn>run log</dfn> &mdash; is kept in memory by
-    default, but you can change this in the <code>prefs</code>
-    section of the jobfile.
+    The <code>jobber log</code> command prints the <dfn>run log</dfn> &mdash;
+    i.e, a log containing info about previous runs.  By default, the run log
+    contains the 100 recent runs and is kept in memory, which means that it will
+    be lost when the Jobber server stops or restarts.
   </p>
 
   <p>`jobber` allows to change limits for *run log* in memory, or chose to write
