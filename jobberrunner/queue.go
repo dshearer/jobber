@@ -3,9 +3,10 @@ package main
 import (
 	"container/heap"
 	"context"
+	"time"
+
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/jobfile"
-	"time"
 )
 
 func nextRunTime(job *jobfile.Job, now time.Time) *time.Time {
@@ -103,7 +104,7 @@ func (jq *JobQueue) Pop(ctx context.Context, now time.Time) *jobfile.Job {
 		job := heap.Pop(&jq.q).(*jobfile.Job)
 
 		// sleep till it's time to run it
-		if now.Before(*job.NextRunTime) {
+		for now.Before(*job.NextRunTime) {
 			afterChan := time.After(job.NextRunTime.Sub(now))
 			select {
 			case now = <-afterChan:
