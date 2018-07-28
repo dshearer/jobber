@@ -188,7 +188,8 @@ class testlib(object):
                      notify_on_error=False, notify_on_success=False,
                      notify_output_path=None, file_run_log_path=None,
                      stdout_output_dir=None, stdout_output_max_age=None,
-                     stderr_output_dir=None, stderr_output_max_age=None):
+                     stderr_output_dir=None, stderr_output_max_age=None,
+                     unix_result_sink_path=None, tcp_result_sink_port=None):
 
         jobfile = {
             'version': '1.4',
@@ -256,6 +257,22 @@ class testlib(object):
                 'path': stderr_output_dir,
                 'maxAgeDays': int(stderr_output_max_age),
                 'data': ['stderr']
+            }
+            install_result_sink(result_sink)
+
+        if unix_result_sink_path is not None:
+            result_sink = {
+                'type': 'socket',
+                'proto': 'unix',
+                'address': unix_result_sink_path
+            }
+            install_result_sink(result_sink)
+
+        if tcp_result_sink_port is not None:
+            result_sink = {
+                'type': 'socket',
+                'proto': 'tcp',
+                'address': tcp_result_sink_port
             }
             install_result_sink(result_sink)
 

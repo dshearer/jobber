@@ -1,6 +1,8 @@
-*/*.rpm
-*/*.tar
-*/work
-*/testlog.txt
-*/test_report
+*.rpm
+*.tar
+*.deb
+work
+*cloudimg-console.log
+testlog.txt
+test_report
 results

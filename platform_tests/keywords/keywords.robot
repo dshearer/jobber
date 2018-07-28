@@ -8,13 +8,15 @@ Setup
     Set Test Variable    ${runner_procs}
 
 Teardown
+    [Arguments]    ${check_for_socket_in_teardown}=${True}
     Runner Procs Should Not Have TTY
-    Jobber Procs Should Not Have Inet Sockets
+    Run Keyword If    ${check_for_socket_in_teardown}
+    ...               Jobber Procs Should Not Have Inet Sockets
+    Nbr Of Runner Procs Should Be Same    ${runner_procs}
     Rm Tempfile Dir
     Rm Jobfiles
     Run Keyword If Test Failed    Print Debug Info
     Remove Files    /root/.jobber-log    /home/normuser/.jobber-log
-    Nbr Of Runner Procs Should Be Same    ${runner_procs}
     Restore Prefs
 
 Nothing Has Crashed
