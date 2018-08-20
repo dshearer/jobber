@@ -1,0 +1,15 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: dshearer/jobber-cci-alpine:2
+
+    working_directory: /home/builder/jobber
+
+    steps:
+      - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/alpine_3.6 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: alpine3

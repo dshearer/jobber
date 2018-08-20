@@ -20,6 +20,10 @@ prepare() {
 }
 
 build() {
+		echo Nothing to do
+}
+
+check() {
     export GOPATH="${_builddir}"
     export GO_WKSPC="${_builddir}"
     make -C "${_builddir}/src/github.com/dshearer/${pkgname}" check
@@ -27,17 +31,17 @@ build() {
 
 package() {
     set -e
-    
+
     # build and install
     export GOPATH="${_builddir}"
     export GO_WKSPC="${_builddir}"
-	make -C "${_builddir}/src/github.com/dshearer/${pkgname}" \
-	   install "DESTDIR=${pkgdir}/" prefix=/usr
+		make -C "${_builddir}/src/github.com/dshearer/${pkgname}" \
+			install "DESTDIR=${pkgdir}/" prefix=/usr
 
     # install init script
-	local INITD=${pkgdir}/etc/init.d
-	mkdir -p "${INITD}"
-	cp "${startdir}/${pkgname}.initd" "${INITD}/jobber"
+		local INITD=${pkgdir}/etc/init.d
+		mkdir -p "${INITD}"
+		cp "${startdir}/${pkgname}.initd" "${INITD}/jobber"
 }
 
 md5sums=""
