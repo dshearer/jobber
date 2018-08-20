@@ -1,1 +1,13 @@
 buildtools/gen
+*.rpm
+*.tar
+*.tgz
+work
+testlog.txt
+test_report
+results
+.vagrant
+.vm-is-created
+.vm-is-running
+.DS_Store
+su_cmd_osx.go
