@@ -3,13 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
 	"os/user"
 	"syscall"
+
+	"github.com/dshearer/jobber/common"
 )
 
 var gUser *user.User
@@ -159,7 +160,7 @@ func main() {
 	jobfilePath := flag.Args()[0]
 
 	// set umask
-	syscall.Umask(0177)
+	syscall.Umask(0077)
 
 	// get current user
 	var err error
