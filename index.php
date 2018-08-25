@@ -76,20 +76,22 @@ $release = latestRelease();
           that have been disabled due to repeated failures.</li>
       </ul>
     </section>
-    
+
     <!-- News -->
     <section>
       <h2>Recent Blog Posts</h2>
       <ul>
         <li class="h4">
+          <a href="https://dev.to/dshearer/restful-security-plug-the-leaks-npa">
+            RESTful Security: Plug the Leaks! <span class="fa fa-external-link"></span>
+          </a>
+          <small>7 Apr 2018</small>
+        </li>
+        <li class="h4">
           <a href="https://dev.to/dshearer/how-to-support-multiple-oses-with-one-mac-4145">
           How to Support Multiple OSes with One Mac <span class="fa fa-external-link"></span>
           </a>
           <small>16 Jan 2018</small>
-        </li>
-        <li class="h4">
-            <a href="/jobber/blog/2018/01/14/go-review/">
-            Three Years of Go</a> <small>14 Jan 2018</small>
         </li>
       </ul>
     </section>
