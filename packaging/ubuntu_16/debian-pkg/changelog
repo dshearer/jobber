@@ -1,4 +1,10 @@
-jobber (1.3.3-pr.2-1) UNRELEASED; urgency=low
+jobber (1.3.3) UNRELEASED; urgency=low
+
+  * Release 1.3.3
+
+ -- C. Dylan Shearer <dylan@nekonya.info>  Sat, 25 Aug 2018 13:25:00 -0800
+
+ jobber (1.3.3-pr.2-1) UNRELEASED; urgency=low
 
   * Release 1.3.3-pr.2
 
