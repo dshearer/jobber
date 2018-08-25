@@ -32,6 +32,16 @@ function _reformatDate($date)
     return date("j M Y", $unix);
 }
 
+function _strEndsWith($haystack, $needle)
+{
+    $length = strlen($needle);
+    if ($length == 0) {
+        return true;
+    }
+
+    return (substr($haystack, -$length) === $needle);
+}
+
 function _findPlatform($asset)
 {
     $PLATFORMS = [
@@ -43,38 +53,30 @@ function _findPlatform($asset)
             'OS' => "RHEL/CentOS 7",
             'CPU' => "x86_64"
         ],
-        'alpine3.6and3.7.apk' => [
-            'OS' => "Alpine Linux 3.6/3.7",
+        '.apk' => [
+            'OS' => "Alpine Linux 3",
             'CPU' => "x86_64"
         ],
-        'amd64_deb9.deb' => [
-            'OS' => "Debian 9",
-            'CPU' => "x86_64"
-        ],
-        'amd64_ubuntu14.deb' => [
-            'OS' => "Ubuntu 14",
-            'CPU' => "x86_64"
-        ],
-        'amd64_ubuntu16.deb' => [
-            'OS' => "Ubuntu 16",
+        '.deb' => [
+            'OS' => "Debian 8+ / Ubuntu 14.10+",
             'CPU' => "x86_64"
         ]
     ];
     $filename = $asset["name"];
     foreach ($PLATFORMS as $suffix => $platform)
     {
-        if (strpos($filename, $suffix) !== FALSE) {
+        if (_strEndsWith($filename, $suffix)) {
             return $platform;
         }
     }
-    
+
     _errExit("No platform for {$filename}\n");
 }
 
 function latestRelease()
 {
     $INFO_PATH = "phplib/latest-release.json";
-    
+
     $tmp = file_get_contents($INFO_PATH, TRUE);
     if ($tmp === FALSE) {
         _errExit("Failed to open {$INFO_PATH}\n");
@@ -89,7 +91,7 @@ function latestRelease()
     if ($raw_info["draft"]) {
         _errExit("Release is draft!\n");
     }
-    
+
     // make final info structure
     $final_info = [
         "name" => $raw_info["name"],
@@ -98,7 +100,7 @@ function latestRelease()
         "zipball_url" => $raw_info["zipball_url"],
         "tarball_url" => $raw_info["tarball_url"]
     ];
-    
+
     // make assets
     $new_assets = array();
     foreach ($raw_info["assets"] as $asset)
@@ -114,7 +116,7 @@ function latestRelease()
     }
     ksort($new_assets, SORT_NATURAL|SORT_FLAG_CASE);
     $final_info["assets"] = $new_assets;
-    
+
     return $final_info;
 }
 
