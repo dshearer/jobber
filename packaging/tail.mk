@@ -141,7 +141,6 @@ clean-common :
 deepclean : clean-common
 	-vagrant destroy -f
 	rm -f .vm-is-created
-	.PHONY : shallowclean
 
 .PHONY : shallowclean
 shallowclean :
