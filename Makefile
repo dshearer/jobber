@@ -83,7 +83,7 @@ dist :
 	rm -rf "${DESTDIR}dist-tmp"
 
 ${GO_WKSPC}/bin/% : ${MAIN_SOURCES} jobfile/parse_time_spec.go
-	@${srcdir}/buildtools/versionge "$$(go version | egrep --only-matching '[[:digit:].]+' | head -n 1)" "${GO_VERSION}"
+	@${srcdir}/buildtools/versionge "$$(go version | egrep -o '[[:digit:].]+' | head -n 1)" "${GO_VERSION}"
 	@echo BUILD $*
 	@${GO} install ${LDFLAGS} "github.com/dshearer/jobber/$*"
 
