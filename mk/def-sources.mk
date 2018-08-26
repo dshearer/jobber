@@ -13,7 +13,7 @@ MAIN_SOURCES := \
 	${CLIENT_SOURCES} \
 	${MASTER_SOURCES} \
 	${RUNNER_SOURCES}
-	
+
 TEST_SOURCES := \
 	${COMMON_TEST_SOURCES} \
 	${JOBFILE_TEST_SOURCES} \
@@ -24,13 +24,18 @@ TEST_SOURCES := \
 GO_SOURCES := \
 	${MAIN_SOURCES} \
 	${TEST_SOURCES}
-	
+
 OTHER_SOURCES := \
+	.circleci \
 	Godeps \
 	LICENSE \
 	Makefile \
 	mk \
+	platform_tests \
 	README.md \
+	smoke_tests/Dockerfile \
+	smoke_tests/Makefile \
+	.travis.yml \
 	vendor \
 	version \
 	${PACKAGING_SOURCES} \
