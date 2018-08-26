@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  build:
+  alpine3:
     docker:
       - image: dshearer/jobber-cci-alpine:2
 
@@ -13,3 +13,9 @@ jobs:
       - store_artifacts:
           path: pkgs
           destination: alpine3
+
+workflows:
+  version: 2
+  build-packages:
+    jobs:
+      - alpine3
