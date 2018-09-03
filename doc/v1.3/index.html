@@ -182,7 +182,7 @@ mkdir -p src/github.com/dshearer
 cd src/github.com/dshearer
 git clone https://github.com/dshearer/jobber.git
 cd jobber
-git checkout v1.3.0
+git checkout v1.3.3
 make check
 sudo make install DESTDIR=/</pre>
 
@@ -199,7 +199,8 @@ sudo make install DESTDIR=/</pre>
     but that should not be a problem if you use systemd; otherwise, <a
       href="https://linux.die.net/man/1/daemonize">daemonize(1)</a> could help.
   </p>
-</section></div>            <section id="jobfile">
+</section>
+</div>            <section id="jobfile">
               <h2>Putting Jobber to Work</h2>
             <div id="overview"><p>
   As with cron, each user can have its own set of jobs, which will be run under
