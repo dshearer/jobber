@@ -1,0 +1,51 @@
+version: 2
+jobs:
+  alpine3:
+    docker:
+      - image: dshearer/jobber-cci-alpine3:2
+
+    working_directory: /home/builder/jobber
+
+    steps:
+      - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/alpine_3.6 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: alpine3
+
+  debian9:
+    docker:
+      - image: dshearer/jobber-cci-debian9:3
+
+    working_directory: /jobber
+
+    steps:
+      - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/debian_9 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: debian9
+
+  centos7:
+    docker:
+      - image: dshearer/jobber-cci-centos7:3
+
+    working_directory: /jobber
+
+    steps:
+      - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/centos_7 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: centos7
+
+workflows:
+  version: 2
+  build-packages:
+    jobs:
+      - alpine3
+      - debian9
+      - centos7
