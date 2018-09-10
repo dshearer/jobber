@@ -13,6 +13,7 @@ pkg-local : ${WORK_DIR}/${SRC_TARBALL}
 	cp "${WORK_DIR}/${SRC_TARBALL}" \
 		"${SRC_ROOT}/../jobber_${VERSION}.orig.tar.gz"
 	cp -R debian-pkg "${SRC_ROOT}/debian"
+	rm -rf "${WORK_DIR}"
 	cd "${SRC_ROOT}" && dpkg-buildpackage -us -uc
 	mkdir -p "${DESTDIR}/"
 	mv "${SRC_ROOT}"/../*.deb "${DESTDIR}/"

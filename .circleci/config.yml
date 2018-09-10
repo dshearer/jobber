@@ -1,25 +1,51 @@
-# Golang CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2
 jobs:
-  build:
+  alpine3:
     docker:
-      # specify the version
-      - image: circleci/golang:1.9
+      - image: dshearer/jobber-cci-alpine3:2
 
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
+    working_directory: /home/builder/jobber
 
-    #### TEMPLATE_NOTE: go expects specific checkout path representing url
-    #### expecting it in the form of
-    ####   /go/src/github.com/circleci/go-tool
-    ####   /go/src/bitbucket.org/circleci/go-tool
-    working_directory: /go/src/github.com/dshearer/jobber
     steps:
       - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/alpine_3.6 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: alpine3
 
-      # specify any bash command here prefixed with `run: `
-      - run: make check
+  debian9:
+    docker:
+      - image: dshearer/jobber-cci-debian9:3
+
+    working_directory: /jobber
+
+    steps:
+      - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/debian_9 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: debian9
+
+  centos7:
+    docker:
+      - image: dshearer/jobber-cci-centos7:3
+
+    working_directory: /jobber
+
+    steps:
+      - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/centos_7 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: centos7
+
+workflows:
+  version: 2
+  build-packages:
+    jobs:
+      - alpine3
+      - debian9
+      - centos7
