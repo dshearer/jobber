@@ -1,4 +1,4 @@
-PLATFORMS = alpine_3.6 centos_6 centos_7 debian_9 ubuntu_14 ubuntu_16
+PLATFORMS = alpine_3.6 centos_6 centos_7 debian_9
 
 .PHONY : main
 main :
@@ -23,7 +23,7 @@ clean-${platform} :
 
 deepclean-${platform} :
 	$${MAKE} -j 1 -C ${platform} deepclean
-	
+
 make-vm-${platform} :
 	$${MAKE} -j 1 -C ${platform} .vm-is-running
 endef
