@@ -167,7 +167,7 @@ func main() {
 	jobfilePath := flag.Args()[0]
 
 	// set umask
-	syscall.Umask(0177)
+	syscall.Umask(0077)
 
 	// get current user
 	var err error
