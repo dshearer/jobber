@@ -105,9 +105,15 @@ func (jq *JobQueue) Pop(ctx context.Context, now time.Time) *jobfile.Job {
 		common.Logger.Printf("Next job to run is %v, at %v.", job.Name,
 			job.NextRunTime.Format(timeFmt))
 
+		/*
+			Golang has a bug in its time package.  We must avoid using most of the
+			Time methods.  Cf. https://github.com/golang/go/issues/27090
+		*/
+
 		// sleep till it's time to run it
-		for now.Before(*job.NextRunTime) {
-			sleepDur := job.NextRunTime.Sub(now)
+		for now.UnixNano() < job.NextRunTime.UnixNano() {
+			nanoDiff := job.NextRunTime.UnixNano() - now.UnixNano()
+			sleepDur := time.Duration(nanoDiff) * time.Nanosecond
 
 			common.Logger.Printf("It is now %v.", now.Format(timeFmt))
 			common.Logger.Printf("Sleeping for %v.", sleepDur)
