@@ -9,9 +9,8 @@ import (
 )
 
 const (
-	VarDirPath         = "/var/jobber"
-	CmdSocketFileName  = "cmd.sock"
-	QuitSocketFileName = "quit.sock"
+	VarDirPath        = "/var/jobber"
+	CmdSocketFileName = "cmd.sock"
 )
 
 var libexecPaths []string = []string{
@@ -25,10 +24,6 @@ func PerUserDirPath(usr *user.User) string {
 
 func CmdSocketPath(usr *user.User) string {
 	return filepath.Join(PerUserDirPath(usr), CmdSocketFileName)
-}
-
-func QuitSocketPath(usr *user.User) string {
-	return filepath.Join(PerUserDirPath(usr), QuitSocketFileName)
 }
 
 /*

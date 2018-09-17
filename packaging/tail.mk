@@ -44,7 +44,7 @@ main :
 	@echo "Choose pkg-local or pkg-vm or test-vm or play-vm"
 
 .PHONY : pkg-vm
-pkg-vm : .vm-is-running ${DESTDIR}${PKGFILE}
+pkg-vm : .vm-is-running shallowclean ${DESTDIR}${PKGFILE}
 
 .vm-is-created :
 	@# NOTE: We do 'vagrant reload' b/c some packages may need a restart
@@ -91,7 +91,8 @@ test-vm : .vm-is-running ${DESTDIR}${PKGFILE} platform_tests.tar
 	# run test scripts
 	${VAGRANT_SSH} "tar xf platform_tests.tar"
 	${VAGRANT_SSH} "sudo robot --include ${ROBOT_TAGS} \
-		platform_tests/test.robot ||:" > testlog.txt
+	  --pythonpath platform_tests/keywords \
+		platform_tests/suites ||:" > testlog.txt
 
 	# retrieve test reports
 	mkdir -p "${DESTDIR}test_report"

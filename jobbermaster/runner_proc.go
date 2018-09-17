@@ -2,17 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"net"
 	"os"
 	"os/exec"
 	"os/user"
+	"path/filepath"
 	"syscall"
+
+	"github.com/dshearer/jobber/common"
 )
 
 type RunnerProc struct {
 	proc             *exec.Cmd
-	usr              *user.User
+	quitSockPath     string
 	quitSockListener net.Listener
 	quitSockConn     net.Conn
 	ExitedChan       <-chan error
@@ -58,7 +60,9 @@ func LaunchRunner(usr *user.User,
 		quit by closing our connection to the socket.
 	*/
 
-	var runnerProc = RunnerProc{usr: usr}
+	var runnerProc = RunnerProc{
+		quitSockPath: filepath.Join(common.PerUserDirPath(usr), "quit.sock"),
+	}
 
 	// look for jobberrunner
 	runnerName := "jobberrunner"
@@ -72,8 +76,8 @@ func LaunchRunner(usr *user.User,
 	defer syscall.Umask(oldUmask)
 
 	// make quit socket
-	os.Remove(common.QuitSocketPath(usr))
-	addr, err := net.ResolveUnixAddr("unix", common.QuitSocketPath(usr))
+	os.Remove(runnerProc.quitSockPath)
+	addr, err := net.ResolveUnixAddr("unix", runnerProc.quitSockPath)
 	if err != nil {
 		return nil, err
 	}
@@ -81,12 +85,18 @@ func LaunchRunner(usr *user.User,
 	if err != nil {
 		return nil, err
 	}
-	if err = common.Chown(common.QuitSocketPath(usr), usr); err != nil {
+	if err = common.Chown(runnerProc.quitSockPath, usr); err != nil {
 		return nil, err
 	}
 
 	// launch it
-	cmd := fmt.Sprintf("%v -c \"%v\"", runnerPath, jobfilePath)
+	cmd := fmt.Sprintf(
+		`%v -q "%v" -u "%v" "%v"`,
+		runnerPath,
+		runnerProc.quitSockPath,
+		common.CmdSocketPath(usr),
+		jobfilePath,
+	)
 	runnerProc.proc = common.Sudo(*usr, cmd)
 	// ensure we don't share TTY with the unprivileged process
 	runnerProc.proc.Stdin = nil
@@ -143,5 +153,5 @@ func (self *RunnerProc) Kill() {
 		self.quitSockListener.Close()
 		self.quitSockListener = nil
 	}
-	os.Remove(common.QuitSocketPath(self.usr))
+	os.Remove(self.quitSockPath)
 }

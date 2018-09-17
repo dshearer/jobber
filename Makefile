@@ -15,11 +15,18 @@ SRC_TARBALL = jobber-$(shell cat ${srcdir}/version).tgz
 SRC_TARBALL_DIR = jobber-$(shell cat ${srcdir}/version)
 
 GO = GOPATH=${GO_WKSPC} go
-GODEP = GOPATH=${GO_WKSPC} godep
 
 GO_VERSION = 1.8
 
 LDFLAGS = -ldflags "-X github.com/dshearer/jobber/common.jobberVersion=`cat version`"
+
+PACKAGES = \
+	github.com/dshearer/jobber/common \
+	github.com/dshearer/jobber/ipc \
+	github.com/dshearer/jobber/jobber \
+	github.com/dshearer/jobber/jobbermaster \
+	github.com/dshearer/jobber/jobberrunner \
+	github.com/dshearer/jobber/jobfile
 
 include mk/def-sources.mk
 
@@ -35,18 +42,8 @@ all : ${GO_WKSPC}/bin/jobber ${GO_WKSPC}/bin/jobbermaster \
 .PHONY : check
 check : ${TEST_SOURCES} jobfile/parse_time_spec.go
 	@go version
-	${GO} vet \
-		github.com/dshearer/jobber/common \
-		github.com/dshearer/jobber/jobber \
-		github.com/dshearer/jobber/jobbermaster \
-		github.com/dshearer/jobber/jobberrunner \
-		github.com/dshearer/jobber/jobfile
-	TMPDIR="${TEST_TMPDIR}" ${GO} test \
-		github.com/dshearer/jobber/common \
-		github.com/dshearer/jobber/jobber \
-		github.com/dshearer/jobber/jobbermaster \
-		github.com/dshearer/jobber/jobberrunner \
-		github.com/dshearer/jobber/jobfile
+	${GO} vet ${PACKAGES}
+	TMPDIR="${TEST_TMPDIR}" ${GO} test ${PACKAGES}
 
 install : \
 	${DESTDIR}${libexecdir}/jobbermaster \
@@ -94,17 +91,9 @@ jobfile/parse_time_spec.go : ${GOYACC} ${JOBFILE_SOURCES}
 	@echo GEN SRC
 	@${GO_WITH_TOOLS} generate github.com/dshearer/jobber/jobfile
 
-.PHONY : get-deps
-get-deps :
-	${GODEP} save ./...
-
 .PHONY : clean
 clean : clean-buildtools
 	@echo CLEAN
-	@-${GO} clean -i github.com/dshearer/jobber/common
-	@-${GO} clean -i github.com/dshearer/jobber/jobfile
-	@-${GO} clean -i github.com/dshearer/jobber/jobber
-	@-${GO} clean -i github.com/dshearer/jobber/jobbermaster
-	@-${GO} clean -i github.com/dshearer/jobber/jobberrunner
+	@-${GO} clean -i ${PACKAGES}
 	@rm -f "${DESTDIR}${SRC_TARBALL}.tgz" jobfile/parse_time_spec.go \
 		jobfile/y.output

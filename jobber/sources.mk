@@ -1,15 +1,14 @@
 CLIENT_SOURCES := \
-	jobber/cat_cmd.go \
+	jobber/cmd_cat.go \
+	jobber/cmd_init.go \
+	jobber/cmd_list.go \
+	jobber/cmd_log.go \
+	jobber/cmd_pause.go \
+	jobber/cmd_reload.go \
+	jobber/cmd_resume.go \
+	jobber/cmd_test_job.go \
 	jobber/daemon_client.go \
-	jobber/init_cmd.go \
-	jobber/list_cmd.go \
-	jobber/log_cmd.go \
 	jobber/main.go \
-	jobber/pause_cmd.go \
-	jobber/reload_cmd.go \
-	jobber/resume_cmd.go \
-	jobber/sources.mk \
-	jobber/test_cmd.go
+	jobber/sources.mk
 
-CLIENT_TEST_SOURCES := 
-
+CLIENT_TEST_SOURCES :=

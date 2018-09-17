@@ -4,10 +4,11 @@ package jobfile
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/dshearer/jobber/common"
 )
 
 const (
@@ -66,6 +67,7 @@ type TimeSpec interface {
 	fmt.Stringer
 	Satisfied(int) bool
 	IsWildcard() bool
+	Derandomize()
 }
 
 type FullTimeSpec struct {
@@ -88,23 +90,15 @@ func (self FullTimeSpec) String() string {
 }
 
 func (self *FullTimeSpec) Derandomize() {
-	timeSpecs := [...]TimeSpec{
-		self.Sec,
-		self.Min,
-		self.Hour,
-		self.Mday,
-		self.Mon,
-		self.Wday,
-	}
-	for _, spec := range timeSpecs {
-		switch randSpec := spec.(type) {
-		case *RandomTimeSpec:
-			randSpec.Derandomize()
-		}
-	}
+	self.Sec.Derandomize()
+	self.Min.Derandomize()
+	self.Hour.Derandomize()
+	self.Mday.Derandomize()
+	self.Mon.Derandomize()
+	self.Wday.Derandomize()
 }
 
-func (self *FullTimeSpec) Satisfied(t time.Time) bool {
+func (self FullTimeSpec) Satisfied(t time.Time) bool {
 	nondayMatch := self.Sec.Satisfied(t.Second()) &&
 		self.Min.Satisfied(t.Minute()) &&
 		self.Hour.Satisfied(t.Hour()) &&
@@ -131,48 +125,52 @@ func (self *FullTimeSpec) Satisfied(t time.Time) bool {
 
 type WildcardTimeSpec struct{}
 
-func (self *WildcardTimeSpec) IsWildcard() bool {
+func (self WildcardTimeSpec) IsWildcard() bool {
 	return true
 }
 
-func (self *WildcardTimeSpec) String() string {
+func (self WildcardTimeSpec) String() string {
 	return "*"
 }
 
-func (self *WildcardTimeSpec) Satisfied(v int) bool {
+func (self WildcardTimeSpec) Satisfied(v int) bool {
 	return true
 }
+
+func (self WildcardTimeSpec) Derandomize() {}
 
 type OneValTimeSpec struct {
 	val int
 }
 
-func (self *OneValTimeSpec) IsWildcard() bool {
+func (self OneValTimeSpec) IsWildcard() bool {
 	return false
 }
 
-func (self *OneValTimeSpec) String() string {
+func (self OneValTimeSpec) String() string {
 	return fmt.Sprintf("%v", self.val)
 }
 
-func (self *OneValTimeSpec) Satisfied(v int) bool {
+func (self OneValTimeSpec) Satisfied(v int) bool {
 	return self.val == v
 }
+
+func (self OneValTimeSpec) Derandomize() {}
 
 type SetTimeSpec struct {
 	desc string
 	vals []int
 }
 
-func (self *SetTimeSpec) IsWildcard() bool {
+func (self SetTimeSpec) IsWildcard() bool {
 	return false
 }
 
-func (self *SetTimeSpec) String() string {
+func (self SetTimeSpec) String() string {
 	return self.desc
 }
 
-func (self *SetTimeSpec) Satisfied(v int) bool {
+func (self SetTimeSpec) Satisfied(v int) bool {
 	for _, v2 := range self.vals {
 		if v == v2 {
 			return true
@@ -180,6 +178,8 @@ func (self *SetTimeSpec) Satisfied(v int) bool {
 	}
 	return false
 }
+
+func (self SetTimeSpec) Derandomize() {}
 
 /*
 A time spec that chooses (pseudo-)randomly from a set of values.
@@ -192,11 +192,11 @@ type RandomTimeSpec struct {
 	pickedVal *int
 }
 
-func (self *RandomTimeSpec) IsWildcard() bool {
+func (self RandomTimeSpec) IsWildcard() bool {
 	return false
 }
 
-func (self *RandomTimeSpec) String() string {
+func (self RandomTimeSpec) String() string {
 	if self.pickedVal == nil {
 		return self.desc
 	} else {
@@ -209,7 +209,7 @@ Get whether the time spec is satisfied by val.
 
 If Derandomize has never been called, this method will panic.
 */
-func (self *RandomTimeSpec) Satisfied(val int) bool {
+func (self RandomTimeSpec) Satisfied(val int) bool {
 	if self.pickedVal == nil {
 		panic("RandomTimeSpec has never been derandomized")
 	}
@@ -240,18 +240,19 @@ func (self *RandomTimeSpec) Derandomize() {
    Get the picked value.  If Derandomize has never been called,
    returns nil.
 */
-func (self *RandomTimeSpec) PickedValue() *int {
+func (self RandomTimeSpec) PickedValue() *int {
 	return self.pickedVal
 }
 
 func ParseFullTimeSpec(s string) (*FullTimeSpec, error) {
-	var fullSpec FullTimeSpec
-	fullSpec.Sec = &WildcardTimeSpec{}
-	fullSpec.Min = &WildcardTimeSpec{}
-	fullSpec.Hour = &WildcardTimeSpec{}
-	fullSpec.Mday = &WildcardTimeSpec{}
-	fullSpec.Mon = &WildcardTimeSpec{}
-	fullSpec.Wday = &WildcardTimeSpec{}
+	fullSpec := FullTimeSpec{
+		Sec:  WildcardTimeSpec{},
+		Min:  WildcardTimeSpec{},
+		Hour: WildcardTimeSpec{},
+		Mday: WildcardTimeSpec{},
+		Mon:  WildcardTimeSpec{},
+		Wday: WildcardTimeSpec{},
+	}
 
 	var timeParts []string = strings.Fields(s)
 

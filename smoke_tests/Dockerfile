@@ -3,7 +3,7 @@ FROM centos:6
 RUN yum -y install tar make sudo epel-release rpm-build \
     selinux-policy-devel checkpolicy rsync
 RUN yum clean all
-RUN yum -y install golang python-pip
+RUN yum -y install golang python-pip lsof
 RUN yum clean all
 RUN pip install robotframework
 
@@ -18,4 +18,4 @@ CMD tar xzf /jobber.tgz && \
     yum install -y /*.rpm && \
     useradd normuser --create-home && \
     tar xf /platform_tests.tar && \
-    robot platform_tests/test.robot
+    robot --pythonpath platform_tests/keywords platform_tests/suites
