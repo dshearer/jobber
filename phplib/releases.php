@@ -45,11 +45,11 @@ function _strEndsWith($haystack, $needle)
 function _findPlatform($asset)
 {
     $PLATFORMS = [
-        'el6.centos.x86_64.rpm' => [
+        'el6.x86_64.rpm' => [
             'OS' => "RHEL/CentOS 6",
             'CPU' => "x86_64"
         ],
-        'el7.centos.x86_64.rpm' => [
+        'el7.x86_64.rpm' => [
             'OS' => "RHEL/CentOS 7",
             'CPU' => "x86_64"
         ],
