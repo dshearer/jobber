@@ -10,7 +10,7 @@ Force Tags       test    security
 Privilege Separation
     # make jobfile for normal user
     ${output_file}=    Make Tempfile    create=${True}
-    ${cmd}=    Set Variable    echo -n 'Hello' > ${output_file}
+    ${cmd}=    Set Variable    echo 'Hello' > ${output_file}
     ${jobfile}=    Make Jobfile    TestJob    ${cmd}
 
     # change owner and mode of output file
