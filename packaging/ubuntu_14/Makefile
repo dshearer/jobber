@@ -10,7 +10,7 @@ UNINSTALL_PKG_CMD = sudo dpkg -r jobber
 
 .PHONY : pkg-local
 pkg-local : ${WORK_DIR}/${SRC_TARBALL}
-	cp "${WORK_DIR}/${SRC_TARBALL}" \
+	mv "${WORK_DIR}/${SRC_TARBALL}" \
 		"${SRC_ROOT}/../jobber_${VERSION}.orig.tar.gz"
 	cp -RL debian-pkg "${SRC_ROOT}/debian"
 	cd "${SRC_ROOT}" && dpkg-buildpackage -us -uc
