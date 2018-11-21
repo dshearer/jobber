@@ -10,4 +10,5 @@ results
 .vm-is-created
 .vm-is-running
 .DS_Store
-su_cmd_osx.go
+*.pyc
+*.pyo

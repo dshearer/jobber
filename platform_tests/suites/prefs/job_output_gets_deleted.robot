@@ -32,7 +32,7 @@ Job Output Is Deleted on Schedule
 Install Jobfile with Job that Produces Output
     ${output_dir}=    Make Tempfile
     Create Directory    ${output_dir}
-    ${cmd}=    Set Variable    echo -n 'Hi'
+    ${cmd}=    Set Variable    echo 'Hi'
     ${jobfile}=    Make Jobfile    job_name=${JOB_NAME}    cmd=${cmd}
     ...    notify_on_success=${True}    stdout_output_dir=${output_dir}
     ...    stdout_output_max_age=${JOB_OUTPUT_MAX_AGE_DAYS}

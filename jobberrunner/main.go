@@ -147,7 +147,7 @@ func main() {
 	haveInetParam := inetPort_p != nil && *inetPort_p > 0
 	if (!haveUdsParam && !haveInetParam) || (haveUdsParam && haveInetParam) {
 		usage("Must specify exactly one of -u and -p")
-		quit(0)
+		quit(1)
 	}
 
 	// handle flags
@@ -187,10 +187,10 @@ func main() {
 	// make IPC server
 	if haveUdsParam {
 		gIpcServer = NewUdsIpcServer(*udsSockPath_p, gJobManager.CmdChan)
-		common.Logger.Printf("Listing for commands on %v", *udsSockPath_p)
+		common.Logger.Printf("Listening for commands on %v", *udsSockPath_p)
 	} else {
 		gIpcServer = NewInetIpcServer(*inetPort_p, gJobManager.CmdChan)
-		common.Logger.Printf("Listing for commands on :%v", *inetPort_p)
+		common.Logger.Printf("Listening for commands on :%v", *inetPort_p)
 	}
 	if err := gIpcServer.Launch(); err != nil {
 		common.ErrLogger.Printf("Error: %v", err)

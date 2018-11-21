@@ -5,8 +5,9 @@ COMMON_SOURCES := \
 	common/logging.go \
 	common/path.go \
 	common/sources.mk \
-	common/su_cmd_linux.go \
+	common/su_cmd_darwin.go \
 	common/su_cmd_freebsd.go \
+	common/su_cmd_linux.go \
 	common/user.go \
 	common/version.go
 

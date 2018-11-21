@@ -41,7 +41,7 @@ Install Jobfile with Job that Produces Output
     [Arguments]    ${stdout}    ${stderr}
 
     # make command
-    ${cmd}=    Set Variable    echo -n '${STDOUT_EXP_OUTPUT}'\necho -n '${STDERR_EXP_OUTPUT}' >&2
+    ${cmd}=    Set Variable    echo '${STDOUT_EXP_OUTPUT}'\necho '${STDERR_EXP_OUTPUT}' >&2
 
     # make jobfile
     ${output_dir}=    Make Tempfile
@@ -115,4 +115,4 @@ Output Files Should Have Contents
     [Arguments]    ${output_files}    ${expected_output}
 
     :FOR    ${file}    IN    @{output_files}
-    \    File Should Have Contents    ${file}    ${expected_output}
+    \    File Should Have Contents    ${file}    ${expected_output}    strip_space=${True}
