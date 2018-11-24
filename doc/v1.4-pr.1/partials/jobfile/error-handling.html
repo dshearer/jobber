@@ -1,0 +1,50 @@
+<section>
+  <h3>Error-handling</h3>
+
+  <p>When you run <code>jobber list</code> to list the jobs for a user, you get
+    an output like this:</p>
+
+  <pre>
+NAME         STATUS  SEC/MIN/HR/MDAY/MTH/WDAY  NEXT RUN TIME              NOTIFY ON SUCCESS  NOTIFY ON ERR  NOTIFY ON FAIL  ERR HANDLER
+DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC                                    system-email    Stop
+</pre>
+
+  <p>In this example, the job&rsquo;s status is <code>Good</code>, which means that
+    runs of the job will be scheduled normally.  A status of <code>Failed</code>
+    means that runs will no longer be scheduled.  A status of
+    <code>Backoff</code> means that runs will be scheduled in the following several
+    seconds according to an exponential backoff algorithm.</p>
+
+  <p>A job&rsquo;s status is affected by <dfn>job errors</dfn> &mdash;
+    that is, runs of the job&rsquo;s command script that resulted in non-0 exit codes.
+    This is done according to the job&rsquo;s <dfn>error-handler</dfn>, as specified
+    in the jobfile under the <code>onError</code> key in the job&rsquo;s definition.</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Value</th>
+        <th>Effect when a job error happens</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Stop</code></td>
+        <td>Stop scheduling runs of this job.  (The status is set to <code>Failed</code>).</td>
+      </tr>
+      <tr>
+        <td><code>Backoff</code></td>
+        <td>Schedule runs of this job according to an exponential backoff
+          algorithm (setting the status to
+          <code>Backoff</code>). If a later run of the job succeeds, jobber resumes
+          scheduling this job normally; but if the job continues to err,
+          Jobber will eventually stop scheduling it (setting the status to
+          <code>Failed</code>).</td>
+      </tr>
+      <tr>
+        <td><code>Continue</code></td>
+        <td>(Default) Continue scheduling this job normally.  (The status is always <code>Good</code>.)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

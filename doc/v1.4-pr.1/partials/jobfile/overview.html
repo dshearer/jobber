@@ -1,0 +1,109 @@
+<p>
+  As with cron, each user can have its own set of jobs, which will be run under
+  that user&rsquo;s privileges. A user&rsquo;s jobs are defined in a
+  <dfn>jobfile</dfn>
+  &mdash; a file named &ldquo;.jobber&rdquo; in the user&rsquo;s home directory.
+</p>
+
+<p class="alert alert-info">IMPORTANT: Jobfiles must be owned
+by the user who owns the home directory that contains them, and their
+permissions must not allow the owning group or any other users to write
+to them (i.e., the permission bits must exclude 022).
+</p>
+
+<aside class="alert alert-success">
+  <h4 class="alert-heading">Tip</h4>
+
+  Run
+  <code>jobber init</code>
+  to get started &mdash; it will make a do-nothing jobfile in the current
+  user&rsquo;s home directory with a bunch of helpful comments that explain how to define jobs and
+  other settings.
+</aside>
+
+
+<p>
+Here's an example for a user named &ldquo;bob&rdquo; (<code>/home/bob/.jobber</code>).
+<code>bob</code> has three jobs:
+<ol>
+  <li><code>DailyBackup</code>: Daily incremental backup of /home/bob/documents</li>
+  <li><code>OffsiteBackup</code>: Weekly offsite backup of /home/bob/documents</li>
+  <li><code>GetAirQuality</code>: Daily retrieval of local air quality</li>
+</ol>
+
+<p>Results and errors from each of these jobs are handled a bit differently.
+<code>DailyBackup</code> really should not have errors; if an error nevertheless
+happens, the job is stopped permanently and an email is sent to <code>bob</code>.</p>
+
+<p><code>OffsiteBackup</code>, on the other hand, uses an online service, which
+may occasionally have trouble; in such cases, this job applies exponential backoff
+several times before stopping permanently.  When it fails, an email is sent to <code>bob</code>
+and the stdout and stderr of the job are written to files in the directory
+<code>/home/bob/backup-results</code>.</p>
+
+<p>Finally, <code>GetAirQuality</code> also uses an online service, but it is not
+as vital as <code>OffsiteBackup</code>, so errors are simply ignored.  On success,
+however, details of the run (including stdout) to the shell script
+<code>/home/bob/text-air-quality.sh</code>, which (presumably) sends a text
+message about the day&rsquo;s air quality.</p>
+
+<pre>
+version: 1.4
+
+prefs:
+  logPath: /home/bob/jobber/jobber.log
+  runLog:
+    type: file
+    path: /home/bob/jobber/runlog
+    maxFileLen: 100m
+    maxHistories: 2
+
+jobs:
+  DailyBackup:
+    cmd: /usr/local/bin/backup /home/bob/documents
+    time: 0 0 13
+    onError: Stop
+    notifyOnFailure: [*systemEmailSink]
+
+  OffsiteBackup:
+    cmd: |
+      tar -C /home/bob -czf /home/bob/documents.tgz documents
+      /usr/local/bin/backup-offsite /home/bob/documents.tgz
+    time: 0 0 14 * * 1
+    onError: Backoff
+    notifyOnFailure: [*systemEmailSink, *filesystemSink]
+
+  GetAirQuality:
+    cmd: /home/bob/get-air-quality.sh
+    time: 0 0 8
+    onError: Continue
+    notifyOnSuccess: [*textAirQuality]
+
+resultSinks:
+  - &systemEmailSink
+    type: system-email
+
+  - &filesystemSink
+    type: filesystem
+    path: /home/bob/backup-results
+    data: [stdout, stderr]
+    maxAgeDays: 10
+
+  - &textAirQuality
+    type: program
+    path: /home/bob/text-air-quality.sh
+</pre>
+
+<p>The details of the jobfile structure are given in the following sections.
+  In general, each job must be given a script to run (<code>cmd</code>) and a
+  string specifying when it should run it (<code>time</code>).  Optionally,
+  you can specify what happens to a job if the script returns an error
+  (<code>onError</code>)</p>
+
+<p>You can also specify what should be done with the results of a job.
+  This is done using &ldquo;result sinks&rdquo;,
+which provide several handy ways of responding to the results of job runs.
+Result sinks are defined in the <code>resultSinks</code> section, and are
+referenced within job definitions in the <code>notifyOnSuccess</code>,
+<code>notifyOnError</code>, and <code>notifyOnFailure</code> items.  (The syntax
+uses <a href="http://yaml.org/spec/1.2/spec.html#id2785586">YAML anchors</a>.)</p>

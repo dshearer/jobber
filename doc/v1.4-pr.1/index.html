@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset='utf-8' />
+<meta http-equiv="X-UA-Compatible" content="chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description"
+  content="Jobber: An alternative to cron, with sophisticated status-reporting and error-handling." />
+
+<link rel="stylesheet"
+  href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+  integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"
+  crossorigin="anonymous" />
+
+<link rel="stylesheet" href="/jobber/stylesheets/app.css" />
+
+<script src="https://use.fontawesome.com/9c63186c95.js"></script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"
+  type="text/javascript"></script>
+
+<script
+  src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
+  integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
+  crossorigin="anonymous" type="text/javascript"></script><link rel="stylesheet" href="/jobber/stylesheets/doc.css" />
+<script src="/jobber/scripts/doc.js"></script>
+
+<title>How to Use Jobber</title>
+
+<script lang="test/javascript">
+	g_curr_version = "1.4-pr.1";
+
+	function onLoad() {
+		// make version selector
+		$("header h1 small").append(makeVersionsSelect(g_curr_version));
+	}
+</script>
+</head>
+
+<body onload="onLoad()" data-spy="scroll" data-target="#toc-container"
+  data-offset="100">
+
+  <!-- NAV BAR -->
+        <nav class="navbar navbar-default">
+        <div class="container">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed"
+              data-toggle="collapse" data-target="#navbar-collapse"
+              aria-expanded="false">
+              <span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span>
+              <span class="icon-bar"></span> <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/jobber/">Jobber</a>
+          </div>
+          <div class="collapse navbar-collapse" id="navbar-collapse">
+            <ul class="nav navbar-nav">
+            <li><a href="/jobber/download/">
+                    Download                  </a>
+                </li>
+                <li class="active"><a href="/jobber/doc/v1.3/">
+                    How to Use                  </a>
+                </li>
+                <li><a href="/jobber/security/">
+                    Security                  </a>
+                </li>
+                <li><a href="/jobber/blog/">
+                    Blog                  </a>
+                </li>
+                            </ul>
+          </div>
+        </div>
+      </nav>
+    
+  <header class="container">
+    <h1>
+      How to Use Jobber <br /> <small>Version </small>
+    </h1>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <div id="main-container" class="container">
+    <div class="row">
+
+      <div class="col-md-3">
+        <div id="toc-container" class="hidden-sm hidden-xs hidden-print"
+          data-spy="affix" data-offset-top="150">
+          <nav class="nav internal-nav">
+            <ul class="nav-list-1">
+              <li class="top-nav-item nobr" target="_self"><a href="#">How
+                  to Use</a></li>
+              <li>
+                <ul class="nav-list-2">
+                          <li class="nobr">
+          <a target="_self" href="#deployment">
+            Deployment          </a>
+        </li>        <li class="nobr">
+          <a target="_self" href="#jobfile">
+            Putting Jobber to Work          </a>
+        <ul class="nav-list-3">                <li class="nobr">
+                  <a target="_self" href="#overview">
+                    Overview                  </a>
+                </li>
+                                <li class="nobr">
+                  <a target="_self" href="#time-strings">
+                    Time strings                  </a>
+                </li>
+                                <li class="nobr">
+                  <a target="_self" href="#error-handling">
+                    Error-handling                  </a>
+                </li>
+                                <li class="nobr">
+                  <a target="_self" href="#notifications">
+                    Doing Stuff with Job Run Results                  </a>
+                </li>
+                                <li class="nobr">
+                  <a target="_self" href="#run-history">
+                    Keeping a Log of Job Runs                  </a>
+                </li>
+                </ul></li>        <li class="nobr">
+          <a target="_self" href="#loading-jobs">
+            Loading Jobs          </a>
+        </li>        <li class="nobr">
+          <a target="_self" href="#listing-jobs">
+            Listing Jobs          </a>
+        </li>        <li class="nobr">
+          <a target="_self" href="#listing-runs">
+            Listing Runs          </a>
+        </li>        <li class="nobr">
+          <a target="_self" href="#testing-jobs">
+            Testing Jobs          </a>
+        </li>        <li class="nobr">
+          <a target="_self" href="#pausing-resuming-jobs">
+            Pausing and Resuming Jobs          </a>
+        </li>        <li class="nobr">
+          <a target="_self" href="#cat-jobs">
+            Printing a Job's Command          </a>
+        </li>                </ul>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+      <!-- col -->
+
+      <section id="main-section" class="col-md-9 main" role="main">
+        <div id="deployment"><section>
+  <h2>Deployment</h2>
+
+  <p itemprop="requirements">
+    Jobber is written in <a href="https://golang.org/">Go</a>, and it should be
+    possible to compile and run it on <span itemprop="operatingSystem">any
+      Unix/Linux system</span>.
+  </p>
+
+  <aside class="alert alert-warning">
+    <h4 class="alert-heading">Warning</h4>
+    Privilege-escalation is possible if the OS on which Jobber runs allows
+    non-root users to change the owner of a file to another user. Fortunately,
+    this is not possible in Linux and is not common in other kinds of Unix.
+  </aside>
+
+  <h3>Installation from a Package</h3>
+
+  <p>
+    The easiest way to install Jobber is via <a href="/jobber/download">a
+      binary package</a>.
+  </p>
+
+  <h3>Compilation and Installation from Source</h3>
+
+  <p>Instead of installing a binary package, you can certainly compile and
+    install Jobber yourself.</p>
+
+  <p>You need Go 1.8 or later to compile Jobber. So, install Go, pick a
+    place for your workspace (say, /path/to/your/workspace), and ensure that the
+    environment variable <code>GOPATH</code> includes a path to your workspace.
+    Then:</p>
+
+  <pre>cd /path/to/your/workspace
+mkdir -p src/github.com/dshearer
+cd src/github.com/dshearer
+git clone https://github.com/dshearer/jobber.git
+cd jobber
+git checkout v1.4-pr.1
+make check
+sudo make install DESTDIR=/</pre>
+
+  <p>This will install the following:</p>
+  <ul>
+    <li>/usr/local/bin/jobber</li>
+    <li>/usr/local/libexec/jobbermaster</li>
+    <li>/usr/local/libexec/jobberrunner</li>
+  </ul>
+
+  <p>
+    Finally, do something to ensure that jobbermaster runs as a daemon (as root)
+    when your computer boots. Note that jobbermaster does not daemonize itself,
+    but that should not be a problem if you use systemd; otherwise, <a
+      href="https://linux.die.net/man/1/daemonize">daemonize(1)</a> could help.
+  </p>
+</section>
+</div>            <section id="jobfile">
+              <h2>Putting Jobber to Work</h2>
+            <div id="overview"><p>
+  As with cron, each user can have its own set of jobs, which will be run under
+  that user&rsquo;s privileges. A user&rsquo;s jobs are defined in a
+  <dfn>jobfile</dfn>
+  &mdash; a file named &ldquo;.jobber&rdquo; in the user&rsquo;s home directory.
+</p>
+
+<p class="alert alert-info">IMPORTANT: Jobfiles must be owned
+by the user who owns the home directory that contains them, and their
+permissions must not allow the owning group or any other users to write
+to them (i.e., the permission bits must exclude 022).
+</p>
+
+<aside class="alert alert-success">
+  <h4 class="alert-heading">Tip</h4>
+
+  Run
+  <code>jobber init</code>
+  to get started &mdash; it will make a do-nothing jobfile in the current
+  user&rsquo;s home directory with a bunch of helpful comments that explain how to define jobs and
+  other settings.
+</aside>
+
+
+<p>
+Here's an example for a user named &ldquo;bob&rdquo; (<code>/home/bob/.jobber</code>).
+<code>bob</code> has three jobs:
+<ol>
+  <li><code>DailyBackup</code>: Daily incremental backup of /home/bob/documents</li>
+  <li><code>OffsiteBackup</code>: Weekly offsite backup of /home/bob/documents</li>
+  <li><code>GetAirQuality</code>: Daily retrieval of local air quality</li>
+</ol>
+
+<p>Results and errors from each of these jobs are handled a bit differently.
+<code>DailyBackup</code> really should not have errors; if an error nevertheless
+happens, the job is stopped permanently and an email is sent to <code>bob</code>.</p>
+
+<p><code>OffsiteBackup</code>, on the other hand, uses an online service, which
+may occasionally have trouble; in such cases, this job applies exponential backoff
+several times before stopping permanently.  When it fails, an email is sent to <code>bob</code>
+and the stdout and stderr of the job are written to files in the directory
+<code>/home/bob/backup-results</code>.</p>
+
+<p>Finally, <code>GetAirQuality</code> also uses an online service, but it is not
+as vital as <code>OffsiteBackup</code>, so errors are simply ignored.  On success,
+however, details of the run (including stdout) to the shell script
+<code>/home/bob/text-air-quality.sh</code>, which (presumably) sends a text
+message about the day&rsquo;s air quality.</p>
+
+<pre>
+version: 1.4
+
+prefs:
+  logPath: /home/bob/jobber/jobber.log
+  runLog:
+    type: file
+    path: /home/bob/jobber/runlog
+    maxFileLen: 100m
+    maxHistories: 2
+
+jobs:
+  DailyBackup:
+    cmd: /usr/local/bin/backup /home/bob/documents
+    time: 0 0 13
+    onError: Stop
+    notifyOnFailure: [*systemEmailSink]
+
+  OffsiteBackup:
+    cmd: |
+      tar -C /home/bob -czf /home/bob/documents.tgz documents
+      /usr/local/bin/backup-offsite /home/bob/documents.tgz
+    time: 0 0 14 * * 1
+    onError: Backoff
+    notifyOnFailure: [*systemEmailSink, *filesystemSink]
+
+  GetAirQuality:
+    cmd: /home/bob/get-air-quality.sh
+    time: 0 0 8
+    onError: Continue
+    notifyOnSuccess: [*textAirQuality]
+
+resultSinks:
+  - &systemEmailSink
+    type: system-email
+
+  - &filesystemSink
+    type: filesystem
+    path: /home/bob/backup-results
+    data: [stdout, stderr]
+    maxAgeDays: 10
+
+  - &textAirQuality
+    type: program
+    path: /home/bob/text-air-quality.sh
+</pre>
+
+<p>The details of the jobfile structure are given in the following sections.
+  In general, each job must be given a script to run (<code>cmd</code>) and a
+  string specifying when it should run it (<code>time</code>).  Optionally,
+  you can specify what happens to a job if the script returns an error
+  (<code>onError</code>)</p>
+
+<p>You can also specify what should be done with the results of a job.
+  This is done using &ldquo;result sinks&rdquo;,
+which provide several handy ways of responding to the results of job runs.
+Result sinks are defined in the <code>resultSinks</code> section, and are
+referenced within job definitions in the <code>notifyOnSuccess</code>,
+<code>notifyOnError</code>, and <code>notifyOnFailure</code> items.  (The syntax
+uses <a href="http://yaml.org/spec/1.2/spec.html#id2785586">YAML anchors</a>.)</p>
+</div><div id="time-strings"><section>
+  <h3 id="time-strings">Time Strings</h3>
+
+  <p>
+    Field
+    <code>time</code>
+    specifies the schedule at which a job is run, in a manner similar to how
+    cron jobs&rsquo; schedules are specified: with a space-separated list of up
+    to six specifiers, each one of which constrains a different component of
+    time (second, minute, hour, etc.). Schematically:
+  </p>
+
+  <blockquote>
+    <code>sec min hour month_day month week_day</code>
+  </blockquote>
+
+  <p>
+    <strong>A job is scheduled thus:</strong> the next run time is the time that
+    satisfies the second, minute, hour, and month specifiers and at least one of
+    the month-day and weekday specifiers.
+  </p>
+
+  <p>
+    <strong>Important:</strong> If a specifier is one of the random specifiers
+    (beginning with
+    <code>R</code>
+    ), a random value is chosen when the jobfile is loaded, and stays the same
+    until the jobfile is loaded again.
+  </p>
+
+  <p>Each specifier can take one of the following forms: (&ldquo;a&rdquo;,
+    &ldquo;b&rdquo;, &ldquo;c&rdquo;, and &ldquo;n&rdquo; are placeholders for
+    arbitrary numerals.)</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Specifier Form</th>
+        <th>What It Matches</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>*</code></td>
+        <td>Any value</td>
+      </tr>
+      <tr>
+        <td><code>
+            <var>a</var>
+          </code></td>
+        <td>The value <var>a</var></td>
+      </tr>
+      <tr>
+        <td><code>*/<var>n</var></code></td>
+        <td>Every <var>a</var>-th value &mdash; e.g., <code>*/25</code> in
+          the second specifier would match 0, 25, and 50, whereas in the month
+          specifier it would match 1 and 26.
+        </td>
+      </tr>
+      <tr>
+        <td><code><var>a</var>,<var>b</var>,<var>c</var>,...</code></td>
+        <td>The values <var>a</var>, <var>b</var>, <var>c</var>, ... 
+        &mdash; e.g., <code>10, 20, 30, 40</code> matches 10, 20, 30, and 40.
+        </td>
+      </tr>
+      <tr>
+        <td><code><var>a</var>-<var>b</var></code></td>
+        <td>Any of the values between and including <var>a</var> and 
+        <var>b</var></td>
+      </tr>
+      <tr>
+        <td><code>R</code>
+        <td>A random value</td>
+      </tr>
+      <tr>
+        <td><code>R<var>a</var>-<var>b</var></code>
+        <td>A random value between and including <var>a</var> and 
+        <var>b</var></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>The specifiers have different permitted values for the placeholders in
+    the specifier forms:</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Specifier</th>
+        <th>Values for &ldquo;a&rdquo;, &ldquo;b&rdquo;, and
+          &ldquo;c&rdquo;</th>
+        <th>Values for &ldquo;n&rdquo;</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>sec</td>
+        <td><code>0</code> thru <code>59</code></td>
+        <td><code>1</code> thru <code>59</code></td>
+      </tr>
+      <tr>
+        <td>min</td>
+        <td><code>0</code> thru <code>59</code></td>
+        <td><code>1</code> thru <code>59</code></td>
+      </tr>
+      <tr>
+        <td>hour</td>
+        <td><code>0</code> thru <code>23</code></td>
+        <td><code>1</code> thru <code>23</code></td>
+      </tr>
+      <tr>
+        <td>month_day</td>
+        <td><code>1</code> thru <code>31</code></td>
+        <td><code>1</code> thru <code>30</code></td>
+      </tr>
+      <tr>
+        <td>month</td>
+        <td><code>1</code> thru <code>12</code></td>
+        <td><code>1</code> thru <code>11</code></td>
+      </tr>
+      <tr>
+        <td>week_day</td>
+        <td><code>0</code> thru <code>6</code></td>
+        <td><code>1</code> thru <code>5</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    The default value for
+    <code>time</code>
+    is
+    <code>* * * * * *</code>
+    .
+  </p>
+
+  <aside class="alert alert-warning">
+    Because in a YAML document
+    <code>*</code>
+    has a special meaning at the beginning of an item, if your time string
+    starts with
+    <code>*</code>
+    you must quote the whole string, thus:
+    <code>time: '*/10'</code>
+  </aside>
+</section></div><div id="error-handling"><section>
+  <h3>Error-handling</h3>
+
+  <p>When you run <code>jobber list</code> to list the jobs for a user, you get
+    an output like this:</p>
+
+  <pre>
+NAME         STATUS  SEC/MIN/HR/MDAY/MTH/WDAY  NEXT RUN TIME              NOTIFY ON SUCCESS  NOTIFY ON ERR  NOTIFY ON FAIL  ERR HANDLER
+DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC                                    system-email    Stop
+</pre>
+
+  <p>In this example, the job&rsquo;s status is <code>Good</code>, which means that
+    runs of the job will be scheduled normally.  A status of <code>Failed</code>
+    means that runs will no longer be scheduled.  A status of
+    <code>Backoff</code> means that runs will be scheduled in the following several
+    seconds according to an exponential backoff algorithm.</p>
+
+  <p>A job&rsquo;s status is affected by <dfn>job errors</dfn> &mdash;
+    that is, runs of the job&rsquo;s command script that resulted in non-0 exit codes.
+    This is done according to the job&rsquo;s <dfn>error-handler</dfn>, as specified
+    in the jobfile under the <code>onError</code> key in the job&rsquo;s definition.</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Value</th>
+        <th>Effect when a job error happens</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Stop</code></td>
+        <td>Stop scheduling runs of this job.  (The status is set to <code>Failed</code>).</td>
+      </tr>
+      <tr>
+        <td><code>Backoff</code></td>
+        <td>Schedule runs of this job according to an exponential backoff
+          algorithm (setting the status to
+          <code>Backoff</code>). If a later run of the job succeeds, jobber resumes
+          scheduling this job normally; but if the job continues to err,
+          Jobber will eventually stop scheduling it (setting the status to
+          <code>Failed</code>).</td>
+      </tr>
+      <tr>
+        <td><code>Continue</code></td>
+        <td>(Default) Continue scheduling this job normally.  (The status is always <code>Good</code>.)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+</div><div id="notifications"><section>
+  <h3>Doing Stuff with Job Run Output</h3>
+
+  <p>A run of a job results in one of three events:</p>
+  <table class="table">
+    <tr>
+      <td><dfn>Job success</dfn></td>
+      <td>The job (or, specifically, the shell script that the job runs)
+        exited with status 0</td>
+    </tr>
+    <tr>
+      <td><dfn>Job error</dfn></td>
+      <td>The job (or, specifically, the shell script that the job runs)
+        exited with a non-0 status</td>
+    </tr>
+    <tr>
+      <td><dfn>Job failure</dfn></td>
+      <td>Jobber stopped scheduling runs of the job due to one or more job
+        errors</td>
+    </tr>
+  </table>
+
+  <p>For a partiular job, you can assign <dfn>result sinks</dfn>
+   that can do various things with the job&rsquo;s output in response to these
+   events.</p>
+
+  <p>Here are the types of result sinks:</p>
+  <table class="table">
+    <thead>
+      <tr><th>Type</th><th>Behavior</th><th>Params</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>system-email</td>
+        <td>Sends an email using <code>sendmail</code> to the job&rsquo;s owner
+        containing details of the run (e.g., stdout, stderr, exit code).</td>
+        <td>None</td>
+      </tr>
+      <tr>
+        <td>stdout</td>
+        <td>Writes details of the run (e.g., stdout, stderr, exit code) to
+          jobberrunner&rsquo;s stdout.</td>
+        <td>
+          <table class="table">
+            <tr>
+              <td><code>data</code></td>
+              <td>A list of strings which must be &ldquo;stdout&rdquo; or
+                &ldquo;stderr&rdquo;.  This specifies whether the run details
+                written to jobberrunner&rsquo;s stdout will contain the run&rsquo;s
+                stdout, stderr, or both.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td>socket</td>
+        <td>Writes details of the run (e.g., stdout, stderr, exit code) to
+          a socket.  This causes jobberrunner to listen for connections on the
+        specified socket.  Run details are written to each active connection.
+      NOTE: The owning user must have permission to listen to the specified socket or
+     make a Unix socket at the specified path.</td>
+        <td>
+          <table class="table">
+            <tr>
+              <td><code>proto</code></td>
+              <td>A string: &ldquo;tcp&rdquo;, &ldquo;tcp4&rdquo;, &ldquo;tcp6&rdquo;,
+                or &ldquo;unix&rdquo;</td>
+            </tr>
+            <tr>
+              <td><code>address</code></td>
+              <td>A string: either a port specification like &ldquo;:1234&rdquo;
+                (specifying on which port to listen) or a filesystem path
+                (specifying where to make the Unix socket).</td>
+            </tr>
+            <tr>
+              <td><code>data</code></td>
+              <td>A list of strings which must be &ldquo;stdout&rdquo; or
+                &ldquo;stderr&rdquo;.  This specifies whether the run details
+                written to the socket will contain the run&rsquo;s
+                stdout, stderr, or both.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td>program</td>
+        <td>Sends details of the run (e.g., stdout, stderr, exit code) to the
+        stdout of a program.</td>
+        <td>
+          <table class="table">
+            <tr>
+              <td><code>path</code></td>
+              <td>A filesystem path to the program.</td>
+            </tr>
+            <tr>
+              <td><code>runRecFormatVersion</code></td>
+              <td></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td>filesystem</td>
+        <td>Writes the run&squo;s stdout, stderr, or both to the filesystem.
+        A path to a directory must be given.  Stdout and stderr will be written
+      to separate files with timestamps as names, and these files will be
+      organized by job name.  For example:
+    <pre>
+- /some/dir/
+  - JobOne/
+    - 1521318351.stdout
+    - 1521318351.stderr
+    - 1521318411.stdout
+    - 1521318411.stderr
+    - 1521318471.stdout
+    - 1521318471.stderr</pre>
+
+    </td>
+        <td>
+          <table class="table">
+            <tr>
+              <td><code>path</code></td>
+              <td>A path to a directory.</td>
+            </tr>
+            <tr>
+              <td><code>data</code></td>
+              <td>A list of strings which must be &ldquo;stdout&rdquo; or
+                &ldquo;stderr&rdquo;.  This specifies whether the stdout, stderr,
+              or both will be written.</td>
+            </tr>
+            <tr>
+              <td><code>maxAgeDays</code></td>
+              <td>How many days to keep the output files.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+</div><div id="run-history"><section>
+  <h3>Keeping a Log of Job Runs</h3>
+
+  <p>
+    The command
+    <code>jobber log</code>
+    prints out info about previous runs. This info &mdash; the
+    <dfn>run log</dfn>
+    &mdash; must be kept somewhere, and you can control this in the
+    <code>prefs</code>
+    section of the jobfile.
+  </p>
+
+  <p>You can chose to have Jobber keep the run log in its memory, or write
+    it to disk. Please note that, if you chose to keep it in memory, it will be
+    lost when the Jobber service stops or restarts.</p>
+
+  <p>Here is an example of keeping the run log in memory:</p>
+  <pre>[prefs]
+runLog:
+    type: memory
+    maxLen: 500</pre>
+
+  <p>With this, Jobber will keep log entries for no more than the 500 most
+    recent runs of any of the user&rsquo;s jobs.</p>
+
+  <p>Here is an example of keeping the run log on disk:</p>
+  <pre>[prefs]
+runLog:
+    type: file
+    path: /var/log/jobber-runs
+    maxFileLen: 100m
+    maxHistories: 2</pre>
+
+  <p>With this, Jobber will write run log entries to /var/log/jobber-runs.
+    /var/log/jobber-runs will grow to no more than 100 MB, and Jobber will
+    rotate it when it gets too big. Jobber will keep up to two of these
+    rotated &ldquo;history&rdquo; files (named &ldquo;jobber-runs.1&rdquo; and
+    &ldquo;jobber-runs.2&rdquo;). When it is necessary to delete a history file,
+    the oldest one will get the axe.</p>
+
+  <p>If the jobfile does not have a <code>runLog</code> entry, then 
+  Jobber&rsquo;s run log is kept in memory, with a maximum length of 100.</p>
+</section></div></section><div id="loading-jobs"><section>
+  <h2>Loading Jobs</h2>
+
+  <p>After you've created a user&rsquo;s jobfile, log in as that user and
+    do:</p>
+
+  <pre>jobber reload</pre>
+
+  <p>You can also reload all users&rsquo; jobfiles by logging in as root and
+    doing:</p>
+
+  <pre>jobber reload -a</pre>
+</section></div><div id="listing-jobs"><section>
+  <h2>Listing Jobs</h2>
+
+  <p>You can list the jobs for a particular user by logging in as that user
+    and doing</p>
+
+  <pre>jobber list</pre>
+
+  <p>This command also shows you the status of each job &mdash; that is,
+    whether the job is being scheduled as normal, the exponential backoff
+    algorithm is being applied, or the job has failed.</p>
+
+  <p>
+    As with the
+    <code>reload</code>
+    command, you can do the same for all users by adding the
+    <code>-a</code>
+    option as root.
+  </p>
+</section></div><div id="listing-runs"><section>
+  <h2>Listing Runs</h2>
+
+  <p>You can see a list of recent runs of any jobs for a particular user by
+    logging in as that user and doing</p>
+
+  <pre>jobber log</pre>
+
+  <p>
+    As with the other commands, you can do the same for all users by adding the
+    <code>-a</code>
+    option as root.
+  </p>
+</section></div><div id="testing-jobs"><section>
+  <h2>Testing Jobs</h2>
+
+  <p>If you'd like to test out a job, do</p>
+
+  <pre>jobber test JOB_NAME</pre>
+
+  <p>Jobber will immediately run that job, tell you whether it succeeded,
+    and show you its output.</p>
+</section></div><div id="pausing-resuming-jobs"><section>
+<h2>Pausing and Resuming Jobs</h2>
+
+<p>You can temporarily stop Jobber from running a job thus:</p>
+
+<pre>jobber pause JOB_NAME</pre>
+
+<p>And of course you can resume it:</p>
+
+<pre>jobber resume JOB_NAME</pre>
+
+<p>NOTE: If a job is paused when the Jobber service stops, then when
+the Jobber service starts again the job will be scheduled normally.</p>
+</section></div><div id="cat-jobs"><section>
+  <h2>Printing a Job&rsquo;s Command</h2>
+
+  <p>You can print a job&rsquo;s command (the shell script that it executes)
+    thus:</p>
+
+  <pre>jobber cat JOB_NAME</pre>
+</section></div>      </section>
+    </div>
+  </div>
+  <!-- main content -->
+</body>
+
+</html>
