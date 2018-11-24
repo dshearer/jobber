@@ -25,7 +25,10 @@ Nothing Has Crashed
     jobberrunner for Normuser Has Not Crashed
 
 File Should Have Contents
-    [Arguments]    ${path}    ${contents}    ${msg}=${None}
+    [Arguments]    ${path}    ${contents}    ${msg}=${None}    ${strip_space}=${False}
     File Should Exist    ${path}    msg=${msg}
     ${actual_contents}=    Get File    ${path}
-    Should Be Equal    ${contents}    ${actual_contents}    msg=${msg}
+    Run Keyword If    not ${strip_space}
+    ...    Should Be Equal    ${contents}    ${actual_contents}    msg=${msg}
+    Run Keyword If    ${strip_space}
+    ...    Should Be Equal    ${contents.strip()}    ${actual_contents.strip()}    msg=${msg}

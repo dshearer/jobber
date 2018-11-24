@@ -1,8 +1,0 @@
-*.rpm
-*.tar
-*.deb
-work
-*cloudimg-console.log
-testlog.txt
-test_report
-results

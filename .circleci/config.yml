@@ -1,0 +1,103 @@
+version: 2
+jobs:
+  alpine3-pkg:
+    docker:
+      - image: dshearer/jobber-cci-alpine3:2
+
+    working_directory: /home/builder/jobber
+
+    steps:
+      - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/alpine_3.6 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: alpine3
+
+  ubuntu14-pkg:
+    docker:
+      - image: dshearer/jobber-cci-ubuntu14:3
+
+    working_directory: /jobber
+
+    steps:
+      - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/ubuntu_14 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: ubuntu14
+      - persist_to_workspace:
+          root: pkgs
+          paths:
+            - '*.deb'
+
+  debian9-pkg:
+    docker:
+      - image: dshearer/jobber-cci-debian9:3
+
+    working_directory: /jobber
+
+    steps:
+      - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/debian_9 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: debian9
+
+  centos7-pkg:
+    docker:
+      - image: dshearer/jobber-cci-centos7:3
+
+    working_directory: /jobber
+
+    steps:
+      - checkout
+      - run: mkdir pkgs
+      - run: make -C packaging/centos_7 pkg-local DESTDIR="$PWD/pkgs"
+      - store_artifacts:
+          path: pkgs
+          destination: centos7
+
+  test:
+    machine: true
+
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - checkout
+      - run: lsb_release -a
+      - run:
+          name: Provision
+          command: |
+            #sudo apt-get update -y
+            sudo apt-get install -y python-pip
+            pip install --upgrade pip
+            pip install robotframework
+            sudo useradd normuser -m
+      - run:
+          name: Install Jobber
+          command: |
+            PKG=$(find /tmp/workspace -type f)
+            sudo dpkg -i "${PKG}"
+      - run:
+          name: Run tests
+          command: |
+            sudo /opt/circleci/.pyenv/shims/robot --pythonpath \
+              platform_tests/keywords platform_tests/suites | tee testlog.txt
+      - store_artifacts:
+          path: testlog.txt
+          destination: testlog.txt
+
+workflows:
+  version: 2
+  build-packages:
+    jobs:
+      - alpine3-pkg
+      - ubuntu14-pkg
+      - debian9-pkg
+      - centos7-pkg
+      - test:
+          requires:
+            - ubuntu14-pkg

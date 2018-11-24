@@ -67,14 +67,26 @@ def using_systemd():
     else:
         return True
 
+def using_launchd():
+    try:
+        find_program('launchctl')
+    except:
+        return False
+    else:
+        return True
+
 def get_jobbermaster_logs():
     if using_systemd():
         return sp_check_output(['journalctl', '-u', 'jobber'])
     else:
-        args = ['tail', '-n', '20', '/var/log/messages']
-        lines = sp_check_output(args).split('\n')
-        lines = [l for l in lines if 'jobbermaster' in l]
-        return '/n'.join(lines)
+        for log in ['/var/log/messages', '/var/log/system.log']:
+            if not os.path.isfile(log):
+                continue
+            args = ['tail', '-n', '20', log]
+            lines = sp_check_output(args).split('\n')
+            lines = [l for l in lines if 'jobbermaster' in l]
+            return '/n'.join(lines)
+        return '[System log not found]'
 
 def parse_list_arg(s):
     parts = s.split(',')
@@ -85,28 +97,36 @@ class testlib(object):
 
     def __init__(self):
         # get paths to stuff
-        self._root_jobfile_path = '/root/.jobber'
-        self._normuser_jobfile_path = '/home/' + _NORMUSER + '/.jobber'
         self._jobber_path = find_program('jobber')
         self._python_path = find_program('python')
-        self._tmpfile_dir = '/JobberTestTmp'
+        self._tmpfile_dir = None
         self._next_tmpfile_nbr = 1
+
+    @property
+    def _root_jobfile_path(self):
+        root_entry = pwd.getpwuid(0)
+        return os.path.join(root_entry.pw_dir, '.jobber')
+
+    @property
+    def _normuser_jobfile_path(self):
+        normuser_entry = pwd.getpwnam(_NORMUSER)
+        return os.path.join(normuser_entry.pw_dir, '.jobber')
 
     def make_tempfile_dir(self):
         # make temp-file dir
-        os.mkdir(self._tmpfile_dir)
+        self._tmpfile_dir = tempfile.mkdtemp()
         os.chmod(self._tmpfile_dir, 0777)
 
     def rm_tempfile_dir(self):
         shutil.rmtree(self._tmpfile_dir)
+        self._tmpfile_dir = None
 
     def make_tempfile(self, create=False):
         path = os.path.join(self._tmpfile_dir,
             "tmp-{0}".format(self._next_tmpfile_nbr))
         self._next_tmpfile_nbr += 1
         if create:
-            f = open(path, "w")
-            f.close()
+            open(path, "w").close()
         return path
 
     def restart_service(self):
@@ -114,6 +134,9 @@ class testlib(object):
         try:
             if using_systemd():
                 sp_check_output(['systemctl', 'restart', 'jobber'])
+            elif using_launchd():
+                sp_check_output(['launchctl', 'stop', 'info.nekonya.jobber'])
+                sp_check_output(['launchctl', 'start', 'info.nekonya.jobber'])
             else:
                 sp_check_output(['service', 'jobber', 'restart'])
         except Exception as e:
@@ -122,7 +145,7 @@ class testlib(object):
 
         # wait for it to be ready
         started = False
-        stop_time = time.time() + 10
+        stop_time = time.time() + 20
         while time.time() < stop_time and not started:
             args = [self._jobber_path, 'list']
             proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -145,12 +168,15 @@ class testlib(object):
 
         # get service status
         log += "Jobber service status:\n"
-        if using_systemd():
-            args = ['systemctl', 'status', 'jobber']
-        else:
-            args = ['service', 'jobber', 'status']
         try:
-            log += sp_check_output(args)
+            if using_systemd():
+                args = ['systemctl', 'status', 'jobber']
+                log += sp_check_output(args)
+            elif using_launchd():
+                log += "unknown"
+            else:
+                args = ['service', 'jobber', 'status']
+                log += sp_check_output(args)
         except Exception as e:
             log += "[{0}]".format(e)
 
@@ -189,7 +215,8 @@ class testlib(object):
                      notify_output_path=None, file_run_log_path=None,
                      stdout_output_dir=None, stdout_output_max_age=None,
                      stderr_output_dir=None, stderr_output_max_age=None,
-                     unix_result_sink_path=None, tcp_result_sink_port=None):
+                     unix_result_sink_path=None, tcp_result_sink_port=None,
+                     log_path=None):
 
         jobfile = {
             'version': '1.4',
@@ -207,7 +234,8 @@ class testlib(object):
         jobfile['jobs'][job_name] = job
 
         # make prefs section
-        jobfile['prefs']['logPath'] = '.jobber-log'
+        if log_path is not None:
+            jobfile['prefs']['logPath'] = log_path
 
         def install_result_sink(sink):
             for job_name in jobfile['jobs']:
@@ -484,13 +512,26 @@ class testlib(object):
                 raise e
 
     def runner_proc_info(self):
-        args = ['ps', '-C', 'jobberrunner', '-o', 'user,uid,tty']
+        '''
+        :return: A string containing lines of this format:
+            USER UID TTY
+        where TTY is '?' if there is no TTY for that process.
+        '''
+        args = ['ps', '-ax', '-o', 'user,uid,tty,command']
         proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
         output, _ = proc.communicate()
-        records = [line for line in output.split('\n')[1:] \
-                   if len(line.strip()) > 0]
-        records.sort()
-        return '\n'.join(records)
+        lines = [L.strip() for L in output.split('\n')[1:]]
+        records = [L.split() for L in lines \
+            if len(L) > 0 and 'jobberrunner' in L]
+        new_records = []
+        for r in records:
+            user, uid, tty = r[0], r[1], r[2]
+            if tty == '??': # Darwin
+                tty = '?'
+            new_rec = ' '.join([user, uid, tty])
+            new_records.append(new_rec)
+        new_records.sort()
+        return '\n'.join(new_records)
 
     def nbr_of_runner_procs_should_be_same(self, orig_proc_info):
         new_proc_info = self.runner_proc_info()
@@ -503,6 +544,7 @@ class testlib(object):
         # This is to avoid a particular vulnerability
         # (http://www.halfdog.net/Security/2012/TtyPushbackPrivilegeEscalation/)
         proc_info = self.runner_proc_info()
+        print("proc_info: {}".format(proc_info))
         for line in proc_info.split('\n'):
             try:
                 tty = line.split()[2]
@@ -646,7 +688,7 @@ class testlib(object):
                 raise e
 
     def jobber_procs_should_not_have_inet_sockets(self):
-        proc = sp.Popen(["lsof", "-i", "-P"], stdout=sp.PIPE)
+        proc = sp.Popen(["lsof", "-n", "-i", "-P"], stdout=sp.PIPE)
         output, _ = proc.communicate()
         output = output.strip()
         if len(output) == 0:

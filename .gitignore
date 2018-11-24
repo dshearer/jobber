@@ -1,2 +1,16 @@
-.*
 buildtools/gen
+*.rpm
+*.tar
+*.tgz
+*.deb
+work
+testlog.txt
+test_report
+results
+.vagrant
+.vm-is-created
+.vm-is-running
+.DS_Store
+*.pyc
+*.pyo
+*cloudimg-console.log

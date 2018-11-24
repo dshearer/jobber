@@ -5,7 +5,7 @@ Resource         keywords.robot
 Test Setup       Setup
 Test Teardown    Teardown
 Test Template    Jobber Should Run Job in Jobfile
-Force Tags     test
+Force Tags       test
 
 *** Test Cases ***    AS_ROOT
 As Root               ${True}
@@ -19,7 +19,7 @@ Jobber Should Run Job in Jobfile
 
     # make jobfile
     ${output_file}=    Make Tempfile
-    ${cmd}=    Set Variable    echo -n '${expected_output}' > ${output_file}
+    ${cmd}=    Set Variable    echo '${expected_output}' > ${output_file}
     ${jobfile}=    Make Jobfile    TestJob    ${cmd}
     Install Jobfile    ${jobfile}    for_root=${as_root}
 
@@ -28,4 +28,4 @@ Jobber Should Run Job in Jobfile
 
     # test
     Nothing Has Crashed
-    File Should Have Contents    ${output_file}    ${expected_output}    msg=job didn't run
+    File Should Have Contents    ${output_file}    ${expected_output}    strip_space=${True}    msg=job didn't run

@@ -1,18 +1,17 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"github.com/dshearer/jobber/common"
 	"os"
 	"os/exec"
 	"os/signal"
 	"os/user"
 	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
+
+	"github.com/dshearer/jobber/common"
 )
 
 /*
@@ -81,80 +80,6 @@ Loop:
 	common.Logger.Printf("Exiting thread for %v", usr.Username)
 }
 
-func shouldRunForUser(usr *user.User, prefs *Prefs) bool {
-	// check prefs
-	if !prefs.ShouldIncludeUser(usr) {
-		common.Logger.Printf("Excluding %v according to prefs",
-			usr.Username)
-		return false
-	}
-
-	// check if user has home dir
-	if len(usr.HomeDir) == 0 || usr.HomeDir == "/dev/null" {
-		common.Logger.Printf("Excluding %v: has no home directory",
-			usr.Username)
-		return false
-
-	}
-
-	// check if home dir path is absolute
-	if !filepath.IsAbs(usr.HomeDir) {
-		common.Logger.Printf("Excluding %v: home directory path is "+
-			"not absolute: %v", usr.Username, usr.HomeDir)
-		return false
-	}
-
-	// check if user owns home dir
-	ownsHomeDir, err := common.UserOwnsFile(usr, usr.HomeDir)
-	if err != nil {
-		common.Logger.Printf("Excluding %v: %v", usr.Username, err)
-		return false
-	}
-	if !ownsHomeDir {
-		common.Logger.Printf("Excluding %v: doesn't own home dir",
-			usr.Username)
-		return false
-	}
-
-	return true
-}
-
-/*
-Get all users that have home dirs.
-*/
-func listUsers(prefs *Prefs) ([]*user.User, error) {
-	users := make([]*user.User, 0)
-
-	// open passwd
-	f, err := os.Open("/etc/passwd")
-	if err != nil {
-		common.ErrLogger.Printf("Failed to open /etc/passwd: %v\n", err)
-		return users, err
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		// look up user
-		parts := strings.Split(scanner.Text(), ":")
-		if len(parts) == 0 {
-			continue
-		}
-		usr, err := user.Lookup(parts[0])
-		if err != nil {
-			continue
-		}
-
-		// check for reasons to exclude
-		if !shouldRunForUser(usr, prefs) {
-			continue
-		}
-
-		users = append(users, usr)
-	}
-	return users, nil
-}
-
 func mkdirp(path string, perm os.FileMode) error {
 	if err := os.Mkdir(path, perm); err != nil {
 		if err.(*os.PathError).Err.(syscall.Errno) != 17 {
@@ -184,7 +109,7 @@ func doDefault() int {
 	}
 
 	// get all users
-	users, err := listUsers(prefs)
+	users, err := getAcceptableUsers(prefs)
 	if err != nil {
 		return 1
 	}

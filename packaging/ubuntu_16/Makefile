@@ -12,7 +12,7 @@ UNINSTALL_PKG_CMD = sudo dpkg -r jobber
 pkg-local : ${WORK_DIR}/${SRC_TARBALL}
 	cp "${WORK_DIR}/${SRC_TARBALL}" \
 		"${SRC_ROOT}/../jobber_${VERSION}.orig.tar.gz"
-	cp -R debian-pkg "${SRC_ROOT}/debian"
+	cp -RL debian-pkg "${SRC_ROOT}/debian"
 	cd "${SRC_ROOT}" && dpkg-buildpackage -us -uc
 	mkdir -p "${DESTDIR}/"
 	mv "${SRC_ROOT}"/../*.deb "${DESTDIR}/"

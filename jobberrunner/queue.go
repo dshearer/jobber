@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/jobfile"
 )
 
@@ -99,9 +100,25 @@ func (jq *JobQueue) Pop(ctx context.Context, now time.Time) *jobfile.Job {
 		// get next-scheduled job
 		job := heap.Pop(&jq.q).(*jobfile.Job)
 
+		var timeFmt = "Jan _2 15:04:05"
+
+		common.Logger.Printf("Next job to run is %v, at %v.", job.Name,
+			job.NextRunTime.Format(timeFmt))
+
+		/*
+			Golang has a bug in its time package.  We must avoid using most of the
+			Time methods.  Cf. https://github.com/golang/go/issues/27090
+		*/
+
 		// sleep till it's time to run it
-		if now.Before(*job.NextRunTime) {
-			afterChan := time.After(job.NextRunTime.Sub(now))
+		for now.UnixNano() < job.NextRunTime.UnixNano() {
+			nanoDiff := job.NextRunTime.UnixNano() - now.UnixNano()
+			sleepDur := time.Duration(nanoDiff) * time.Nanosecond
+
+			common.Logger.Printf("It is now %v.", now.Format(timeFmt))
+			common.Logger.Printf("Sleeping for %v.", sleepDur)
+
+			afterChan := time.After(sleepDur)
 			select {
 			case now = <-afterChan:
 			case <-ctx.Done():
@@ -111,6 +128,9 @@ func (jq *JobQueue) Pop(ctx context.Context, now time.Time) *jobfile.Job {
 			}
 		}
 
+		common.Logger.Printf("It is now %v, which is NOT before %v",
+			now.Format(timeFmt), job.NextRunTime.Format(timeFmt))
+
 		// schedule this job's next run
 		job.NextRunTime = nextRunTime(job, now.Add(time.Second))
 		if job.NextRunTime != nil {
@@ -119,9 +139,11 @@ func (jq *JobQueue) Pop(ctx context.Context, now time.Time) *jobfile.Job {
 
 		// decide whether we really should run this job
 		if job.ShouldRun() {
+			common.Logger.Printf("Running %v", job.Name)
 			return job
 		} else {
 			// skip this job
+			common.Logger.Printf("Skipping %v", job.Name)
 			return jq.Pop(ctx, now)
 		}
 	}

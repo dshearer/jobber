@@ -4,7 +4,7 @@ Library          testlib.py
 Resource         keywords.robot
 Test Setup       Setup
 Test Teardown    Teardown
-Force Tags       test    cmd
+Force Tags       test    cmd    init
 
 *** Test Cases ***
 Init Command

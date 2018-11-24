@@ -29,12 +29,17 @@ GO_SOURCES := \
 	${TEST_SOURCES}
 
 OTHER_SOURCES := \
+	.circleci \
 	Gopkg.lock \
 	Gopkg.toml \
 	LICENSE \
 	Makefile \
 	mk \
+	platform_tests \
 	README.md \
+	smoke_tests/Dockerfile \
+	smoke_tests/Makefile \
+	.travis.yml \
 	vendor \
 	version \
 	${PACKAGING_SOURCES} \
