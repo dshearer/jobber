@@ -42,8 +42,6 @@ func formatResponseRecs(recs []ListRespRec, showUser bool) string {
 		"NOTIFY ON ERR",
 		"NOTIFY ON FAIL",
 		"ERR HANDLER",
-		"STDOUT DIR",
-		"STDERR DIR",
 	}
 	if showUser {
 		headers = append(headers, "USER")
@@ -55,15 +53,6 @@ func formatResponseRecs(recs []ListRespRec, showUser bool) string {
 	var rows []string
 	for _, respRec := range recs {
 		for _, j := range respRec.resp.Jobs {
-			stdoutDir := "N/A"
-			stderrDir := "N/A"
-			if j.StdoutDir != nil {
-				stdoutDir = *j.StdoutDir
-			}
-			if j.StderrDir != nil {
-				stderrDir = *j.StderrDir
-			}
-
 			fields := []string{
 				j.Name,
 				j.Status,
@@ -73,8 +62,6 @@ func formatResponseRecs(recs []ListRespRec, showUser bool) string {
 				fmt.Sprintf("%v", j.NotifyOnErr),
 				fmt.Sprintf("%v", j.NotifyOnFail),
 				j.ErrHandler,
-				stdoutDir,
-				stderrDir,
 			}
 			if showUser {
 				fields = append(fields, respRec.usr.Username)

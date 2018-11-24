@@ -46,8 +46,6 @@ type JobDesc struct {
 	NotifyOnErr     string     `json:"notifyOnError"`
 	NotifyOnFail    string     `json:"notifyOnFailure"`
 	ErrHandler      string     `json:"errHandler"`
-	StdoutDir       *string    `json:"stdoutDir"`
-	StderrDir       *string    `json:"stderrDir"`
 }
 
 type ListJobsCmd struct{}
