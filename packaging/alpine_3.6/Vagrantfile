@@ -9,10 +9,11 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: <<-SHELL
     apk update
     apk upgrade
-    apk add make 
-    apk add alpine-sdk 
-    apk add gcc 
-    apk add rsync 
+    apk add make
+    apk add alpine-sdk
+    apk add gcc
+    apk add rsync
+    apk add socat
     apk add 'go@community>=1.8'
     addgroup vagrant abuild
     grep normuser /etc/passwd >/dev/null || adduser -D normuser

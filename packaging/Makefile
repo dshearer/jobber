@@ -1,4 +1,4 @@
-PLATFORMS = alpine_3.6 centos_6 centos_7 debian_9
+PLATFORMS = alpine_3.6 centos_7 debian_9 ubuntu_14 ubuntu_16
 
 .PHONY : main
 main :

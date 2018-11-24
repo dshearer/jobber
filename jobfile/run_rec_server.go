@@ -1,8 +1,8 @@
 package jobfile
 
 import (
-	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/dshearer/jobber/common"
@@ -104,6 +104,7 @@ type serverId struct {
 This is a TCP server listening on a particular port.
 */
 type runRecServer struct {
+	sid        serverId
 	running    bool
 	runRecChan chan []byte
 	listener   net.Listener
@@ -120,6 +121,7 @@ func launchRunRecServer(sid serverId) (*runRecServer, error) {
 
 	// make server object
 	server := runRecServer{
+		sid:        sid,
 		running:    true,
 		runRecChan: make(chan []byte, 10),
 		listener:   listener,
@@ -187,6 +189,12 @@ func (self *runRecServer) Stop() {
 
 	self.listener.Close()
 	close(self.runRecChan)
+	if self.sid.Proto == "unix" {
+		common.Logger.Println("Deleting unix socket")
+		if err := os.Remove(self.sid.Address); err != nil {
+			common.ErrLogger.Printf("%v", err)
+		}
+	}
 	self.running = false
 }
 
@@ -258,10 +266,7 @@ func (self *runRecServerRegistry) Push(proto, address string, runRec []byte) {
 	// get server
 	sid := serverId{Proto: proto, Address: address}
 	server, ok := self.servers[sid]
-	if !ok {
-		panic(fmt.Sprintf("No server for %v", sid))
-	}
-	if !server.Running() {
+	if !ok || !server.Running() {
 		return
 	}
 

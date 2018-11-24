@@ -2,6 +2,7 @@ buildtools/gen
 *.rpm
 *.tar
 *.tgz
+*.deb
 work
 testlog.txt
 test_report
@@ -12,3 +13,4 @@ results
 .DS_Store
 *.pyc
 *.pyo
+*cloudimg-console.log
