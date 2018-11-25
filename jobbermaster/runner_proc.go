@@ -115,8 +115,6 @@ func LaunchRunner(usr *user.User,
 			runnerProc.Kill()
 			return nil, result.err
 		}
-		common.Logger.Printf("jobberrunner for %v has started.",
-			usr.Username)
 		runnerProc.quitSockConn = result.conn
 
 	case <-runnerProc.ExitedChan:

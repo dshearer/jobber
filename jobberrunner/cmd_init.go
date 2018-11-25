@@ -71,8 +71,6 @@ jobs:
 `
 
 func (self *JobManager) doInitCmd(cmd ipc.InitCmd) ipc.ICmdResp {
-	common.Logger.Printf("Got cmd 'init'\n")
-
 	var resp ipc.InitCmdResp
 	resp.JobfilePath = self.jobfilePath
 
