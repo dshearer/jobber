@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/dshearer/jobber/common"
 	"gopkg.in/yaml.v2"
@@ -156,26 +155,24 @@ func SerializeRunRec(rec RunRec, data ResultSinkDataParam) []byte {
 	}
 
 	if data.Contains(RESULT_SINK_DATA_STDOUT) {
-		if utf8.Valid(rec.Stdout) {
-			recJson["stdout"] = string(rec.Stdout)
+		outputStr, isBase64 := SafeBytesToStr(rec.Stdout)
+		var key string
+		if isBase64 {
+			key = "stdoutBase64"
 		} else {
-			stdout := rec.Stdout
-			if stdout == nil {
-				stdout = make([]byte, 0)
-			}
-			recJson["stdoutBase64"] = stdout
+			key = "stdout"
 		}
+		recJson[key] = outputStr
 	}
 	if data.Contains(RESULT_SINK_DATA_STDERR) {
-		if utf8.Valid(rec.Stderr) {
-			recJson["stderr"] = string(rec.Stderr)
+		outputStr, isBase64 := SafeBytesToStr(rec.Stdout)
+		var key string
+		if isBase64 {
+			key = "stderrBase64"
 		} else {
-			stderr := rec.Stderr
-			if stderr == nil {
-				stderr = make([]byte, 0)
-			}
-			recJson["stderrBase64"] = stderr
+			key = "stderr"
 		}
+		recJson[key] = outputStr
 	}
 
 	var buf bytes.Buffer
