@@ -9,8 +9,6 @@ import (
 )
 
 func (self *JobManager) doResumeCmd(cmd ipc.ResumeCmd) ipc.ICmdResp {
-	common.Logger.Printf("Got cmd 'resume'\n")
-
 	// look up jobs to resume
 	var jobsToResume []*jobfile.Job
 	if len(cmd.Jobs) == 0 {

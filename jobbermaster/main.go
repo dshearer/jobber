@@ -36,12 +36,9 @@ func runnerThread(ctx context.Context,
 	usr *user.User,
 	jobfilePath string) {
 
-	common.Logger.Printf("Entered thread for %v", usr.Username)
-
 Loop:
 	for {
 		// spawn runner process
-		common.Logger.Println("Launching runner")
 		proc, err := LaunchRunner(usr, jobfilePath)
 		if err != nil {
 			common.ErrLogger.Printf(
@@ -71,13 +68,10 @@ Loop:
 			)
 
 		case <-ctx.Done():
-			common.Logger.Printf("%v thread cancelled", usr.Username)
 			/* No need to kill the child procs. */
 			break Loop
 		}
 	}
-
-	common.Logger.Printf("Exiting thread for %v", usr.Username)
 }
 
 func mkdirp(path string, perm os.FileMode) error {
@@ -156,11 +150,8 @@ func doDefault() int {
 	<-c
 
 	// kill threads
-	common.Logger.Printf("Killing threads")
 	cancelCtx()
-	common.Logger.Printf("Waiting for threads")
 	runnerWaitGroup.Wait()
-	common.Logger.Printf("Done waiting for threads")
 
 	return 0
 }

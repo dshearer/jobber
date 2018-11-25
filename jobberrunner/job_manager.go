@@ -61,8 +61,6 @@ Stop the job-runner thread, replace the current jobfile with the given
 one, then start the job-runner thread.
 */
 func (self *JobManager) replaceCurrJobfile(jfile *jobfile.JobFile) {
-	common.Logger.Println("replaceCurrJobfile")
-
 	if self.jobRunner.Running {
 		// stop job-runner thread and wait for current runs to end
 		self.jobRunner.Cancel()
@@ -83,7 +81,6 @@ func (self *JobManager) replaceCurrJobfile(jfile *jobfile.JobFile) {
 	}
 
 	// initialize result sinks
-	common.Logger.Println("InitResultSinks")
 	jfile.InitResultSinks()
 
 	// start job-runner thread

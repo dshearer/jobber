@@ -1,13 +1,10 @@
 package main
 
 import (
-	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/ipc"
 )
 
 func (self *JobManager) doLogCmd(cmd ipc.LogCmd) ipc.ICmdResp {
-	common.Logger.Printf("Got cmd 'log'\n")
-
 	// make log list
 	var logDescs []ipc.LogDesc
 	entries, err := self.jfile.Prefs.RunLog.GetAll()

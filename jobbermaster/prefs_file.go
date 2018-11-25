@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/dshearer/jobber/common"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
+
+	"github.com/dshearer/jobber/common"
+	"gopkg.in/yaml.v2"
 )
 
 const gPrefsPath = "/etc/jobber.conf"
@@ -45,7 +46,7 @@ const gDefaultPrefsStr = `## Here, you can control which users can use Jobber to
 ## specify in this file.
 
 ## EXAMPLE: With the following, the only users that can use jobber are
-## (1) root and (2) all users whose home directories are in 
+## (1) root and (2) all users whose home directories are in
 ## /home/svcusers.
 #users-include:
 #    - username: root
@@ -71,7 +72,6 @@ func LoadPrefs() (*Prefs, error) {
 			return nil, err
 		}
 	}
-	common.Logger.Printf("Loaded prefs from %v", gPrefsPath)
 	defer f.Close()
 	return loadPrefs(f)
 }

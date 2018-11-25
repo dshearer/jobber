@@ -234,7 +234,7 @@ func serve(listener net.Listener, rpcServer *rpc.Server) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			common.Logger.Printf("%v", err)
+			common.ErrLogger.Printf("%v", err)
 			return
 		}
 		go func() {

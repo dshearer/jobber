@@ -6,8 +6,6 @@ import (
 )
 
 func (self *JobManager) doTestCmd(cmd ipc.TestCmd) ipc.ICmdResp {
-	common.Logger.Printf("Got cmd 'test'\n")
-
 	// find job
 	job, ok := self.jfile.Jobs[cmd.Job]
 	if !ok {

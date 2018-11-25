@@ -190,7 +190,6 @@ func (self *runRecServer) Stop() {
 	self.listener.Close()
 	close(self.runRecChan)
 	if self.sid.Proto == "unix" {
-		common.Logger.Println("Deleting unix socket")
 		if err := os.Remove(self.sid.Address); err != nil {
 			common.ErrLogger.Printf("%v", err)
 		}

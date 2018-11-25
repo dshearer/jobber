@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/ipc"
 	"github.com/dshearer/jobber/jobfile"
 )
@@ -18,8 +17,6 @@ func resultSinksString(sinks []jobfile.ResultSink) string {
 }
 
 func (self *JobManager) doListJobsCmd(cmd ipc.ListJobsCmd) ipc.ICmdResp {
-	common.Logger.Printf("Got cmd 'list'\n")
-
 	// make job list
 	jobDescs := make([]ipc.JobDesc, 0)
 	for _, j := range self.jfile.Jobs {

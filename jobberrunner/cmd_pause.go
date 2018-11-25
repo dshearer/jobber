@@ -9,8 +9,6 @@ import (
 )
 
 func (self *JobManager) doPauseCmd(cmd ipc.PauseCmd) ipc.ICmdResp {
-	common.Logger.Printf("Got cmd 'pause'\n")
-
 	// look up jobs to pause
 	var jobsToPause []*jobfile.Job
 	if len(cmd.Jobs) == 0 {
