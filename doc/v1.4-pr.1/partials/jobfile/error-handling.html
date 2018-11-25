@@ -16,7 +16,7 @@ DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC        
     seconds according to an exponential backoff algorithm.</p>
 
   <p>A job&rsquo;s status is affected by <dfn>job errors</dfn> &mdash;
-    that is, runs of the job&rsquo;s command script that resulted in non-0 exit codes.
+    that is, runs of the job&rsquo;s shell script that resulted in non-0 exit codes.
     This is done according to the job&rsquo;s <dfn>error-handler</dfn>, as specified
     in the jobfile under the <code>onError</code> key in the job&rsquo;s definition.</p>
 

@@ -29,13 +29,13 @@
 <title>How to Use Jobber</title>
 
 <script lang="test/javascript">
-	g_curr_version = "1.3";
-
-	function onLoad() {
-		// make version selector
-		$("header h1 small").append(makeVersionsSelect(g_curr_version));
+	  function onLoad() {
+		// reset version selector
+    var select = $("header h1 small select");
+		var opt = select.find("option[selected]")[0];
+    select.val(opt.value);
 	}
-</script>
+  </script>
 </head>
 
 <body onload="onLoad()" data-spy="scroll" data-target="#toc-container"
@@ -74,7 +74,8 @@
     
   <header class="container">
     <h1>
-      How to Use Jobber <br /> <small>Version </small>
+      How to Use Jobber <br /> <small>Version
+        <select onchange="var ver = event.target.value; if (ver == '1.3') { return; } window.location.pathname = '/jobber/doc/v' + ver + '/';"><option value="1.4-pr.1"  >1.4-pr.1</option><option value="1.3" selected >1.3</option><option value="1.2"  >1.2</option><option value="1.1"  >1.1</option></select></small>
     </h1>
   </header>
 

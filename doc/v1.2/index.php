@@ -65,12 +65,7 @@ $gSections = [
 <title>How to Use Jobber</title>
 
 <script lang="test/javascript">
-	g_curr_version = "1.2";
-
-	function onLoad() {
-		// make version selector
-		$("header h1 small").append(makeVersionsSelect(g_curr_version));
-	}
+	<?php makeDocPageOnloadScript(); ?>
 </script>
 </head>
 
@@ -82,7 +77,8 @@ $gSections = [
 
   <header class="container">
     <h1>
-      How to Use Jobber <br /> <small>Version </small>
+      How to Use Jobber <br /> <small>Version
+        <?php makeDocVersionSelect("1.2"); ?></small>
     </h1>
   </header>
 

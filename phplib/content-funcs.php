@@ -1,14 +1,20 @@
-<?php 
+<?php
+
+$DOC_VERSIONS = ["1.1", "1.2", "1.3", "1.4-pr.1"];
+$DOC_DEFAULT_VERSION_IDX = 2;
 
 function makeSubpageNavbar($currSubpage)
 {
+    global $DOC_VERSIONS;
+    global $DOC_DEFAULT_VERSION_IDX;
+
     $subpages = [
         "download" => [
             "uri" => "/jobber/download/",
             "title" => "Download"
         ],
         "doc" => [
-            "uri" => "/jobber/doc/v1.3/",
+            "uri" => "/jobber/doc/v{$DOC_VERSIONS[$DOC_DEFAULT_VERSION_IDX]}/",
             "title" => "How to Use"
         ],
         "security" => [
@@ -21,7 +27,7 @@ function makeSubpageNavbar($currSubpage)
         ]
     ];
     $subpageOrder = ["download", "doc", "security", "blog"];
-    
+
     ?>
       <nav class="navbar navbar-default">
         <div class="container">
@@ -60,6 +66,37 @@ function makeSubpageNavbar($currSubpage)
     <?php
 }
 
+function makeDocPageOnloadScript()
+{
+  ?>
+  function onLoad() {
+		// reset version selector
+    var select = $("header h1 small select");
+		var opt = select.find("option[selected]")[0];
+    select.val(opt.value);
+	}
+  <?php
+}
+
+function makeDocVersionSelect($currVersion)
+{
+  global $DOC_VERSIONS;
+  $revVersions = array_reverse($DOC_VERSIONS);
+
+  $onChangeJs =
+    "var ver = event.target.value; " .
+    "if (ver == '".$currVersion."') { return; } " .
+    "window.location.pathname = '/jobber/doc/v' + ver + '/';";
+
+  ?><select onchange="<?= $onChangeJs ?>"><?php
+    foreach ($revVersions as $ver)
+    {
+      $selected = ($ver == $currVersion) ? "selected" : "";
+      ?><option value="<?= $ver ?>" <?= $selected ?> ><?= $ver ?></option><?php
+    }
+  ?></select><?php
+}
+
 function makeDocSections($sections)
 {
     foreach ($sections as $sectId => $sect)
@@ -70,22 +107,22 @@ function makeDocSections($sections)
             <section id="<?= $sectId ?>">
               <h2><?= $sect["title"] ?></h2>
             <?php
-            
+
             // load subsections
             foreach ($sect["sections"] as $subsectId => $subsect)
             {
                 ?><div id="<?= $subsectId ?>"><?php
-                    require("doc/{$subsect['version']}/" . 
+                    require("doc/{$subsect['version']}/" .
                         "partials/{$subsect['page']}");
                 ?></div><?php
             }
-            
+
             ?></section><?php
         }
         else {
             // load section
             ?><div id="<?= $sectId ?>"><?php
-                require("doc/{$sect['version']}/" . 
+                require("doc/{$sect['version']}/" .
                     "partials/{$sect['page']}");
             ?></div><?php
         }
@@ -101,7 +138,7 @@ function makeDocSectNav($sections) {
             <?= $sect["title"] ?>
           </a>
         <?php
-        
+
         if (array_key_exists("sections", $sect)) {
             ?><ul class="nav-list-3"><?php
             foreach ($sect["sections"] as $subsectId => $subsect)
@@ -116,7 +153,7 @@ function makeDocSectNav($sections) {
             }
             ?></ul><?php
         }
-        
+
         ?></li><?php
     }
 }

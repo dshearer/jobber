@@ -1,0 +1,20 @@
+<section>
+  <h3>Specifying Commands</h3>
+
+  <p>Jobs&rsquo; commands are specified with YAML strings containing <code>sh</code>
+    scripts.  YAML&rsquo;s syntax makes it easy to write multi-line scripts:</p>
+
+  <pre>
+jobs:
+  MyJob:
+    cmd: |
+      /home/bob/do-something.sh
+      if [ $? -ne 0 ]; then
+        /home/bob/handle-error.sh
+      fi
+    ...
+</pre>
+
+  <p>These commands will be executed as the user that owns the jobfile, in a login
+    session.</p>
+</section>

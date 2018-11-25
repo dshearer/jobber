@@ -14,6 +14,11 @@ $gSections = [
                 "page" => "jobfile/overview.html",
                 "version" => "v1.4-pr.1"
             ],
+            "specifying-commands" => [
+              "title" => "Specifying Commands",
+              "page" => "jobfile/specifying-commands.html",
+              "version" => "v1.4-pr.1"
+            ],
             "time-strings" => [
                 "title" => "Time strings",
                 "page" => "jobfile/time-strings.html",
@@ -25,16 +30,16 @@ $gSections = [
                 "version" => "v1.4-pr.1"
             ],
             "notifications" => [
-                "title" => "Doing Stuff with Job Run Results",
-                "page" => "jobfile/doing-stuff-with-results.html",
+                "title" => "Result Sinks",
+                "page" => "jobfile/result-sinks.html",
                 "version" => "v1.4-pr.1"
             ],
             "run-history" => [
                 "title" => "Keeping a Log of Job Runs",
                 "page" => "jobfile/run-log.html",
-                "version" => "v1.3"
+                "version" => "v1.4-pr.1"
             ],
-        ]
+        ],
     ],
     "loading-jobs" => [
         "title" => "Loading Jobs",
@@ -79,12 +84,7 @@ $gSections = [
 <title>How to Use Jobber</title>
 
 <script lang="test/javascript">
-	g_curr_version = "1.4-pr.1";
-
-	function onLoad() {
-		// make version selector
-		$("header h1 small").append(makeVersionsSelect(g_curr_version));
-	}
+	<?php makeDocPageOnloadScript(); ?>
 </script>
 </head>
 
@@ -96,7 +96,8 @@ $gSections = [
 
   <header class="container">
     <h1>
-      How to Use Jobber <br /> <small>Version </small>
+      How to Use Jobber <br /> <small>Version
+        <?php makeDocVersionSelect("1.4-pr.1"); ?></small>
     </h1>
   </header>
 

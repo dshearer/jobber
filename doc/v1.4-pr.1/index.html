@@ -29,13 +29,13 @@
 <title>How to Use Jobber</title>
 
 <script lang="test/javascript">
-	g_curr_version = "1.4-pr.1";
-
-	function onLoad() {
-		// make version selector
-		$("header h1 small").append(makeVersionsSelect(g_curr_version));
+	  function onLoad() {
+		// reset version selector
+    var select = $("header h1 small select");
+		var opt = select.find("option[selected]")[0];
+    select.val(opt.value);
 	}
-</script>
+  </script>
 </head>
 
 <body onload="onLoad()" data-spy="scroll" data-target="#toc-container"
@@ -74,7 +74,8 @@
     
   <header class="container">
     <h1>
-      How to Use Jobber <br /> <small>Version </small>
+      How to Use Jobber <br /> <small>Version
+        <select onchange="var ver = event.target.value; if (ver == '1.4-pr.1') { return; } window.location.pathname = '/jobber/doc/v' + ver + '/';"><option value="1.4-pr.1" selected >1.4-pr.1</option><option value="1.3"  >1.3</option><option value="1.2"  >1.2</option><option value="1.1"  >1.1</option></select></small>
     </h1>
   </header>
 
@@ -102,6 +103,10 @@
                     Overview                  </a>
                 </li>
                                 <li class="nobr">
+                  <a target="_self" href="#specifying-commands">
+                    Specifying Commands                  </a>
+                </li>
+                                <li class="nobr">
                   <a target="_self" href="#time-strings">
                     Time strings                  </a>
                 </li>
@@ -111,7 +116,7 @@
                 </li>
                                 <li class="nobr">
                   <a target="_self" href="#notifications">
-                    Doing Stuff with Job Run Results                  </a>
+                    Result Sinks                  </a>
                 </li>
                                 <li class="nobr">
                   <a target="_self" href="#run-history">
@@ -267,7 +272,8 @@ jobs:
     cmd: /usr/local/bin/backup /home/bob/documents
     time: 0 0 13
     onError: Stop
-    notifyOnFailure: [*systemEmailSink]
+    notifyOnFailure:
+      - *systemEmailSink
 
   OffsiteBackup:
     cmd: |
@@ -275,13 +281,16 @@ jobs:
       /usr/local/bin/backup-offsite /home/bob/documents.tgz
     time: 0 0 14 * * 1
     onError: Backoff
-    notifyOnFailure: [*systemEmailSink, *filesystemSink]
+    notifyOnFailure:
+      - *systemEmailSink
+      - *filesystemSink
 
   GetAirQuality:
     cmd: /home/bob/get-air-quality.sh
     time: 0 0 8
     onError: Continue
-    notifyOnSuccess: [*textAirQuality]
+    notifyOnSuccess:
+      - *textAirQuality
 
 resultSinks:
   - &systemEmailSink
@@ -290,7 +299,9 @@ resultSinks:
   - &filesystemSink
     type: filesystem
     path: /home/bob/backup-results
-    data: [stdout, stderr]
+    data:
+      - stdout
+      - stderr
     maxAgeDays: 10
 
   - &textAirQuality
@@ -298,8 +309,7 @@ resultSinks:
     path: /home/bob/text-air-quality.sh
 </pre>
 
-<p>The details of the jobfile structure are given in the following sections.
-  In general, each job must be given a script to run (<code>cmd</code>) and a
+<p>In general, each job must be given a script to run (<code>cmd</code>) and a
   string specifying when it should run it (<code>time</code>).  Optionally,
   you can specify what happens to a job if the script returns an error
   (<code>onError</code>)</p>
@@ -309,8 +319,29 @@ resultSinks:
 which provide several handy ways of responding to the results of job runs.
 Result sinks are defined in the <code>resultSinks</code> section, and are
 referenced within job definitions in the <code>notifyOnSuccess</code>,
-<code>notifyOnError</code>, and <code>notifyOnFailure</code> items.  (The syntax
-uses <a href="http://yaml.org/spec/1.2/spec.html#id2785586">YAML anchors</a>.)</p>
+<code>notifyOnError</code>, and <code>notifyOnFailure</code> items.</p>
+
+<p>More details on the jobfile structure are given in the following sections.</p>
+</div><div id="specifying-commands"><section>
+  <h3>Specifying Commands</h3>
+
+  <p>Jobs&rsquo; commands are specified with YAML strings containing <code>sh</code>
+    scripts.  YAML&rsquo;s syntax makes it easy to write multi-line scripts:</p>
+
+  <pre>
+jobs:
+  MyJob:
+    cmd: |
+      /home/bob/do-something.sh
+      if [ $? -ne 0 ]; then
+        /home/bob/handle-error.sh
+      fi
+    ...
+</pre>
+
+  <p>These commands will be executed as the user that owns the jobfile, in a login
+    session.</p>
+</section>
 </div><div id="time-strings"><section>
   <h3 id="time-strings">Time Strings</h3>
 
@@ -474,7 +505,7 @@ DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC        
     seconds according to an exponential backoff algorithm.</p>
 
   <p>A job&rsquo;s status is affected by <dfn>job errors</dfn> &mdash;
-    that is, runs of the job&rsquo;s command script that resulted in non-0 exit codes.
+    that is, runs of the job&rsquo;s shell script that resulted in non-0 exit codes.
     This is done according to the job&rsquo;s <dfn>error-handler</dfn>, as specified
     in the jobfile under the <code>onError</code> key in the job&rsquo;s definition.</p>
 
@@ -507,7 +538,7 @@ DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC        
   </table>
 </section>
 </div><div id="notifications"><section>
-  <h3>Doing Stuff with Job Run Output</h3>
+  <h3>Result Sinks<br /><small>Doing Stuff with Job Run Output</small></h3>
 
   <p>A run of a job results in one of three events:</p>
   <table class="table">
@@ -530,7 +561,69 @@ DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC        
 
   <p>For a partiular job, you can assign <dfn>result sinks</dfn>
    that can do various things with the job&rsquo;s output in response to these
-   events.</p>
+   events, using the <code>notifyOnSuccess</code>, <code>notifyOnError</code>,
+   and <code>notifyOnFailure</code> fields in the job&rsquo;s definition:</p>
+
+   <pre>
+jobs:
+  GetAirQuality:
+    cmd: /home/bob/get-air-quality.sh
+    time: 0 0 8
+    onError: Backoff
+    notifyOnSuccess:
+      - type: program
+        path: /home/bob/text-air-quality.sh
+    notifyOnFailure:
+      - type: system-email
+      - type: filesystem
+        path: /home/bob/jobber-failures
+        data:
+          - stdout
+          - stderr
+        maxAgeDays: 10
+</pre>
+
+   <p>In this example, result sinks are used only for successes and failures.
+     The <code>notifyOnSuccess</code>, <code>notifyOnError</code>, and
+     <code>notifyOnFailure</code> fields take lists of result sink definitions,
+     and each result sink definition has a required <code>type</code> field as
+     well as other fields depending on the type.</p>
+
+   <p>It is common to want to use the same result sink in different jobs (or even
+     for different events from the same job).  This is best done by moving the
+     sink&rsquo;s definition to the <code>resultSinks</code> section of the jobfile
+     and then using YAML anchors in the job definitions to reference the sink&rsquo;s
+     definition:</p>
+
+     <pre>
+jobs:
+  GetAirQuality:
+    cmd: /home/bob/get-air-quality.sh
+    time: 0 0 8
+    onError: Backoff
+    notifyOnSuccess:
+      - type: program
+        path: /home/bob/text-air-quality.sh
+    notifyOnFailure:
+      - type: system-email
+      - *filesytemFailureSink
+
+  DailyBackup:
+    cmd: /usr/local/bin/backup /home/bob/documents
+    time: 0 0 13
+    onError: Stop
+    notifyOnFailure:
+      - *filesytemFailureSink
+
+resultSinks:
+  - &filesytemFailureSink
+    type: filesystem
+    path: /home/bob/jobber-failures
+    data:
+      - stdout
+      - stderr
+    maxAgeDays: 10
+</pre>
 
   <p>Here are the types of result sinks:</p>
   <table class="table">
@@ -541,30 +634,31 @@ DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC        
       <tr>
         <td>system-email</td>
         <td>Sends an email using <code>sendmail</code> to the job&rsquo;s owner
-        containing details of the run (e.g., stdout, stderr, exit code).</td>
+        containing details of the run (e.g., stdout output, stderr output, exit code).</td>
         <td>None</td>
       </tr>
       <tr>
         <td>stdout</td>
-        <td>Writes details of the run (e.g., stdout, stderr, exit code) to
-          jobberrunner&rsquo;s stdout.</td>
+        <td>Writes a run record (see below) to jobberrunner&rsquo;s stdout.
+        This is useful mostly when running Jobber in a Docker container.</td>
         <td>
           <table class="table">
             <tr>
               <td><code>data</code></td>
-              <td>A list of strings which must be &ldquo;stdout&rdquo; or
-                &ldquo;stderr&rdquo;.  This specifies whether the run details
+              <td>A list of strings each of which must be &ldquo;stdout&rdquo; or
+                &ldquo;stderr&rdquo;.  This specifies whether the run record
                 written to jobberrunner&rsquo;s stdout will contain the run&rsquo;s
-                stdout, stderr, or both.</td>
+                stdout output, stderr output, or both.</td>
             </tr>
           </table>
         </td>
       </tr>
       <tr>
         <td>socket</td>
-        <td>Writes details of the run (e.g., stdout, stderr, exit code) to
-          a socket.  This causes jobberrunner to listen for connections on the
-        specified socket.  Run details are written to each active connection.
+        <td>Writes a run record (see below) to incoming connections to a TCP or
+          Unix socket.  This result sink causes
+          jobberrunner to listen for connections on the specified socket.
+          <br /><br />
       NOTE: The owning user must have permission to listen to the specified socket or
      make a Unix socket at the specified path.</td>
         <td>
@@ -582,18 +676,18 @@ DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC        
             </tr>
             <tr>
               <td><code>data</code></td>
-              <td>A list of strings which must be &ldquo;stdout&rdquo; or
-                &ldquo;stderr&rdquo;.  This specifies whether the run details
+              <td>A list of strings each of which must be &ldquo;stdout&rdquo; or
+                &ldquo;stderr&rdquo;.  This specifies whether the run record
                 written to the socket will contain the run&rsquo;s
-                stdout, stderr, or both.</td>
+                stdout output, stderr output, or both.</td>
             </tr>
           </table>
         </td>
       </tr>
       <tr>
         <td>program</td>
-        <td>Sends details of the run (e.g., stdout, stderr, exit code) to the
-        stdout of a program.</td>
+        <td>Runs a program and writes a run record (see below) to the program&rsquo;s
+        stdin.</td>
         <td>
           <table class="table">
             <tr>
@@ -609,8 +703,8 @@ DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC        
       </tr>
       <tr>
         <td>filesystem</td>
-        <td>Writes the run&squo;s stdout, stderr, or both to the filesystem.
-        A path to a directory must be given.  Stdout and stderr will be written
+        <td>Writes the run&squo;s stdout output, stderr output, or both to the filesystem.
+        A path to a directory must be given.  The stdout output and stderr output will be written
       to separate files with timestamps as names, and these files will be
       organized by job name.  For example:
     <pre>
@@ -632,9 +726,9 @@ DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC        
             </tr>
             <tr>
               <td><code>data</code></td>
-              <td>A list of strings which must be &ldquo;stdout&rdquo; or
-                &ldquo;stderr&rdquo;.  This specifies whether the stdout, stderr,
-              or both will be written.</td>
+              <td>A list of strings each of which must be &ldquo;stdout&rdquo; or
+                &ldquo;stderr&rdquo;.  This specifies whether the stdout outout,
+                stderr output, or both will be written.</td>
             </tr>
             <tr>
               <td><code>maxAgeDays</code></td>
@@ -645,6 +739,31 @@ DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC        
       </tr>
     </tbody>
   </table>
+
+  <p>Several types of result sinks publish details about a job&rsquo;s run in
+    the form of a <dfn>run record</dfn>, which is a JSON document.  Here is an example:</p>
+
+  <pre>
+{
+  "version": "1.4",
+  "job": {
+    "name": "DailyBackup",
+    "command": "/usr/local/bin/backup /home/bob/documents",
+    "time": "0 0 13 * * *",
+    "status": "Good"
+  },
+  "user": "bob",
+  "startTime": 1543150800,
+  "succeeded": true,
+  "stdout": "Backing up...\nSuccess",
+  "stderr": ""
+}
+</pre>
+
+<p>If the run&rsquo;s stdout (or stderr) output contained non-UTF-8 bytes, then
+  the run record will have a <code>stdoutBase64</code> (or <code>stderrBase64</code>) field
+  instead of a <code>stdout</code> (or <code>stderr</code>) field, containing
+  the output encoded in Base64.</p>
 </section>
 </div><div id="run-history"><section>
   <h3>Keeping a Log of Job Runs</h3>
@@ -664,8 +783,9 @@ DailyBackup  Good    0 0 13 * * *              Nov 22 13:00:00 +0000 UTC        
     lost when the Jobber service stops or restarts.</p>
 
   <p>Here is an example of keeping the run log in memory:</p>
-  <pre>[prefs]
-runLog:
+  <pre>
+prefs:
+  runLog:
     type: memory
     maxLen: 500</pre>
 
@@ -673,8 +793,9 @@ runLog:
     recent runs of any of the user&rsquo;s jobs.</p>
 
   <p>Here is an example of keeping the run log on disk:</p>
-  <pre>[prefs]
-runLog:
+  <pre>
+prefs:
+  runLog:
     type: file
     path: /var/log/jobber-runs
     maxFileLen: 100m
@@ -687,9 +808,10 @@ runLog:
     &ldquo;jobber-runs.2&rdquo;). When it is necessary to delete a history file,
     the oldest one will get the axe.</p>
 
-  <p>If the jobfile does not have a <code>runLog</code> entry, then 
+  <p>If the jobfile does not have a <code>runLog</code> entry, then
   Jobber&rsquo;s run log is kept in memory, with a maximum length of 100.</p>
-</section></div></section><div id="loading-jobs"><section>
+</section>
+</div></section><div id="loading-jobs"><section>
   <h2>Loading Jobs</h2>
 
   <p>After you've created a user&rsquo;s jobfile, log in as that user and
