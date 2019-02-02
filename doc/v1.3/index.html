@@ -633,19 +633,10 @@ notifyProgram: /home/dylan/myNotifyProgram.sh</pre>
 </section></div><div id="run-history"><section>
   <h3>Keeping a Log of Job Runs</h3>
 
-  <p>
-    The command
-    <code>jobber log</code>
-    prints out info about previous runs. This info &mdash; the
-    <dfn>run log</dfn>
-    &mdash; must be kept somewhere, and you can control this in the
-    <code>prefs</code>
-    section of the jobfile.
-  </p>
-
-  <p>You can chose to have Jobber keep the run log in its memory, or write
-    it to disk. Please note that, if you chose to keep it in memory, it will be
-    lost when the Jobber service stops or restarts.</p>
+  <p>The <code>jobber log</code> command prints the <dfn>run log</dfn> &mdash; i.e., a log
+containing info about previous runs.  By default, the run log only contains the 100 most recent
+runs, and it is not written to disk, which means that it will be lost when the Jobber service stops
+or restarts.</p>
 
   <p>Here is an example of keeping the run log in memory:</p>
   <pre>[prefs]
@@ -670,10 +661,8 @@ runLog:
     rotated &ldquo;history&rdquo; files (named &ldquo;jobber-runs.1&rdquo; and
     &ldquo;jobber-runs.2&rdquo;). When it is necessary to delete a history file,
     the oldest one will get the axe.</p>
-
-  <p>If the jobfile does not have a <code>runLog</code> entry, then 
-  Jobber&rsquo;s run log is kept in memory, with a maximum length of 100.</p>
-</section></div></section><div id="loading-jobs"><section>
+</section>
+</div></section><div id="loading-jobs"><section>
   <h2>Loading Jobs</h2>
 
   <p>After you've created a user&rsquo;s jobfile, log in as that user and
