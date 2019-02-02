@@ -33,6 +33,7 @@ OTHER_SOURCES := \
 	Gopkg.lock \
 	Gopkg.toml \
 	LICENSE \
+	make-release-notes.py \
 	Makefile \
 	mk \
 	platform_tests \
