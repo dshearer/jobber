@@ -56,10 +56,11 @@ type ListJobsCmdResp struct {
 }
 
 type LogDesc struct {
-	Time      time.Time `json:"time"`
-	Job       string    `json:"job"`
-	Succeeded bool      `json:"succeeded"`
-	Result    string    `json:"result"`
+	Time      time.Time     `json:"time"`
+	Job       string        `json:"job"`
+	Succeeded bool          `json:"succeeded"`
+	ExecTime  time.Duration `json:"exectime"`
+	Result    string        `json:"result"`
 }
 
 type LogCmd struct{}

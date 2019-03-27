@@ -115,6 +115,7 @@ func RunJob(
 	rec.NewStatus = jobfile.JobGood
 	rec.Stdout = execResult.Stdout
 	rec.Stderr = execResult.Stderr
+	rec.ExecTime = time.Since(rec.RunTime)
 
 	if testing {
 		return rec

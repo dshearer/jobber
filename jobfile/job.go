@@ -91,6 +91,7 @@ type RunRec struct {
 	Stdout    []byte
 	Stderr    []byte
 	Succeeded bool
+	ExecTime  time.Duration
 	Err       *common.Error
 }
 
