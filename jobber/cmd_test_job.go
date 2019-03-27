@@ -46,7 +46,7 @@ func doTestCmd(args []string) int {
 		ipc.TestCmd{Job: job},
 		&resp,
 		usr,
-		false,
+		nil,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)

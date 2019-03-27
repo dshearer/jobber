@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"time"
 
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/ipc"
@@ -16,6 +17,7 @@ func doReloadCmd(args []string) int {
 	flagSet.Usage = subcmdUsage(ReloadCmdStr, "", flagSet)
 	var help_p = flagSet.Bool("h", false, "help")
 	var allUsers_p = flagSet.Bool("a", false, "all-users")
+	var timeout_p = flagSet.Duration("t", 5 * time.Second, "timeout")
 	flagSet.Parse(args)
 
 	if *help_p {
@@ -41,7 +43,7 @@ func doReloadCmd(args []string) int {
 				ipc.ReloadCmd{},
 				&resp,
 				usr,
-				true,
+				timeout_p,
 			)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -71,7 +73,7 @@ func doReloadCmd(args []string) int {
 			ipc.ReloadCmd{},
 			&resp,
 			usr,
-			true,
+			timeout_p,
 		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
