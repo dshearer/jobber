@@ -16,6 +16,7 @@ func (self *JobManager) doLogCmd(cmd ipc.LogCmd) ipc.ICmdResp {
 			Time:      l.Time,
 			Job:       l.JobName,
 			Succeeded: l.Succeeded,
+			ExecTime:  l.ExecTime,
 			Result:    l.Result.String(),
 		}
 		logDescs = append(logDescs, logDesc)

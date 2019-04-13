@@ -899,11 +899,12 @@ func encodeRunLogEntry(entry *RunLogEntry) string {
 
 	// encode whole thing
 	tmp := fmt.Sprintf(
-		"%v\t%v\t%v\t%v",
+		"%v\t%v\t%v\t%v\t%v",
 		encodedJobName,
 		encodedTime,
 		entry.Succeeded,
 		entry.Result,
+		entry.ExecTime,
 	)
 	suffix := strings.Repeat(" ", int(gLogEntryLen)-len(tmp))
 	return fmt.Sprintf("%v%v", tmp, suffix)
@@ -917,7 +918,7 @@ func decodeRunLogEntry(s string) (*RunLogEntry, error) {
 
 	// split string into fields
 	fields := strings.Split(s, "\t")
-	if len(fields) != 4 {
+	if len(fields) != 5 {
 		msg := "Not enough fields in log entry line."
 		return nil, &common.Error{What: msg}
 	}
@@ -955,6 +956,12 @@ func decodeRunLogEntry(s string) (*RunLogEntry, error) {
 	}
 	if !decodedStatus {
 		return nil, &common.Error{What: "Invalid 'Result' field."}
+	}
+
+	// decode exectime
+	entry.ExecTime, err = time.ParseDuration(fields[4])
+	if err != nil {
+		return nil, &common.Error{What: "Invalid 'ExecTime' field."}
 	}
 
 	return &entry, nil

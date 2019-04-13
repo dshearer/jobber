@@ -184,6 +184,7 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 		Time:      rec.RunTime,
 		Succeeded: rec.Succeeded,
 		Result:    rec.NewStatus,
+		ExecTime:  rec.ExecTime,
 	}
 	self.jfile.Prefs.RunLog.Put(newRunLogEntry)
 

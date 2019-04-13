@@ -9,6 +9,7 @@ type RunLogEntry struct {
 	Time      time.Time
 	Succeeded bool
 	Result    JobStatus
+	ExecTime  time.Duration
 }
 
 /*
