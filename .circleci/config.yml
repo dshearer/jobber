@@ -2,7 +2,7 @@ version: 2
 jobs:
   alpine3-pkg:
     docker:
-      - image: dshearer/jobber-cci-alpine3:2
+      - image: dshearer/jobber-cci-alpine3:3
 
     working_directory: /home/builder/jobber
 
@@ -14,27 +14,9 @@ jobs:
           path: pkgs
           destination: alpine3
 
-  ubuntu14-pkg:
-    docker:
-      - image: dshearer/jobber-cci-ubuntu14:3
-
-    working_directory: /jobber
-
-    steps:
-      - checkout
-      - run: mkdir pkgs
-      - run: make -C packaging/ubuntu_14 pkg-local DESTDIR="$PWD/pkgs"
-      - store_artifacts:
-          path: pkgs
-          destination: ubuntu14
-      - persist_to_workspace:
-          root: pkgs
-          paths:
-            - '*.deb'
-
   debian9-pkg:
     docker:
-      - image: dshearer/jobber-cci-debian9:3
+      - image: dshearer/jobber-cci-debian9:4
 
     working_directory: /jobber
 
@@ -45,10 +27,14 @@ jobs:
       - store_artifacts:
           path: pkgs
           destination: debian9
+      - persist_to_workspace:
+          root: pkgs
+          paths:
+            - '*.deb'
 
   centos7-pkg:
     docker:
-      - image: dshearer/jobber-cci-centos7:3
+      - image: dshearer/jobber-cci-centos7:4
 
     working_directory: /jobber
 
@@ -61,7 +47,9 @@ jobs:
           destination: centos7
 
   test:
-    machine: true
+    machine:
+      enabled: true
+      image: ubuntu-1604:201903-01
 
     steps:
       - attach_workspace:
@@ -95,9 +83,8 @@ workflows:
   build-packages:
     jobs:
       - alpine3-pkg
-      - ubuntu14-pkg
       - debian9-pkg
       - centos7-pkg
       - test:
           requires:
-            - ubuntu14-pkg
+            - debian9-pkg
