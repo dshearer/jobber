@@ -58,7 +58,7 @@ function _findPlatform($asset)
             'CPU' => "x86_64"
         ],
         '.deb' => [
-            'OS' => "Debian 8+ / Ubuntu 14.10+",
+            'OS' => "Debian 8+ / Ubuntu 16+",
             'CPU' => "x86_64"
         ]
     ];
