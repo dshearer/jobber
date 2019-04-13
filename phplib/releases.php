@@ -1,6 +1,5 @@
 <?php
 
-
 function _errExit($msg)
 {
     echo($msg);

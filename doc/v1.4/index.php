@@ -4,7 +4,7 @@ $gSections = [
     "deployment" => [
         "title" => "Deployment",
         "page" => "deployment.html",
-        "version" => "v1.4-pr.1"
+        "version" => "v1.4"
     ],
     "jobfile" => [
         "title" => "Putting Jobber to Work",
@@ -12,12 +12,12 @@ $gSections = [
             "overview" => [
                 "title" => "Overview",
                 "page" => "jobfile/overview.html",
-                "version" => "v1.4-pr.1"
+                "version" => "v1.4"
             ],
             "specifying-commands" => [
               "title" => "Specifying Commands",
               "page" => "jobfile/specifying-commands.html",
-              "version" => "v1.4-pr.1"
+              "version" => "v1.4"
             ],
             "time-strings" => [
                 "title" => "Time strings",
@@ -27,17 +27,17 @@ $gSections = [
             "error-handling" => [
                 "title" => "Error-handling",
                 "page" => "jobfile/error-handling.html",
-                "version" => "v1.4-pr.1"
+                "version" => "v1.4"
             ],
             "notifications" => [
                 "title" => "Result Sinks",
                 "page" => "jobfile/result-sinks.html",
-                "version" => "v1.4-pr.1"
+                "version" => "v1.4"
             ],
             "run-history" => [
                 "title" => "Keeping a Log of Job Runs",
                 "page" => "jobfile/run-log.html",
-                "version" => "v1.4-pr.1"
+                "version" => "v1.4"
             ],
         ],
     ],
@@ -97,7 +97,7 @@ $gSections = [
   <header class="container">
     <h1>
       How to Use Jobber <br /> <small>Version
-        <?php makeDocVersionSelect("1.4-pr.1"); ?></small>
+        <?php makeDocVersionSelect("1.4"); ?></small>
     </h1>
   </header>
 

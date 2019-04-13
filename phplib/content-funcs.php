@@ -1,7 +1,7 @@
 <?php
 
-$DOC_VERSIONS = ["1.1", "1.2", "1.3", "1.4-pr.1"];
-$DOC_DEFAULT_VERSION_IDX = 2;
+$DOC_VERSIONS = ["1.1", "1.2", "1.3", "1.4"];
+$DOC_DEFAULT_VERSION_IDX = 3;
 
 function makeSubpageNavbar($currSubpage)
 {

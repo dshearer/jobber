@@ -36,13 +36,9 @@
   <div class="container">
     <h1>How to Use Jobber</h1>
 
-    <a
-      href="/jobber/doc/v1.4-pr.1/" class="btn btn-primary">v1.4-pr.1</a>
-    <a
-      href="/jobber/doc/v1.3/" class="btn btn-primary">v1.3</a>
-    <a
-      href="/jobber/doc/v1.2/" class="btn btn-primary">v1.2</a>
-    <a href="/jobber/doc/v1.1/" class="btn btn-primary">v1.1</a>
+    <?php foreach (array_reverse($DOC_VERSIONS) as $ver) { ?>
+      <a href="/jobber/doc/v<?= $ver ?>/" class="btn btn-primary">v<?= $ver ?></a>
+    <?php } ?>
   </div>
 </body>
 </html>
