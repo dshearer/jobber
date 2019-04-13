@@ -2,7 +2,7 @@ version: 2
 jobs:
   alpine3-pkg:
     docker:
-      - image: dshearer/jobber-cci-alpine3:2
+      - image: dshearer/jobber-cci-alpine3:3
 
     working_directory: /home/builder/jobber
 
@@ -16,7 +16,7 @@ jobs:
 
   debian9-pkg:
     docker:
-      - image: dshearer/jobber-cci-debian9:3
+      - image: dshearer/jobber-cci-debian9:4
 
     working_directory: /jobber
 
@@ -34,7 +34,7 @@ jobs:
 
   centos7-pkg:
     docker:
-      - image: dshearer/jobber-cci-centos7:3
+      - image: dshearer/jobber-cci-centos7:4
 
     working_directory: /jobber
 
