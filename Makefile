@@ -16,7 +16,7 @@ SRC_TARBALL_DIR = jobber-$(shell cat ${srcdir}/version)
 
 GO = GOPATH=${GO_WKSPC} go
 
-GO_VERSION = 1.8
+GO_VERSION = 1.11
 
 LDFLAGS = -ldflags "-X github.com/dshearer/jobber/common.jobberVersion=`cat version`"
 
