@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"time"
 
 	"github.com/dshearer/jobber/ipc"
 )
@@ -14,6 +15,7 @@ func doResumeCmd(args []string) int {
 	flagSet := flag.NewFlagSet(ResumeCmdStr, flag.ExitOnError)
 	flagSet.Usage = subcmdUsage(ResumeCmdStr, "[JOBS...]", flagSet)
 	var help_p *bool = flagSet.Bool("h", false, "help")
+	var timeout_p = flagSet.Duration("t", 5 * time.Second, "timeout")
 	flagSet.Parse(args)
 
 	if *help_p {
@@ -40,7 +42,7 @@ func doResumeCmd(args []string) int {
 		ipc.ResumeCmd{Jobs: jobs},
 		&resp,
 		usr,
-		true,
+		timeout_p,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)

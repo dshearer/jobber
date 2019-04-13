@@ -56,7 +56,7 @@ func (self LogDescSorter) Less(i, j int) bool {
 	return self[i].Time.After(self[j].Time)
 }
 
-func doLogCmd_allUsers() int {
+func doLogCmd_allUsers(timeout_p *time.Duration) int {
 	// get all users
 	users, err := common.AllUsersWithSockets()
 	if err != nil {
@@ -75,7 +75,7 @@ func doLogCmd_allUsers() int {
 			ipc.LogCmd{},
 			&resp,
 			usr,
-			true,
+			timeout_p,
 		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr,
@@ -116,7 +116,7 @@ func doLogCmd_allUsers() int {
 	return 0
 }
 
-func doLogCmd_currUser() int {
+func doLogCmd_currUser(timeout_p *time.Duration) int {
 	// get current user
 	usr, err := user.Current()
 	if err != nil {
@@ -133,7 +133,7 @@ func doLogCmd_currUser() int {
 		ipc.LogCmd{},
 		&resp,
 		usr,
-		true,
+		timeout_p,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -175,6 +175,7 @@ func doLogCmd(args []string) int {
 	flagSet.Usage = subcmdUsage(LogCmdStr, "", flagSet)
 	var help_p = flagSet.Bool("h", false, "help")
 	var allUsers_p = flagSet.Bool("a", false, "all-users")
+	var timeout_p = flagSet.Duration("t", 5 * time.Second, "timeout")
 	flagSet.Parse(args)
 
 	if *help_p {
@@ -183,8 +184,8 @@ func doLogCmd(args []string) int {
 	}
 
 	if *allUsers_p {
-		return doLogCmd_allUsers()
+		return doLogCmd_allUsers(timeout_p)
 	} else {
-		return doLogCmd_currUser()
+		return doLogCmd_currUser(timeout_p)
 	}
 }

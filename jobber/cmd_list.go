@@ -76,7 +76,7 @@ func formatResponseRecs(recs []ListRespRec, showUser bool) string {
 	return buffer.String()
 }
 
-func doListCmd_allUsers() int {
+func doListCmd_allUsers(timeout_p *time.Duration) int {
 	// get all users
 	users, err := common.AllUsersWithSockets()
 	if err != nil {
@@ -95,7 +95,7 @@ func doListCmd_allUsers() int {
 			ipc.ListJobsCmd{},
 			&resp,
 			usr,
-			true,
+			timeout_p,
 		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr,
@@ -112,7 +112,7 @@ func doListCmd_allUsers() int {
 	return 0
 }
 
-func doListCmd_currUser() int {
+func doListCmd_currUser(timeout_p *time.Duration) int {
 	// get current user
 	usr, err := user.Current()
 	if err != nil {
@@ -129,7 +129,7 @@ func doListCmd_currUser() int {
 		ipc.ListJobsCmd{},
 		&resp,
 		usr,
-		true,
+		timeout_p,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -149,6 +149,7 @@ func doListCmd(args []string) int {
 	flagSet.Usage = subcmdUsage(ListCmdStr, "", flagSet)
 	var help_p = flagSet.Bool("h", false, "help")
 	var allUsers_p = flagSet.Bool("a", false, "all-users")
+	var timeout_p = flagSet.Duration("t", 5 * time.Second, "timeout")
 	flagSet.Parse(args)
 
 	if *help_p {
@@ -157,8 +158,8 @@ func doListCmd(args []string) int {
 	}
 
 	if *allUsers_p {
-		return doListCmd_allUsers()
+		return doListCmd_allUsers(timeout_p)
 	} else {
-		return doListCmd_currUser()
+		return doListCmd_currUser(timeout_p)
 	}
 }

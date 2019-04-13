@@ -10,15 +10,13 @@ import (
 	"github.com/dshearer/jobber/common"
 )
 
-const gTimeout = 5 * time.Second
-
 const gNoSocketErrMsg = `Jobber doesn't seem to be running for user %v.
 (No socket at %v.)`
 const gTimeoutErrMsg = "Call to Jobber timed out."
 const gCallErrMgs = "Call to Jobber failed: %v"
 
 func CallDaemon(method string, args, reply interface{},
-	usr *user.User, timeout bool) error {
+	usr *user.User, timeout *time.Duration) error {
 
 	// make sure the daemon is running
 	socketPath := common.CmdSocketPath(usr)
@@ -41,12 +39,12 @@ func CallDaemon(method string, args, reply interface{},
 	}
 	defer client.Close()
 
-	// make timeout timer
-	timeoutTimer := time.NewTimer(gTimeout)
-	if timeout {
+	var timeoutC <-chan time.Time
+	if timeout != nil {
+		// make timeout timer
+		timeoutTimer := time.NewTimer(*timeout)
+		timeoutC = timeoutTimer.C
 		defer timeoutTimer.Stop()
-	} else {
-		timeoutTimer.Stop()
 	}
 
 	// send request
@@ -59,7 +57,7 @@ func CallDaemon(method string, args, reply interface{},
 		}
 		return nil
 
-	case <-timeoutTimer.C:
+	case <-timeoutC:
 		return &common.Error{What: gTimeoutErrMsg}
 	}
 }
