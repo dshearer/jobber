@@ -1,4 +1,4 @@
-FROM golang:1.10-alpine3.7
+FROM golang:1.12.4-alpine3.9
 
 RUN apk update && \
     apk upgrade && \

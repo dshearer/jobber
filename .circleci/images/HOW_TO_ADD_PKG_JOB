@@ -1,0 +1,5 @@
+1. Make a new Dockerfile for the platform in a new dir in the images dir.
+2. Upload the image to the dshearer repo.  Call it something like "dshearer/jobber-cci-PLATFORM:1"
+3. Add a job to config.yml that uses the image
+
+NOTE: If you change the image, you MUST upload it to the repo as a new version.
