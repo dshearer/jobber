@@ -18,8 +18,9 @@ var EntryEncodeDecodeTestCases = []EntryEncodeDecodeTestCase{
 			time.Unix(1506313655, 0),
 			true,
 			JobGood,
+			time.Second,
 		},
-		"My\\n\\nDumb\\tJob\t1506313655000000000\ttrue\tGood                   ",
+		"My\\n\\nDumb\\tJob\t1506313655000000000\ttrue\tGood\t1s                ",
 	},
 }
 
