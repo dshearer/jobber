@@ -140,17 +140,11 @@ func main() {
 		"path to Unix socket on which to receive commands")
 	inetPort_p := flag.Uint("p", 0,
 		"path TCP socket on which to receive commands")
+	standaloneFlag_p := flag.Bool("s", false, 
+		"standalone mode - use jobberrunner without master process/ipc")
 	flag.Parse()
 
-	// check for errors
-	haveUdsParam := udsSockPath_p != nil && len(*udsSockPath_p) > 0
-	haveInetParam := inetPort_p != nil && *inetPort_p > 0
-	if (!haveUdsParam && !haveInetParam) || (haveUdsParam && haveInetParam) {
-		usage("Must specify exactly one of -u and -p")
-		quit(1)
-	}
-
-	// handle flags
+	// handle generic version + help flags
 	if *helpFlag_p {
 		usage("")
 		quit(0)
@@ -166,16 +160,29 @@ func main() {
 	}
 	jobfilePath := flag.Args()[0]
 
-	// get current user
-	var err error
-	gUser, err = user.Current()
-	if err != nil {
-		common.ErrLogger.Printf("Failed to get current user: %v", err)
-		quit(1)
-	}
+	// sockets params provided ?
+	haveUdsParam := udsSockPath_p != nil && len(*udsSockPath_p) > 0
+	haveInetParam := inetPort_p != nil && *inetPort_p > 0
 
-	// record PID in file (for jobbermaster)
-	recordPid(gUser)
+	// regular ipc mode ?
+	if *standaloneFlag_p == false {
+		// check for errors (tcp or unix socket param has to be set)
+		if (!haveUdsParam && !haveInetParam) || (haveUdsParam && haveInetParam) {
+			usage("Must specify exactly one of -u and -p")
+			quit(1)
+		}
+
+		// get current user
+		var err error
+		gUser, err = user.Current()
+		if err != nil {
+			common.ErrLogger.Printf("Failed to get current user: %v", err)
+			quit(1)
+		}
+
+		// record PID in file (for jobbermaster)
+		recordPid(gUser)
+	}
 
 	// run job manager
 	gJobManager = NewJobManager(jobfilePath)
@@ -184,22 +191,25 @@ func main() {
 		quit(1)
 	}
 
-	// make IPC server
-	if haveUdsParam {
-		gIpcServer = NewUdsIpcServer(*udsSockPath_p, gJobManager.CmdChan)
-		common.Logger.Printf("Listening for commands on %v", *udsSockPath_p)
-	} else {
-		gIpcServer = NewInetIpcServer(*inetPort_p, gJobManager.CmdChan)
-		common.Logger.Printf("Listening for commands on :%v", *inetPort_p)
-	}
-	if err := gIpcServer.Launch(); err != nil {
-		common.ErrLogger.Printf("Error: %v", err)
-		quit(1)
-	}
+	// regular ipc mode ?
+	if *standaloneFlag_p == false {
+		// make IPC server
+		if haveUdsParam {
+			gIpcServer = NewUdsIpcServer(*udsSockPath_p, gJobManager.CmdChan)
+			common.Logger.Printf("Listening for commands on %v", *udsSockPath_p)
+		} else {
+			gIpcServer = NewInetIpcServer(*inetPort_p, gJobManager.CmdChan)
+			common.Logger.Printf("Listening for commands on :%v", *inetPort_p)
+		}
+		if err := gIpcServer.Launch(); err != nil {
+			common.ErrLogger.Printf("Error: %v", err)
+			quit(1)
+		}
 
-	if quickSockPath_p != nil && len(*quickSockPath_p) > 0 {
-		// listen for jobbermaster to tell us to quit
-		go quitOnJobbermasterDiscon(*quickSockPath_p)
+		if quickSockPath_p != nil && len(*quickSockPath_p) > 0 {
+			// listen for jobbermaster to tell us to quit
+			go quitOnJobbermasterDiscon(*quickSockPath_p)
+		}
 	}
 
 	// listen for signals
