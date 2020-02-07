@@ -101,5 +101,10 @@ func (self ProgramResultSink) Handle(rec RunRec) {
 			self.Path,
 			errMsg,
 		)
+	} else {
+		stdout, _ := SafeBytesToStr(execResult.Stdout)
+		stderr, _ := SafeBytesToStr(execResult.Stderr)
+		common.Logger.Print(stdout)
+		common.ErrLogger.Print(stderr)
 	}
 }
