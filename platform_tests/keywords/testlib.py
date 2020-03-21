@@ -315,10 +315,13 @@ class testlib(object):
             pwnam = pwd.getpwnam(_NORMUSER)
             os.setegid(pwnam.pw_gid)
             os.seteuid(pwnam.pw_uid)
-            with open(self._normuser_jobfile_path, 'w') as f:
-                f.write(contents)
-            os.seteuid(0)
-            os.setegid(0)
+            try:
+                with open(self._normuser_jobfile_path, 'w') as f:
+                    f.write(contents)
+                os.chmod(self._normuser_jobfile_path, 0600)
+            finally:
+                os.seteuid(0)
+                os.setegid(0)
 
         # reload it
         if reload:
