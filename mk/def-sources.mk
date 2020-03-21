@@ -30,6 +30,7 @@ GO_SOURCES := \
 
 OTHER_SOURCES := \
 	.circleci \
+	.github \
 	Gopkg.lock \
 	Gopkg.toml \
 	LICENSE \
