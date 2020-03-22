@@ -1,12 +1,14 @@
 _BUILDTOOLS_GEN = ${CURDIR}/buildtools/gen
+_TOOLS_TAR = tools-v0.3.4.tar.gz
+_TOOLS_DIR = tools-gopls-v0.3.4
 
 GOYACC = ${_BUILDTOOLS_GEN}/bin/goyacc
 GO_WITH_TOOLS = PATH="${_BUILDTOOLS_GEN}/bin:$${PATH}" ${GO}
 
-${GOYACC} : buildtools/gotools/tools-v0.3.4.tar.gz
+${GOYACC} : buildtools/gotools/${_TOOLS_TAR}
 	@echo MAKE GOYACC
-	@cd buildtools/gotools/ && tar -xzf tools-v0.3.4.tar.gz
-	@cd buildtools/gotools/tools-gopls-v0.3.4/cmd/goyacc && go build -mod=vendor -o "${GOYACC}"
+	@cd buildtools/gotools/ && tar -xzf "${_TOOLS_TAR}"
+	@cd "buildtools/gotools/${_TOOLS_DIR}/cmd/goyacc" && ${GO_BUILD} -o "${GOYACC}"
 
 .PHONY : clean-buildtools
 clean-buildtools :
