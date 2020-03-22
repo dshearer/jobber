@@ -10,7 +10,7 @@ Source0:	jobber-%{_pkg_version}.tgz
 Source1:    jobber.service
 
 %{?systemd_requires}
-BuildRequires:	coreutils, systemd, rsync
+BuildRequires:	coreutils, systemd, rsync, golang
 
 Prefix:         /usr/local
 

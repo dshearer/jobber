@@ -1,0 +1,128 @@
+name: Build packages
+
+# Controls when the action will run. Triggers the workflow on push or pull request 
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  release:
+    types: [ published ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+    make-rhel-pkg:
+        name: Make RHEL package
+        runs-on: ubuntu-latest
+        container: centos:latest
+        steps:
+            - name: Prepare
+              run: |
+                yum update -y
+                yum install -y make rpmdevtools yum-utils
+
+            - name: Clone repo
+              uses: actions/checkout@v2
+
+            - name: Make package
+              run: |
+                yum-builddep --assumeyes packaging/rpm/*.spec
+                make -C packaging/rpm pkg-local "DESTDIR=${GITHUB_WORKSPACE}/pkgs/"
+
+            - name: Publish package
+              uses: actions/upload-artifact@v1.0.0
+              with:
+                name: rhel-pkg
+                path: pkgs
+
+    make-alpine-pkg:
+        name: Make Alpine package
+        runs-on: ubuntu-latest
+        container: alpine:latest
+        steps:
+            - name: Prepare
+              run: |
+                apk update
+                apk upgrade
+                apk add make
+                apk add alpine-sdk
+                apk add go
+                adduser -G abuild -D jobber
+
+            - name: Clone repo
+              uses: actions/checkout@v2
+
+            - name: Make package
+              run: |
+                chmod a+w . packaging/alpine
+                sudo -u jobber make -C packaging/alpine pkg-local "DESTDIR=${GITHUB_WORKSPACE}/pkgs/"
+
+            - name: Publish package
+              uses: actions/upload-artifact@v1.0.0
+              with:
+                name: alpine-pkg
+                path: pkgs
+
+    make-debian-pkg:
+        name: Make Debian package
+        runs-on: ubuntu-latest
+        steps:
+            - name: Prepare
+              run: |
+                sudo apt-get update
+                sudo apt-get install -y dpkg-dev debhelper dh-systemd
+
+            - name: Clone repo
+              uses: actions/checkout@v2
+
+            - name: Build package
+              run: make -C "${GITHUB_WORKSPACE}/packaging/debian" pkg-local "DESTDIR=${GITHUB_WORKSPACE}/pkgs/"
+
+            - name: Publish package
+              uses: actions/upload-artifact@v1.0.0
+              with:
+                name: debian-pkg
+                path: pkgs
+
+    test-pkg:
+        name: Test package
+        needs: make-debian-pkg
+        runs-on: ubuntu-latest
+        steps:
+            - name: Prepare
+              run: |
+                sudo apt-get update
+                sudo apt-get install -y python-pip socat
+                sudo pip install robotframework
+                sudo useradd normuser -m
+
+            - name: Download package
+              uses: actions/download-artifact@v1
+              with:
+                name: debian-pkg
+
+            - name: Install package
+              run: sudo dpkg -i "$(find ${GITHUB_WORKSPACE} -name *.deb)"
+
+            - name: Clone repo
+              uses: actions/checkout@v2
+
+            - name: Test package
+              run: |
+                if sudo robot --include test --pythonpath platform_tests/keywords platform_tests/suites; then
+                    echo "::set-env name=PASSED_TESTS::true"
+                else
+                    echo "::set-env name=PASSED_TESTS::false"
+                fi
+                mkdir test-report
+                mv *.html test-report/
+
+            - name: Publish test report
+              uses: actions/upload-artifact@v1.0.0
+              with:
+                name: test-report
+                path: test-report
+
+            - name: SucceedOrFail
+              run: test "${PASSED_TESTS}" = true

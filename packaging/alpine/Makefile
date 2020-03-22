@@ -32,7 +32,8 @@ pkg-local : ${WORK_DIR}/${SRC_TARBALL} ${PKGFILE_DEPS}
 	env "pkgrel=${PKGREL}" "pkgver=${ALPINE_VERSION}" abuild -r
 	
 	# copy package out of VM
-	find "${HOME}/packages/packaging" -name "*.apk" -exec cp '{}' "${DESTDIR}" ';'
+	mkdir -p "${DESTDIR}/"
+	find "${HOME}/packages/packaging" -name "*.apk" -exec cp '{}' "${DESTDIR}/" ';'
 
 include ../tail.mk
 
