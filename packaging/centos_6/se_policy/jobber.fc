@@ -1,6 +1,0 @@
-# jobberd executable will have:
-# label: system_u:object_r:jobberd_exec_t
-# MLS sensitivity: s0
-# MCS categories: <none>
-
-/usr/local/sbin/jobberd		--	gen_context(system_u:object_r:jobberd_exec_t,s0)
