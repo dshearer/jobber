@@ -9,14 +9,20 @@ srcdir = .
 INSTALL = install
 INSTALL_PROGRAM = ${INSTALL}
 
-SRC_TARBALL := jobber-$(shell cat ${srcdir}/version).tgz
-SRC_TARBALL_DIR := jobber-$(shell cat ${srcdir}/version)
+JOBBER_VERSION := $(shell cat ${srcdir}/version)
+SRC_TARBALL = jobber-${JOBBER_VERSION}.tgz
+SRC_TARBALL_DIR = jobber-${JOBBER_VERSION}
 
 OUTPUT_DIR = bin
 
 GO = go
 GO_VERSION = 1.11
-LDFLAGS = -ldflags "-X github.com/dshearer/jobber/common.jobberVersion=`cat version`"
+# NOTE: '-mod=vendor' prevents go from downloading dependencies
+GO_BUILD := ${GO} build -mod=vendor -ldflags "-X github.com/dshearer/jobber/common.jobberVersion=${JOBBER_VERSION}"
+GO_VET = ${GO} vet -mod=vendor
+GO_TEST = ${GO} test -mod=vendor
+GO_GEN = ${GO_WITH_TOOLS} generate -mod=vendor
+GO_CLEAN = ${GO} clean
 
 PACKAGES = \
 	github.com/dshearer/jobber/common \
@@ -31,7 +37,7 @@ include mk/def-sources.mk
 .PHONY : default
 default : build
 
-include mk/buildtools.mk
+include mk/buildtools.mk # defines 'GO_WITH_TOOLS' and 'GOYACC'
 
 .PHONY : build
 build : ${OUTPUT_DIR}/jobber ${OUTPUT_DIR}/jobbermaster \
@@ -40,8 +46,8 @@ build : ${OUTPUT_DIR}/jobber ${OUTPUT_DIR}/jobbermaster \
 .PHONY : check
 check : ${TEST_SOURCES} jobfile/parse_time_spec.go
 	@go version
-	${GO} vet ${PACKAGES}
-	${GO} test ${PACKAGES}
+	${GO_VET} ${PACKAGES}
+	${GO_TEST} ${PACKAGES}
 
 install : \
 	${DESTDIR}${libexecdir}/jobbermaster \
@@ -83,15 +89,15 @@ dist :
 ${OUTPUT_DIR}/% : ${MAIN_SOURCES} jobfile/parse_time_spec.go
 	@${srcdir}/buildtools/versionge "$$(go version | egrep -o '[[:digit:].]+' | head -n 1)" "${GO_VERSION}"
 	@echo BUILD $*
-	@${GO} build -mod=vendor ${LDFLAGS} -o "$@" "github.com/dshearer/jobber/$*"
+	@${GO_BUILD} -o "$@" "github.com/dshearer/jobber/$*"
 
 jobfile/parse_time_spec.go : ${GOYACC} ${JOBFILE_SOURCES}
 	@echo GEN SRC
-	@${GO_WITH_TOOLS} generate -mod=vendor github.com/dshearer/jobber/jobfile
+	@${GO_GEN} -mod=vendor github.com/dshearer/jobber/jobfile
 
 .PHONY : clean
 clean : clean-buildtools
 	@echo CLEAN
-	@-${GO} clean -i ${PACKAGES}
+	@-${GO_CLEAN} -i ${PACKAGES}
 	@rm -rf "${DESTDIR}${SRC_TARBALL}.tgz" jobfile/parse_time_spec.go \
 		jobfile/y.output "${OUTPUT_DIR}"
