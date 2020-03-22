@@ -35,6 +35,7 @@ pkg-local : jobber.spec ${WORK_DIR}/${SRC_TARBALL}
 		"${WORK_DIR}/SOURCES/"
 	
 	# build RPMs
+	yum-builddep --assumeyes "$<"
 	cd "${WORK_DIR}/SPECS" && rpmbuild -bb \
 		--define "_topdir ${abspath ${WORK_DIR}}" \
 		--define "_pkg_version ${RPM_VERSION}" \
