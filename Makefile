@@ -9,15 +9,13 @@ srcdir = .
 INSTALL = install
 INSTALL_PROGRAM = ${INSTALL}
 
-GO_WKSPC ?= ${abspath ../../../..}
-TEST_TMPDIR = ${PWD}
-SRC_TARBALL = jobber-$(shell cat ${srcdir}/version).tgz
-SRC_TARBALL_DIR = jobber-$(shell cat ${srcdir}/version)
+SRC_TARBALL := jobber-$(shell cat ${srcdir}/version).tgz
+SRC_TARBALL_DIR := jobber-$(shell cat ${srcdir}/version)
 
-GO = GOPATH=${GO_WKSPC} go
+OUTPUT_DIR = bin
 
+GO = go
 GO_VERSION = 1.11
-
 LDFLAGS = -ldflags "-X github.com/dshearer/jobber/common.jobberVersion=`cat version`"
 
 PACKAGES = \
@@ -31,19 +29,19 @@ PACKAGES = \
 include mk/def-sources.mk
 
 .PHONY : default
-default : all
+default : build
 
 include mk/buildtools.mk
 
-.PHONY : all
-all : ${GO_WKSPC}/bin/jobber ${GO_WKSPC}/bin/jobbermaster \
-	${GO_WKSPC}/bin/jobberrunner
+.PHONY : build
+build : ${OUTPUT_DIR}/jobber ${OUTPUT_DIR}/jobbermaster \
+	${OUTPUT_DIR}/jobberrunner
 
 .PHONY : check
 check : ${TEST_SOURCES} jobfile/parse_time_spec.go
 	@go version
 	${GO} vet ${PACKAGES}
-	TMPDIR="${TEST_TMPDIR}" ${GO} test ${PACKAGES}
+	${GO} test ${PACKAGES}
 
 install : \
 	${DESTDIR}${libexecdir}/jobbermaster \
@@ -51,17 +49,17 @@ install : \
 	${DESTDIR}${bindir}/jobber \
 	${DESTDIR}${sysconfdir}/jobber.conf
 
-${DESTDIR}${libexecdir}/% : ${GO_WKSPC}/bin/%
+${DESTDIR}${libexecdir}/% : ${OUTPUT_DIR}/%
 	@echo INSTALL "$@"
 	@mkdir -p "${dir $@}"
 	@${INSTALL_PROGRAM} "$<" "$@"
 
-${DESTDIR}${bindir}/% : ${GO_WKSPC}/bin/%
+${DESTDIR}${bindir}/% : ${OUTPUT_DIR}/%
 	@echo INSTALL "$@"
 	@mkdir -p "${dir $@}"
 	@${INSTALL_PROGRAM} "$<" "$@"
 
-${DESTDIR}${sysconfdir}/jobber.conf : ${GO_WKSPC}/bin/jobbermaster
+${DESTDIR}${sysconfdir}/jobber.conf : ${OUTPUT_DIR}/jobbermaster
 	@echo INSTALL "$@"
 	@mkdir -p "${dir $@}"
 	@"$<" defprefs > "$@"
@@ -82,18 +80,18 @@ dist :
 		"${SRC_TARBALL_DIR}"
 	rm -rf "${DESTDIR}dist-tmp"
 
-${GO_WKSPC}/bin/% : ${MAIN_SOURCES} jobfile/parse_time_spec.go
+${OUTPUT_DIR}/% : ${MAIN_SOURCES} jobfile/parse_time_spec.go
 	@${srcdir}/buildtools/versionge "$$(go version | egrep -o '[[:digit:].]+' | head -n 1)" "${GO_VERSION}"
 	@echo BUILD $*
-	@${GO} install ${LDFLAGS} "github.com/dshearer/jobber/$*"
+	@${GO} build -mod=vendor ${LDFLAGS} -o "$@" "github.com/dshearer/jobber/$*"
 
 jobfile/parse_time_spec.go : ${GOYACC} ${JOBFILE_SOURCES}
 	@echo GEN SRC
-	@${GO_WITH_TOOLS} generate github.com/dshearer/jobber/jobfile
+	@${GO_WITH_TOOLS} generate -mod=vendor github.com/dshearer/jobber/jobfile
 
 .PHONY : clean
 clean : clean-buildtools
 	@echo CLEAN
 	@-${GO} clean -i ${PACKAGES}
-	@rm -f "${DESTDIR}${SRC_TARBALL}.tgz" jobfile/parse_time_spec.go \
-		jobfile/y.output
+	@rm -rf "${DESTDIR}${SRC_TARBALL}.tgz" jobfile/parse_time_spec.go \
+		jobfile/y.output "${OUTPUT_DIR}"
