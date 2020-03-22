@@ -34,28 +34,13 @@ A replacement for cron, with sophisticated status-reporting and error-handling.
 %setup -q
 cp "%{_sourcedir}/jobber.service" "%{_builddir}/"
 
-# create Go workspace
-GO_WKSPC="%{_builddir}/go_workspace"
-GO_SRC_DIR="${GO_WKSPC}/src/github.com/dshearer"
-mkdir -p "${GO_SRC_DIR}"
-cp -R "%{_builddir}/jobber-%{_pkg_version}" "${GO_SRC_DIR}/jobber"
-
-echo "GO_WKSPC=${GO_WKSPC}" > "%{_builddir}/vars"
-echo "GO_SRC_DIR=${GO_SRC_DIR}" >> "%{_builddir}/vars"
-
 
 %build
-source "%{_builddir}/vars"
-export GO_WKSPC
-export GOPATH="${GO_WKSPC}"
-make %{?_smp_mflags} -C "${GO_SRC_DIR}/jobber" check
+make %{?_smp_mflags} check build
 
 
 %install
-source "%{_builddir}/vars"
-export GO_WKSPC
-export GOPATH="${GO_WKSPC}"
-%make_install -C "${GO_SRC_DIR}/jobber"
+%make_install
 mkdir -p "%{buildroot}/%{_unitdir}"
 cp "%{_builddir}/jobber.service" "%{buildroot}/%{_unitdir}/"
 
