@@ -18,8 +18,6 @@ include /usr/share/dpkg/default.mk
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
 SRC_DIR = ${PWD}
-GO_WKSPC = /tmp/workspace
-export GOPATH=${GO_WKSPC}
 
 # main packaging script based on dh7 syntax
 %:
@@ -27,18 +25,16 @@ export GOPATH=${GO_WKSPC}
 
 override_dh_auto_build:
 	# make Go workspace
-	mkdir -p "${GO_WKSPC}/src/github.com/dshearer"
-	ln -s "${SRC_DIR}" "${GO_WKSPC}/src/github.com/dshearer/jobber"
-	dh_auto_build -- "GO_WKSPC=${GO_WKSPC}"
+	dh_auto_build
 
 override_dh_auto_test:
-	dh_auto_test -- "GO_WKSPC=${GO_WKSPC}"
+	dh_auto_test
 
 override_dh_auto_install:
-	dh_auto_install -- "GO_WKSPC=${GO_WKSPC}" prefix=/usr
+	dh_auto_install -- prefix=/usr
 
 override_dh_auto_clean:
-	rm -rf "${GO_WKSPC}"
+	dh_auto_clean
 
 override_dh_systemd_start:
 	dh_systemd_start --restart-after-upgrade
