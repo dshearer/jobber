@@ -31,8 +31,8 @@ GO_SOURCES := \
 OTHER_SOURCES := \
 	.circleci \
 	.github \
-	Gopkg.lock \
-	Gopkg.toml \
+	go.mod \
+	go.sum \
 	LICENSE \
 	make-release-notes.py \
 	Makefile \

@@ -1,4 +1,6 @@
+bin
 buildtools/gen
+buildtools/gotools/tools-gopls-v0.3.4
 *.rpm
 *.tar
 *.tgz

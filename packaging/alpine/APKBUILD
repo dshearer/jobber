@@ -14,34 +14,29 @@ source="${pkgname}.initd ${pkgname}.tgz"
 _builddir="${startdir}/build"
 
 prepare() {
-	# make Go workspace
-	mkdir -p "${_builddir}/src/github.com/dshearer"
-	ln -s "${srcdir}/${pkgname}" "${_builddir}/src/github.com/dshearer/${pkgname}"
+	# nothing to do
+	true
 }
 
 build() {
-		echo Nothing to do
+	make -C "${srcdir}/${pkgname}" build
 }
 
 check() {
-    export GOPATH="${_builddir}"
-    export GO_WKSPC="${_builddir}"
-    make -C "${_builddir}/src/github.com/dshearer/${pkgname}" check
+    make -C "${srcdir}/${pkgname}" check
 }
 
 package() {
     set -e
 
-    # build and install
-    export GOPATH="${_builddir}"
-    export GO_WKSPC="${_builddir}"
-		make -C "${_builddir}/src/github.com/dshearer/${pkgname}" \
-			install "DESTDIR=${pkgdir}/" prefix=/usr
+    # install
+	make -C "${srcdir}/${pkgname}" install "DESTDIR=${pkgdir}/" prefix=/usr
 
     # install init script
-		local INITD=${pkgdir}/etc/init.d
-		mkdir -p "${INITD}"
-		cp "${startdir}/${pkgname}.initd" "${INITD}/jobber"
+	local INITD="${pkgdir}/etc/init.d"
+	mkdir -p "${INITD}"
+	cp "${startdir}/${pkgname}.initd" "${INITD}/jobber"
 }
 
-md5sums=""
+sha512sums="7dacd120effe454daded552623c99bb1b695c6ce47819b7f627772a1f6ca494b5ff83adcae2693e35ef600e92268ef5066a92fc7522043316864edde6f892550  jobber.initd
+9831f6dc858fa085c317a496affeb63945de5a96a7656008ef493783bebca65ee3445bbad0dfe646378ae9b75622eef395b43a20be7fa435c5b16247c1324702  jobber.tgz"

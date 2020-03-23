@@ -243,7 +243,7 @@ func parseV3Jobfile(f *os.File) (*JobFileV3Raw, error) {
 		dataStr = gYamlStarter + "\n" + dataStr
 	}
 	var jobfileRaw JobFileV3Raw
-	if err := yaml.UnmarshalStrict([]byte(dataStr), &jobfileRaw); err != nil {
+	if err := yaml.Unmarshal([]byte(dataStr), &jobfileRaw); err != nil {
 		return nil, err
 	}
 	return &jobfileRaw, nil

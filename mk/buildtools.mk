@@ -1,19 +1,15 @@
 _BUILDTOOLS_GEN = ${CURDIR}/buildtools/gen
-_BUILDTOOLS_WKSPC = ${_BUILDTOOLS_GEN}/gowkspc
+_TOOLS_TAR = tools-v0.3.4.tar.gz
+_TOOLS_DIR = tools-gopls-v0.3.4
 
 GOYACC = ${_BUILDTOOLS_GEN}/bin/goyacc
 GO_WITH_TOOLS = PATH="${_BUILDTOOLS_GEN}/bin:$${PATH}" ${GO}
 
-${GOYACC} : buildtools/gotools/tools-release-branch.go1.8.tar.gz
+${GOYACC} : buildtools/gotools/${_TOOLS_TAR}
 	@echo MAKE GOYACC
-	@mkdir -p "${_BUILDTOOLS_WKSPC}"
-	@cd buildtools/gotools/ && tar -xzf tools-release-branch.go1.8.tar.gz
-	@rsync -a buildtools/gotools/tools-release-branch.go1.8/ \
-		"${_BUILDTOOLS_WKSPC}/src/"
-	@rm -rf buildtools/gotools/tools-release-branch.go1.8
-	@cd "${_BUILDTOOLS_WKSPC}/src/golang.org/x/tools/cmd/goyacc" && \
-		go build -o "${GOYACC}"
+	@cd buildtools/gotools/ && tar -xzf "${_TOOLS_TAR}"
+	@cd "buildtools/gotools/${_TOOLS_DIR}/cmd/goyacc" && ${GO_BUILD} -o "${GOYACC}"
 
 .PHONY : clean-buildtools
 clean-buildtools :
-	rm -rf "${_BUILDTOOLS_GEN}"
+	@rm -rf "${_BUILDTOOLS_GEN}" "buildtools/gotools/${_TOOLS_DIR}"
