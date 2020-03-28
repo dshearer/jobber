@@ -85,8 +85,51 @@ jobs:
                 name: debian-pkg
                 path: pkgs
 
-    test-pkg:
-        name: Test package
+    test-on-macos:
+        name: Test on macOS
+        runs-on: macos-latest
+        steps:
+            - name: Prepare
+              run: |
+                python --version
+                brew install socat
+                sudo pip install robotframework
+                sudo sysadminctl -addUser normuser -home /Users/normuser
+                sudo createhomedir -c
+
+            - name: Clone repo
+              uses: actions/checkout@v2
+
+            - name: Install Jobber
+              run: |
+                make check build
+                sudo make install DESTDIR=/
+                PLIST=packaging/darwin/launchd.plist
+                sudo chown root:admin "${PLIST}"
+                sudo launchctl load "${PLIST}"
+                sudo launchctl start info.nekonya.jobber
+
+            - name: Test
+              run: |
+                if sudo robot --include test --pythonpath platform_tests/keywords platform_tests/suites; then
+                    echo "::set-env name=PASSED_TESTS::true"
+                else
+                    echo "::set-env name=PASSED_TESTS::false"
+                fi
+                mkdir test-report
+                mv *.html test-report/
+
+            - name: Publish test report
+              uses: actions/upload-artifact@v1.0.0
+              with:
+                name: mac-test-report
+                path: test-report
+
+            - name: SucceedOrFail
+              run: test "${PASSED_TESTS}" = true
+
+    test-on-debian:
+        name: Test on Debian
         needs: make-debian-pkg
         runs-on: ubuntu-latest
         steps:
@@ -121,7 +164,7 @@ jobs:
             - name: Publish test report
               uses: actions/upload-artifact@v1.0.0
               with:
-                name: test-report
+                name: debian-test-report
                 path: test-report
 
             - name: SucceedOrFail
