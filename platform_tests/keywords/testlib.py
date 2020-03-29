@@ -30,6 +30,68 @@ if __name__ == '__main__':
     main()
 '''
 
+class _ProcInfo(object):
+    '''Info about a process'''
+    def __init__(self, pid, username, uid, tty, program):
+        self.pid = pid
+        self.username = username
+        self.uid = uid
+        self.tty = tty
+        self.program = program
+
+    def __eq__(self, other):
+        if self.pid != other.pid:
+            return False
+        if self.username != other.username:
+            return False
+        if self.uid != other.uid:
+            return False
+        if self.tty != other.tty:
+            return False
+        if self.program != other.program:
+            return False
+        return True
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __lt__(self, other):
+        return (self.pid, self.username, self.uid, self.tty, self.program) < \
+            (other.pid, other.username, other.uid, other.tty, other.program)
+    
+    def __repr__(self):
+        return "[{} {} {} {} {}]".format(self.pid, self.username, self.uid, \
+            self.tty, self.program)
+
+def _get_proc_info(program_name):
+    '''
+    :return: List of instances of _ProcInfo.
+    '''
+    def split_by_whitespace(s, maxsplit):
+        s = ' '.join(s.split())
+        return s.split(' ', maxsplit)
+
+    args = ['ps', '-ax', '-o', 'pid,user,uid,tty,command']
+    proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
+    infos = []
+    skipped_first = False
+    for line in proc.stdout:
+        if not skipped_first:
+            skipped_first = True
+            continue
+        parts = split_by_whitespace(line.strip(), 4)
+        pid, username, uid, tty, program = parts
+        if program_name not in program:
+            continue
+        # Darwin uses '??' to mean 'no TTY'; Linux uses '?'
+        if tty == '?' or tty == '??':
+            tty = None
+        infos.append(_ProcInfo(pid, username, uid, tty, program))
+    if proc.wait() != 0:
+        print(proc.stderr.read())
+        return Exception("ps returned non-0")
+    return infos
+
 def sp_check_output(args):
     proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
     out, err = proc.communicate()
@@ -516,29 +578,13 @@ class testlib(object):
 
     def runner_proc_info(self):
         '''
-        :return: A string containing lines of this format:
-            USER UID TTY
-        where TTY is '?' if there is no TTY for that process.
+        :return: List of instances of _ProcInfo.
         '''
-        args = ['ps', '-ax', '-o', 'user,uid,tty,command']
-        proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
-        output, _ = proc.communicate()
-        lines = [L.strip() for L in output.split('\n')[1:]]
-        records = [L.split() for L in lines \
-            if len(L) > 0 and 'jobberrunner' in L]
-        new_records = []
-        for r in records:
-            user, uid, tty = r[0], r[1], r[2]
-            if tty == '??': # Darwin
-                tty = '?'
-            new_rec = ' '.join([user, uid, tty])
-            new_records.append(new_rec)
-        new_records.sort()
-        return '\n'.join(new_records)
+        return _get_proc_info("jobberrunner")
 
     def nbr_of_runner_procs_should_be_same(self, orig_proc_info):
         new_proc_info = self.runner_proc_info()
-        if orig_proc_info != new_proc_info:
+        if len(orig_proc_info) != len(new_proc_info):
             print("Original runner procs:\n{0}".format(orig_proc_info))
             print("New runner procs:\n{0}".format(new_proc_info))
             raise AssertionError("Number of runner procs has changed!")
@@ -548,13 +594,8 @@ class testlib(object):
         # (http://www.halfdog.net/Security/2012/TtyPushbackPrivilegeEscalation/)
         proc_info = self.runner_proc_info()
         print("proc_info: {}".format(proc_info))
-        for line in proc_info.split('\n'):
-            try:
-                tty = line.split()[2]
-            except IndexError as _:
-                print("Error: " + line)
-                raise
-            if tty != '?':
+        for proc in proc_info:
+            if proc.tty is not None:
                 print("Runner procs:\n{0}".format(proc_info))
                 raise AssertionError("A runner proc has a controlling tty")
 
@@ -650,7 +691,7 @@ class testlib(object):
 
     def jobberrunner_should_be_running_for_user(self, username):
         proc_info = self.runner_proc_info()
-        if username not in proc_info:
+        if not any(p.username == username for p in proc_info):
             print("Runner procs:\n{0}\n".format(proc_info))
             self.print_debug_info()
             raise AssertionError("jobberrunner is not running for {0}".\
@@ -658,7 +699,7 @@ class testlib(object):
 
     def jobberrunner_should_not_be_running_for_user(self, username):
         proc_info = self.runner_proc_info()
-        if username in proc_info:
+        if any(p.username == username for p in proc_info):
             print("Runner procs:\n{0}\n".format(proc_info))
             self.print_debug_info()
             raise AssertionError("jobberrunner is running for {0}".\
@@ -691,15 +732,20 @@ class testlib(object):
                 raise e
 
     def jobber_procs_should_not_have_inet_sockets(self):
-        proc = sp.Popen(["lsof", "-n", "-i", "-P"], stdout=sp.PIPE)
-        output, _ = proc.communicate()
-        output = output.strip()
-        if len(output) == 0:
-            # no results
-            return
-        lines = output.split("\n")[1:]
-        jobber_lines = [line for line in lines if "jobber" in line]
-        if len(jobber_lines) > 0:
-            msg = "Jobber procs have inet sockets:\n{0}".\
-                format("\n".join(jobber_lines))
-            raise AssertionError(msg)
+        jobber_procs = _get_proc_info("jobber")
+        for jproc in jobber_procs:
+            cmd = [
+                "lsof",
+                "-a", # AND the options (rather than ORing them)
+                "-n", # don't convert IP to domain
+                "-P", # don't convert port to service name
+                "-i", # show IP sockets
+                "-p", jproc.pid
+                ]
+            proc = sp.Popen(cmd, stdout=sp.PIPE, stderr=open(os.devnull))
+            output, err = proc.communicate()
+            output = output.strip()
+            if len(output) > 0:
+                msg = "{} process has inet sockets:\n{}".\
+                    format(jproc.program, output)
+                raise AssertionError(msg)
