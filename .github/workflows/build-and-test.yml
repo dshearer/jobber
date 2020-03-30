@@ -4,9 +4,9 @@ name: Build packages
 # events but only for the master branch
 on:
   push:
-    branches: [ master ]
+    branches: [ master, maint-1.4 ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, maint-1.4 ]
   release:
     types: [ published ]
 
