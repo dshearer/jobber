@@ -29,7 +29,7 @@ $release = latestRelease();
 
       <p>
         Jobber's source code is copyright &#0169; <span itemprop="copyrightYear">
-          2014&ndash;2018</span> <span itemprop="copyrightHolder" itemscope
+          2014&ndash;2020</span> <span itemprop="copyrightHolder" itemscope
           itemtype="http://schema.org/Person"><span itemprop="name">C.&nbsp;Dylan
           Shearer</span></span>. It is licensed according to the MIT License:
       </p>

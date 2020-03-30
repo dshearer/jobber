@@ -123,10 +123,5 @@ $release = latestRelease();
       </p>
     </section>
   </main>
-
-  <!-- FOOTER  -->
-  <footer class="small">
-    <p>Copyright &#0169; 2014&ndash;2018 C.&nbsp;Dylan Shearer</p>
-  </footer>
 </body>
 </html>

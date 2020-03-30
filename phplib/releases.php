@@ -45,19 +45,23 @@ function _findPlatform($asset)
 {
     $PLATFORMS = [
         'el6.x86_64.rpm' => [
-            'OS' => "RHEL/CentOS 6",
+            'OS' => "RHEL/CentOS",
             'CPU' => "x86_64"
         ],
         'el7.x86_64.rpm' => [
-            'OS' => "RHEL/CentOS 7",
+            'OS' => "RHEL/CentOS",
+            'CPU' => "x86_64"
+        ],
+        'el8.x86_64.rpm' => [
+            'OS' => "RHEL/CentOS",
             'CPU' => "x86_64"
         ],
         '.apk' => [
-            'OS' => "Alpine Linux 3",
+            'OS' => "Alpine Linux",
             'CPU' => "x86_64"
         ],
         '.deb' => [
-            'OS' => "Debian 8+ / Ubuntu 16+",
+            'OS' => "Debian/Ubuntu",
             'CPU' => "x86_64"
         ]
     ];
