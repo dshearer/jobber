@@ -10,7 +10,7 @@ RPM_VERSION = ${shell echo ${VERSION} | sed -e 's/\-/_/'}
 PKGFILE = jobber-${RPM_VERSION}-${PKGREL}.el7.centos.${PLATFORM}.rpm
 PKGFILE_DEPS = jobber.spec
 PKGFILE_VM_PATH = jobber-${RPM_VERSION}-${PKGREL}.el7.centos.${PLATFORM}.rpm
-PACKAGING_SUBDIR = centos_7
+PACKAGING_SUBDIR = rpm
 INSTALL_PKG_CMD = sudo yum install -y ${PKGFILE} && \
 	sudo systemctl start jobber
 UNINSTALL_PKG_CMD = sudo systemctl stop jobber; \

@@ -48,7 +48,11 @@ jobs:
                 apk add make
                 apk add alpine-sdk
                 apk add go
+
                 adduser -G abuild -D jobber
+                sudo -u jobber abuild-keygen -an
+                find "/home/jobber/.abuild" -name '*.rsa.pub' -exec mv {} /etc/apk/keys/ ';'
+                chown root:root /etc/apk/keys/*
 
             - name: Clone repo
               uses: actions/checkout@v2
@@ -93,7 +97,7 @@ jobs:
               run: |
                 python --version
                 brew install socat
-                sudo pip install robotframework
+                sudo pip install robotframework pyyaml
                 sudo sysadminctl -addUser normuser -home /Users/normuser
                 sudo createhomedir -c
 
@@ -137,7 +141,7 @@ jobs:
               run: |
                 sudo apt-get update
                 sudo apt-get install -y python-pip socat
-                sudo pip install robotframework
+                sudo pip install robotframework pyyaml
                 sudo useradd normuser -m
 
             - name: Download package

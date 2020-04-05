@@ -12,8 +12,6 @@ Source1:    jobber.service
 %{?systemd_requires}
 BuildRequires:	coreutils, systemd, rsync, golang
 
-Prefix:         /usr/local
-
 %define debug_package %{nil}
 
 %description
@@ -36,11 +34,11 @@ cp "%{_sourcedir}/jobber.service" "%{_builddir}/"
 
 
 %build
-make %{?_smp_mflags} check build
+make %{?_smp_mflags} check build prefix=/usr/local localstatedir=/var
 
 
 %install
-%make_install
+%make_install prefix=/usr/local localstatedir=/var
 mkdir -p "%{buildroot}/%{_unitdir}"
 cp "%{_builddir}/jobber.service" "%{buildroot}/%{_unitdir}/"
 

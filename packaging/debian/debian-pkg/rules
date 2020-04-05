@@ -24,14 +24,13 @@ SRC_DIR = ${PWD}
 	dh $@ --with=systemd
 
 override_dh_auto_build:
-	# make Go workspace
 	dh_auto_build
 
 override_dh_auto_test:
 	dh_auto_test
 
 override_dh_auto_install:
-	dh_auto_install -- prefix=/usr
+	dh_auto_install
 
 override_dh_auto_clean:
 	dh_auto_clean

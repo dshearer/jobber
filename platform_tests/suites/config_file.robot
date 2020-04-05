@@ -4,7 +4,7 @@ Library          testlib.py
 Resource         keywords.robot
 Test Setup       Setup
 Test Teardown    Teardown
-Force Tags       test
+Force Tags       test    config
 
 *** Test Cases ***
 Default Config Is Installed
