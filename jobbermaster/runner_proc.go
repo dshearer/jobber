@@ -101,7 +101,7 @@ func LaunchRunner(usr *user.User,
 	// ensure we don't share TTY with the unprivileged process
 	runnerProc.proc.Stdin = nil
 	runnerProc.proc.Stdout = nil
-	runnerProc.proc.Stderr = nil
+	runnerProc.proc.Stderr = NewBoundedBuffer(1024)
 	if err := runnerProc.proc.Start(); err != nil {
 		return nil, err
 	}
@@ -123,6 +123,8 @@ func LaunchRunner(usr *user.User,
 			"jobberrunner for %v exited prematurely.",
 			usr.Username,
 		)
+		stderr := runnerProc.proc.Stderr.(*BoundedBuffer)
+		common.ErrLogger.Printf("jobberrunner stderr:\n%v", stderr.String())
 		return nil, &common.Error{What: msg}
 	}
 
