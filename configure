@@ -1,0 +1,134 @@
+#!/bin/sh
+
+USAGE="usage: configure [--prefix PATH] [--sysconfdir PATH] [--libexecdir PATH] [--localstatedir PATH]"
+
+SRC_DIR="$(dirname "$0")"
+
+prefix=
+sysconfdir=
+libexecdir=
+localstatedir=
+
+while :; do
+    case $1 in
+        -h|--help)
+            echo "${USAGE}"
+            exit 0
+            ;;
+
+        --prefix)
+            if [ "$2" = "" ]; then
+                echo "${USAGE}" >&2
+                exit 1
+            fi
+            prefix="$2"
+            shift
+            shift
+            ;;
+
+        --prefix=?*)
+            prefix="${1#*=}"
+            if [ "${prefix}}" = "" ]; then
+                echo "${USAGE}" >&2
+                exit 1
+            fi
+            shift
+            ;;
+
+        --sysconfdir)
+            if [ "$2" = "" ]; then
+                echo "${USAGE}" >&2
+                exit 1
+            fi
+            sysconfdir="$2"
+            shift
+            shift
+            ;;
+
+        --sysconfdir=?*)
+            sysconfdir="${1#*=}"
+            if [ "${sysconfdir}}" = "" ]; then
+                echo "${USAGE}" >&2
+                exit 1
+            fi
+            shift
+            ;;
+
+        --libexecdir)
+            if [ "$2" = "" ]; then
+                echo "${USAGE}" >&2
+                exit 1
+            fi
+            libexecdir="$2"
+            shift
+            shift
+            ;;
+
+        --libexecdir=?*)
+            libexecdir="${1#*=}"
+            if [ "${libexecdir}}" = "" ]; then
+                echo "${USAGE}" >&2
+                exit 1
+            fi
+            shift
+            ;;
+
+        --localstatedir)
+            if [ "$2" = "" ]; then
+                echo "${USAGE}" >&2
+                exit 1
+            fi
+            localstatedir="$2"
+            shift
+            shift
+            ;;
+
+        --localstatedir=?*)
+            localstatedir="${1#*=}"
+            if [ "${localstatedir}}" = "" ]; then
+                echo "${USAGE}" >&2
+                exit 1
+            fi
+            shift
+            ;;
+
+        --?*=?*)
+            # unknown option: ignore (dpkg passes extra options)
+            shift
+            ;;
+
+        --?*)
+            # unknown option: ignore (dpkg passes extra options)
+            shift
+            shift
+            ;;
+
+        --)
+            shift
+            break
+            ;;
+
+        *)
+            break
+    esac
+done
+
+if [ $# -ne 0 ]; then
+    echo "${USAGE}" >&2
+    exit 1
+fi
+
+CONFIG_FILE="${SRC_DIR}/mk/config.mk"
+rm -f "${CONFIG_FILE}"
+if [ ! -z "${prefix}" ]; then
+    echo "prefix = ${prefix}" >> "${CONFIG_FILE}"
+fi
+if [ ! -z "${sysconfdir}" ]; then
+    echo "sysconfdir = ${sysconfdir}" >> "${CONFIG_FILE}"
+fi
+if [ ! -z "${libexecdir}" ]; then
+    echo "libexecdir = ${libexecdir}" >> "${CONFIG_FILE}"
+fi
+if [ ! -z "${localstatedir}" ]; then
+    echo "localstatedir = ${localstatedir}" >> "${CONFIG_FILE}"
+fi

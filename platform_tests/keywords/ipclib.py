@@ -1,7 +1,20 @@
 import socket
 import json
+import yaml
 
-_IPC_SOCKET_PATH = "/var/jobber/0/cmd.sock"
+def ipc_sock_path():
+    # see if var path is set in /etc/jobber.conf
+    var_path = '/var'
+    try:
+        f = open('/etc/jobber.conf')
+    except IOError:
+        pass
+    else:
+        settings = yaml.safe_load(f)
+        f.close()
+        var_path = settings.get('var-dir', var_path)
+
+    return var_path + '/jobber/0/cmd.sock'
 
 class ipclib(object):
     ROBOT_LIBRARY_VERSION = 1.0
@@ -10,7 +23,13 @@ class ipclib(object):
         # connect
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
-            sock.connect(_IPC_SOCKET_PATH)
+            # connect to IPC socket
+            path = ipc_sock_path()
+            try:
+                sock.connect(path)
+            except Exception as e:
+                print("Couldn't connect to {}".format(path))
+                raise e
 
             # send command
             cmd = {

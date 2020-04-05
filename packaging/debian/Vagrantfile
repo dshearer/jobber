@@ -2,17 +2,14 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "debian/stretch64"
+  config.vm.box = "debian/buster64"
 
   config.vm.network :forwarded_port, guest: 22, host: 2224, id: "ssh"
 
   config.vm.provision "shell", inline: <<-SHELL
-    #apt-get update -y
-    apt-get install -y golang-1.8 python-pip dpkg-dev debhelper dh-systemd socat
-    ln -s /usr/lib/go-1.8/bin/go /usr/local/bin/go
-    #apt-get upgrade -y
-    #pip install --upgrade pip
-    sudo pip install robotframework
+    apt-get update -y
+    apt-get install -y golang python-pip dpkg-dev debhelper dh-systemd socat
+    sudo pip install robotframework pyyaml
     grep normuser /etc/passwd >/dev/null || useradd normuser -m
   SHELL
 end

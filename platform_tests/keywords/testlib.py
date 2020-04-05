@@ -6,6 +6,7 @@ import tempfile
 import pwd
 import time
 import json
+import yaml
 
 _NORMUSER = 'normuser'
 _RUNNER_LOG_FILE_FOR_ROOT = '/root/.jobber-log'
@@ -197,8 +198,9 @@ class testlib(object):
             if using_systemd():
                 sp_check_output(['systemctl', 'restart', 'jobber'])
             elif using_launchd():
-                sp_check_output(['launchctl', 'stop', 'info.nekonya.jobber'])
-                sp_check_output(['launchctl', 'start', 'info.nekonya.jobber'])
+                jobber_svc = 'info.nekonya.jobber'
+                sp_check_output(['launchctl', 'stop', jobber_svc])
+                sp_check_output(['launchctl', 'start', jobber_svc])
             else:
                 sp_check_output(['service', 'jobber', 'restart'])
         except Exception as e:
@@ -220,6 +222,7 @@ class testlib(object):
             msg = "Failed to start jobber service!"
             msg += " ('jobber list' returned '{0}')".\
                 format(err.strip())
+            self.print_debug_info()
             raise AssertionError(msg)
 
         # sometimes not all jobberrunner procs have started yet
@@ -266,7 +269,11 @@ class testlib(object):
         log += "\nConfig:\n"
         try:
             with open(_CONFIG_PATH) as f:
-                log += f.read()
+                tmp = f.read()
+                if len(tmp) == 0:
+                    log += "[empty]"
+                else:
+                    log += tmp
         except Exception as e:
             log += "[{0}]".format(e)
 
@@ -457,13 +464,16 @@ class testlib(object):
         os.chown(path, pwnam.pw_uid, pwnam.pw_gid)
 
     def set_config(self, include_users='', exclude_users=''):
+        with open(_CONFIG_PATH) as f:
+            config = yaml.safe_load(f)
+
         # make config
-        config = "users-include:\n"
+        config['users-include'] = []
+        config['users-exclude'] = []
         for user in parse_list_arg(include_users):
-            config += "    - username: {0}\n".format(user)
-        config += "users-exclude:\n"
+            config['users-include'].append({'username': user})
         for user in parse_list_arg(exclude_users):
-            config += "    - username: {0}\n".format(user)
+            config['users-exclude'].append({'username': user})
 
         # remove old config
         try:
@@ -476,7 +486,7 @@ class testlib(object):
 
         # write to disk
         with open(_CONFIG_PATH, 'w') as f:
-            f.write(config)
+            yaml.safe_dump(config, f)
 
     def restore_prefs(self):
         try:

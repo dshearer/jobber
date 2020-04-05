@@ -754,7 +754,7 @@ func (self *fileRunLog) putOutOfOrder(entry *RunLogEntry) error {
 	insertIdx -= 1
 
 	// make temp file in which to make new backing file
-	tmpF, err := ioutil.TempFile("", "newBackingFile")
+	tmpF, err := ioutil.TempFile(common.TempDirPath(), "newBackingFile")
 	if err != nil {
 		msg := "Failed to make temp file"
 		return &common.Error{What: msg, Cause: err}

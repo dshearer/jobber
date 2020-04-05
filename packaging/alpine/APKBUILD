@@ -14,8 +14,7 @@ source="${pkgname}.initd ${pkgname}.tgz"
 _builddir="${startdir}/build"
 
 prepare() {
-	# nothing to do
-	true
+	"${srcdir}/${pkgname}/configure" --prefix=/usr --localstatedir=/var
 }
 
 build() {
@@ -30,7 +29,7 @@ package() {
     set -e
 
     # install
-	make -C "${srcdir}/${pkgname}" install "DESTDIR=${pkgdir}/" prefix=/usr
+	make -C "${srcdir}/${pkgname}" install "DESTDIR=${pkgdir}/"
 
     # install init script
 	local INITD="${pkgdir}/etc/init.d"
