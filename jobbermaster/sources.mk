@@ -1,4 +1,5 @@
 MASTER_SOURCES := \
+	jobbermaster/bounded_buffer.go \
 	jobbermaster/get_users_darwin.go \
 	jobbermaster/get_users_nondarwin.go \
 	jobbermaster/get_users.go \
