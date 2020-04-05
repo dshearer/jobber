@@ -116,8 +116,8 @@ func main() {
 	arg.MustParse(&args)
 
 	// check for errors
-	if (args.UnixSocket == nil) == (args.TcpPort == nil) {
-		fmt.Fprintf(os.Stderr, "Must specify exactly one of --unixsocket or --tcpport\n")
+	if args.UnixSocket != nil && args.TcpPort != nil {
+		fmt.Fprintf(os.Stderr, "Must specify at most one of --unixsocket or --tcpport\n")
 		quit(1)
 	}
 	if args.UnixSocket != nil && len(*args.UnixSocket) == 0 {
@@ -173,13 +173,15 @@ func main() {
 	if args.UnixSocket != nil {
 		gIpcServer = NewUdsIpcServer(*args.UnixSocket, gJobManager.CmdChan)
 		common.Logger.Printf("Listening for commands on %v", *args.UnixSocket)
-	} else {
+	} else if args.TcpPort != nil {
 		gIpcServer = NewInetIpcServer(*args.TcpPort, gJobManager.CmdChan)
 		common.Logger.Printf("Listening for commands on :%v", *args.TcpPort)
 	}
-	if err := gIpcServer.Launch(); err != nil {
-		common.ErrLogger.Printf("Error: %v", err)
-		quit(1)
+	if gIpcServer != nil {
+		if err := gIpcServer.Launch(); err != nil {
+			common.ErrLogger.Printf("Error: %v", err)
+			quit(1)
+		}
 	}
 
 	if args.QuitSocket != nil {
