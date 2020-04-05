@@ -17,7 +17,7 @@ PKGFILE_DEPS = \
 	jobber.pre-deinstall \
 	pkgrel
 PKGFILE_VM_PATH = ${PKGFILE}
-PACKAGING_SUBDIR = alpine_3.6
+PACKAGING_SUBDIR = alpine
 INSTALL_PKG_CMD = apk add --allow-untrusted ${PKGFILE}
 UNINSTALL_PKG_CMD = apk remove jobber
 SRC_TARBALL = jobber.tgz
@@ -26,14 +26,13 @@ SRC_TARBALL_DIR = jobber
 .PHONY : pkg-local
 pkg-local : ${WORK_DIR}/${SRC_TARBALL} ${PKGFILE_DEPS}
 	# make package
-	cp ${WORK_DIR}/${SRC_TARBALL} ./
-	echo "" | abuild-keygen -a
+	cp "${WORK_DIR}/${SRC_TARBALL}" ./
 	abuild checksum
 	env "pkgrel=${PKGREL}" "pkgver=${ALPINE_VERSION}" abuild -r
 	
 	# copy package out of VM
 	mkdir -p "${DESTDIR}/"
-	find "${HOME}/packages/packaging" -name "*.apk" -exec cp '{}' "${DESTDIR}/" ';'
+	find "${HOME}/packages/packaging" -name "*.apk" -exec cp {} "${DESTDIR}/" ';'
 
 include ../tail.mk
 

@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
 	"os/user"
 	"syscall"
 
+	arg "github.com/alexflint/go-arg"
 	"github.com/dshearer/jobber/common"
 )
 
@@ -24,9 +24,6 @@ func quit(exitCode int) {
 	if gJobManager != nil {
 		gJobManager.Cancel()
 		gJobManager.Wait()
-	}
-	if gUser != nil {
-		os.Remove(common.RunnerPidFilePath(gUser))
 	}
 	os.Exit(exitCode)
 }
@@ -99,107 +96,95 @@ func usage(extraMsg string) {
 	fmt.Printf("\n")
 }
 
-func recordPid(usr *user.User) {
-	// write to temp file
-	pidTmp, err := ioutil.TempFile(common.PerUserDirPath(usr), "temp-")
-	if err != nil {
-		common.ErrLogger.Printf("Failed to make temp file: %v", err)
-		quit(1)
-	}
-	_, err = pidTmp.WriteString(fmt.Sprintf("%v", os.Getpid()))
-	if err != nil {
-		common.ErrLogger.Printf("Failed to write to %v: %v", pidTmp.Name(),
-			err)
-		pidTmp.Close()
-		os.Remove(pidTmp.Name())
-		quit(1)
-	}
-	pidTmp.Close()
+type argsS struct {
+	QuitSocket  *string `arg:"-q" help:"path to quit socket (used by jobbermaster to tell us to quit)"`
+	UnixSocket  *string `arg:"-u" help:"path to Unix socket on which to receive commands"`
+	TcpPort     *uint   `arg:"-p" help:"TCP port on which to receive commands"`
+	TempDir     *string `arg:"-t" help:"Path to dir to use as temp dir"`
+	JobfilePath string  `arg:"positional,required"`
+	Debug       bool    `arg:"-d" default:"false"`
+}
 
-	// rename it
-	pidPath := common.RunnerPidFilePath(usr)
-	if err = os.Rename(pidTmp.Name(), pidPath); err != nil {
-		common.ErrLogger.Printf(
-			"Failed to rename %v to %v: %v",
-			pidTmp.Name(),
-			pidPath,
-			err,
-		)
-		os.Remove(pidTmp.Name())
-		quit(1)
-	}
+func (argsS) Version() string {
+	return common.LongVersionStr()
 }
 
 func main() {
+
 	// parse args
-	flag.Usage = func() { usage("") }
-	helpFlag_p := flag.Bool("h", false, "help")
-	versionFlag_p := flag.Bool("v", false, "version")
-	quickSockPath_p := flag.String("q", "", "quit socket path")
-	udsSockPath_p := flag.String("u", "",
-		"path to Unix socket on which to receive commands")
-	inetPort_p := flag.Uint("p", 0,
-		"path TCP socket on which to receive commands")
-	flag.Parse()
+	var args argsS
+	arg.MustParse(&args)
 
 	// check for errors
-	haveUdsParam := udsSockPath_p != nil && len(*udsSockPath_p) > 0
-	haveInetParam := inetPort_p != nil && *inetPort_p > 0
-	if (!haveUdsParam && !haveInetParam) || (haveUdsParam && haveInetParam) {
-		usage("Must specify exactly one of -u and -p")
+	if (args.UnixSocket == nil) == (args.TcpPort == nil) {
+		fmt.Fprintf(os.Stderr, "Must specify exactly one of --unixsocket or --tcpport\n")
+		quit(1)
+	}
+	if args.UnixSocket != nil && len(*args.UnixSocket) == 0 {
+		fmt.Fprintf(os.Stderr, "Unix socket path cannot be empty\n")
+		quit(1)
+	}
+	if args.QuitSocket != nil && len(*args.QuitSocket) == 0 {
+		fmt.Fprintf(os.Stderr, "Quit socket path cannot be empty\n")
+		quit(1)
+	}
+	if args.TempDir != nil && len(*args.TempDir) == 0 {
+		fmt.Fprintf(os.Stderr, "Temp dir path cannot be empty\n")
+		quit(1)
+	}
+	if args.TcpPort != nil && *args.TcpPort == 0 {
+		fmt.Fprintf(os.Stderr, "TCP port cannot be zero\n")
+		quit(1)
+	}
+	if len(args.JobfilePath) == 0 {
+		fmt.Fprintf(os.Stderr, "Jobfile path cannot be empty")
 		quit(1)
 	}
 
-	// handle flags
-	if *helpFlag_p {
-		usage("")
-		quit(0)
-	} else if *versionFlag_p {
-		fmt.Printf("%v\n", common.LongVersionStr())
-		quit(0)
+	// init settings
+	err := common.InitSettings(common.InitSettingsParams{
+		TempDir: args.TempDir,
+	})
+	if err != nil {
+		common.ErrLogger.Print(err)
+		os.Exit(1)
 	}
 
-	// get args
-	if len(flag.Args()) != 1 {
-		usage("")
-		quit(1)
+	if args.Debug {
+		common.PrintPaths()
+		os.Exit(0)
 	}
-	jobfilePath := flag.Args()[0]
 
 	// get current user
-	var err error
 	gUser, err = user.Current()
 	if err != nil {
 		common.ErrLogger.Printf("Failed to get current user: %v", err)
 		quit(1)
 	}
 
-	// record PID in file (for jobbermaster)
-	recordPid(gUser)
-
 	// run job manager
-	gJobManager = NewJobManager(jobfilePath)
+	gJobManager = NewJobManager(args.JobfilePath)
 	if err := gJobManager.Launch(); err != nil {
 		common.ErrLogger.Printf("Error: %v\n", err)
 		quit(1)
 	}
 
 	// make IPC server
-	if haveUdsParam {
-		gIpcServer = NewUdsIpcServer(*udsSockPath_p, gJobManager.CmdChan)
-		common.Logger.Printf("Listening for commands on %v", *udsSockPath_p)
+	if args.UnixSocket != nil {
+		gIpcServer = NewUdsIpcServer(*args.UnixSocket, gJobManager.CmdChan)
+		common.Logger.Printf("Listening for commands on %v", *args.UnixSocket)
 	} else {
-		gIpcServer = NewInetIpcServer(*inetPort_p, gJobManager.CmdChan)
-		common.Logger.Printf("Listening for commands on :%v", *inetPort_p)
+		gIpcServer = NewInetIpcServer(*args.TcpPort, gJobManager.CmdChan)
+		common.Logger.Printf("Listening for commands on :%v", *args.TcpPort)
 	}
 	if err := gIpcServer.Launch(); err != nil {
 		common.ErrLogger.Printf("Error: %v", err)
 		quit(1)
 	}
 
-	if quickSockPath_p != nil && len(*quickSockPath_p) > 0 {
+	if args.QuitSocket != nil {
 		// listen for jobbermaster to tell us to quit
-		go quitOnJobbermasterDiscon(*quickSockPath_p)
+		go quitOnJobbermasterDiscon(*args.QuitSocket)
 	}
 
 	// listen for signals

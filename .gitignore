@@ -16,3 +16,4 @@ results
 *.pyc
 *.pyo
 *cloudimg-console.log
+mk/config.mk

@@ -70,11 +70,19 @@ func subcmdUsage(subcmd string, posargs string, flagSet *flag.FlagSet) func() {
 	}
 }
 
-func main() {
-	flag.Usage = usage
+var libexecDirPath string // set at compile-time
 
+func main() {
+	// init settings
+	if err := common.InitSettings(common.InitSettingsParams{}); err != nil {
+		common.ErrLogger.Println(err)
+		os.Exit(1)
+	}
+
+	flag.Usage = usage
 	var helpFlag_p = flag.Bool("h", false, "help")
 	var versionFlag_p = flag.Bool("v", false, "version")
+	var debugFlag_p = flag.Bool("d", false, "debug")
 	flag.Parse()
 
 	if *helpFlag_p {
@@ -82,6 +90,9 @@ func main() {
 		os.Exit(0)
 	} else if *versionFlag_p {
 		fmt.Printf("%v\n", common.LongVersionStr())
+		os.Exit(0)
+	} else if *debugFlag_p {
+		common.PrintPaths()
 		os.Exit(0)
 	}
 

@@ -1,5 +1,7 @@
 package common
 
+import "fmt"
+
 var jobberVersion string
 
 func ShortVersionStr() string {
@@ -7,5 +9,5 @@ func ShortVersionStr() string {
 }
 
 func LongVersionStr() string {
-	return ShortVersionStr()
+	return fmt.Sprintf("Jobber %s", ShortVersionStr())
 }

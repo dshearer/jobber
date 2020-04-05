@@ -1,23 +1,24 @@
-package main
+package common
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type LoadPrefsTestCase struct {
 	Input  string
-	Output *Prefs
+	Output *prefs
 	Err    bool
 }
 
 type ShouldIncludeTestCase struct {
-	InputPrefs Prefs
+	InputPrefs prefs
 	InputUser  user.User
 	Output     bool
 }
@@ -30,7 +31,7 @@ users-include:
     - home: /bin/*blah
     - username: sys*
       home: /something/here`,
-		Output: &Prefs{
+		Output: &prefs{
 			UsersInclude: []UserSpec{
 				{Username: "mysql*"},
 				{Home: "/bin/*blah"},
@@ -46,7 +47,7 @@ users-include:
     - username: sys*
       home: /something/here
 users-exclude:`,
-		Output: &Prefs{
+		Output: &prefs{
 			UsersInclude: []UserSpec{
 				{Username: "mysql*"},
 				{Home: "/bin/*blah"},
@@ -68,7 +69,7 @@ users-exclude:
 
 var gShouldIncludeTestCases = []ShouldIncludeTestCase{
 	{
-		InputPrefs: Prefs{
+		InputPrefs: prefs{
 			UsersInclude: []UserSpec{
 				{Username: "mysql*"},
 				{Username: "sys*", Home: "/a/b"},
@@ -78,7 +79,7 @@ var gShouldIncludeTestCases = []ShouldIncludeTestCase{
 		Output:    true,
 	},
 	{
-		InputPrefs: Prefs{
+		InputPrefs: prefs{
 			UsersInclude: []UserSpec{
 				{Username: "mysql*"},
 				{Username: "sys*", Home: "/a/b"},
@@ -88,7 +89,7 @@ var gShouldIncludeTestCases = []ShouldIncludeTestCase{
 		Output:    true,
 	},
 	{
-		InputPrefs: Prefs{
+		InputPrefs: prefs{
 			UsersInclude: []UserSpec{
 				{Username: "mysql*"},
 				{Username: "sys*", Home: "/a/b"},
@@ -98,7 +99,7 @@ var gShouldIncludeTestCases = []ShouldIncludeTestCase{
 		Output:    false,
 	},
 	{
-		InputPrefs: Prefs{
+		InputPrefs: prefs{
 			UsersExclude: []UserSpec{
 				{Username: "mysql*"},
 				{Username: "sys*", Home: "/a/b"},
@@ -108,7 +109,7 @@ var gShouldIncludeTestCases = []ShouldIncludeTestCase{
 		Output:    false,
 	},
 	{
-		InputPrefs: Prefs{
+		InputPrefs: prefs{
 			UsersExclude: []UserSpec{
 				{Username: "mysql*"},
 				{Username: "sys*", Home: "/a/b"},
@@ -118,7 +119,7 @@ var gShouldIncludeTestCases = []ShouldIncludeTestCase{
 		Output:    false,
 	},
 	{
-		InputPrefs: Prefs{
+		InputPrefs: prefs{
 			UsersExclude: []UserSpec{
 				{Username: "mysql*"},
 				{Username: "sys*", Home: "/a/b"},
@@ -128,7 +129,7 @@ var gShouldIncludeTestCases = []ShouldIncludeTestCase{
 		Output:    true,
 	},
 	{
-		InputPrefs: Prefs{},
+		InputPrefs: prefs{},
 		InputUser:  user.User{Username: "sys"},
 		Output:     true,
 	},
@@ -154,7 +155,7 @@ func TestLoadPrefs(t *testing.T) {
 		/*
 		 * Call
 		 */
-		prefs, err := loadPrefs(f)
+		prefs, err := _loadPrefs(f)
 
 		/*
 		 * Test
@@ -178,7 +179,7 @@ func TestShouldIncludeUser(t *testing.T) {
 		fmt.Printf("%v\n", testCase.InputPrefs)
 		fmt.Printf("%v\n", testCase.InputUser)
 		result :=
-			testCase.InputPrefs.ShouldIncludeUser(&testCase.InputUser)
+			testCase.InputPrefs.jobberShouldRunForUser(&testCase.InputUser)
 
 		/*
 		 * Test
@@ -204,7 +205,7 @@ func TestParseDefaultPrefs(t *testing.T) {
 	/*
 	 * Call
 	 */
-	prefs, err := loadPrefs(f)
+	prefs, err := _loadPrefs(f)
 
 	/*
 	 * Test
@@ -234,7 +235,7 @@ func TestParseDefaultPrefsAfterUncommenting(t *testing.T) {
 	/*
 	 * Call
 	 */
-	prefs, err := loadPrefs(f)
+	prefs, err := _loadPrefs(f)
 
 	/*
 	 * Test

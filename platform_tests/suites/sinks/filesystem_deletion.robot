@@ -17,6 +17,7 @@ Job Output Is Deleted on Schedule
 
     Sleep    3s    reason=Wait for job to run
     Pause Job    ${JOB_NAME}
+    Sleep    1s    reason=In case the job is still running
 
     # push the output files' timestamps back
     ${push_back_days}=    Evaluate    ${JOB_OUTPUT_MAX_AGE_DAYS} + 1
