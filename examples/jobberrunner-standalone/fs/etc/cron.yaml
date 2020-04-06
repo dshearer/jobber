@@ -1,0 +1,18 @@
+version: 1.4
+
+jobs:
+  sayHello:
+    cmd: echo "hello world!"
+    time: "*/10 * * * * *"
+    onError: Continue
+    notifyOnSuccess:
+        - *stdoutSink
+    notifyOnFailure:
+        - *stdoutSink
+
+resultSinks:
+  - &stdoutSink
+    type: stdout
+    data:
+        - stdout
+        - stderr
