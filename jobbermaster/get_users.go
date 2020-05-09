@@ -38,9 +38,9 @@ func userHasHome(usr *user.User) bool {
 	return true
 }
 
-func shouldRunForUser(usr *user.User, prefs *Prefs) bool {
+func shouldRunForUser(usr *user.User) bool {
 	// check prefs
-	if !prefs.ShouldIncludeUser(usr) {
+	if !common.JobberShouldRunForUser(usr) {
 		common.Logger.Printf("Excluding %v according to prefs",
 			usr.Username)
 		return false
@@ -60,7 +60,7 @@ func shouldRunForUser(usr *user.User, prefs *Prefs) bool {
 /*
 Get all users for which we should run jobberrunner.
 */
-func getAcceptableUsers(prefs *Prefs) ([]*user.User, error) {
+func getAcceptableUsers() ([]*user.User, error) {
 	acceptableUsers := make([]*user.User, 0)
 	allUsers, err := getAllUsers()
 	if err != nil {
@@ -68,7 +68,7 @@ func getAcceptableUsers(prefs *Prefs) ([]*user.User, error) {
 	}
 	for _, usr := range allUsers {
 		// check for reasons to exclude
-		if !shouldRunForUser(usr, prefs) {
+		if !shouldRunForUser(usr) {
 			continue
 		}
 

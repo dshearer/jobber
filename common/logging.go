@@ -25,6 +25,15 @@ func saveLogFileHandles(handles ...*os.File) {
 	}
 }
 
+func LogAllToStderr() {
+	// close old file handle
+	saveLogFileHandles()
+
+	// make new loggers
+	Logger = log.New(os.Stderr, "", 0)
+	ErrLogger = log.New(os.Stderr, "", 0)
+}
+
 func LogToStdoutStderr() {
 	// close old file handle
 	saveLogFileHandles()

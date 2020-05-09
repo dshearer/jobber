@@ -30,6 +30,7 @@ GO_SOURCES := \
 
 OTHER_SOURCES := \
 	.circleci \
+	configure \
 	.github \
 	go.mod \
 	go.sum \

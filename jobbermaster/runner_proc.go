@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/dshearer/jobber/common"
@@ -33,6 +34,10 @@ func makeAcceptedChan(listener net.Listener) <-chan acceptResult {
 		close(c)
 	}()
 	return c
+}
+
+func quotify(s string) string {
+	return fmt.Sprintf(`"%v"`, s)
 }
 
 func LaunchRunner(usr *user.User,
@@ -66,10 +71,7 @@ func LaunchRunner(usr *user.User,
 
 	// look for jobberrunner
 	runnerName := "jobberrunner"
-	runnerPath, err := common.FindLibexecProgram(runnerName)
-	if err != nil {
-		return nil, err
-	}
+	runnerPath := common.LibexecProgramPath(runnerName)
 
 	// set umask
 	oldUmask := syscall.Umask(0077)
@@ -90,18 +92,19 @@ func LaunchRunner(usr *user.User,
 	}
 
 	// launch it
-	cmd := fmt.Sprintf(
-		`%v -q "%v" -u "%v" "%v"`,
-		runnerPath,
-		runnerProc.quitSockPath,
-		common.CmdSocketPath(usr),
-		jobfilePath,
-	)
+	cmdParts := []string{
+		quotify(runnerPath),
+		"-q", quotify(runnerProc.quitSockPath),
+		"-u", quotify(common.CmdSocketPath(usr)),
+		quotify(jobfilePath),
+	}
+	cmdParts = append(cmdParts, "-t", quotify(common.TempDirPath()))
+	cmd := strings.Join(cmdParts, " ")
 	runnerProc.proc = common.Sudo(*usr, cmd)
 	// ensure we don't share TTY with the unprivileged process
 	runnerProc.proc.Stdin = nil
 	runnerProc.proc.Stdout = nil
-	runnerProc.proc.Stderr = nil
+	runnerProc.proc.Stderr = NewBoundedBuffer(1024)
 	if err := runnerProc.proc.Start(); err != nil {
 		return nil, err
 	}
@@ -123,6 +126,8 @@ func LaunchRunner(usr *user.User,
 			"jobberrunner for %v exited prematurely.",
 			usr.Username,
 		)
+		stderr := runnerProc.proc.Stderr.(*BoundedBuffer)
+		common.ErrLogger.Printf("jobberrunner stderr:\n%v", stderr.String())
 		return nil, &common.Error{What: msg}
 	}
 

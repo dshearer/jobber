@@ -4,7 +4,7 @@ include ../head.mk
 PKGFILE = jobber_${VERSION}-1_amd64.deb
 PKGFILE_DEPS = $(wildcard debian-pkg/**)
 PKGFILE_VM_PATH = jobber_${VERSION}-1_amd64.deb
-PACKAGING_SUBDIR = debian_9
+PACKAGING_SUBDIR = debian
 INSTALL_PKG_CMD = sudo dpkg -i ${PKGFILE}
 UNINSTALL_PKG_CMD = sudo dpkg -r jobber
 

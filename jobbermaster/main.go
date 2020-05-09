@@ -11,6 +11,7 @@ import (
 	"sync"
 	"syscall"
 
+	arg "github.com/alexflint/go-arg"
 	"github.com/dshearer/jobber/common"
 )
 
@@ -30,6 +31,25 @@ type RunnerProcInfo struct {
 	socketPath  string
 	jobfilePath string
 	proc        *exec.Cmd
+}
+
+type defprefsArgs struct {
+}
+
+type debugArgs struct {
+}
+
+type argsS struct {
+	Defprefs *defprefsArgs `arg:"subcommand:defprefs"`
+	Debug    *debugArgs    `arg:"subcommand:debug"`
+	Etc      *string       `arg:"-e"`
+	Var      *string       `arg:"-r"`
+	Libexec  *string       `arg:"-l"`
+	Temp     *string       `arg:"-t"`
+}
+
+func (argsS) Version() string {
+	return common.LongVersionStr()
 }
 
 func runnerThread(ctx context.Context,
@@ -83,27 +103,30 @@ func mkdirp(path string, perm os.FileMode) error {
 	return nil
 }
 
-func doDefault() int {
+func doDefault(args argsS) int {
+	common.LogToStdoutStderr()
+	if err := initSettings(args); err != nil {
+		common.ErrLogger.Println(err)
+		return 1
+	}
+
+	common.Logger.Printf("etc dir: %v", common.EtcDirPath())
+	common.Logger.Printf("var dir: %v", common.VarDirPath())
+	common.Logger.Printf("libexec dir: %v", common.LibexecDirPath())
+	common.Logger.Printf("temp dir: %v", common.TempDirPath())
+
 	// make var dir
-	if err := mkdirp(common.VarDirPath, 0775); err != nil {
+	if err := mkdirp(common.VarDirPath(), 0775); err != nil {
 		// already exists
 		common.ErrLogger.Printf(
 			"Failed to make dir at %v: %v",
-			common.VarDirPath,
+			common.VarDirPath(),
 			err)
 		return 1
 	}
 
-	// load prefs
-	prefs, err := LoadPrefs()
-	if err != nil {
-		common.ErrLogger.Printf("Invalid prefs file: %v", err)
-		common.Logger.Println("Using default prefs.")
-		prefs = &EmptyPrefs
-	}
-
 	// get all users
-	users, err := getAcceptableUsers(prefs)
+	users, err := getAcceptableUsers()
 	if err != nil {
 		return 1
 	}
@@ -156,44 +179,52 @@ func doDefault() int {
 	return 0
 }
 
-func doDefprefs() int {
-	fmt.Printf("%v", gDefaultPrefsStr)
+func doDefprefs(args argsS) int {
+	common.LogAllToStderr()
+	s := common.MakeDefaultPrefs(common.InitSettingsParams{
+		VarDir:     args.Var,
+		LibexecDir: args.Libexec,
+		TempDir:    args.Temp,
+	})
+	fmt.Println(s)
 	return 0
 }
 
-const gDefprefsCmd = "defprefs"
+func doDebug(args argsS) int {
+	common.LogAllToStderr()
+	if err := initSettings(args); err != nil {
+		common.ErrLogger.Println(err)
+		return 1
+	}
 
-func usage() {
-	common.ErrLogger.Printf("Usage: %v [%v]\n", os.Args[0],
-		gDefprefsCmd)
+	common.PrintPaths()
+	return 0
 }
 
 func main() {
-	common.UseSyslog()
-
 	// parse args
-	cmd := "default"
-	if len(os.Args) < 1 || len(os.Args) > 2 {
-		usage()
-		os.Exit(1)
-	}
-	if len(os.Args) == 2 {
-		cmd = os.Args[1]
-		if cmd != gDefprefsCmd {
-			usage()
-			os.Exit(1)
-		}
-	}
+	var args argsS
+	p := arg.MustParse(&args)
 
 	// do command
-	var exitval int
-	switch cmd {
-	case gDefprefsCmd:
-		exitval = doDefprefs()
-
-	default:
-		exitval = doDefault()
+	var exitVal int
+	if p.Subcommand() == nil {
+		exitVal = doDefault(args)
+	} else if args.Defprefs != nil {
+		exitVal = doDefprefs(args)
+	} else if args.Debug != nil {
+		exitVal = doDebug(args)
+	} else {
+		p.Fail("Invalid command")
 	}
+	os.Exit(exitVal)
+}
 
-	os.Exit(exitval)
+func initSettings(args argsS) error {
+	return common.InitSettings(common.InitSettingsParams{
+		VarDir:     args.Var,
+		LibexecDir: args.Libexec,
+		TempDir:    args.Temp,
+		EtcDir:     args.Etc,
+	})
 }

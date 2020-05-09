@@ -3,7 +3,7 @@ COMMON_SOURCES := \
 	common/error.go \
 	common/exec.go \
 	common/logging.go \
-	common/path.go \
+	common/settings.go \
 	common/sources.mk \
 	common/su_cmd_darwin.go \
 	common/su_cmd_freebsd.go \
@@ -11,4 +11,5 @@ COMMON_SOURCES := \
 	common/user.go \
 	common/version.go
 
-COMMON_TEST_SOURCES :=
+COMMON_TEST_SOURCES := \
+	common/prefs_file_test.go
