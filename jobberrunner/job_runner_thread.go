@@ -109,12 +109,25 @@ func RunJob(
 		rec.Err = err
 		return rec
 	}
+	defer execResult.Close()
+
+	// get output
+	rec.Stdout, err = execResult.ReadStdout(jobfile.RunRecOutputMaxLen)
+	if err != nil {
+		common.ErrLogger.Printf("Failed to read job's stdout: %v\n", err)
+		rec.Err = err
+		return rec
+	}
+	rec.Stderr, err = execResult.ReadStderr(jobfile.RunRecOutputMaxLen)
+	if err != nil {
+		common.ErrLogger.Printf("Failed to read job's stderr: %v\n", err)
+		rec.Err = err
+		return rec
+	}
 
 	// update run rec
 	rec.Succeeded = execResult.Succeeded
 	rec.NewStatus = jobfile.JobGood
-	rec.Stdout = execResult.Stdout
-	rec.Stderr = execResult.Stderr
 	rec.ExecTime = time.Since(rec.RunTime)
 
 	if testing {
