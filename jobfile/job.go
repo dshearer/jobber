@@ -3,8 +3,6 @@ package jobfile
 import (
 	"fmt"
 	"time"
-
-	"github.com/dshearer/jobber/common"
 )
 
 type JobStatus uint8
@@ -84,6 +82,8 @@ func (job *Job) ShouldRun() bool {
 	}
 }
 
+const RunRecOutputMaxLen = 1 << 20
+
 type RunRec struct {
 	Job       *Job
 	RunTime   time.Time
@@ -91,7 +91,7 @@ type RunRec struct {
 	Stdout    []byte
 	Stderr    []byte
 	Succeeded bool
-	Err       *common.Error
+	Err       error
 }
 
 func (rec *RunRec) Describe() string {

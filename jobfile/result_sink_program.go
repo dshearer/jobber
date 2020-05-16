@@ -91,11 +91,13 @@ func (self ProgramResultSink) Handle(rec RunRec) {
 	}
 
 	// call program
-	execResult, err2 := common.ExecAndWait(exec.Command(self.Path), &recStr)
+	execResult, err2 := common.ExecAndWait(exec.Command(self.Path), recStr)
+	defer execResult.Close()
 	if err2 != nil {
 		common.ErrLogger.Printf("Failed to call %v: %v\n", self.Path, err2)
 	} else if !execResult.Succeeded {
-		errMsg, _ := SafeBytesToStr(execResult.Stderr)
+		stderrBytes, _ := execResult.ReadStderr(RunRecOutputMaxLen)
+		errMsg, _ := SafeBytesToStr(stderrBytes)
 		common.ErrLogger.Printf(
 			"%v failed: %v\n",
 			self.Path,
