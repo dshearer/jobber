@@ -35,11 +35,13 @@ func (self SystemEmailResultSink) Handle(rec RunRec) {
 	// run sendmail
 	msgBytes := []byte(msg)
 	cmd := exec.Command("sendmail", rec.Job.User)
-	execResult, err := common.ExecAndWait(cmd, &msgBytes)
+	execResult, err := common.ExecAndWait(cmd, msgBytes)
+	defer execResult.Close()
 	if err != nil {
 		common.ErrLogger.Printf("Failed to send mail: %v\n", err)
 	} else if !execResult.Succeeded {
-		errMsg, _ := SafeBytesToStr(execResult.Stderr)
+		stdoutBytes, _ := execResult.ReadStderr(RunRecOutputMaxLen)
+		errMsg, _ := SafeBytesToStr(stdoutBytes)
 		common.ErrLogger.Printf("Failed to send mail: %v\n", errMsg)
 	}
 }
