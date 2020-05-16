@@ -1,36 +1,58 @@
 package common
 
 import (
+	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"os/user"
 )
 
+func cleanUpTempfile(f *os.File) {
+	f.Close()
+	os.Remove(f.Name())
+}
+
+// An ExecResult describes the result of running a subprocess via ExecAndWait.
+// Stdout and Stderr can be used to get the subprocess's stdout and stderr.
+// When done with this object (e.g., when done reading Stdout/Stderr), you must
+// call Close.
 type ExecResult struct {
-	Stdout    []byte
-	Stderr    []byte
+	Stdout    io.ReadSeeker
+	Stderr    io.ReadSeeker
 	Succeeded bool
 }
 
-/*func Sudo(usr user.User, cmd string, args ...string) *exec.Cmd {
-	uid, err := strconv.Atoi(usr.Uid)
-	if err != nil {
-		panic("Invalid user ID")
+func (self *ExecResult) Close() {
+	f := func(field *io.ReadSeeker) {
+		if *field == nil {
+			return
+		}
+		file := (*field).(*os.File)
+		cleanUpTempfile(file)
+		*field = nil
 	}
-	gid, err := strconv.Atoi(usr.Gid)
-	if err != nil {
-		panic("Invalid group ID")
-	}
+	f(&self.Stdout)
+	f(&self.Stderr)
+}
 
-	proc := exec.Command(program, args...)
-	proc.SysProcAttr = &syscall.SysProcAttr{
-		Credential: &syscall.Credential{
-			Uid: uint32(uid),
-			Gid: uint32(gid),
-		},
+func (self *ExecResult) _read(max int, f io.ReadSeeker) ([]byte, error) {
+	buf := make([]byte, max)
+	len, err := f.Read(buf)
+	if err != nil && err != io.EOF {
+		return nil, err
 	}
-	return proc
-}*/
+	return buf[:len], nil
+}
+
+func (self *ExecResult) ReadStdout(max int) (data []byte, err error) {
+	return self._read(max, self.Stdout)
+}
+
+func (self *ExecResult) ReadStderr(max int) ([]byte, error) {
+	return self._read(max, self.Stderr)
+}
 
 func MakeCmdExitedChan(cmd *exec.Cmd) <-chan error {
 	c := make(chan error, 1)
@@ -48,55 +70,62 @@ func Sudo(usr user.User, cmdStr string) *exec.Cmd {
 	return su_cmd(usr.Username, cmdStr, "/bin/sh")
 }
 
-func ExecAndWait(cmd *exec.Cmd, input *[]byte) (*ExecResult, *Error) {
-	stdout, err := cmd.StdoutPipe()
+func ExecAndWait(cmd *exec.Cmd, input []byte) (*ExecResult, error) {
+	// make temp files for stdout/stderr
+	stdout, err := ioutil.TempFile(TempDirPath(), "")
 	if err != nil {
-		return nil, &Error{"Failed to get pipe to stdout.", err}
+		return nil, err
 	}
-	stderr, err := cmd.StderrPipe()
+	stderr, err := ioutil.TempFile(TempDirPath(), "")
 	if err != nil {
-		return nil, &Error{"Failed to get pipe to stderr.", err}
+		cleanUpTempfile(stdout)
+		return nil, err
 	}
+
+	// give them to cmd
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+
+	// make stdin pipe
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, &Error{"Failed to get pipe to stdin.", err}
+		return nil, fmt.Errorf("Failed to get pipe to stdin: %v", err)
 	}
 
 	// start cmd
 	if err = cmd.Start(); err != nil {
-		return nil, &Error{"Failed to execute command.", err}
+		return nil, fmt.Errorf("Failed to fork: %v", err)
 	}
 
-	if input != nil {
-		// write input
-		stdin.Write(*input)
-	}
+	// write input
+	stdin.Write(input)
 	stdin.Close()
-
-	// read output
-	stdoutBytes, err := ioutil.ReadAll(stdout)
-	if err != nil {
-		return nil, &Error{"Failed to read stdout.", err}
-	}
-	stderrBytes, err := ioutil.ReadAll(stderr)
-	if err != nil {
-		return nil, &Error{"Failed to read stderr.", err}
-	}
 
 	// finish execution
 	waitErr := cmd.Wait()
 	if waitErr != nil {
 		ErrLogger.Printf("ExecAndWait: %v: %v", cmd.Path, waitErr)
-		_, flag := waitErr.(*exec.ExitError)
-		if !flag {
-			return nil, &Error{"Failed to execute command.", waitErr}
+		if _, ok := waitErr.(*exec.ExitError); !ok {
+			return nil, fmt.Errorf("Failed to fork: %v", waitErr)
 		}
+	}
+
+	// seek in stdout/stderr
+	if _, err := stdout.Seek(0, 0); err != nil {
+		cleanUpTempfile(stdout)
+		cleanUpTempfile(stderr)
+		return nil, fmt.Errorf("Failed to seek stdout: %v", err)
+	}
+	if _, err := stderr.Seek(0, 0); err != nil {
+		cleanUpTempfile(stdout)
+		cleanUpTempfile(stderr)
+		return nil, fmt.Errorf("Failed to seek stderr: %v", err)
 	}
 
 	// return result
 	res := &ExecResult{}
-	res.Stdout = stdoutBytes
-	res.Stderr = stderrBytes
+	res.Stdout = stdout
+	res.Stderr = stderr
 	res.Succeeded = (waitErr == nil)
 	return res, nil
 }
