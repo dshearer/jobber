@@ -31,6 +31,10 @@ if __name__ == '__main__':
     main()
 '''
 
+_OCTAL_777 = int('777', base=8)
+_OCTAL_755 = int('755', base=8)
+_OCTAL_600 = int('600', base=8)
+
 class _ProcInfo(object):
     '''Info about a process'''
     def __init__(self, pid, username, uid, tty, program):
@@ -77,6 +81,7 @@ def _get_proc_info(program_name):
     infos = []
     skipped_first = False
     for line in proc.stdout:
+        line = bytes(line).decode('ascii')
         if not skipped_first:
             skipped_first = True
             continue
@@ -96,6 +101,8 @@ def _get_proc_info(program_name):
 def sp_check_output(args):
     proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
     out, err = proc.communicate()
+    out = bytes(out).decode('ascii')
+    err = bytes(err).decode('ascii')
     if proc.returncode != 0:
         msg = "{args} failed.\nStdout:\n{out}\nStderr:\n{err}".format(
                 args=args,
@@ -122,34 +129,56 @@ def find_program(name):
             return path
     raise Exception("Cannot find program {0}".format(name))
 
-def using_systemd():
+def program_exists(name):
     try:
-        find_program('systemctl')
+        find_program(name)
     except:
         return False
     else:
         return True
 
-def using_launchd():
-    try:
-        find_program('launchctl')
-    except:
-        return False
-    else:
-        return True
+class SystemDServiceCtl(object):
+    def restart_jobber(self):
+        sp_check_output(['systemctl', 'restart', 'jobber'])
 
-def get_jobbermaster_logs():
-    if using_systemd():
+    def get_jobber_status(self):
+        return sp_check_output(['systemctl', 'status', 'jobber'])
+
+    def get_jobbermaster_logs(self):
         return sp_check_output(['journalctl', '-u', 'jobber'])
-    else:
-        for log in ['/var/log/messages', '/var/log/system.log']:
-            if not os.path.isfile(log):
-                continue
-            args = ['tail', '-n', '20', log]
-            lines = sp_check_output(args).split('\n')
-            lines = [l for l in lines if 'jobbermaster' in l]
-            return '/n'.join(lines)
-        return '[System log not found]'
+
+class LaunchctlServiceCtl(object):
+    def restart_jobber(self):
+        sp_check_output(['launchctl', 'stop', 'info.nekonya.jobber'])
+        sp_check_output(['launchctl', 'start', 'info.nekonya.jobber'])
+
+    def get_jobber_status(self):
+        return 'unknown'
+
+    def get_jobbermaster_logs(self):
+        path = '/var/log/system.log'
+        if not os.path.isfile(path):
+            return '[Unknown path to system log]'
+        args = ['tail', '-n', '20', path]
+        lines = sp_check_output(args).split('\n')
+        lines = [l for l in lines if 'jobbermaster' in l]
+        return '/n'.join(lines)
+
+class BrewServiceCtl(object):
+    def restart_jobber(self):
+        sp_check_output(['brew', 'services', 'restart', 'jobber'])
+
+    def get_jobber_status(self):
+        return 'unknown'
+
+    def get_jobbermaster_logs(self):
+        path = '/var/log/system.log'
+        if not os.path.isfile(path):
+            return '[Unknown path to system log]'
+        args = ['tail', '-n', '20', path]
+        lines = sp_check_output(args).split('\n')
+        lines = [l for l in lines if 'jobbermaster' in l]
+        return '/n'.join(lines)
 
 def parse_list_arg(s):
     parts = s.split(',')
@@ -165,6 +194,17 @@ class testlib(object):
         self._tmpfile_dir = None
         self._next_tmpfile_nbr = 1
 
+        # make service control object
+        if program_exists('systemctl'):
+            self._servicectl = SystemDServiceCtl()
+        elif program_exists('brew') and 'homebrew.mxcl.jobber.plist' in \
+                sp_check_output(['brew', 'services']):
+            self._servicectl = BrewServiceCtl()
+        elif program_exists('launchctl'):
+            self._servicectl = LaunchctlServiceCtl()
+        else:
+            raise Exception("Cannot determine how to control Jobber service")
+
     @property
     def _root_jobfile_path(self):
         root_entry = pwd.getpwuid(0)
@@ -178,7 +218,7 @@ class testlib(object):
     def make_tempfile_dir(self):
         # make temp-file dir
         self._tmpfile_dir = tempfile.mkdtemp()
-        os.chmod(self._tmpfile_dir, 0777)
+        os.chmod(self._tmpfile_dir, _OCTAL_777)
 
     def rm_tempfile_dir(self):
         shutil.rmtree(self._tmpfile_dir)
@@ -195,14 +235,7 @@ class testlib(object):
     def restart_service(self):
         # restart jobber service
         try:
-            if using_systemd():
-                sp_check_output(['systemctl', 'restart', 'jobber'])
-            elif using_launchd():
-                jobber_svc = 'info.nekonya.jobber'
-                sp_check_output(['launchctl', 'stop', jobber_svc])
-                sp_check_output(['launchctl', 'start', jobber_svc])
-            else:
-                sp_check_output(['service', 'jobber', 'restart'])
+            self._servicectl.restart_jobber()
         except Exception as e:
             self.print_debug_info()
             raise e
@@ -234,21 +267,14 @@ class testlib(object):
         # get service status
         log += "Jobber service status:\n"
         try:
-            if using_systemd():
-                args = ['systemctl', 'status', 'jobber']
-                log += sp_check_output(args)
-            elif using_launchd():
-                log += "unknown"
-            else:
-                args = ['service', 'jobber', 'status']
-                log += sp_check_output(args)
+            log += self._servicectl.get_jobber_status()
         except Exception as e:
             log += "[{0}]".format(e)
 
         # get syslog msgs
         log += "\n\njobbermaster logs:\n"
         try:
-            log += get_jobbermaster_logs()
+            log += self._servicectl.get_jobbermaster_logs()
         except Exception as e:
             log += "[{0}]".format(e)
 
@@ -324,7 +350,7 @@ class testlib(object):
             notify_prog_path = self.make_tempfile()
             with open(notify_prog_path, 'w') as f:
                 f.write(notify_prog)
-            os.chmod(notify_prog_path, 0755)
+            os.chmod(notify_prog_path, _OCTAL_755)
 
             # make result sink
             result_sink = {
@@ -387,7 +413,7 @@ class testlib(object):
             try:
                 with open(self._normuser_jobfile_path, 'w') as f:
                     f.write(contents)
-                os.chmod(self._normuser_jobfile_path, 0600)
+                os.chmod(self._normuser_jobfile_path, _OCTAL_600)
             finally:
                 os.seteuid(0)
                 os.setegid(0)
@@ -457,7 +483,7 @@ class testlib(object):
         os.chmod(path, int(mode, base=8))
         stat = os.stat(path)
         print("Mode of {path} is now {mode}".\
-              format(path=path, mode=oct(stat.st_mode & 0777)))
+              format(path=path, mode=oct(stat.st_mode & _OCTAL_777)))
 
     def chown(self, path, user):
         pwnam = pwd.getpwnam(user)
@@ -669,7 +695,7 @@ class testlib(object):
 
     def jobbermaster_has_not_crashed(self):
         try:
-            logs = get_jobbermaster_logs()
+            logs = self._servicectl.get_jobbermaster_logs()
         except:
             pass
         else:
@@ -753,8 +779,8 @@ class testlib(object):
                 "-p", jproc.pid
                 ]
             proc = sp.Popen(cmd, stdout=sp.PIPE, stderr=open(os.devnull))
-            output, err = proc.communicate()
-            output = output.strip()
+            output, _ = proc.communicate()
+            output = bytes(output).decode('ascii').strip()
             if len(output) > 0:
                 msg = "{} process has inet sockets:\n{}".\
                     format(jproc.program, output)
