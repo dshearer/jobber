@@ -3,6 +3,8 @@ package jobfile
 import (
 	"fmt"
 	"time"
+
+	"github.com/dshearer/jobber/common"
 )
 
 type JobStatus uint8
@@ -90,17 +92,25 @@ type RunRec struct {
 	NewStatus JobStatus
 	Stdout    []byte
 	Stderr    []byte
-	Succeeded bool
+	Fate      common.SubprocFate
 	ExecTime  time.Duration
 	Err       error
 }
 
 func (rec *RunRec) Describe() string {
 	var summary string
-	if rec.Succeeded {
+	switch rec.Fate {
+	case common.SubprocFateSucceeded:
 		summary = fmt.Sprintf("Job \"%v\" succeeded.", rec.Job.Name)
-	} else {
+		break
+	case common.SubprocFateFailed:
 		summary = fmt.Sprintf("Job \"%v\" failed.", rec.Job.Name)
+		break
+	case common.SubprocFateCancelled:
+		summary = fmt.Sprintf("Job \"%v\" cancelled.", rec.Job.Name)
+		break
+	default:
+		panic("Unknown subproc fate")
 	}
 	stdoutStr, _ := SafeBytesToStr(rec.Stdout)
 	stderrStr, _ := SafeBytesToStr(rec.Stderr)

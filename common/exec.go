@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,14 +15,35 @@ func cleanUpTempfile(f *os.File) {
 	os.Remove(f.Name())
 }
 
+type SubprocFate int
+
+const (
+	SubprocFateSucceeded SubprocFate = iota
+	SubprocFateFailed    SubprocFate = iota
+	SubprocFateCancelled SubprocFate = iota
+)
+
+func (self SubprocFate) String() string {
+	switch self {
+	case SubprocFateSucceeded:
+		return "succeeded"
+	case SubprocFateFailed:
+		return "failed"
+	case SubprocFateCancelled:
+		return "cancelled"
+	default:
+		panic("Unhandled SubprocFate value")
+	}
+}
+
 // An ExecResult describes the result of running a subprocess via ExecAndWait.
 // Stdout and Stderr can be used to get the subprocess's stdout and stderr.
 // When done with this object (e.g., when done reading Stdout/Stderr), you must
 // call Close.
 type ExecResult struct {
-	Stdout    io.ReadSeeker
-	Stderr    io.ReadSeeker
-	Succeeded bool
+	Stdout io.ReadSeeker
+	Stderr io.ReadSeeker
+	Fate   SubprocFate
 }
 
 func (self *ExecResult) Close() {
@@ -70,7 +92,18 @@ func Sudo(usr user.User, cmdStr string) *exec.Cmd {
 	return su_cmd(usr.Username, cmdStr, "/bin/sh")
 }
 
-func ExecAndWait(cmd *exec.Cmd, input []byte) (*ExecResult, error) {
+func ExecAndWaitContext(ctx context.Context, args []string, input []byte) (*ExecResult, error) {
+	var cmd *exec.Cmd
+	var newCtx context.Context
+	var cancelSubproc context.CancelFunc
+	if ctx == nil {
+		cmd = exec.Command(args[0], args[1:]...)
+	} else {
+		newCtx, cancelSubproc = context.WithCancel(context.Background())
+		defer cancelSubproc()
+		cmd = exec.CommandContext(newCtx, args[0], args[1:]...)
+	}
+
 	// make temp files for stdout/stderr
 	stdout, err := ioutil.TempFile(TempDirPath(), "")
 	if err != nil {
@@ -101,6 +134,26 @@ func ExecAndWait(cmd *exec.Cmd, input []byte) (*ExecResult, error) {
 	stdin.Write(input)
 	stdin.Close()
 
+	// launch cancelling thread
+	didCancel := false
+	if ctx != nil {
+		stop := make(chan struct{})
+		defer close(stop)
+		go func() {
+			Logger.Println("In cancelling thread")
+			select {
+			case <-ctx.Done():
+				Logger.Println("Got ctx.Done. Cancelling subproc")
+				cancelSubproc()
+				didCancel = true
+				return
+			case <-stop:
+				Logger.Println("Got <-stop")
+				return
+			}
+		}()
+	}
+
 	// finish execution
 	waitErr := cmd.Wait()
 	if waitErr != nil {
@@ -126,6 +179,16 @@ func ExecAndWait(cmd *exec.Cmd, input []byte) (*ExecResult, error) {
 	res := &ExecResult{}
 	res.Stdout = stdout
 	res.Stderr = stderr
-	res.Succeeded = (waitErr == nil)
+	if waitErr == nil {
+		res.Fate = SubprocFateSucceeded
+	} else if didCancel {
+		res.Fate = SubprocFateCancelled
+	} else {
+		res.Fate = SubprocFateFailed
+	}
 	return res, nil
+}
+
+func ExecAndWait(args []string, input []byte) (*ExecResult, error) {
+	return ExecAndWaitContext(nil, args, input)
 }

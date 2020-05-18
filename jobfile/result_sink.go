@@ -151,7 +151,8 @@ func SerializeRunRec(rec RunRec, data ResultSinkDataParam) []byte {
 		},
 		"user":      rec.Job.User,
 		"startTime": rec.RunTime.Unix(),
-		"succeeded": rec.Succeeded,
+		"succeeded": rec.Fate == common.SubprocFateSucceeded,
+		"fate":      rec.Fate,
 	}
 
 	if data.Contains(RESULT_SINK_DATA_STDOUT) {

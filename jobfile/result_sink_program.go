@@ -3,7 +3,6 @@ package jobfile
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
 
 	"github.com/dshearer/jobber/common"
 )
@@ -55,7 +54,7 @@ func serializeRunRec_oldFormat(rec RunRec) []byte {
 		"job":       jobJson,
 		"user":      rec.Job.User,
 		"startTime": rec.RunTime.Format(timeFormat),
-		"succeeded": rec.Succeeded}
+		"succeeded": rec.Fate == common.SubprocFateSucceeded}
 	if rec.Stdout == nil {
 		recJson["stdout"] = nil
 	} else {
@@ -91,11 +90,11 @@ func (self ProgramResultSink) Handle(rec RunRec) {
 	}
 
 	// call program
-	execResult, err2 := common.ExecAndWait(exec.Command(self.Path), recStr)
+	execResult, err2 := common.ExecAndWait([]string{self.Path}, recStr)
 	defer execResult.Close()
 	if err2 != nil {
 		common.ErrLogger.Printf("Failed to call %v: %v\n", self.Path, err2)
-	} else if !execResult.Succeeded {
+	} else if execResult.Fate == common.SubprocFateFailed {
 		stderrBytes, _ := execResult.ReadStderr(RunRecOutputMaxLen)
 		errMsg, _ := SafeBytesToStr(stderrBytes)
 		common.ErrLogger.Printf(
@@ -103,6 +102,8 @@ func (self ProgramResultSink) Handle(rec RunRec) {
 			self.Path,
 			errMsg,
 		)
+	} else if execResult.Fate == common.SubprocFateCancelled {
+		panic("Result sink program subproc was somehow cancelled")
 	} else {
 		stdoutBytes, _ := execResult.ReadStdout(RunRecOutputMaxLen)
 		stderrBytes, _ := execResult.ReadStderr(RunRecOutputMaxLen)
