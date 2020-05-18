@@ -2,13 +2,15 @@ package jobfile
 
 import (
 	"time"
+
+	"github.com/dshearer/jobber/common"
 )
 
 type RunLogEntry struct {
-	JobName   string
-	Time      time.Time
-	Succeeded bool
-	Result    JobStatus
+	JobName string
+	Time    time.Time
+	Fate    common.SubprocFate
+	Result  JobStatus
 }
 
 /*

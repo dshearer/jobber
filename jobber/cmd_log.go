@@ -94,14 +94,14 @@ func doLogCmd_allUsers() int {
 		var buffer bytes.Buffer
 		var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5,
 			0, 2, ' ', 0)
-		fmt.Fprintf(writer, "TIME\tJOB\tSUCCEEDED\tRESULT\tUSER\n")
+		fmt.Fprintf(writer, "TIME\tJOB\tRESULT\tRESULT\tUSER\n")
 		var strs []string
 		for _, e := range logDescs {
 			s := fmt.Sprintf(
 				"%v\t%v\t%v\t%v\t%v\t",
 				e.logDesc.Time.Format("Jan _2 15:04:05 2006"),
 				e.logDesc.Job,
-				e.logDesc.Succeeded,
+				e.logDesc.Fate,
 				e.logDesc.Result,
 				e.userName)
 			strs = append(strs, s)
@@ -147,14 +147,14 @@ func doLogCmd_currUser() int {
 		var buffer bytes.Buffer
 		var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5, 0,
 			2, ' ', 0)
-		fmt.Fprintf(writer, "TIME\tJOB\tSUCCEEDED\tRESULT\t\n")
+		fmt.Fprintf(writer, "TIME\tJOB\tRESULT\tNEW JOB STATUS\t\n")
 		strs := make([]string, 0)
 		for _, e := range resp.Logs {
 			s := fmt.Sprintf(
 				"%v\t%v\t%v\t%v\t",
 				e.Time.Format("Jan _2 15:04:05 2006"),
 				e.Job,
-				e.Succeeded,
+				e.Fate,
 				e.Result)
 			strs = append(strs, s)
 		}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/ipc"
 )
 
@@ -15,12 +16,14 @@ func (self *JobManager) doLogCmd(cmd ipc.LogCmd) ipc.ICmdResp {
 		logDesc := ipc.LogDesc{
 			Time:      l.Time,
 			Job:       l.JobName,
-			Succeeded: l.Succeeded,
+			Succeeded: l.Fate == common.SubprocFateSucceeded, // deprecated
+			Fate:      l.Fate.String(),
 			Result:    l.Result.String(),
 		}
 		logDescs = append(logDescs, logDesc)
 	}
 
 	// make response
+	common.Logger.Printf("Returning %v log entries\n", len(logDescs))
 	return ipc.LogCmdResp{Logs: logDescs}
 }

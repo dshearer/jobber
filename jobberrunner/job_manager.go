@@ -24,14 +24,13 @@ type JobManager struct {
 	mainThreadCtx       context.Context
 	mainThreadCtxCancel context.CancelFunc
 	mainThreadDoneChan  chan interface{}
-	jobRunner           *JobRunnerThread
+	jobRunner           JobRunnerThread
 	Shell               string
 }
 
 func NewJobManager(jobfilePath string) *JobManager {
 	jm := JobManager{Shell: "/bin/sh"}
 	jm.jobfilePath = jobfilePath
-	jm.jobRunner = NewJobRunnerThread()
 	tmp := jobfile.NewEmptyJobFile()
 	jm.jfile = &tmp
 	common.LogToStdoutStderr()
@@ -61,13 +60,10 @@ Stop the job-runner thread, replace the current jobfile with the given
 one, then start the job-runner thread.
 */
 func (self *JobManager) replaceCurrJobfile(jfile *jobfile.JobFile) {
-	if self.jobRunner.Running {
-		// stop job-runner thread and wait for current runs to end
-		self.jobRunner.Cancel()
-		for rec := range self.jobRunner.RunRecChan() {
-			self.handleRunRec(rec)
-		}
-		self.jobRunner.Wait()
+	// stop job-runner thread and wait for current runs to end
+	self.jobRunner.Cancel()
+	for rec := range self.jobRunner.RunRecChan() {
+		self.handleRunRec(rec)
 	}
 
 	// set jobfile
@@ -180,19 +176,19 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 
 	// record in run log
 	newRunLogEntry := jobfile.RunLogEntry{
-		JobName:   rec.Job.Name,
-		Time:      rec.RunTime,
-		Succeeded: rec.Succeeded,
-		Result:    rec.NewStatus,
+		JobName: rec.Job.Name,
+		Time:    rec.RunTime,
+		Fate:    rec.Fate,
+		Result:  rec.NewStatus,
 	}
 	self.jfile.Prefs.RunLog.Put(newRunLogEntry)
 
 	/* NOTE: error-handler was already applied by the job, if necessary. */
 
 	var sinksToNotify []jobfile.ResultSink
-	if rec.Succeeded {
+	if rec.Fate == common.SubprocFateSucceeded {
 		sinksToNotify = append(sinksToNotify, rec.Job.NotifyOnSuccess...)
-	} else {
+	} else if rec.Fate == common.SubprocFateFailed {
 		sinksToNotify = append(sinksToNotify, rec.Job.NotifyOnError...)
 	}
 	if rec.NewStatus == jobfile.JobFailed {
@@ -261,9 +257,6 @@ func (self *JobManager) runMainThread() {
 		for rec := range self.jobRunner.RunRecChan() {
 			self.handleRunRec(rec)
 		}
-
-		// wait for job runner to fully stop
-		self.jobRunner.Wait()
 	}()
 }
 
