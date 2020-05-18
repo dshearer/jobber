@@ -114,6 +114,15 @@ def sp_check_output(args):
         print("STDERR: {0}".format(err))
     return out
 
+def sp_nocheck_log_output(args):
+    proc = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
+    out, err = proc.communicate()
+    out = bytes(out).decode('ascii')
+    err = bytes(err).decode('ascii')
+    print(out)
+    print(err)
+    return proc.returncode
+
 def _find_file(name, dir):
     for dirpath, dirnames, filenames in os.walk(dir):
         if name in filenames:
@@ -138,8 +147,12 @@ def program_exists(name):
         return True
 
 class SystemDServiceCtl(object):
+    def stop_jobber(self):
+        sp_nocheck_log_output(['systemctl', 'stop', 'jobber'])
+
     def restart_jobber(self):
-        sp_check_output(['systemctl', 'restart', 'jobber'])
+        self.stop_jobber()
+        sp_check_output(['systemctl', 'start', 'jobber'])
 
     def get_jobber_status(self):
         return sp_check_output(['systemctl', 'status', 'jobber'])
@@ -148,8 +161,11 @@ class SystemDServiceCtl(object):
         return sp_check_output(['journalctl', '-u', 'jobber'])
 
 class LaunchctlServiceCtl(object):
+    def stop_jobber(self):
+        sp_nocheck_log_output(['launchctl', 'stop', 'info.nekonya.jobber'])
+
     def restart_jobber(self):
-        sp_check_output(['launchctl', 'stop', 'info.nekonya.jobber'])
+        self.stop_jobber()
         sp_check_output(['launchctl', 'start', 'info.nekonya.jobber'])
 
     def get_jobber_status(self):
@@ -165,8 +181,12 @@ class LaunchctlServiceCtl(object):
         return '/n'.join(lines)
 
 class BrewServiceCtl(object):
+    def stop_jobber(self):
+        sp_nocheck_log_output(['brew', 'services', 'stop', 'jobber'])
+
     def restart_jobber(self):
-        sp_check_output(['brew', 'services', 'restart', 'jobber'])
+        self.stop_jobber()
+        sp_check_output(['brew', 'services', 'start', 'jobber'])
 
     def get_jobber_status(self):
         return 'unknown'
@@ -197,7 +217,7 @@ class testlib(object):
         # make service control object
         if program_exists('systemctl'):
             self._servicectl = SystemDServiceCtl()
-        elif program_exists('brew') and 'homebrew.mxcl.jobber.plist' in \
+        elif program_exists('brew') and 'jobber ' in \
                 sp_check_output(['brew', 'services']):
             self._servicectl = BrewServiceCtl()
         elif program_exists('launchctl'):
@@ -231,6 +251,9 @@ class testlib(object):
         if create:
             open(path, "w").close()
         return path
+
+    def stop_service(self):
+        self._servicectl.stop_jobber()
 
     def restart_service(self):
         # restart jobber service
@@ -478,6 +501,14 @@ class testlib(object):
 
     def jobber_init(self):
         sp_check_output([self._jobber_path, 'init'])
+
+    def jobber_try_reload(self):
+        '''
+        :return: True if 'reload' succeeded; False otherwise.
+        '''
+        retcode = sp.call([self._jobber_path, 'reload'], stdout=open(os.devnull), \
+            stderr=open(os.devnull)) # no check
+        return retcode == 0
 
     def chmod(self, path, mode):
         os.chmod(path, int(mode, base=8))

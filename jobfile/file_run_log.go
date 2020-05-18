@@ -902,11 +902,21 @@ func encodeRunLogEntry(entry *RunLogEntry) string {
 		"%v\t%v\t%v\t%v",
 		encodedJobName,
 		encodedTime,
-		entry.Succeeded,
+		entry.Fate,
 		entry.Result,
 	)
 	suffix := strings.Repeat(" ", int(gLogEntryLen)-len(tmp))
 	return fmt.Sprintf("%v%v", tmp, suffix)
+}
+
+var gFateDecoder = map[string]common.SubprocFate{
+	common.SubprocFateSucceeded.String(): common.SubprocFateSucceeded,
+	common.SubprocFateFailed.String():    common.SubprocFateFailed,
+	common.SubprocFateCancelled.String(): common.SubprocFateCancelled,
+
+	// deprecated values:
+	"true":  common.SubprocFateSucceeded,
+	"false": common.SubprocFateFailed,
 }
 
 func decodeRunLogEntry(s string) (*RunLogEntry, error) {
@@ -935,13 +945,11 @@ func decodeRunLogEntry(s string) (*RunLogEntry, error) {
 	}
 	entry.Time = time.Unix(0, unixTime)
 
-	// decode succeeded
-	if fields[2] == "true" {
-		entry.Succeeded = true
-	} else if fields[2] == "false" {
-		entry.Succeeded = false
-	} else {
-		return nil, &common.Error{What: "Invalid 'Succeeded' field."}
+	// decode fate
+	ok := false
+	entry.Fate, ok = gFateDecoder[fields[2]]
+	if !ok {
+		return nil, &common.Error{What: "Invalid 'Fate' field."}
 	}
 
 	// decode result

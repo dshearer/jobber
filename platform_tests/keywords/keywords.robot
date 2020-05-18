@@ -18,6 +18,7 @@ Teardown
     Run Keyword If Test Failed    Print Debug Info
     Remove Files    /root/.jobber-log    /home/normuser/.jobber-log
     Restore Prefs
+    Stop Service
 
 Nothing Has Crashed
     jobbermaster Has Not Crashed
