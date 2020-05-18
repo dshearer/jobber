@@ -13,7 +13,7 @@ func (self *JobManager) doTestCmd(cmd ipc.TestCmd) ipc.ICmdResp {
 	}
 
 	// run the job in this thread
-	runRec := RunJob(job, self.Shell, true)
+	runRec := RunJob(nil, job, self.Shell, true)
 
 	// make response
 	if runRec.Err != nil {

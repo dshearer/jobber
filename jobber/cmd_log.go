@@ -95,14 +95,14 @@ func doLogCmd_allUsers(timeout_p *time.Duration) int {
 		var buffer bytes.Buffer
 		var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5,
 			0, 2, ' ', 0)
-		fmt.Fprintf(writer, "TIME\tJOB\tSUCCEEDED\tEXECTIME\tRESULT\tUSER\n")
+		fmt.Fprintf(writer, "TIME\tJOB\tRESULT\tEXECTIME\tRESULT\tUSER\n")
 		var strs []string
 		for _, e := range logDescs {
 			s := fmt.Sprintf(
 				"%v\t%v\t%v\t%v\t%v\t%v\t",
 				e.logDesc.Time.Format("Jan _2 15:04:05 2006"),
 				e.logDesc.Job,
-				e.logDesc.Succeeded,
+				e.logDesc.Fate,
 				e.logDesc.ExecTime.Round(time.Second),
 				e.logDesc.Result,
 				e.userName)
@@ -149,14 +149,14 @@ func doLogCmd_currUser(timeout_p *time.Duration) int {
 		var buffer bytes.Buffer
 		var writer *tabwriter.Writer = tabwriter.NewWriter(&buffer, 5, 0,
 			2, ' ', 0)
-		fmt.Fprintf(writer, "TIME\tJOB\tSUCCEEDED\tEXECTIME\tRESULT\t\n")
+		fmt.Fprintf(writer, "TIME\tJOB\tRESULT\tEXECTIME\tNEW JOB STATUS\t\n")
 		strs := make([]string, 0)
 		for _, e := range resp.Logs {
 			s := fmt.Sprintf(
 				"%v\t%v\t%v\t%v\t%v\t",
 				e.Time.Format("Jan _2 15:04:05 2006"),
 				e.Job,
-				e.Succeeded,
+				e.Fate,
 				e.ExecTime.Round(time.Second),
 				e.Result)
 			strs = append(strs, s)
@@ -175,7 +175,7 @@ func doLogCmd(args []string) int {
 	flagSet.Usage = subcmdUsage(LogCmdStr, "", flagSet)
 	var help_p = flagSet.Bool("h", false, "help")
 	var allUsers_p = flagSet.Bool("a", false, "all-users")
-	var timeout_p = flagSet.Duration("t", 5 * time.Second, "timeout")
+	var timeout_p = flagSet.Duration("t", 5*time.Second, "timeout")
 	flagSet.Parse(args)
 
 	if *help_p {
