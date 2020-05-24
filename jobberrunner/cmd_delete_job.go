@@ -6,16 +6,16 @@ import (
 )
 
 func (self *JobManager) doDeleteJobCmd(cmd ipc.DeleteJobCmd) ipc.ICmdResp {
-	// make new jobfile
-	newJobs := make(map[string]*jobfile.Job)
-	for currJobName, currJob := range self.jfile.Jobs {
+	// make new raw jobfile
+	newJobs := make(map[string]jobfile.JobRaw)
+	for currJobName, currJob := range self.jfile.Raw.Jobs {
 		if currJobName == cmd.Job {
 			continue
 		}
 		newJobs[currJobName] = currJob
 	}
-	newJobfile := jobfile.JobFile{
-		Prefs: self.jfile.Prefs,
+	newJobfile := jobfile.JobFileRaw{
+		Prefs: self.jfile.Raw.Prefs,
 		Jobs:  newJobs,
 	}
 

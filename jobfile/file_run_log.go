@@ -949,7 +949,7 @@ func decodeRunLogEntry(s string) (*RunLogEntry, error) {
 	ok := false
 	entry.Fate, ok = gFateDecoder[fields[2]]
 	if !ok {
-		return nil, &common.Error{What: "Invalid 'Fate' field."}
+		return nil, &common.Error{What: fmt.Sprintf("Invalid 'Fate' field: \"%v\"", fields[2])}
 	}
 
 	// decode result

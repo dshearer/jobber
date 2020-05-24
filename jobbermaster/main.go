@@ -78,6 +78,7 @@ Loop:
 					usr.Username,
 					err,
 				)
+				common.ErrLogger.Println(proc.Stderr())
 				if _, flag := err.(*exec.ExitError); !flag {
 					break Loop
 				}

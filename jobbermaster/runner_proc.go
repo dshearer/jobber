@@ -158,3 +158,11 @@ func (self *RunnerProc) Kill() {
 	}
 	os.Remove(self.quitSockPath)
 }
+
+func (self *RunnerProc) Stderr() string {
+	if self.proc == nil {
+		return ""
+	}
+	stderr := self.proc.Stderr.(*BoundedBuffer)
+	return stderr.String()
+}
