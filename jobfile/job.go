@@ -60,13 +60,10 @@ func (j *Job) String() string {
 	return j.Name
 }
 
-func NewJob() Job {
-	return Job{
-		Status:          JobGood,
-		ErrorHandler:    ContinueErrorHandler{},
-		NotifyOnError:   nil,
-		NotifyOnFailure: nil,
-		NotifyOnSuccess: nil,
+func NewRawJob() JobRaw {
+	onError := "continue;"
+	return JobV3Raw{
+		OnError: &onError,
 	}
 }
 

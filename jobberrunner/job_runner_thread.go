@@ -117,10 +117,8 @@ func RunJob(
 
 	// run
 	var execResult *common.ExecResult
-	common.Logger.Println("Running job...")
 	execResult, err :=
 		common.ExecAndWaitContext(ctx, []string{shell, "-c", job.Cmd}, nil)
-	common.Logger.Println("Job done")
 
 	if err != nil {
 		/* unexpected error while trying to run job */

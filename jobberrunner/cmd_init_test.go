@@ -31,8 +31,12 @@ func TestParseDefaultJobfile(t *testing.T) {
 	/*
 	 * Call
 	 */
+	var raw *jobfile.JobFileRaw
+	raw, err = jobfile.LoadJobfile(f)
 	var file *jobfile.JobFile
-	file, err = jobfile.LoadJobfile(f, &gUserEx)
+	if raw != nil {
+		file, err = raw.Activate(&gUserEx)
+	}
 
 	/*
 	 * Test
@@ -80,8 +84,12 @@ func TestParseDefaultJobfileAfterUncommenting(t *testing.T) {
 	/*
 	 * Call
 	 */
+	var raw *jobfile.JobFileRaw
+	raw, err = jobfile.LoadJobfile(f)
 	var file *jobfile.JobFile
-	file, err = jobfile.LoadJobfile(f, &gUserEx)
+	if raw != nil {
+		file, err = raw.Activate(&gUserEx)
+	}
 
 	/*
 	 * Test
