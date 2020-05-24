@@ -25,31 +25,10 @@ const (
 type JobFile struct {
 	Prefs UserPrefs
 	Jobs  map[string]*Job
+	Raw   JobFileRaw
 }
 
 func (self *JobFile) InitResultSinks() {
-	// collect result sinks
-	var sinks []ResultSink
-	for _, job := range self.Jobs {
-		sinks = append(sinks, job.NotifyOnError...)
-		sinks = append(sinks, job.NotifyOnFailure...)
-		sinks = append(sinks, job.NotifyOnSuccess...)
-	}
-
-	/*
-		Start/stop run record servers for SocketResultSink as necessary.
-	*/
-	var protos []string
-	var addresses []string
-	for _, sink := range sinks {
-		socketSink, ok := sink.(*SocketResultSink)
-		if !ok {
-			continue
-		}
-		protos = append(protos, socketSink.Proto)
-		addresses = append(addresses, socketSink.Address)
-	}
-	GlobalRunRecServerRegistry.SetServers(protos, addresses)
 }
 
 type UserPrefs struct {
@@ -67,11 +46,12 @@ func (self *UserPrefs) String() string {
 }
 
 type JobFileV3Raw struct {
-	Version     SemVer              `yaml:"version"`
-	Prefs       UserPrefsV3Raw      `yaml:"prefs"`
-	ResultSinks []ResultSinkRaw     `yaml:"resultSinks"`
-	Jobs        map[string]JobV3Raw `yaml:"jobs"`
+	Version SemVer              `yaml:"version"`
+	Prefs   UserPrefsV3Raw      `yaml:"prefs"`
+	Jobs    map[string]JobV3Raw `yaml:"jobs"`
 }
+
+type JobFileRaw = JobFileV3Raw
 
 type JobFileV1V2Raw struct {
 	Prefs UserPrefsV1V2Raw
@@ -81,7 +61,7 @@ type JobFileV1V2Raw struct {
 type RunLogRaw struct {
 	Type string `yaml:"type"` // "file" or "memory"
 
-	// fields for type == "memory":
+	// fields for type == "memory
 	MaxLen *int `yaml:"maxLen"`
 
 	// fields for type == "file":
@@ -100,6 +80,8 @@ type UserPrefsV1V2Raw struct {
 	RunLog        *RunLogRaw `yaml:"runLog"`
 	NotifyProgram *string    `yaml:"notifyProgram"`
 }
+
+type JobRaw = JobV3Raw
 
 type JobV3Raw struct {
 	Cmd             string          `json:"cmd" yaml:"cmd"`
@@ -120,12 +102,74 @@ type JobV1V2Raw struct {
 	NotifyOnFailure *bool   `json:"notifyOnFailure" yaml:"notifyOnFailure"`
 }
 
-func NewEmptyJobFile() JobFile {
-	return JobFile{
-		Prefs: UserPrefs{
-			RunLog: NewMemOnlyRunLog(gDefaultMemRunLogMaxLen),
+func (self *JobFileV3Raw) Dup() *JobFileV3Raw {
+	data, err := yaml.Marshal(self)
+	if err != nil {
+		panic(err)
+	}
+	var dup JobFileV3Raw
+	if err := yaml.Unmarshal(data, &dup); err != nil {
+		panic(err)
+	}
+	return &dup
+}
+
+func (self *JobFileV3Raw) Activate(usr *user.User) (*JobFile, error) {
+	var jfile JobFile
+	jfile.Raw = *self
+	jfile.Jobs = make(map[string]*Job)
+
+	// parse prefs
+	if err := self.Prefs.ToPrefs(usr, &jfile.Prefs); err != nil {
+		return nil, err
+	}
+
+	// parse jobs
+	for jobName, jobRaw := range self.Jobs {
+		var job Job
+		job.ErrorHandler = ContinueErrorHandler{}
+		job.Name = jobName
+		if err := jobRaw.ToJob(usr, &job); err != nil {
+			return nil, err
+		}
+		jfile.Jobs[jobName] = &job
+	}
+
+	// collect result sinks
+	var sinks []ResultSink
+	for _, job := range jfile.Jobs {
+		sinks = append(sinks, job.NotifyOnError...)
+		sinks = append(sinks, job.NotifyOnFailure...)
+		sinks = append(sinks, job.NotifyOnSuccess...)
+	}
+
+	/*
+		Start/stop run record servers for SocketResultSink as necessary.
+	*/
+	var protos []string
+	var addresses []string
+	for _, sink := range sinks {
+		socketSink, ok := sink.(*SocketResultSink)
+		if !ok {
+			continue
+		}
+		protos = append(protos, socketSink.Proto)
+		addresses = append(addresses, socketSink.Address)
+	}
+	GlobalRunRecServerRegistry.SetServers(protos, addresses)
+
+	return &jfile, nil
+}
+
+func NewEmptyRawJobFile() *JobFileRaw {
+	maxLen := gDefaultMemRunLogMaxLen
+	return &JobFileRaw{
+		Prefs: UserPrefsV3Raw{
+			RunLog: &RunLogRaw{
+				Type:   "memory",
+				MaxLen: &maxLen,
+			},
 		},
-		Jobs: make(map[string]*Job),
 	}
 }
 
@@ -159,7 +203,7 @@ func ShouldLoadJobfile(f *os.File, usr *user.User) (bool, error) {
 	return true, nil
 }
 
-func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
+func LoadJobfile(f *os.File) (*JobFileRaw, error) {
 	/* V3 jobfiles are pure YAML documents. */
 
 	// parse it
@@ -176,29 +220,7 @@ func LoadJobfile(f *os.File, usr *user.User) (*JobFile, error) {
 	} else {
 		parseFunc = parseV1V2Jobfile
 	}
-	jobfileRaw, err := parseFunc(f)
-	if err != nil {
-		return nil, err
-	}
-
-	jfile := NewEmptyJobFile()
-
-	// parse prefs
-	if err := jobfileRaw.Prefs.ToPrefs(usr, &jfile.Prefs); err != nil {
-		return nil, err
-	}
-
-	// parse jobs
-	for jobName, jobRaw := range jobfileRaw.Jobs {
-		job := NewJob()
-		job.Name = jobName
-		if err := jobRaw.ToJob(usr, &job); err != nil {
-			return nil, err
-		}
-		jfile.Jobs[jobName] = &job
-	}
-
-	return &jfile, nil
+	return parseFunc(f)
 }
 
 func jobfileVersion(f *os.File) (*SemVer, error) {

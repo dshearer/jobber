@@ -140,15 +140,12 @@ func ExecAndWaitContext(ctx context.Context, args []string, input []byte) (*Exec
 		stop := make(chan struct{})
 		defer close(stop)
 		go func() {
-			Logger.Println("In cancelling thread")
 			select {
 			case <-ctx.Done():
-				Logger.Println("Got ctx.Done. Cancelling subproc")
 				cancelSubproc()
 				didCancel = true
 				return
 			case <-stop:
-				Logger.Println("Got <-stop")
 				return
 			}
 		}()
