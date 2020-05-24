@@ -25,6 +25,5 @@ func (self *JobManager) doLogCmd(cmd ipc.LogCmd) ipc.ICmdResp {
 	}
 
 	// make response
-	common.Logger.Printf("Returning %v log entries\n", len(logDescs))
 	return ipc.LogCmdResp{Logs: logDescs}
 }

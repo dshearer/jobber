@@ -1,40 +1,21 @@
 package main
 
 import (
-	"fmt"
-	"os/user"
-
+	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/ipc"
-	"github.com/dshearer/jobber/jobfile"
 )
 
 func (self *JobManager) doSetJobCmd(cmd ipc.SetJobCmd) ipc.ICmdResp {
-	// get current user
-	usr, err := user.Current()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to get current user: %v", err))
-	}
-
-	// make job
-	newJob := jobfile.NewJob()
-	if err := cmd.Job.ToJob(usr, &newJob); err != nil {
-		return ipc.NewErrorCmdResp(err)
-	}
-	newJob.Name = cmd.Job.Name
-
-	// make new jobfile
-	newJobs := make(map[string]*jobfile.Job)
-	for currJobName, currJob := range self.jfile.Jobs {
-		newJobs[currJobName] = currJob
-	}
-	newJobs[newJob.Name] = &newJob
-	newJobfile := jobfile.JobFile{
-		Prefs: self.jfile.Prefs,
-		Jobs:  newJobs,
-	}
+	common.Logger.Println("doSetJobCmd")
+	// set job
+	rawDup := self.jfile.Raw.Dup()
+	common.Logger.Printf("After dup: %v", rawDup)
+	rawDup.Jobs[cmd.Job.Name] = cmd.Job.JobV3Raw
 
 	// install it
-	self.replaceCurrJobfile(&newJobfile)
+	common.Logger.Println("Before replaceCurrJobfile")
+	self.replaceCurrJobfile(rawDup)
+	common.Logger.Println("After replaceCurrJobfile")
 
 	return ipc.SetJobCmdResp{Ok: true}
 }

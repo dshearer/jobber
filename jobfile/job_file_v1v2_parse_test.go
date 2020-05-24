@@ -415,8 +415,12 @@ func TestLoadJobFileV1V2(t *testing.T) {
 		/*
 		 * Call
 		 */
+		var raw *JobFileRaw
+		raw, err = LoadJobfile(f)
 		var file *JobFile
-		file, err = LoadJobfile(f, &gUserEx)
+		if raw != nil {
+			file, err = raw.Activate(&gUserEx)
+		}
 
 		/*
 		 * Test
@@ -432,7 +436,7 @@ func TestLoadJobFileV1V2(t *testing.T) {
 		require.NotNil(t, file)
 		require.Equal(t, testCase.Output.Prefs, file.Prefs)
 		require.Equal(t, len(testCase.Output.Jobs), len(file.Jobs))
-		for jobName, _ := range testCase.Output.Jobs {
+		for jobName := range testCase.Output.Jobs {
 			require.Equal(t, testCase.Output.Jobs[jobName].FullTimeSpec, file.Jobs[jobName].FullTimeSpec)
 			require.Equal(t, testCase.Output.Jobs[jobName].NotifyOnError, file.Jobs[jobName].NotifyOnError)
 			require.Equal(t, testCase.Output.Jobs[jobName].NotifyOnFailure, file.Jobs[jobName].NotifyOnFailure)

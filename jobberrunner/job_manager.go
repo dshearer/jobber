@@ -29,10 +29,20 @@ type JobManager struct {
 }
 
 func NewJobManager(jobfilePath string) *JobManager {
+	// get current user
+	usr, err := user.Current()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get current user: %v", err))
+	}
+
 	jm := JobManager{Shell: "/bin/sh"}
 	jm.jobfilePath = jobfilePath
-	tmp := jobfile.NewEmptyJobFile()
-	jm.jfile = &tmp
+	tmp, err := jobfile.NewEmptyRawJobFile().Activate(usr)
+	if err != nil {
+		/* Really shouldn't happen */
+		common.ErrLogger.Panic(err)
+	}
+	jm.jfile = tmp
 	common.LogToStdoutStderr()
 	return &jm
 }
@@ -59,32 +69,44 @@ func (self *JobManager) Wait() {
 Stop the job-runner thread, replace the current jobfile with the given
 one, then start the job-runner thread.
 */
-func (self *JobManager) replaceCurrJobfile(jfile *jobfile.JobFile) {
+func (self *JobManager) replaceCurrJobfile(jfile *jobfile.JobFileRaw) {
+	/*
+		WARNING: Don't activate new jobfile before stopping job threads. Cf. issue 288.
+	*/
+
+	// get current user
+	usr, err := user.Current()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get current user: %v", err))
+	}
+
 	// stop job-runner thread and wait for current runs to end
 	self.jobRunner.Cancel()
 	for rec := range self.jobRunner.RunRecChan() {
 		self.handleRunRec(rec)
 	}
 
-	// set jobfile
-	self.jfile = jfile
+	// activate jobfile
+	self.jfile, err = jfile.Activate(usr)
+	if err != nil {
+		common.ErrLogger.Printf("Error loading jobfile. Reloading previous one. %v\n", err)
+		self.jobRunner.Start(self.jfile.Jobs, self.Shell)
+		return
+	}
 
 	// set loggers
-	if len(jfile.Prefs.LogPath) > 0 {
-		common.SetLogFile(jfile.Prefs.LogPath)
+	if len(self.jfile.Prefs.LogPath) > 0 {
+		common.SetLogFile(self.jfile.Prefs.LogPath)
 	} else {
 		common.LogToStdoutStderr()
 	}
 
-	// initialize result sinks
-	jfile.InitResultSinks()
-
 	// start job-runner thread
-	self.jobRunner.Start(jfile.Jobs, self.Shell)
+	self.jobRunner.Start(self.jfile.Jobs, self.Shell)
 }
 
 func (self *JobManager) openJobfile(path string,
-	usr *user.User) (*jobfile.JobFile, error) {
+	usr *user.User) (*jobfile.JobFileRaw, error) {
 
 	// open jobfile
 	f, err := os.Open(self.jobfilePath)
@@ -104,7 +126,7 @@ func (self *JobManager) openJobfile(path string,
 	}
 
 	// read jobfile
-	jobfile, err := jobfile.LoadJobfile(f, usr)
+	jobfile, err := jobfile.LoadJobfile(f)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, &common.Error{What: "Problem with jobfile", Cause: err}
@@ -152,8 +174,7 @@ func (self *JobManager) loadJobfile() error {
 
 	if err == nil || os.IsNotExist(err) {
 		if jfile == nil {
-			tmp := jobfile.NewEmptyJobFile()
-			jfile = &tmp
+			jfile = jobfile.NewEmptyRawJobFile()
 		}
 		self.replaceCurrJobfile(jfile)
 		return nil

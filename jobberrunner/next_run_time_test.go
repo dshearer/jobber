@@ -60,7 +60,7 @@ var TestCases []TestCase = []TestCase{
 	},
 
 	TestCase{
-		"", // every second
+		"",                            // every second
 		myDate(2016, 1, 1, 5, 59, 55), // start on 1 Jan 2016
 		[]time.Time{
 			myDate(2016, 1, 1, 5, 59, 55),
@@ -115,7 +115,7 @@ func TestNextRunTime(t *testing.T) {
 		/*
 		 * Set up
 		 */
-		job := jobfile.NewJob()
+		var job jobfile.Job
 		timeSpec, _ := jobfile.ParseFullTimeSpec(testCase.timeSpec)
 		require.NotNil(t, timeSpec)
 		job.FullTimeSpec = *timeSpec
@@ -146,7 +146,7 @@ func TestNextRunTimeWithRandom(t *testing.T) {
 	/*
 	 * Set up
 	 */
-	job := jobfile.NewJob()
+	var job jobfile.Job
 	timeSpec, _ := jobfile.ParseFullTimeSpec("0 0 R2-4")
 	require.NotNil(t, timeSpec)
 	job.FullTimeSpec = *timeSpec
