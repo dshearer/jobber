@@ -12,7 +12,8 @@ import (
 )
 
 type IpcService struct {
-	cmdChan chan<- CmdContainer
+	serverType IpcServerType
+	cmdChan    chan<- CmdContainer
 }
 
 func (self *IpcService) Reload(
@@ -21,7 +22,7 @@ func (self *IpcService) Reload(
 
 	// send command
 	respChan := make(chan ipc.ICmdResp, 1)
-	self.cmdChan <- CmdContainer{cmd, respChan}
+	self.cmdChan <- CmdContainer{Cmd: cmd, RespChan: respChan, ServerType: self.serverType}
 
 	// get response
 	resp := <-respChan
@@ -42,7 +43,7 @@ func (self *IpcService) ListJobs(
 
 	// send command
 	respChan := make(chan ipc.ICmdResp, 1)
-	self.cmdChan <- CmdContainer{cmd, respChan}
+	self.cmdChan <- CmdContainer{Cmd: cmd, RespChan: respChan, ServerType: self.serverType}
 
 	// get response
 	resp := <-respChan
@@ -63,7 +64,7 @@ func (self *IpcService) Log(
 
 	// send command
 	respChan := make(chan ipc.ICmdResp, 1)
-	self.cmdChan <- CmdContainer{cmd, respChan}
+	self.cmdChan <- CmdContainer{Cmd: cmd, RespChan: respChan, ServerType: self.serverType}
 
 	// get response
 	resp := <-respChan
@@ -84,7 +85,7 @@ func (self *IpcService) Test(
 
 	// send command
 	respChan := make(chan ipc.ICmdResp, 1)
-	self.cmdChan <- CmdContainer{cmd, respChan}
+	self.cmdChan <- CmdContainer{Cmd: cmd, RespChan: respChan, ServerType: self.serverType}
 
 	// get response
 	resp := <-respChan
@@ -105,7 +106,7 @@ func (self *IpcService) Cat(
 
 	// send command
 	respChan := make(chan ipc.ICmdResp, 1)
-	self.cmdChan <- CmdContainer{cmd, respChan}
+	self.cmdChan <- CmdContainer{Cmd: cmd, RespChan: respChan, ServerType: self.serverType}
 
 	// get response
 	resp := <-respChan
@@ -126,7 +127,7 @@ func (self *IpcService) Pause(
 
 	// send command
 	respChan := make(chan ipc.ICmdResp, 1)
-	self.cmdChan <- CmdContainer{cmd, respChan}
+	self.cmdChan <- CmdContainer{Cmd: cmd, RespChan: respChan, ServerType: self.serverType}
 
 	// get response
 	resp := <-respChan
@@ -147,7 +148,7 @@ func (self *IpcService) Resume(
 
 	// send command
 	respChan := make(chan ipc.ICmdResp, 1)
-	self.cmdChan <- CmdContainer{cmd, respChan}
+	self.cmdChan <- CmdContainer{Cmd: cmd, RespChan: respChan, ServerType: self.serverType}
 
 	// get response
 	resp := <-respChan
@@ -168,7 +169,7 @@ func (self *IpcService) Init(
 
 	// send command
 	respChan := make(chan ipc.ICmdResp, 1)
-	self.cmdChan <- CmdContainer{cmd, respChan}
+	self.cmdChan <- CmdContainer{Cmd: cmd, RespChan: respChan, ServerType: self.serverType}
 
 	// get response
 	resp := <-respChan
@@ -189,7 +190,7 @@ func (self *IpcService) SetJob(
 
 	// send command
 	respChan := make(chan ipc.ICmdResp, 1)
-	self.cmdChan <- CmdContainer{cmd, respChan}
+	self.cmdChan <- CmdContainer{Cmd: cmd, RespChan: respChan, ServerType: self.serverType}
 
 	// get response
 	resp := <-respChan
@@ -210,7 +211,7 @@ func (self *IpcService) DeleteJob(
 
 	// send command
 	respChan := make(chan ipc.ICmdResp, 1)
-	self.cmdChan <- CmdContainer{cmd, respChan}
+	self.cmdChan <- CmdContainer{Cmd: cmd, RespChan: respChan, ServerType: self.serverType}
 
 	// get response
 	resp := <-respChan
@@ -253,6 +254,7 @@ type udsIpcServer struct {
 func NewUdsIpcServer(sockPath string, cmdChan chan<- CmdContainer) IpcServer {
 	server := &udsIpcServer{sockPath: sockPath}
 	server.service.cmdChan = cmdChan
+	server.service.serverType = IpcServerTypeUds
 	return server
 }
 
@@ -293,6 +295,7 @@ type inetIcpServer struct {
 func NewInetIpcServer(port uint, cmdChan chan<- CmdContainer) IpcServer {
 	server := &inetIcpServer{port: port}
 	server.service.cmdChan = cmdChan
+	server.service.serverType = IpcServerTypeInet
 	return server
 }
 
