@@ -14,7 +14,9 @@ RUNNER_SOURCES := \
 	jobberrunner/job_runner_thread.go \
 	jobberrunner/main.go \
 	jobberrunner/queue.go \
-	jobberrunner/sources.mk
+	jobberrunner/sources.mk \
+	jobberrunner/testjob/test_job_server.go \
+	jobberrunner/testjob/test_job_thread.go \
 
 RUNNER_TEST_SOURCES := \
 	jobberrunner/cmd_init_test.go \

@@ -12,13 +12,11 @@ func (self *JobManager) doTestCmd(cmd ipc.TestCmd) ipc.ICmdResp {
 		return ipc.NewErrorCmdResp(&common.Error{What: "No such job."})
 	}
 
-	// run the job in this thread
-	runRec := RunJob(nil, job, self.Shell, true)
-
-	// make response
-	if runRec.Err != nil {
-		return ipc.NewErrorCmdResp(runRec.Err)
+	common.Logger.Printf("Trying job %v\n", job.Name)
+	sockPath, err := self.testJobServer.Launch(job)
+	if err != nil {
+		return ipc.NewErrorCmdResp(err)
 	}
 
-	return ipc.TestCmdResp{Result: runRec.Describe()}
+	return ipc.TestCmdResp{UnixSocketPath: *sockPath}
 }
