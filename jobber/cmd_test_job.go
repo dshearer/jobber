@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"os/user"
 
@@ -53,7 +55,21 @@ func doTestCmd(args []string) int {
 		return 1
 	}
 
-	// handle response
-	fmt.Printf("%v\n", resp.Result)
+	// read output from other socket
+	conn, err := net.Dial("unix", resp.UnixSocketPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return 1
+	}
+	defer conn.Close()
+	var buf [1024]byte
+	for {
+		n, err := conn.Read(buf[:])
+		os.Stdout.Write(buf[:n])
+		if err == io.EOF {
+			break
+		}
+	}
+
 	return 0
 }
