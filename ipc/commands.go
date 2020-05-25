@@ -75,7 +75,7 @@ type TestCmd struct {
 }
 
 type TestCmdResp struct {
-	Result string `json:"result"`
+	UnixSocketPath string `json:"unixSocketPath"`
 	nonErrorCmdResp
 }
 

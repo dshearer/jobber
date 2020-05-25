@@ -8,15 +8,25 @@ import (
 
 	"github.com/dshearer/jobber/common"
 	"github.com/dshearer/jobber/ipc"
+	"github.com/dshearer/jobber/jobberrunner/testjob"
 	"github.com/dshearer/jobber/jobfile"
 )
 
+type IpcServerType int
+
+const (
+	IpcServerTypeUds  = 0
+	IpcServerTypeInet = iota
+)
+
 type CmdContainer struct {
-	Cmd      ipc.ICmd
-	RespChan chan<- ipc.ICmdResp
+	Cmd        ipc.ICmd
+	RespChan   chan<- ipc.ICmdResp
+	ServerType IpcServerType
 }
 
 type JobManager struct {
+	user                *user.User
 	jobfilePath         string
 	launched            bool
 	jfile               *jobfile.JobFile
@@ -25,6 +35,7 @@ type JobManager struct {
 	mainThreadCtxCancel context.CancelFunc
 	mainThreadDoneChan  chan interface{}
 	jobRunner           JobRunnerThread
+	testJobServer       *testjob.TestJobServer
 	Shell               string
 }
 
@@ -35,7 +46,7 @@ func NewJobManager(jobfilePath string) *JobManager {
 		panic(fmt.Sprintf("Failed to get current user: %v", err))
 	}
 
-	jm := JobManager{Shell: "/bin/sh"}
+	jm := JobManager{Shell: "/bin/sh", user: usr}
 	jm.jobfilePath = jobfilePath
 	tmp, err := jobfile.NewEmptyRawJobFile().Activate(usr)
 	if err != nil {
@@ -44,6 +55,11 @@ func NewJobManager(jobfilePath string) *JobManager {
 	}
 	jm.jfile = tmp
 	common.LogToStdoutStderr()
+
+	jm.mainThreadCtx, jm.mainThreadCtxCancel = context.WithCancel(context.Background())
+
+	jm.testJobServer = testjob.NewTestJobServer(jm.mainThreadCtx, jm.Shell, usr)
+
 	return &jm
 }
 
@@ -74,12 +90,6 @@ func (self *JobManager) replaceCurrJobfile(jfile *jobfile.JobFileRaw) {
 		WARNING: Don't activate new jobfile before stopping job threads. Cf. issue 288.
 	*/
 
-	// get current user
-	usr, err := user.Current()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to get current user: %v", err))
-	}
-
 	// stop job-runner thread and wait for current runs to end
 	self.jobRunner.Cancel()
 	for rec := range self.jobRunner.RunRecChan() {
@@ -87,7 +97,8 @@ func (self *JobManager) replaceCurrJobfile(jfile *jobfile.JobFileRaw) {
 	}
 
 	// activate jobfile
-	self.jfile, err = jfile.Activate(usr)
+	var err error
+	self.jfile, err = jfile.Activate(self.user)
 	if err != nil {
 		common.ErrLogger.Printf("Error loading jobfile. Reloading previous one. %v\n", err)
 		self.jobRunner.Start(self.jfile.Jobs, self.Shell)
@@ -163,14 +174,8 @@ func (self *JobManager) loadJobfile() error {
 		        	   2. Return the error
 	*/
 
-	// get current user
-	usr, err := user.Current()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to get current user: %v", err))
-	}
-
 	// open jobfile
-	jfile, err := self.openJobfile(self.jobfilePath, usr)
+	jfile, err := self.openJobfile(self.jobfilePath, self.user)
 
 	if err == nil || os.IsNotExist(err) {
 		if jfile == nil {
@@ -221,9 +226,8 @@ func (self *JobManager) handleRunRec(rec *jobfile.RunRec) {
 }
 
 func (self *JobManager) runMainThread() {
-	ctx, cancel :=
+	self.mainThreadCtx, self.mainThreadCtxCancel =
 		context.WithCancel(context.Background())
-	self.mainThreadCtxCancel = cancel
 
 	self.CmdChan = make(chan CmdContainer)
 	self.mainThreadDoneChan = make(chan interface{})
@@ -244,7 +248,7 @@ func (self *JobManager) runMainThread() {
 	Loop:
 		for {
 			select {
-			case <-ctx.Done():
+			case <-self.mainThreadCtx.Done():
 				break Loop
 
 			case rec, ok := <-self.jobRunner.RunRecChan():
@@ -257,7 +261,7 @@ func (self *JobManager) runMainThread() {
 			case cmd, ok := <-self.CmdChan:
 				if ok {
 					var shouldExit bool
-					cmd.RespChan <- self.doCmd(cmd.Cmd, &shouldExit)
+					cmd.RespChan <- self.doCmd(&cmd, &shouldExit)
 					if shouldExit {
 						self.mainThreadCtxCancel()
 						break Loop
@@ -278,16 +282,19 @@ func (self *JobManager) runMainThread() {
 		for rec := range self.jobRunner.RunRecChan() {
 			self.handleRunRec(rec)
 		}
+
+		// wait for "try" command threads
+		self.testJobServer.Wait()
 	}()
 }
 
 func (self *JobManager) doCmd(
-	tmpCmd ipc.ICmd,
+	tmpCmd *CmdContainer,
 	shouldExit *bool) ipc.ICmdResp { // runs in main thread
 
 	*shouldExit = false
 
-	switch cmd := tmpCmd.(type) {
+	switch cmd := tmpCmd.Cmd.(type) {
 	case ipc.ReloadCmd:
 		return self.doReloadCmd(cmd)
 
@@ -298,6 +305,9 @@ func (self *JobManager) doCmd(
 		return self.doLogCmd(cmd)
 
 	case ipc.TestCmd:
+		if tmpCmd.ServerType == IpcServerTypeInet {
+			return ipc.NewErrorCmdResp(fmt.Errorf("\"test\" is no longer supported over TCP"))
+		}
 		return self.doTestCmd(cmd)
 
 	case ipc.CatCmd:
