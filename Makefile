@@ -53,7 +53,7 @@ include mk/buildtools.mk # defines 'GO_WITH_TOOLS' and 'GOYACC'
 ################################################################################
 
 .PHONY : build
-build : ${OUTPUT_DIR}/jobber ${OUTPUT_DIR}/jobbermaster \
+build : check ${OUTPUT_DIR}/jobber ${OUTPUT_DIR}/jobbermaster \
 		${OUTPUT_DIR}/jobberrunner ${OUTPUT_DIR}/jobber.conf
 	@echo
 	@echo "Built with these paths:"
