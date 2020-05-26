@@ -1,4 +1,10 @@
-jobber (1.4.2-1) UNRELEASED; urgency=low
+jobber (1.4.3-1) UNRELEASED; urgency=low
+
+  * Release 1.4.3
+
+ -- C. Dylan Shearer <dylan@nekonya.info>  Mon, 25 May 2020 17:24:00 -0800
+ 
+ jobber (1.4.2-1) UNRELEASED; urgency=low
 
   * Release 1.4.2
 
