@@ -1,12 +1,15 @@
 package jobfile
 
 import (
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
+	"io/ioutil"
 	"os"
+	"path"
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 type RunLogEntrySorter []*RunLogEntry
@@ -205,7 +208,13 @@ func TestMemOnlyRunLog(t *testing.T) {
 }
 
 func TestFileRunLog(t *testing.T) {
-	path := "/tmp/runlog"
+	tmpDir, err := ioutil.TempDir("/tmp", "unittest-*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	path := path.Join(tmpDir, "runlog")
 	makeRunLog := func() (RunLog, error) {
 		maxFileLen := (gLogEntryLen+1)*2 + gLogEntryLen
 		log, err := NewFileRunLog(path, maxFileLen, 3)
@@ -219,5 +228,4 @@ func TestFileRunLog(t *testing.T) {
 		return log.(*fileRunLog).debugInfo()
 	}
 	suite.Run(t, NewRunLogTestSuite(makeRunLog, debugInfo))
-	os.Remove(path)
 }
