@@ -142,7 +142,7 @@ func (self *backingFileDtor) readEntry(idx int,
 	}
 	entry, err := decodeRunLogEntry(string(buf))
 	if err != nil {
-		msg := fmt.Sprintf("Entry %v in %v is bad", idx, self.path)
+		msg := fmt.Sprintf("Entry %v in %v is bad: %v", idx, self.path, err)
 		return nil, &common.Error{What: msg, Cause: err}
 	}
 	return entry, nil
@@ -928,8 +928,10 @@ func decodeRunLogEntry(s string) (*RunLogEntry, error) {
 
 	// split string into fields
 	fields := strings.Split(s, "\t")
-	if len(fields) != 5 {
-		msg := "Not enough fields in log entry line."
+	nbrFields := 5
+	if len(fields) != nbrFields {
+		msg := fmt.Sprintf("Wrong number of fields in log entry line: %v but expected %v",
+			len(fields), nbrFields)
 		return nil, &common.Error{What: msg}
 	}
 
