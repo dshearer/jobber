@@ -3,7 +3,6 @@ package testjob
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -107,6 +106,7 @@ func (self *TestJobServer) serve(job *jobfile.Job, listener net.Listener, sockDi
 		// wait for subproc to finish
 		result = <-thread.ResultChan()
 	}
+	common.Logger.Println("test thread done")
 
 	// report result
 	conn.Write([]byte("\n\n"))
@@ -139,7 +139,7 @@ func callWhenConnClosed(conn net.Conn, cb func()) {
 		var buf [1]byte
 		for {
 			_, err := conn.Read(buf[:])
-			if err == io.EOF {
+			if err != nil {
 				cb()
 				return
 			}
