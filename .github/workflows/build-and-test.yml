@@ -48,9 +48,10 @@ jobs:
                 apk add make
                 apk add alpine-sdk
                 apk add go
+                apk add su-exec
 
                 adduser -G abuild -D jobber
-                sudo -u jobber abuild-keygen -an
+                su jobber -c "abuild-keygen -an"
                 find "/home/jobber/.abuild" -name '*.rsa.pub' -exec mv {} /etc/apk/keys/ ';'
                 chown root:root /etc/apk/keys/*
 
@@ -60,7 +61,7 @@ jobs:
             - name: Make package
               run: |
                 chmod a+w . packaging/alpine
-                sudo -u jobber make -C packaging/alpine pkg-local "DESTDIR=${GITHUB_WORKSPACE}/pkgs/"
+                su jobber -c "make -C packaging/alpine pkg-local DESTDIR=${GITHUB_WORKSPACE}/pkgs/"
 
             - name: Publish package
               uses: actions/upload-artifact@v1.0.0
