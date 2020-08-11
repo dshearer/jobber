@@ -79,8 +79,15 @@ $release = latestRelease();
           </li>
           <?php } ?>
       </ul>
+
+      <h3>Mac</h3>
+
+      <p>On Mac, Jobber can be installed with Homebrew:</p>
+
+      <pre>brew install jobber
+sudo brew services start jobber</pre>
       
-      <h3>Binary Packages</h3>
+      <h3>Linux Packages</h3>
       <table class="table">
         <thead>
           <tr>
