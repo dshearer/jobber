@@ -177,26 +177,36 @@
   <p>Instead of installing a binary package, you can certainly compile and
     install Jobber yourself.</p>
 
-  <p>You need Go 1.11 or later to compile Jobber. So, install Go, pick a
-    place for your workspace (say, /path/to/your/workspace), and ensure that the
-    environment variable <code>GOPATH</code> includes a path to your workspace.
-    Then:</p>
+  <p>A Jobber installation consists of four files:</p>
 
-  <pre>cd /path/to/your/workspace
-mkdir -p src/github.com/dshearer
-cd src/github.com/dshearer
-git clone https://github.com/dshearer/jobber.git
-cd jobber
-git checkout v1.4-pr.1
-make check
-sudo make install DESTDIR=/</pre>
-
-  <p>This will install the following:</p>
   <ul>
-    <li>/usr/local/bin/jobber</li>
-    <li>/usr/local/libexec/jobbermaster</li>
-    <li>/usr/local/libexec/jobberrunner</li>
+    <li><code>jobber</code>: A command-line program</li>
+    <li><code>jobberrunner</code>: A per-user daemon that runs jobs</li>
+    <li><code>jobbermaster</code>: A daemon that runs as root and controls all the
+      <code>jobberrunner</code> instances</li>
+    <li><code>jobber.conf</code>: A YAML config file</li>
   </ul>
+
+  <p>To build, you first need a recent version of Go. Next:</p>
+
+  <pre>git clone https://github.com/dshearer/jobber.git
+cd jobber
+git checkout v1.4.4
+make</pre>
+
+  <p>The results will be put in a directory named &ldquo;bin&rdquo;.</p>
+
+  <p>To install Jobber:</p>
+
+  <pre>sudo make install</pre>
+
+  <p>You can change where the four files are installed by first running
+    <code>./configure</code> (do <code>./configure -h</code> for the syntax)
+  and then:</p>
+
+  <pre>make clean
+make build
+sudo make install</pre>
 
   <p>
     Finally, do something to ensure that jobbermaster runs as a daemon (as root)
