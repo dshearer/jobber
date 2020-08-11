@@ -109,16 +109,15 @@ $release = latestRelease();
       
       <h3>Docker Images</h3>
       
-      <p>Docker images containing Jobber are available on
-      <a href="https://hub.docker.com/r/dshearer/jobber/">Docker Hub</a>.</p>
+      <pre>docker pull jobber</pre>
       
-      <pre>docker pull dshearer/jobber</pre>
-      
-      <p>These images contain Jobber running for a single user named
-      &ldquo;jobberuser&rdquo;, using the jobfile at /home/jobberuser/.jobber
-      (in the images' filesystems). To use one of them, create an image
-      based on it and replace /home/jobberuser/.jobber with your own
-      custom jobfile.</p>
+      <p>These images contain Jobber running as an unprivileged user named &ldquo;jobberuser&rdquo;.
+        The jobs are defined in the file <code>/home/jobberuser/.jobber</code>. By default, the
+        only job is one that prints &ldquo;Jobber is running!&rdquo; every second. You should
+        replace it with your own jobs.</p>
+
+      <p>The images are based on Alpine. You can find a list of them
+        <a href="https://hub.docker.com/_/jobber">here</a>.</p>
       
     </section>
   </div>
