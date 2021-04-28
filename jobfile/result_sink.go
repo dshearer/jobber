@@ -166,7 +166,7 @@ func SerializeRunRec(rec RunRec, data ResultSinkDataParam) []byte {
 		recJson[key] = outputStr
 	}
 	if data.Contains(RESULT_SINK_DATA_STDERR) {
-		outputStr, isBase64 := SafeBytesToStr(rec.Stdout)
+		outputStr, isBase64 := SafeBytesToStr(rec.Stderr)
 		var key string
 		if isBase64 {
 			key = "stderrBase64"
