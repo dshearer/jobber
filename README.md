@@ -2,6 +2,8 @@
 
 A replacement for cron, with sophisticated status-reporting and error-handling.
 
+** NOTE ** Due to lack of time, this project is not actively maintained. Please get in touch if you're interested in taking it over.
+
 ## Intro
 
 Jobber is a lightweight utility for Unix-like systems that can run arbitrary commands, or "jobs", according to a schedule.  It is meant to be a replacement for the classic Unix utility [cron](http://en.wikipedia.org/wiki/Cron).
