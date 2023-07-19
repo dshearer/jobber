@@ -20,9 +20,7 @@ func saveLogFileHandles(handles ...*os.File) {
 	gLogFileHandles = gLogFileHandles[0:0]
 
 	// save new ones
-	for _, f := range handles {
-		gLogFileHandles = append(gLogFileHandles, f)
-	}
+	gLogFileHandles = append(gLogFileHandles, handles...)
 }
 
 func LogAllToStderr() {
